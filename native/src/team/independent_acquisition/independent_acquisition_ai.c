@@ -74,21 +74,8 @@ int kbo_run_independent_team_acquisition_ai(const char* source)
     }
     uint32_t season = kbo_independent_acquisition_effective_season(today);
     int window_active = kbo_independent_acquisition_window_active(today);
-    KboIndependentAcquisitionQueuedRequest pending_gate[KBO_INDEPENDENT_ACQUISITION_MAX_QUEUE];
-    int pending_gate_count = kbo_independent_acquisition_load_requests(
-        season,
-        pending_gate,
-        KBO_INDEPENDENT_ACQUISITION_MAX_QUEUE);
-    if (!window_active && pending_gate_count <= 0) {
+    if (!window_active) {
         goto cleanup;
-    }
-    if (!window_active && pending_gate_count > 0) {
-        kbo_log_runtimef(
-            "independent acquisition AI catch-up source=%s today=%u season=%u pending=%d reason=window_closed_with_pending",
-            source != NULL ? source : "",
-            today,
-            season,
-            pending_gate_count);
     }
     if (kbo_independent_acquisition_abort_if_save(source, "after_date", today)) {
         abort_for_save = 1;
@@ -204,6 +191,7 @@ int kbo_run_independent_team_acquisition_ai(const char* source)
 
     int requested = 0;
     int refreshed_pending = 0;
+    int shortlist_requests = 0;
     int considered_buyers = 0;
     int skipped_human = 0;
     KboIndependentAcquisitionQueuedRequest pending_requests[KBO_INDEPENDENT_ACQUISITION_MAX_QUEUE];
@@ -222,10 +210,11 @@ int kbo_run_independent_team_acquisition_ai(const char* source)
             skipped_human++;
             continue;
         }
-        if (kbo_independent_acquisition_buyer_has_pending_request(
+        int buyer_pending_count = kbo_independent_acquisition_buyer_pending_request_count(
                 pending_requests,
                 pending_request_count,
-                buyer_team_id)) {
+                buyer_team_id);
+        if (buyer_pending_count >= KBO_INDEPENDENT_ACQUISITION_BUYER_PENDING_LIMIT) {
             refreshed_pending++;
             continue;
         }
@@ -242,41 +231,47 @@ int kbo_run_independent_team_acquisition_ai(const char* source)
         }
         considered_buyers++;
 
-        KboIndependentAcquisitionCandidate candidate;
-        if (!window_active
-                || available_seller_count <= 0
-                || !kbo_independent_acquisition_choose_candidate_for_buyer(
-                snapshot,
-                player_count,
-                available_sellers,
-                available_seller_count,
-                &buyer,
-                &candidate)) {
-            continue;
-        }
-
-        const KboIndependentFuturesTeamLeague* seller = NULL;
-        for (int s = 0; s < available_seller_count; s++) {
-            if (available_sellers[s].team_id == candidate.seller_team_id) {
-                seller = &available_sellers[s];
+        while (window_active
+                && available_seller_count > 0
+                && buyer_pending_count < KBO_INDEPENDENT_ACQUISITION_BUYER_PENDING_LIMIT) {
+            KboIndependentAcquisitionCandidate candidate;
+            if (!kbo_independent_acquisition_choose_candidate_for_buyer(
+                    snapshot,
+                    player_count,
+                    available_sellers,
+                    available_seller_count,
+                    pending_requests,
+                    pending_request_count,
+                    &buyer,
+                    &candidate)) {
                 break;
             }
-        }
-        if (seller == NULL) {
-            continue;
-        }
-        if (kbo_independent_acquisition_abort_if_save(source, "before_append_request", today)) {
-            abort_for_save = 1;
-            goto cleanup;
-        }
 
-        int request_available = kbo_independent_acquisition_append_request(
-            today,
-            &candidate,
-            &buyer,
-            seller,
-            source);
-        if (request_available) {
+            const KboIndependentFuturesTeamLeague* seller = NULL;
+            for (int s = 0; s < available_seller_count; s++) {
+                if (available_sellers[s].team_id == candidate.seller_team_id) {
+                    seller = &available_sellers[s];
+                    break;
+                }
+            }
+            if (seller == NULL) {
+                break;
+            }
+            if (kbo_independent_acquisition_abort_if_save(source, "before_append_request", today)) {
+                abort_for_save = 1;
+                goto cleanup;
+            }
+
+            int request_available = kbo_independent_acquisition_append_request(
+                today,
+                &candidate,
+                &buyer,
+                seller,
+                source);
+            if (!request_available) {
+                break;
+            }
+
             char request_score_text[32] = {0};
             snprintf(request_score_text, sizeof(request_score_text), "%" PRId64, (int64_t)candidate.request_score);
             if (kbo_independent_acquisition_abort_if_save(source, "before_pending_offer_record", today)) {
@@ -287,9 +282,23 @@ int kbo_run_independent_team_acquisition_ai(const char* source)
                 buyer.team_id,
                 (uint8_t*)candidate.player_ptr,
                 today);
+            if (pending_request_count < KBO_INDEPENDENT_ACQUISITION_MAX_QUEUE) {
+                KboIndependentAcquisitionQueuedRequest* pending = &pending_requests[pending_request_count++];
+                pending->date = today;
+                pending->season = season;
+                pending->buyer_team_id = buyer.team_id;
+                pending->seller_team_id = candidate.seller_team_id;
+                pending->player_id = candidate.player_id;
+                pending->request_score = candidate.request_score;
+                pending->value_score = candidate.value_score;
+                pending->cash_cost = kbo_independent_acquisition_cash_cost_for_player(
+                    (uint8_t*)candidate.player_ptr);
+            }
+            buyer_pending_count++;
+            shortlist_requests++;
             requested++;
             kbo_log_runtimef(
-                "independent acquisition AI request source=%s action=%s buyer=%u seller=%u seller_csv=%s player=%u score=%s value=%d cash_cost=%d cash_available=%d effective=%u->%u limit=%u slot=%s",
+                "independent acquisition AI request source=%s action=%s buyer=%u seller=%u seller_csv=%s player=%u score=%s value=%d cash_cost=%d cash_available=%d effective=%u->%u limit=%u slot=%s shortlist_slot=%d",
                 source != NULL ? source : "",
                 "new",
                 buyer.team_id,
@@ -303,15 +312,17 @@ int kbo_run_independent_team_acquisition_ai(const char* source)
                 candidate.effective_before,
                 candidate.effective_after,
                 candidate.effective_limit,
-                candidate.slot_type != 0u ? kbo_foreign_injury_slot_label(candidate.slot_type) : "none");
+                candidate.slot_type != 0u ? kbo_foreign_injury_slot_label(candidate.slot_type) : "none",
+                buyer_pending_count);
         }
     }
 
     kbo_log_runtimef(
-        "independent acquisition AI summary source=%s today=%u requested=%d refreshed_pending=%d buyers=%d skipped_human=%d sellers=%d available_sellers=%d capped_sellers=%d seller_transfer_limit=%d player_count=%d team_scanned=%d team_unreadable=%d",
+        "independent acquisition AI summary source=%s today=%u requested=%d shortlist_requests=%d refreshed_pending=%d buyers=%d skipped_human=%d sellers=%d available_sellers=%d capped_sellers=%d seller_transfer_limit=%d buyer_pending_limit=%d player_count=%d team_scanned=%d team_unreadable=%d",
         source != NULL ? source : "",
         today,
         requested,
+        shortlist_requests,
         refreshed_pending,
         considered_buyers,
         skipped_human,
@@ -319,6 +330,7 @@ int kbo_run_independent_team_acquisition_ai(const char* source)
         available_seller_count,
         capped_sellers,
         seller_transfer_limit,
+        KBO_INDEPENDENT_ACQUISITION_BUYER_PENDING_LIMIT,
         player_count,
         scanned,
         unreadable);

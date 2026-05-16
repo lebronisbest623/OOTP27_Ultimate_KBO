@@ -110,24 +110,15 @@ __declspec(noinline) void ootp_kbo_salary_arbitration_non_tender_wrapper(
             && kbo_fa_declaration_find_latest_decision(player_id, declaration_season, &decision);
 
         if (fa_declaration_decision_found && decision.declared == 0u) {
-            uint32_t floor_league_id = original_team_league_id != 0u
-                ? original_team_league_id
-                : (player_league_id != 0u ? player_league_id : player_draft_league_id);
-            int32_t salary_floor = kbo_salary_arbitration_resolve_minimum_salary(floor_league_id);
-            int32_t repair_floor = old_offer > salary_floor ? old_offer : salary_floor;
             uint32_t repair_season = kbo_fa_declaration_retained_contract_season(
                 decision.season != 0u ? decision.season : declaration_season);
             int retained_repaired = kbo_fa_declaration_repair_retained_contract_salary(
                 player,
                 repair_season,
                 &decision,
-                repair_floor,
+                0,
                 "arbitration_non_tender_transition_skip");
             int32_t new_offer = *(int32_t*)(player + OOTP27_PLAYER_ARBITRATION_OFFER_OFFSET);
-            if (new_offer < salary_floor) {
-                *(int32_t*)(player + OOTP27_PLAYER_ARBITRATION_OFFER_OFFSET) = salary_floor;
-                new_offer = salary_floor;
-            }
 
             static LONG fa_declaration_skip_log_count = 0;
             LONG slot = InterlockedIncrement(&fa_declaration_skip_log_count);

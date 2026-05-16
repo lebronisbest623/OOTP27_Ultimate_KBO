@@ -119,7 +119,14 @@ int kbo_captain_existing_row_still_with_team(const KboCaptainSelectionRow* row)
     if (player[OOTP27_PLAYER_RETIRED_FLAG_OFFSET] != 0u) {
         return 0;
     }
-    return kbo_player_current_assignment_matches_team_or_affiliate(player, row->team_id);
+    if (kbo_player_current_assignment_matches_team_or_affiliate(player, row->team_id)) {
+        return 1;
+    }
+    if (player[OOTP27_PLAYER_INJURY_ACTIVE_OFFSET] != 0u
+            && (row->current_team_id == row->team_id || row->active_team_id == row->team_id)) {
+        return 1;
+    }
+    return 0;
 }
 
 static int kbo_captain_row_is_resolved_empty_exhibition_team(const KboCaptainSelectionRow* row)

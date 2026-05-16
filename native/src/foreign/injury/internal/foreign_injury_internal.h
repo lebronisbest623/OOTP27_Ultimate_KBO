@@ -114,6 +114,11 @@ int kbo_foreign_injury_recent_message_has_long_term_injury(
     uint32_t player_id,
     int min_days,
     int* out_days);
+int kbo_foreign_injury_recent_sql_has_long_term_injury_date(
+    uint32_t player_id,
+    int min_days,
+    int* out_days,
+    uint32_t* out_evidence_date);
 const char* kbo_foreign_injury_slot_label(uint8_t slot_type);
 const char* kbo_foreign_injury_status_label(uint8_t status);
 void kbo_lock_foreign_injury_replacements(void);

@@ -11,6 +11,9 @@
 #define KBO_INDEPENDENT_ACQUISITION_MAX_BUYERS 32
 #define KBO_INDEPENDENT_ACQUISITION_MAX_SELLERS 8
 #define KBO_INDEPENDENT_ACQUISITION_MAX_QUEUE 256
+#define KBO_INDEPENDENT_ACQUISITION_BUYER_PENDING_LIMIT 2
+#define KBO_INDEPENDENT_ACQUISITION_SELLER_DAILY_TRANSFER_LIMIT 1
+#define KBO_INDEPENDENT_ACQUISITION_SELLER_TRANSFER_COOLDOWN_DAYS 5
 #define KBO_INDEPENDENT_ACQUISITION_TEAM_FINANCIALS_BLOCK_OFFSET 0x2510u
 #define KBO_INDEPENDENT_ACQUISITION_TEAM_FINANCIALS_CASH_OFFSET 0xc0u
 #define KBO_INDEPENDENT_ACQUISITION_TEAM_FINANCIALS_READABLE_BYTES \
@@ -83,6 +86,8 @@ int kbo_independent_acquisition_choose_candidate_for_buyer(
     int32_t player_count,
     const KboIndependentFuturesTeamLeague* sellers,
     int seller_count,
+    const KboIndependentAcquisitionQueuedRequest* market_requests,
+    int market_request_count,
     const KboIndependentAcquisitionBuyerState* buyer,
     KboIndependentAcquisitionCandidate* out_candidate);
 int kbo_independent_acquisition_request_exists(
@@ -116,6 +121,9 @@ int kbo_independent_acquisition_decision_exists(
     uint32_t seller_team_id,
     uint32_t player_id);
 int kbo_independent_acquisition_transferred_count(
+    uint32_t season,
+    uint32_t seller_team_id);
+uint32_t kbo_independent_acquisition_last_transfer_date(
     uint32_t season,
     uint32_t seller_team_id);
 int kbo_independent_acquisition_buyer_transferred_count(

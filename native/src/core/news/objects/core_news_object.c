@@ -127,6 +127,8 @@ int create_kbo_real_add_news(
     }
     KboNewsRelatedIds related;
     kbo_news_related_ids_collect_pair(&related, title, body);
+    uint32_t primary_team_id = related.team_count > 0 ? related.team_ids[0] : 0u;
+    uint32_t primary_player_id = related.player_count > 0 ? related.player_ids[0] : 0u;
 
     *(uint32_t*)(news + OOTP27_NEWS_LEAGUE_ID_OFFSET) = league_id;
     *(uint32_t*)(news + OOTP27_NEWS_CATEGORY_OFFSET) = 3u;
@@ -134,8 +136,8 @@ int create_kbo_real_add_news(
     *(uint32_t*)(news + OOTP27_NEWS_FLAGS_58_OFFSET) = 1u;
     *(uint32_t*)(news + OOTP27_NEWS_TYPE_OFFSET) = 3u;
     *(uint32_t*)(news + OOTP27_NEWS_SECONDARY_LEAGUE_ID_OFFSET) = league_id;
-    *(uint32_t*)(news + OOTP27_NEWS_TEAM_ID_OFFSET) = related.team_count > 0 ? related.team_ids[0] : 0xffffffffu;
-    *(uint32_t*)(news + OOTP27_NEWS_PLAYER_ID_OFFSET) = related.player_count > 0 ? related.player_ids[0] : 0u;
+    *(uint32_t*)(news + OOTP27_NEWS_TEAM_ID_OFFSET) = primary_team_id != 0u ? primary_team_id : 0xffffffffu;
+    *(uint32_t*)(news + OOTP27_NEWS_PLAYER_ID_OFFSET) = primary_player_id;
     *(uint16_t*)(news + OOTP27_NEWS_YEAR_OFFSET) = (uint16_t)year;
     *(news + OOTP27_NEWS_DAY_OFFSET) = (uint8_t)day;
     *(news + OOTP27_NEWS_MONTH_OFFSET) = (uint8_t)month;

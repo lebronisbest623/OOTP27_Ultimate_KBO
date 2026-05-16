@@ -260,7 +260,7 @@ int kbo_emit_independent_acquisition_transfer_news(
         return 0;
     }
 
-    int created = create_kbo_native_live_news_with_body(
+    int created = create_kbo_native_live_news_with_body_live_required(
         today / 10000u,
         (today / 100u) % 100u,
         today % 100u,

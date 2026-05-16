@@ -40,6 +40,11 @@ int kbo_foreign_injury_recent_sql_has_long_term_injury(
     uint32_t player_id,
     int min_days,
     int* out_days);
+int kbo_foreign_injury_recent_sql_has_long_term_injury_date(
+    uint32_t player_id,
+    int min_days,
+    int* out_days,
+    uint32_t* out_evidence_date);
 int kbo_foreign_injury_resolve_player_team_assignment(
     uint8_t* player,
     uint32_t player_id,

@@ -63,12 +63,12 @@
   "foreign_injury.closed_invalid.body.variants": 2,
   "foreign_injury.closed_invalid.body.v1": "{team_link}가 {injured_player_link}에게 열려 있던 부상 대체 외국인 예외를 정리했습니다. 장기 부상 근거가 더 이상 확인되지 않으면서, 임시 슬롯은 정상 외국인 선수 제한 안으로 돌아갑니다.\n\n{replacement_player_link}도 대체 선수 기록에서 정리됐습니다. 구단은 남은 시즌 외국인 선수단을 일반 규정 안에서 다시 운영하게 됩니다.",
   "foreign_injury.closed_invalid.body.v2": "{injured_player_link}의 부상 대체 슬롯이 닫혔습니다. {team_link}는 장기 부상 예외를 유지할 근거가 사라졌다고 판단해 임시 외국인 선수 예외를 종료했습니다.\n\n이에 따라 {replacement_player_link}는 대체 슬롯에서 빠집니다. 외국인 선수단 운용은 다시 일반 제한을 기준으로 정리됩니다.",
-  "foreign_injury.closed_without_replacement.title": "{injured_player_name} 복귀, 대체 영입 없이 마무리",
+  "foreign_injury.closed_without_replacement.title": "{injured_player_name} 부상 대체 슬롯 정리",
   "foreign_injury.closed_without_replacement.title.variants": 2,
-  "foreign_injury.closed_without_replacement.title.v1": "{injured_player_name} 복귀, 대체 영입 없이 마무리",
-  "foreign_injury.closed_without_replacement.title.v2": "{injured_player_name} 복귀, 외국인 구상 유지",
-  "foreign_injury.closed_without_replacement.body": "{injured_player_link}가 부상에서 돌아오면서 {team_link}의 외국인 선수단 고민도 큰 변화 없이 마무리됐습니다.\n\n구단은 별도의 대체 영입 없이 시간을 버텼고, 이제 복귀한 {injured_player_link}와 함께 기존 구상을 이어갑니다. 관건은 이탈 기간 이후 경기 감각을 얼마나 빨리 되찾느냐입니다.",
+  "foreign_injury.closed_without_replacement.title.v1": "{injured_player_name} 부상 대체 슬롯 정리",
+  "foreign_injury.closed_without_replacement.title.v2": "{team_link}, 대체 영입 없이 예외 슬롯 종료",
+  "foreign_injury.closed_without_replacement.body": "{team_link}가 {injured_player_link}에게 열어뒀던 부상 대체 외국인 예외를 대체 영입 없이 정리했습니다.\n\n별도의 임시 외국인 선수는 연결되지 않았고, 구단은 다시 일반 외국인 선수 제한 안에서 선수단을 운용하게 됩니다.",
   "foreign_injury.closed_without_replacement.body.variants": 2,
-  "foreign_injury.closed_without_replacement.body.v1": "{injured_player_link}가 부상에서 돌아오면서 {team_link}의 외국인 선수단 고민도 큰 변화 없이 마무리됐습니다.\n\n구단은 별도의 대체 영입 없이 시간을 버텼고, 이제 복귀한 {injured_player_link}와 함께 기존 구상을 이어갑니다. 관건은 이탈 기간 이후 경기 감각을 얼마나 빨리 되찾느냐입니다.",
-  "foreign_injury.closed_without_replacement.body.v2": "{injured_player_link}가 돌아왔습니다. {team_link}는 부상 공백 동안 외부 영입 없이 버티는 쪽을 택했고, 결과적으로 외국인 선수단 구성도 그대로 이어가게 됐습니다.\n\n이제 시선은 다시 선수에게 향합니다. {injured_player_link}가 복귀 후 곧바로 전력의 한 축으로 돌아설 수 있을지가 남은 시즌의 관건입니다."
+  "foreign_injury.closed_without_replacement.body.v1": "{team_link}가 {injured_player_link}에게 열어뒀던 부상 대체 외국인 예외를 대체 영입 없이 정리했습니다.\n\n별도의 임시 외국인 선수는 연결되지 않았고, 구단은 다시 일반 외국인 선수 제한 안에서 선수단을 운용하게 됩니다.",
+  "foreign_injury.closed_without_replacement.body.v2": "{injured_player_link}의 부상 대체 외국인 슬롯이 종료됐습니다. {team_link}는 공백 기간 동안 별도 대체 영입을 확정하지 않았고, 해당 예외 슬롯도 더 이상 유지되지 않습니다.\n\n외국인 선수단 운용은 다시 일반 규정 기준으로 정리됩니다."
 }

@@ -7,5 +7,11 @@ int kbo_handle_independent_team_acquisition_open_event(
     uint32_t event_yyyymmdd,
     const char* source);
 uint32_t kbo_independent_team_acquisition_window_open_date(void);
+int kbo_independent_team_acquisition_window_active(
+    uint32_t today,
+    uint32_t* out_open_date,
+    uint8_t* out_effective_phase);
+uint32_t kbo_independent_team_acquisition_window_elapsed_days(uint32_t today);
+uint32_t kbo_independent_team_acquisition_window_planning_days(void);
 
 #endif

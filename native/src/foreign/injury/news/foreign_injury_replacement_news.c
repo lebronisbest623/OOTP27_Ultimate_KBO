@@ -1,5 +1,6 @@
 #include "../internal/foreign_injury_internal.h"
 
+#include "../../common/policy/foreign_player_policy.h"
 #include "../../../core/dates/core_text_date.h"
 #include "../../../core/news/templates/core_news_templates.h"
 #include "../../../team/names/team_string.h"
@@ -288,6 +289,12 @@ void kbo_emit_foreign_injury_replacement_news(
     } else if (phase != NULL && strcmp(phase, "closed_invalid") == 0) {
         title_key = "foreign_injury.closed_invalid.title";
         body_key = "foreign_injury.closed_invalid.body";
+    } else if (phase != NULL && strcmp(phase, "closed_with_replacement") == 0) {
+        title_key = "foreign_injury.closed_with_replacement.title";
+        body_key = "foreign_injury.closed_with_replacement.body";
+    } else if (phase != NULL && strcmp(phase, "closed_without_replacement") == 0) {
+        title_key = "foreign_injury.closed_without_replacement.title";
+        body_key = "foreign_injury.closed_without_replacement.body";
     } else if (phase != NULL && strcmp(phase, "closed") == 0) {
         if (rec->replacement_player_id != 0u) {
             title_key = "foreign_injury.closed_with_replacement.title";
@@ -316,6 +323,21 @@ void kbo_emit_foreign_injury_replacement_news(
             rec->injured_player_id,
             rec->league_id,
             days_left,
+            rec->expected_end_yyyymmdd,
+            event_date);
+        return;
+    }
+    if (days_left_required
+            && display_days_left < kbo_foreign_player_policy()->injury_replacement_min_days) {
+        kbo_log_runtimef(
+            "foreign injury replacement: news skipped phase=%s team=%u injured=%u league=%u reason=below_minimum_display_days days_left=%d display_days_left=%d min_days=%d expected_end=%u event_date=%u",
+            phase != NULL ? phase : "open",
+            rec->team_id,
+            rec->injured_player_id,
+            rec->league_id,
+            days_left,
+            display_days_left,
+            kbo_foreign_player_policy()->injury_replacement_min_days,
             rec->expected_end_yyyymmdd,
             event_date);
         return;

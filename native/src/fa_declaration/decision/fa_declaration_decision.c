@@ -173,7 +173,6 @@ void kbo_fa_declaration_apply_salary_grade(
             && rules.age_grade_min_age > 0u
             && rules.age_grade[0] != '\0'
             && candidate->age >= rules.age_grade_min_age
-            && kbo_fa_rules_case_is_compensable(&rules, candidate->case_label)
             && _stricmp(candidate->grade, rules.age_grade) != 0) {
         snprintf(candidate->grade, sizeof(candidate->grade), "%s", rules.age_grade);
     }

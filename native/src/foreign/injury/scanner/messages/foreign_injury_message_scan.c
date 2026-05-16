@@ -13,6 +13,7 @@
 typedef struct KboForeignInjuryMessageEvidenceCacheEntry {
     char save_path[MAX_PATH];
     uint32_t player_id;
+    uint32_t game_date_yyyymmdd;
     int min_days;
     DWORD file_count;
     FILETIME latest_write;
@@ -136,6 +137,7 @@ static int kbo_foreign_injury_message_signature(
 static int kbo_foreign_injury_message_cache_get(
     const char* save_path,
     uint32_t player_id,
+    uint32_t game_date_yyyymmdd,
     int min_days,
     DWORD file_count,
     FILETIME latest_write,
@@ -152,6 +154,7 @@ static int kbo_foreign_injury_message_cache_get(
 
     if (!cached.valid
             || cached.player_id != player_id
+            || cached.game_date_yyyymmdd != game_date_yyyymmdd
             || cached.min_days != min_days
             || cached.file_count != file_count
             || !kbo_foreign_injury_message_filetime_equal(cached.latest_write, latest_write)
@@ -168,6 +171,7 @@ static int kbo_foreign_injury_message_cache_get(
 static void kbo_foreign_injury_message_cache_store(
     const char* save_path,
     uint32_t player_id,
+    uint32_t game_date_yyyymmdd,
     int min_days,
     DWORD file_count,
     FILETIME latest_write,
@@ -181,6 +185,7 @@ static void kbo_foreign_injury_message_cache_store(
     entry->valid = 0u;
     snprintf(entry->save_path, sizeof(entry->save_path), "%s", save_path != NULL ? save_path : "");
     entry->player_id = player_id;
+    entry->game_date_yyyymmdd = game_date_yyyymmdd;
     entry->min_days = min_days;
     entry->file_count = file_count;
     entry->latest_write = latest_write;
@@ -297,6 +302,8 @@ int kbo_foreign_injury_recent_message_has_long_term_injury(
     if (!kbo_get_current_save_path(save_path, sizeof(save_path))) {
         return 0;
     }
+    uint32_t game_date_yyyymmdd = 0u;
+    kbo_get_current_yyyymmdd(&game_date_yyyymmdd);
 
     DWORD file_count = 0u;
     FILETIME latest_write = {0u, 0u};
@@ -307,6 +314,7 @@ int kbo_foreign_injury_recent_message_has_long_term_injury(
     int cached = kbo_foreign_injury_message_cache_get(
         save_path,
         player_id,
+        game_date_yyyymmdd,
         min_days,
         file_count,
         latest_write,
@@ -356,6 +364,7 @@ int kbo_foreign_injury_recent_message_has_long_term_injury(
     kbo_foreign_injury_message_cache_store(
         save_path,
         player_id,
+        game_date_yyyymmdd,
         min_days,
         file_count,
         latest_write,

@@ -109,39 +109,40 @@ int kbo_independent_acquisition_seller_pacing_deferred(
     }
 
     uint32_t today_serial = kbo_independent_acquisition_date_serial(today);
-    uint32_t open_serial = kbo_independent_acquisition_date_serial(
-        kbo_independent_team_acquisition_window_open_date());
     uint32_t request_serial = kbo_independent_acquisition_date_serial(request->date);
-    if (today_serial == 0u || open_serial == 0u || today_serial < open_serial) {
+    if (today_serial == 0u) {
         return 0;
     }
 
-    uint32_t window_age_days = today_serial - open_serial;
+    uint32_t window_age_days = kbo_independent_team_acquisition_window_elapsed_days(today);
     uint32_t request_age_days =
         request_serial != 0u && today_serial >= request_serial ? today_serial - request_serial : 0u;
-    uint32_t window_days =
-        kbo_foreign_player_policy()->pending_offer_ttl_days > 0
-            ? (uint32_t)kbo_foreign_player_policy()->pending_offer_ttl_days
-            : 45u;
+    uint32_t window_days = kbo_independent_team_acquisition_window_planning_days();
     uint32_t days_remaining = window_age_days < window_days ? window_days - window_age_days : 0u;
     uint32_t remaining_transfers = seller_transfer_limit > seller_transfers
         ? (uint32_t)(seller_transfer_limit - seller_transfers)
         : 0u;
-    if (remaining_transfers <= 1u || days_remaining <= remaining_transfers * 3u) {
+    if (remaining_transfers <= 0u) {
         return 0;
     }
 
-    uint32_t pacing_span = window_days > 10u ? window_days - 6u : window_days;
-    uint32_t base_day = 2u + ((uint32_t)seller_transfers * pacing_span) / (uint32_t)seller_transfer_limit;
+    uint32_t base_day =
+        ((uint32_t)(seller_transfers + 1) * window_days) / (uint32_t)(seller_transfer_limit + 1);
+    if (base_day < 2u) {
+        base_day = 2u;
+    }
     uint32_t jitter = kbo_independent_acquisition_seller_tiebreaker(
         request->season,
-        request) % 4u;
+        request) % 3u;
     uint32_t target_day = base_day + jitter;
-    if (request_age_days >= 10u && target_day > 2u) {
-        target_day -= 2u;
+    if (jitter > 0u) {
+        target_day--;
     }
-    if (request_age_days >= 18u) {
-        return 0;
+    if (request_age_days >= 14u && target_day > 3u) {
+        target_day--;
+    }
+    if (request_age_days >= 28u && target_day > 4u) {
+        target_day--;
     }
 
     if (out_window_age_days != NULL) {
@@ -157,6 +158,156 @@ int kbo_independent_acquisition_seller_pacing_deferred(
         *out_days_remaining = days_remaining;
     }
     return window_age_days < target_day;
+}
+
+int kbo_independent_acquisition_seller_cooldown_deferred(
+    uint32_t today,
+    uint32_t last_transfer_date,
+    uint32_t* out_days_since_transfer)
+{
+    if (last_transfer_date == 0u) {
+        return 0;
+    }
+
+    uint32_t today_serial = kbo_independent_acquisition_date_serial(today);
+    uint32_t last_serial = kbo_independent_acquisition_date_serial(last_transfer_date);
+    if (today_serial == 0u || last_serial == 0u || today_serial < last_serial) {
+        return 0;
+    }
+
+    uint32_t days_since = today_serial - last_serial;
+    if (out_days_since_transfer != NULL) {
+        *out_days_since_transfer = days_since;
+    }
+    return days_since < KBO_INDEPENDENT_ACQUISITION_SELLER_TRANSFER_COOLDOWN_DAYS;
+}
+
+int kbo_independent_acquisition_seller_strategy_deferred(
+    uint32_t today,
+    const KboIndependentAcquisitionQueuedRequest* request,
+    int seller_transfers,
+    int seller_transfer_limit,
+    int market_offer_count,
+    int64_t selected_score,
+    int64_t second_best_score,
+    int32_t player_value_score,
+    int64_t* out_reservation_score,
+    int64_t* out_hold_value,
+    uint32_t* out_window_age_days,
+    uint32_t* out_request_age_days,
+    uint32_t* out_days_remaining)
+{
+    if (request == NULL || seller_transfer_limit <= 0 || seller_transfers < 0
+            || selected_score == INT64_MIN) {
+        return 0;
+    }
+
+    uint32_t today_serial = kbo_independent_acquisition_date_serial(today);
+    uint32_t request_serial = kbo_independent_acquisition_date_serial(request->date);
+    if (today_serial == 0u) {
+        return 0;
+    }
+
+    uint32_t window_age_days = kbo_independent_team_acquisition_window_elapsed_days(today);
+    uint32_t request_age_days =
+        request_serial != 0u && today_serial >= request_serial ? today_serial - request_serial : 0u;
+    uint32_t window_days = kbo_independent_team_acquisition_window_planning_days();
+    uint32_t days_remaining = window_age_days < window_days ? window_days - window_age_days : 0u;
+    int remaining_transfers = seller_transfer_limit - seller_transfers;
+    if (remaining_transfers <= 0) {
+        return 0;
+    }
+
+    int64_t reservation_score = 205000ll;
+    if (player_value_score > 0) {
+        reservation_score += (int64_t)player_value_score / 4ll;
+    }
+    if (remaining_transfers <= 1) {
+        reservation_score += 18000ll;
+    } else if (remaining_transfers == 2) {
+        reservation_score += 9000ll;
+    }
+
+    int competition = market_offer_count > 0 ? market_offer_count - 1 : 0;
+    if (competition > 8) {
+        competition = 8;
+    }
+    reservation_score -= (int64_t)competition * 6500ll;
+
+    uint32_t aged_days = request_age_days > 30u ? 30u : request_age_days;
+    reservation_score -= (int64_t)aged_days * 850ll;
+
+    uint32_t market_days = window_age_days > 35u ? 35u : window_age_days;
+    reservation_score -= (int64_t)market_days * 250ll;
+
+    if (days_remaining <= 7u) {
+        reservation_score -= (int64_t)(8u - days_remaining) * 2500ll;
+    }
+    if (market_offer_count <= 1 && request_age_days < 10u && days_remaining > 14u) {
+        reservation_score += 18000ll;
+    }
+    if (market_offer_count >= 4 && request_age_days >= 18u) {
+        reservation_score -= 12000ll;
+    }
+    if (reservation_score < 165000ll) {
+        reservation_score = 165000ll;
+    }
+
+    int64_t hold_value = reservation_score;
+    if (days_remaining > KBO_INDEPENDENT_ACQUISITION_SELLER_TRANSFER_COOLDOWN_DAYS) {
+        int64_t option_value = 0ll;
+        int competition_pressure = market_offer_count > 1 ? market_offer_count - 1 : 0;
+        if (competition_pressure > 6) {
+            competition_pressure = 6;
+        }
+        option_value += (int64_t)competition_pressure * 4500ll;
+
+        uint32_t runway_days = days_remaining > 24u ? 24u : days_remaining;
+        option_value += (int64_t)runway_days * 450ll;
+
+        if (second_best_score > 0 && selected_score > second_best_score) {
+            int64_t bid_gap = selected_score - second_best_score;
+            if (bid_gap < 6000ll) {
+                option_value += 16000ll;
+            } else if (bid_gap < 14000ll) {
+                option_value += 9000ll;
+            } else if (bid_gap > 32000ll) {
+                option_value -= 7000ll;
+            }
+        } else if (market_offer_count <= 1) {
+            option_value += 18000ll;
+        }
+
+        if (remaining_transfers <= 2) {
+            option_value += 7000ll;
+        }
+        if (option_value > 36000ll) {
+            option_value = 36000ll;
+        }
+        if (option_value < -12000ll) {
+            option_value = -12000ll;
+        }
+        hold_value += option_value;
+    } else if (days_remaining <= 2u) {
+        hold_value -= 12000ll;
+    }
+
+    if (out_reservation_score != NULL) {
+        *out_reservation_score = reservation_score;
+    }
+    if (out_hold_value != NULL) {
+        *out_hold_value = hold_value;
+    }
+    if (out_window_age_days != NULL) {
+        *out_window_age_days = window_age_days;
+    }
+    if (out_request_age_days != NULL) {
+        *out_request_age_days = request_age_days;
+    }
+    if (out_days_remaining != NULL) {
+        *out_days_remaining = days_remaining;
+    }
+    return selected_score < hold_value;
 }
 
 int kbo_independent_acquisition_seller_abort_if_save(

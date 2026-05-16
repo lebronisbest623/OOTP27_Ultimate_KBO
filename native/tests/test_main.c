@@ -60,6 +60,7 @@ int kbo_current_date_is_valid(uint32_t* out_year, uint32_t* out_month, uint32_t*
 #include "../src/foreign/injury/api/foreign_injury.h"
 #include "../src/amateur_player_quality/api/amateur_player_quality.h"
 #include "../src/amateur_player_quality/assignment/policy/amateur_assignment_policy_values.h"
+#include "../src/team/independent_acquisition/ai/independent_acquisition_score.h"
 
 int kbo_amateur_player_is_hitter(uint8_t* player);
 uint32_t kbo_amateur_player_assignment_league_id(uint8_t* player);
@@ -1928,6 +1929,32 @@ static void test_amateur_assignment_policy(void)
     printf("test_amateur_assignment_policy: PASS\n");
 }
 
+static void test_independent_acquisition_score_policy(void)
+{
+    assert(kbo_independent_acquisition_market_interest_adjustment(0) == 0);
+    assert(kbo_independent_acquisition_market_interest_adjustment(1) == 2500);
+    assert(kbo_independent_acquisition_market_interest_adjustment(2) == 5000);
+    assert(kbo_independent_acquisition_market_interest_adjustment(3) == -9000);
+    assert(kbo_independent_acquisition_market_interest_adjustment(4) == -23000);
+    assert(kbo_independent_acquisition_market_interest_adjustment(9) == -93000);
+
+    int64_t team_1_pitcher = kbo_independent_acquisition_team_need_mix_adjustment(1u, 1, 0, 0);
+    int64_t team_1_hitter = kbo_independent_acquisition_team_need_mix_adjustment(1u, 0, 0, 0);
+    int64_t team_2_pitcher = kbo_independent_acquisition_team_need_mix_adjustment(2u, 1, 0, 0);
+    int64_t team_1_foreign_pitcher = kbo_independent_acquisition_team_need_mix_adjustment(1u, 1, 1, 0);
+
+    assert(team_1_pitcher >= 0 && team_1_pitcher < 9000);
+    assert(team_1_hitter >= 0 && team_1_hitter < 9000);
+    assert(team_2_pitcher >= 0 && team_2_pitcher < 9000);
+    assert(team_1_foreign_pitcher >= 0 && team_1_foreign_pitcher < 9000);
+    assert(team_1_pitcher == kbo_independent_acquisition_team_need_mix_adjustment(1u, 1, 0, 0));
+    assert(team_1_pitcher != team_1_hitter);
+    assert(team_1_pitcher != team_2_pitcher);
+    assert(team_1_pitcher != team_1_foreign_pitcher);
+
+    printf("test_independent_acquisition_score_policy: PASS\n");
+}
+
 int main(void)
 {
     test_core_text_and_sql_helpers();
@@ -1970,6 +1997,7 @@ int main(void)
     test_foreign_injury_inactive_roster_long_term_basis();
     test_foreign_injury_foreign_count_exclusion();
     test_amateur_assignment_policy();
+    test_independent_acquisition_score_policy();
     printf("All tests passed.\n");
     return 0;
 }

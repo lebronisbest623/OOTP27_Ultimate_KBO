@@ -12,14 +12,17 @@
 #include "../../../core/core_league_context_parts/api/league_context_lookup.h"
 #include "../../../custom_events/runtime/dates/custom_event_dates.h"
 #include "../../../core/files/save_paths/core_save_paths.h"
+#include "../../../core/dates/core_text_date.h"
 #include "../../../core/logging/core_log.h"
 #include "../../../core/news/live/core_live_news.h"
 #include "../../../core/news/templates/core_news_templates.h"
+#include "../../../core/season/phase/season_phase.h"
 #include "../../../foreign/common/policy/foreign_waiver_policy.h"
 
 static volatile LONG g_kbo_independent_team_acquisition_open_date = 0;
 
 #define KBO_INDEPENDENT_TEAM_ACQUISITION_WINDOW_FILE "independent_acquisition_window.txt"
+#define KBO_INDEPENDENT_ACQUISITION_REGULAR_SEASON_PLANNING_DAYS 160u
 
 static int kbo_independent_team_acquisition_window_path(char* out, size_t out_size)
 {
@@ -243,4 +246,65 @@ uint32_t kbo_independent_team_acquisition_window_open_date(void)
             0);
     }
     return loaded;
+}
+
+uint32_t kbo_independent_team_acquisition_window_planning_days(void)
+{
+    return KBO_INDEPENDENT_ACQUISITION_REGULAR_SEASON_PLANNING_DAYS;
+}
+
+uint32_t kbo_independent_team_acquisition_window_elapsed_days(uint32_t today)
+{
+    uint32_t open_date = kbo_independent_team_acquisition_window_open_date();
+    if (today == 0u || open_date == 0u || today < open_date) {
+        return 0u;
+    }
+
+    uint32_t open_serial = kbo_date_serial(
+        open_date / 10000u,
+        (open_date / 100u) % 100u,
+        open_date % 100u);
+    uint32_t today_serial = kbo_date_serial(
+        today / 10000u,
+        (today / 100u) % 100u,
+        today % 100u);
+    if (open_serial == 0u || today_serial == 0u || today_serial < open_serial) {
+        return 0u;
+    }
+    return today_serial - open_serial;
+}
+
+int kbo_independent_team_acquisition_window_active(
+    uint32_t today,
+    uint32_t* out_open_date,
+    uint8_t* out_effective_phase)
+{
+    if (out_open_date != NULL) {
+        *out_open_date = 0u;
+    }
+    if (out_effective_phase != NULL) {
+        *out_effective_phase = KBO_SEASON_PHASE_UNKNOWN;
+    }
+
+    uint32_t open_date = kbo_independent_team_acquisition_window_open_date();
+    if (out_open_date != NULL) {
+        *out_open_date = open_date;
+    }
+    if (today == 0u || open_date == 0u || today < open_date) {
+        return 0;
+    }
+
+    uint32_t league_id = kbo_get_foreign_waiver_league_id();
+    if (league_id == 0u) {
+        league_id = kbo_resolve_kbo_league_id();
+    }
+
+    KboSeasonPhaseInfo phase_info;
+    if (!kbo_season_phase_resolve(league_id, today, 0u, &phase_info)) {
+        return 0;
+    }
+    if (out_effective_phase != NULL) {
+        *out_effective_phase = phase_info.effective_phase;
+    }
+    return phase_info.effective_phase == KBO_SEASON_PHASE_REGULAR_SEASON;
 }

@@ -14,6 +14,7 @@
 #include "../../foreign/common/dates/foreign_waiver_date.h"
 #include "../../foreign/common/player_eval/foreign_waiver_player_eval.h"
 #include "../../runtime_memory/runtime_memory.h"
+#include "../../team/assignment/assignment/team_assignment.h"
 #include "../../team/lookup/team_lookup.h"
 
 static int32_t kbo_fa_declaration_parse_i32_text(const char* text)
@@ -153,8 +154,8 @@ int kbo_fa_declaration_repair_retained_contract_salary(
 
     int32_t* offer = (int32_t*)(player + OOTP27_PLAYER_ARBITRATION_OFFER_OFFSET);
     int32_t before_offer = *offer;
-    if (*offer < repair_salary) {
-        *offer = repair_salary;
+    if (*offer != 0) {
+        *offer = 0;
         changed = 1;
     }
 
@@ -258,6 +259,7 @@ int kbo_fa_declaration_repair_retained_contracts_for_season(
     int found = 0;
     int repaired = 0;
     int skipped_team = 0;
+    int restored_team = 0;
     for (int i = 0; i < decision_count; i++) {
         uint32_t current_team_id = 0u;
         uint32_t current_league_id = 0u;
@@ -270,10 +272,32 @@ int kbo_fa_declaration_repair_retained_contracts_for_season(
         }
         found++;
         if (*(uint32_t*)(player + OOTP27_PLAYER_NATION_ID_OFFSET) != OOTP27_KBO_KOREA_NATION_ID
-                || decisions[i].team_id == 0u
-                || current_team_id != decisions[i].team_id) {
+                || decisions[i].team_id == 0u) {
             skipped_team++;
             continue;
+        }
+        if (current_team_id != decisions[i].team_id) {
+            if (current_team_id == 0u) {
+                uint8_t* team = find_kbo_team_by_numeric_id_any_league(decisions[i].team_id, 1);
+                if (team != NULL && memory_range_readable(team, OOTP27_KBO_TEAM_READABLE_BYTES)) {
+                    int pre = 0;
+                    int reg = 0;
+                    int attach = 0;
+                    uint32_t fallback_league_id = decisions[i].league_id != 0u
+                        ? decisions[i].league_id
+                        : OOTP27_KBO_MAIN_LEAGUE_ID;
+                    kbo_assign_player_to_team_like_ootp(player, team, fallback_league_id, &pre, &reg, &attach);
+                    current_team_id = *(uint32_t*)(player + OOTP27_PLAYER_CURRENT_TEAM_ID_OFFSET);
+                    current_league_id = *(uint32_t*)(player + OOTP27_PLAYER_CURRENT_LEAGUE_ID_OFFSET);
+                    if (current_team_id == decisions[i].team_id) {
+                        restored_team++;
+                    }
+                }
+            }
+            if (current_team_id != decisions[i].team_id) {
+                skipped_team++;
+                continue;
+            }
         }
         uint32_t repair_season = kbo_fa_declaration_retained_contract_season(decisions[i].season);
         if (repair_season == 0u) {
@@ -289,13 +313,14 @@ int kbo_fa_declaration_repair_retained_contracts_for_season(
 
     if (rows > 0 || repaired > 0) {
         kbo_log_runtimef(
-            "KBO FA declaration retained contract repair scan source=%s season=%u rows=%d unique=%d found=%d repaired=%d skipped_team=%d csv=%s",
+            "KBO FA declaration retained contract repair scan source=%s season=%u rows=%d unique=%d found=%d repaired=%d restored_team=%d skipped_team=%d csv=%s",
             source != NULL ? source : "",
             season,
             rows,
             decision_count,
             found,
             repaired,
+            restored_team,
             skipped_team,
             path);
     }

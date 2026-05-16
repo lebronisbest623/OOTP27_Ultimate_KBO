@@ -7,6 +7,7 @@
 #include "../names/custom_event_names.h"
 
 #define KBO_CUSTOM_EVENT_RUN_ALREADY_COMPLETED 2
+#define KBO_CUSTOM_EVENT_RUN_IN_PROGRESS -2
 
 int kbo_run_custom_event_by_kind(
     uintptr_t event_ptr,

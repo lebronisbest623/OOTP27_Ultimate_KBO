@@ -36,27 +36,8 @@ static int kbo_independent_acquisition_ui_window_open(
         return 0;
     }
 
-    uint32_t ttl = (uint32_t)kbo_foreign_player_policy()->pending_offer_ttl_days;
-    uint32_t close_date = kbo_add_days_yyyymmdd(open_date, ttl);
-    if (out_close_date != NULL) {
-        *out_close_date = close_date;
-    }
-    if (close_date == 0u) {
-        return 0;
-    }
-
-    uint32_t open_serial = kbo_date_serial(
-        open_date / 10000u,
-        (open_date / 100u) % 100u,
-        open_date % 100u);
-    uint32_t today_serial = kbo_date_serial(
-        today / 10000u,
-        (today / 100u) % 100u,
-        today % 100u);
-    if (open_serial == 0u || today_serial == 0u || today_serial < open_serial) {
-        return 0;
-    }
-    return today <= close_date;
+    (void)open_date;
+    return kbo_independent_team_acquisition_window_active(today, NULL, NULL);
 }
 
 static uint32_t kbo_independent_acquisition_ui_effective_season(uint32_t today, uint32_t open_date)

@@ -110,6 +110,7 @@ if ($LASTEXITCODE -ne 0) {
     (Join-Path $Root "src\foreign\common\policy\foreign_player_policy.c") `
     (Join-Path $Root "src\foreign\common\player_eval\foreign_waiver_player_eval.c") `
     (Join-Path $Root "src\foreign\injury\state\foreign_injury_state.c") `
+    (Join-Path $Root "src\team\independent_acquisition\ai\independent_acquisition_score.c") `
     (Join-Path $Root "src\amateur_player_quality\assignment\policy\amateur_assignment_policy.c")
 if ($LASTEXITCODE -ne 0) {
     throw "Build failed"

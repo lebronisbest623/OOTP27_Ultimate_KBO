@@ -2,6 +2,7 @@
 #include <windows.h>
 
 #include "independent_acquisition_ai_internal.h"
+#include "independent_acquisition_score.h"
 
 #include <stdint.h>
 #include <string.h>
@@ -142,7 +143,8 @@ static int64_t kbo_independent_acquisition_score_candidate(
     const KboIndependentAcquisitionBuyerState* buyer,
     uint8_t* player,
     uint32_t effective_before,
-    uint32_t effective_limit)
+    uint32_t effective_limit,
+    int market_interest_count)
 {
     if (buyer == NULL || player == NULL) {
         return INT64_MIN;
@@ -187,7 +189,15 @@ static int64_t kbo_independent_acquisition_score_candidate(
     score += (int64_t)kbo_read_player_i16(player, OOTP27_PLAYER_OVERALL_VALUE_OFFSET) * 120;
     score += (int64_t)kbo_read_player_i16(player, OOTP27_PLAYER_RATINGS_VALUE_OFFSET) * 80;
 
+    score += kbo_independent_acquisition_market_interest_adjustment(market_interest_count);
+
     uint32_t player_id = *(uint32_t*)(player + OOTP27_PLAYER_ID_OFFSET);
+    score += kbo_independent_acquisition_team_need_mix_adjustment(
+        buyer->team_id,
+        pitcher,
+        foreign,
+        asian);
+
     uint32_t scouting_mix = buyer->team_id * 1103515245u
         ^ player_id * 2654435761u
         ^ (pitcher ? 0x9e3779b9u : 0x7f4a7c15u)
@@ -209,7 +219,8 @@ int64_t kbo_independent_acquisition_score_candidate_for_buyer(
         buyer,
         player,
         effective_before,
-        effective_limit);
+        effective_limit,
+        0);
 }
 
 uintptr_t kbo_independent_acquisition_find_player_snapshot(
@@ -239,6 +250,8 @@ int kbo_independent_acquisition_choose_candidate_for_buyer(
     int32_t player_count,
     const KboIndependentFuturesTeamLeague* sellers,
     int seller_count,
+    const KboIndependentAcquisitionQueuedRequest* market_requests,
+    int market_request_count,
     const KboIndependentAcquisitionBuyerState* buyer,
     KboIndependentAcquisitionCandidate* out_candidate)
 {
@@ -286,6 +299,20 @@ int kbo_independent_acquisition_choose_candidate_for_buyer(
         if (player_id == 0u) {
             continue;
         }
+        int buyer_already_requested = 0;
+        if (market_requests != NULL && market_request_count > 0) {
+            for (int r = 0; r < market_request_count; r++) {
+                if (market_requests[r].buyer_team_id == buyer->team_id
+                        && market_requests[r].player_id == player_id
+                        && market_requests[r].seller_team_id == seller->team_id) {
+                    buyer_already_requested = 1;
+                    break;
+                }
+            }
+        }
+        if (buyer_already_requested) {
+            continue;
+        }
         int32_t cash_cost = kbo_independent_acquisition_cash_cost_for_player(player);
         if (cash_cost <= 0 || buyer->cash_available < cash_cost) {
             continue;
@@ -310,11 +337,22 @@ int kbo_independent_acquisition_choose_candidate_for_buyer(
             }
         }
 
+        int market_interest_count = 0;
+        if (market_requests != NULL && market_request_count > 0) {
+            for (int r = 0; r < market_request_count; r++) {
+                if (market_requests[r].player_id == player_id
+                        && market_requests[r].seller_team_id == seller->team_id) {
+                    market_interest_count++;
+                }
+            }
+        }
+
         int64_t request_score = kbo_independent_acquisition_score_candidate(
             buyer,
             player,
             effective_before,
-            effective_limit);
+            effective_limit,
+            market_interest_count);
         if (request_score <= best.request_score) {
             continue;
         }

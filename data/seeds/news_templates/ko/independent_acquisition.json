@@ -1,6 +1,6 @@
 {
   "independent_acquisition.open.title": "퓨처스 독립 구단 영입 기간",
-  "independent_acquisition.open.news.body": "퓨처스리그 독립 구단들이 시즌 중반 전력 보강에 나설 수 있는 시간이 열렸습니다. 긴 시즌을 치르는 과정에서 생긴 빈자리를 메우고, 눈에 띄는 선수들에게는 다시 한 번 기회가 돌아갈 수 있는 무대입니다.\n\n울산 웨일즈를 비롯한 독립 구단들은 당장 필요한 포지션과 선수층을 살피며 움직일 전망입니다. KBO 구단들도 퓨처스 무대에서 꾸준히 모습을 보인 선수들의 다음 행선지를 주목하게 됐습니다.",
-  "independent_acquisition.transfer.title": "{buyer_team_name}, {seller_team_name}에서 {player_name} 이적료 {cash_cost}달러에 영입",
-  "independent_acquisition.transfer.news.body": "{buyer_team_link}가 퓨처스 독립 구단 {seller_team_link}에서 뛰던 {player_link}을 이적료 {cash_cost}달러에 영입했습니다.\n\n{buyer_team_link}는 시즌 중반 선수층을 넓히기 위해 독립 무대에서 꾸준히 기회를 노리던 {player_link}에게 손을 내밀었습니다. 이번 이동은 {seller_team_link}에 이적료를 지급하는 방식으로 마무리됐습니다."
+  "independent_acquisition.open.news.body": "퓨처스리그 독립 구단들이 시즌 중반 전력 보강에 나설 수 있는 시간이 열렸습니다. 이 영입 기간은 KBO 정규시즌이 종료될 때까지 이어지며, 긴 시즌을 치르는 과정에서 생긴 빈자리를 메우고 눈에 띄는 선수들에게 다시 한 번 기회가 돌아갈 수 있는 무대입니다.\n\n울산 웨일즈를 비롯한 독립 구단들은 정규시즌 종료 전까지 필요한 포지션과 선수층을 살피며 움직일 전망입니다. KBO 구단들도 퓨처스 무대에서 꾸준히 모습을 보인 선수들의 다음 행선지를 주목하게 됐습니다.",
+  "independent_acquisition.transfer.title": "{seller_team_name}의 {player_name}, {buyer_team_name}로 이적료 {cash_cost}달러에 이동",
+  "independent_acquisition.transfer.news.body": "{seller_team_link}에서 뛰던 {player_link}을 {buyer_team_link}가 이적료 {cash_cost}달러에 영입했습니다.\n\n{buyer_team_link}는 시즌 중반 선수층을 넓히기 위해 독립 무대에서 꾸준히 기회를 노리던 {player_link}에게 손을 내밀었습니다. 이번 이동은 {seller_team_link}에 이적료를 지급하는 방식으로 마무리됐습니다."
 }
