@@ -222,6 +222,28 @@ static int kbo_foreign_injury_message_contains_nocase(const char* text, const ch
     return 0;
 }
 
+static int kbo_foreign_injury_message_contains_exact_player_tag(
+    const char* text,
+    uint32_t player_id)
+{
+    if (text == NULL || player_id == 0u) {
+        return 0;
+    }
+
+    char player_tag[32] = {0};
+    snprintf(player_tag, sizeof(player_tag), "player#%u", player_id);
+    size_t tag_len = strlen(player_tag);
+    const char* p = text;
+    while ((p = strstr(p, player_tag)) != NULL) {
+        char next = p[tag_len];
+        if (next < '0' || next > '9') {
+            return 1;
+        }
+        p += tag_len;
+    }
+    return 0;
+}
+
 static int kbo_foreign_injury_message_file_has_long_term_injury(
     const char* path,
     uint32_t player_id,
@@ -268,10 +290,8 @@ static int kbo_foreign_injury_message_file_has_long_term_injury(
     }
     data[read < size ? read : size] = '\0';
 
-    char player_tag[32] = {0};
-    snprintf(player_tag, sizeof(player_tag), "player#%u", player_id);
     int evidence_days = 0;
-    int found = strstr(data, player_tag) != NULL
+    int found = kbo_foreign_injury_message_contains_exact_player_tag(data, player_id)
         && (kbo_foreign_injury_message_contains_nocase(data, "injured list")
             || kbo_foreign_injury_message_contains_nocase(data, "injury")
             || kbo_foreign_injury_message_contains_nocase(data, "injured")
