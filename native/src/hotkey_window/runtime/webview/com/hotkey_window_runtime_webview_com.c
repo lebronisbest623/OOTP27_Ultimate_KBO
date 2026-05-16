@@ -176,7 +176,7 @@ static ICoreWebView2EnvironmentOptionsVtbl g_kbo_webview_options_vtbl = {
 static KboWebViewEnvironmentOptions g_kbo_webview_environment_options = {
     { &g_kbo_webview_options_vtbl },
     1,
-    L"--disable-gpu --disable-gpu-compositing --disable-gpu-rasterization --disable-direct-composition --disable-zero-copy --disable-accelerated-2d-canvas",
+    L"--disable-gpu",
     L"",
     L"",
     FALSE
@@ -706,7 +706,17 @@ void kbo_start_webview_rights_ui(HWND hwnd)
         &g_kbo_webview_environment_options.iface,
         &g_kbo_webview_env_handler.iface);
     if (FAILED(hr)) {
-        kbo_log_runtimef("WebView2 environment start failed hr=0x%08lx", (unsigned long)hr);
+        kbo_log_runtimef(
+            "WebView2 environment start with rendering options failed hr=0x%08lx; retrying without options",
+            (unsigned long)hr);
+        hr = create_env(
+            NULL,
+            user_data[0] != L'\0' ? user_data : NULL,
+            NULL,
+            &g_kbo_webview_env_handler.iface);
+    }
+    if (FAILED(hr)) {
+        kbo_log_runtimef("WebView2 environment start failed after fallback hr=0x%08lx", (unsigned long)hr);
         InterlockedExchange(&g_kbo_webview_failed, 1);
     } else {
         kbo_log_runtime_line("WebView2 F2 rights UI starting");

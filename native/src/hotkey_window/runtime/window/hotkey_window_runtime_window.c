@@ -326,7 +326,10 @@ LRESULT CALLBACK kbo_hotkey_window_proc(HWND hwnd, UINT message, WPARAM wparam, 
             FillRect(hdc, &client, g_kbo_hub_brush_bg);
             if (InterlockedCompareExchange(&g_kbo_webview_ready, 0, 0) == 0) {
                 RECT text_rect = {22, 22, client.right - 22, 70};
-                kbo_hub_draw_text(hdc, "KBO FRONT OFFICE HTML UI LOADING...", text_rect,
+                const char* status_text = InterlockedCompareExchange(&g_kbo_webview_failed, 0, 0) != 0
+                    ? "KBO FRONT OFFICE HTML UI FAILED - CHECK runtime.ndjson"
+                    : "KBO FRONT OFFICE HTML UI LOADING...";
+                kbo_hub_draw_text(hdc, status_text, text_rect,
                     RGB(245, 241, 231), g_kbo_hub_font_title, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
             }
         }
