@@ -107,6 +107,7 @@ static DWORD WINAPI kbo_award_schedule_probe_thread(LPVOID parameter)
 
     uintptr_t last_league = 0u;
     uint32_t last_date = 0u;
+    char last_save_path[MAX_PATH] = {0};
     int logged = 0;
     int fast_retry_pulses = 0;
 
@@ -121,6 +122,18 @@ static DWORD WINAPI kbo_award_schedule_probe_thread(LPVOID parameter)
         }
         if (!kbo_fix_enabled()) {
             continue;
+        }
+
+        char save_path[MAX_PATH] = {0};
+        if (!kbo_get_current_save_path(save_path, sizeof(save_path))) {
+            continue;
+        }
+        if (last_save_path[0] == '\0' || strcmp(last_save_path, save_path) != 0) {
+            snprintf(last_save_path, sizeof(last_save_path), "%s", save_path);
+            last_league = 0u;
+            last_date = 0u;
+            logged = 0;
+            fast_retry_pulses = 0;
         }
 
         uint32_t year = 0u;

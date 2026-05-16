@@ -1,6 +1,8 @@
 #include "salary_snapshot_thread.h"
 
 #include <stdint.h>
+#include <stdio.h>
+#include <string.h>
 #include <windows.h>
 
 #include "../../bootstrap/profiling/profiler.h"
@@ -11,6 +13,7 @@
 #include "../../core/dates/core_current_date.h"
 #include "../../core/core_flags/api/flags_api.h"
 #include "../../core/core_league_context_parts/api/league_context_lookup.h"
+#include "../../core/files/save_paths/core_save_paths.h"
 #include "../../core/logging/core_log.h"
 #include "../../core/runtime_tuning/runtime_tuning_policy.h"
 #include "../../foreign/common/dates/foreign_waiver_date.h"
@@ -29,6 +32,7 @@ static DWORD WINAPI kbo_fa_salary_snapshot_thread(LPVOID parameter)
     uint32_t captured_season = 0u;
     uint32_t cbt_event_schedule_done_season = 0u;
     uint32_t cbt_auto_exception_done_season = 0u;
+    char captured_save_path[MAX_PATH] = {0};
     uint32_t cached_message_date = 0u;
     int cached_message_found = 0;
     DWORD cached_message_checked_ms = 0u;
@@ -70,6 +74,32 @@ static DWORD WINAPI kbo_fa_salary_snapshot_thread(LPVOID parameter)
             continue;
         }
         uint32_t date = year * 10000u + month * 100u + day;
+
+        char save_path[MAX_PATH] = {0};
+        if (!kbo_get_current_save_path(save_path, sizeof(save_path))) {
+            if (profile_snapshot_thread_tick_active) {
+                kbo_profiler_end("fa_salary_snapshot.thread.no_save", &profile_snapshot_thread_tick);
+            }
+            continue;
+        }
+        if (captured_save_path[0] == '\0' || strcmp(captured_save_path, save_path) != 0) {
+            snprintf(captured_save_path, sizeof(captured_save_path), "%s", save_path);
+            last_log_date = 0u;
+            last_log_opening_day = 0u;
+            captured_season = 0u;
+            cbt_event_schedule_done_season = 0u;
+            cbt_auto_exception_done_season = 0u;
+            cached_message_date = 0u;
+            cached_message_found = 0;
+            cached_message_checked_ms = 0u;
+            quiet_opening_unavailable_year = 0u;
+            cached_league_ptr = 0u;
+            cached_league_ptr_year = 0u;
+            cached_schedule_year = 0u;
+            cached_schedule_opening_day = 0u;
+            memset(&cached_cbt_rules, 0, sizeof(cached_cbt_rules));
+            cached_cbt_rules_date = 0u;
+        }
 
         uint32_t league_id = kbo_resolve_kbo_league_id();
 

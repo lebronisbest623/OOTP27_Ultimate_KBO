@@ -105,12 +105,25 @@ int kbo_run_captain_selection_maintenance_once(const char* source)
     static uint32_t last_thread_league_id = 0u;
     static uint32_t last_thread_league_season = 0u;
     static uint32_t last_thread_effective_season = 0u;
+    static char last_thread_save_path[MAX_PATH] = {0};
     static uint8_t last_thread_phase = 0xffu;
     static int last_thread_csv_exists = -1;
     static int last_thread_calendar_recovery = -1;
     static int last_thread_calendar_preseason = -1;
-    if (source != NULL
-            && strcmp(source, "captain_selection_thread") == 0
+    int source_is_captain_thread = source != NULL && strcmp(source, "captain_selection_thread") == 0;
+    if (source_is_captain_thread
+            && (last_thread_save_path[0] == '\0' || strcmp(last_thread_save_path, save_path) != 0)) {
+        snprintf(last_thread_save_path, sizeof(last_thread_save_path), "%s", save_path);
+        last_thread_date = 0u;
+        last_thread_league_id = 0u;
+        last_thread_league_season = 0u;
+        last_thread_effective_season = 0u;
+        last_thread_phase = 0xffu;
+        last_thread_csv_exists = -1;
+        last_thread_calendar_recovery = -1;
+        last_thread_calendar_preseason = -1;
+    }
+    if (source_is_captain_thread
             && date == last_thread_date
             && league_id == last_thread_league_id
             && league_season == last_thread_league_season
@@ -122,7 +135,7 @@ int kbo_run_captain_selection_maintenance_once(const char* source)
         KBO_PROFILE_END(profile_captain_selection_maintenance, "captain.maintenance.same_state");
         return 0;
     }
-    if (source != NULL && strcmp(source, "captain_selection_thread") == 0) {
+    if (source_is_captain_thread) {
         last_thread_date = date;
         last_thread_league_id = league_id;
         last_thread_league_season = league_season;

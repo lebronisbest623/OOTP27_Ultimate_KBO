@@ -193,6 +193,9 @@ DWORD WINAPI kbo_foreign_roster_daily_audit_thread(LPVOID parameter)
             snprintf(last_audit_save_path, sizeof(last_audit_save_path), "%s", save_path);
             last_audit_date = kbo_foreign_roster_daily_load_last_audit_date(
                 "foreign_roster_daily_save_scope");
+            last_custom_event_scheduled_date = 0u;
+            last_custom_event_scanned_date = 0u;
+            last_custom_event_fa_comp_date = 0u;
         }
         if (today == 0u || today == last_audit_date) {
             continue;

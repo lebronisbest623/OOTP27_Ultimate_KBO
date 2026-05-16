@@ -354,11 +354,39 @@ DWORD WINAPI kbo_military_days_tick_thread(LPVOID parameter)
 {
     (void)parameter;
     kbo_log_runtime_line("KBO military service day tick thread started");
+    uint32_t last_processed_serial = 0u;
+    char last_processed_save_path[MAX_PATH] = {0};
     while (kbo_runtime_threads_should_continue()) {
         if (!kbo_runtime_sleep_should_continue((uint32_t)kbo_runtime_tuning_policy()->military_days_tick_sleep_ms)) {
             break;
         }
+        uint32_t today_serial = kbo_current_date_serial();
+        char save_path[MAX_PATH] = {0};
+        if (today_serial == 0u || !kbo_get_current_save_path(save_path, sizeof(save_path))) {
+            continue;
+        }
+        if (last_processed_save_path[0] == '\0' || strcmp(last_processed_save_path, save_path) != 0) {
+            snprintf(last_processed_save_path, sizeof(last_processed_save_path), "%s", save_path);
+            last_processed_serial = 0u;
+        }
+        if (today_serial == last_processed_serial || !kbo_fix_enabled() || get_ootp_cached_global_database() == 0u) {
+            continue;
+        }
+        if (kbo_runtime_save_in_progress()) {
+            continue;
+        }
+        uintptr_t player_vector = 0u;
+        int32_t player_count = 0;
+        if (!find_kbo_global_player_vector(&player_vector, &player_count, NULL)
+                || player_vector == 0u
+                || player_count <= 0
+                || player_count > 200000) {
+            continue;
+        }
         kbo_tick_military_service_days("military_days_tick", NULL);
+        if (!kbo_runtime_save_in_progress()) {
+            last_processed_serial = today_serial;
+        }
     }
     InterlockedExchange(&g_military_days_tick_started, 0);
     kbo_log_runtime_line("KBO military service day tick thread stopped");
