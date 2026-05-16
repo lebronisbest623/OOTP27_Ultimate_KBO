@@ -74,6 +74,8 @@ void* kbo_resolve_build_specific_rva_ptr(HMODULE exe, uint32_t steam_rva)
             case OOTP27_LEAGUE_NEWS_REAL_ADD_RVA: rva = 0x003A0E10u; break;
             case OOTP27_NEWS_OBJECT_CTOR_RVA: rva = 0x005C3030u; break;
             case OOTP27_NEWS_STRING_ENSURE_RVA: rva = 0x005C5AA0u; break;
+            case OOTP27_NEWS_ADD_RELATED_PLAYER_RVA: rva = 0x005CAF40u; break;
+            case OOTP27_NEWS_ADD_RELATED_TEAM_RVA: rva = 0x005CB1C0u; break;
             case OOTP27_CREATE_MESSAGE_CORE_RVA: rva = 0x011DCDE0u; break;
             case OOTP27_UI_OPERATOR_NEW_RVA: rva = 0x024872C4u; break;
             case OOTP27_PLAYER_TOOLTIP_HOVER_MANAGER_RVA: rva = 0x00F51670u; break;
@@ -177,6 +179,8 @@ void* kbo_resolve_build_specific_rva_ptr(HMODULE exe, uint32_t steam_rva)
             case OOTP27_LEAGUE_NEWS_REAL_ADD_RVA: rva = 0x003A0E10u; break;
             case OOTP27_NEWS_OBJECT_CTOR_RVA: rva = 0x005C3030u; break;
             case OOTP27_NEWS_STRING_ENSURE_RVA: rva = 0x005C5AA0u; break;
+            case OOTP27_NEWS_ADD_RELATED_PLAYER_RVA: rva = 0x005CAF40u; break;
+            case OOTP27_NEWS_ADD_RELATED_TEAM_RVA: rva = 0x005CB1C0u; break;
             case OOTP27_CREATE_MESSAGE_CORE_RVA: rva = 0x011DDD90u; break;
             case OOTP27_UI_OPERATOR_NEW_RVA: rva = 0x024957D4u; break;
             case OOTP27_LEAGUE_FINANCIALS_LOOKUP_RVA: rva = 0x00414330u; break;

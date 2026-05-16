@@ -36,6 +36,7 @@ typedef uint32_t (__fastcall *OotpLeagueNewsRealAddFn)(
 
 typedef void* (__fastcall *OotpNewsObjectCtorFn)(void* news_object);
 typedef void (__fastcall *OotpNewsStringEnsureFn)(void* news_object);
+typedef void (__fastcall *OotpNewsRelatedAddFn)(void* news_object, uint32_t id);
 typedef void* (__fastcall *OotpOperatorNewFn)(size_t size);
 typedef void* (__fastcall *OotpCoreStringAssignFn)(void* string_object, const char* text);
 
