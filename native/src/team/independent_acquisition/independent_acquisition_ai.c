@@ -186,7 +186,7 @@ static void kbo_independent_acquisition_mark_processed_date(uint32_t today, cons
     }
 }
 
-static int kbo_run_independent_team_acquisition_ai_for_date(
+static int kbo_run_independent_team_acquisition_ai_with_snapshot_for_date(
     uint32_t today,
     const uintptr_t* snapshot,
     int32_t player_count,
@@ -458,6 +458,107 @@ cleanup:
     return result;
 }
 
+int kbo_run_independent_team_acquisition_ai_for_date(uint32_t today, const char* source)
+{
+    if (!kbo_fix_enabled()
+            || !kbo_custom_foreign_policy_enabled()
+            || read_kbo_localappdata_flag_file("disable_independent_acquisition_ai.txt")) {
+        return 0;
+    }
+    if (today == 0u) {
+        return 0;
+    }
+    if (!kbo_runtime_pause_for_save_if_needed(source != NULL ? source : "independent_acquisition_ai")) {
+        return 0;
+    }
+    if (InterlockedCompareExchange(&g_kbo_runtime_date_stable_ready, 0, 0) == 0) {
+        static volatile LONG skipped_unstable_log_count = 0;
+        if (InterlockedIncrement(&skipped_unstable_log_count) <= 40) {
+            kbo_log_runtimef(
+                "independent acquisition AI skipped source=%s reason=date_not_stable",
+                source != NULL ? source : "");
+        }
+        return 0;
+    }
+
+    if (InterlockedCompareExchange(&g_kbo_independent_acquisition_ai_running, 1, 0) != 0) {
+        kbo_log_runtimef(
+            "independent acquisition AI skipped source=%s reason=already_running",
+            source != NULL ? source : "");
+        return 0;
+    }
+
+    int result = 0;
+    int abort_for_save = 0;
+    uintptr_t* snapshot = NULL;
+    if (kbo_independent_acquisition_abort_if_save(source, "after_lock", today)) {
+        abort_for_save = 1;
+        goto cleanup;
+    }
+
+    uint32_t previous_processed_date = kbo_independent_acquisition_processed_date();
+    if (previous_processed_date >= today) {
+        goto cleanup;
+    }
+
+    if (kbo_independent_acquisition_abort_if_save(source, "before_player_snapshot", today)) {
+        abort_for_save = 1;
+        goto cleanup;
+    }
+
+    uintptr_t player_vector = 0u;
+    int32_t player_count = 0;
+    if (!find_kbo_global_player_vector(&player_vector, &player_count, NULL)
+            || player_vector == 0u
+            || player_count <= 0
+            || player_count > 200000) {
+        goto cleanup;
+    }
+    SIZE_T player_vector_bytes = (SIZE_T)player_count * sizeof(uintptr_t);
+    if (!memory_range_readable((void*)player_vector, player_vector_bytes)) {
+        goto cleanup;
+    }
+    snapshot = (uintptr_t*)HeapAlloc(GetProcessHeap(), 0, player_vector_bytes);
+    if (snapshot == NULL) {
+        goto cleanup;
+    }
+    SIZE_T bytes_read = 0u;
+    if (!ReadProcessMemory(
+            GetCurrentProcess(),
+            (LPCVOID)player_vector,
+            snapshot,
+            player_vector_bytes,
+            &bytes_read)
+            || bytes_read != player_vector_bytes) {
+        goto cleanup;
+    }
+    if (kbo_independent_acquisition_abort_if_save(source, "after_player_snapshot", today)) {
+        abort_for_save = 1;
+        goto cleanup;
+    }
+
+    if (kbo_independent_acquisition_window_active_silent(today)) {
+        result += kbo_run_independent_team_acquisition_ai_with_snapshot_for_date(
+            today,
+            snapshot,
+            player_count,
+            source,
+            &abort_for_save);
+    } else {
+        kbo_independent_acquisition_window_active(today);
+    }
+    if (!abort_for_save) {
+        kbo_independent_acquisition_mark_processed_date(today, source);
+    }
+
+cleanup:
+    if (snapshot != NULL) {
+        HeapFree(GetProcessHeap(), 0, snapshot);
+    }
+    InterlockedExchange(&g_kbo_independent_acquisition_ai_running, 0);
+    return result;
+}
+
 int kbo_run_independent_team_acquisition_ai(const char* source)
 {
     if (!kbo_fix_enabled()
@@ -564,7 +665,7 @@ int kbo_run_independent_team_acquisition_ai(const char* source)
 
         if (kbo_independent_acquisition_window_active_silent(run_date)) {
             active_days++;
-            result += kbo_run_independent_team_acquisition_ai_for_date(
+            result += kbo_run_independent_team_acquisition_ai_with_snapshot_for_date(
                 run_date,
                 snapshot,
                 player_count,

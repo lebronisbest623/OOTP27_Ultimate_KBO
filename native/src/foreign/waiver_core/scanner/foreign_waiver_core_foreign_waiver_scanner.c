@@ -1,6 +1,8 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <string.h>
 
 #include "../../../bootstrap/profiling/profiler.h"
 #include "../../../core/core_flags/api/flags_api.h"
@@ -21,6 +23,7 @@ static DWORD WINAPI kbo_foreign_waiver_scanner_thread(LPVOID parameter)
     (void)parameter;
     uint32_t tick = 0;
     uint32_t last_ai_run_date = 0u;
+    char last_ai_run_save_path[MAX_PATH] = {0};
     while (kbo_runtime_threads_should_continue()) {
         if (!kbo_runtime_sleep_should_continue((uint32_t)kbo_runtime_tuning_policy()->foreign_waiver_scanner_sleep_ms)) {
             break;
@@ -31,8 +34,10 @@ static DWORD WINAPI kbo_foreign_waiver_scanner_thread(LPVOID parameter)
         KBO_PROFILE_BEGIN(profile_foreign_waiver_scanner_tick);
         tick++;
         uint32_t today = 0u;
+        char save_path[MAX_PATH] = {0};
         char readiness_path[MAX_PATH] = {0};
         if (!kbo_get_current_yyyymmdd(&today)
+                || !kbo_get_current_save_path(save_path, sizeof(save_path))
                 || !kbo_get_save_scoped_data_file("foreign_waiver_commands.txt", readiness_path, sizeof(readiness_path))) {
             static LONG waiting_logged = 0;
             if (InterlockedCompareExchange(&waiting_logged, 1, 0) == 0) {
@@ -40,6 +45,10 @@ static DWORD WINAPI kbo_foreign_waiver_scanner_thread(LPVOID parameter)
             }
             KBO_PROFILE_END(profile_foreign_waiver_scanner_tick, "foreign_waiver.scanner.not_ready");
             continue;
+        }
+        if (last_ai_run_save_path[0] == '\0' || strcmp(last_ai_run_save_path, save_path) != 0) {
+            snprintf(last_ai_run_save_path, sizeof(last_ai_run_save_path), "%s", save_path);
+            last_ai_run_date = 0u;
         }
 
         process_foreign_waiver_commands();
