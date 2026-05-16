@@ -4,7 +4,35 @@
 
 static LONG g_kbo_foreign_injury_non_roster_log_count = 0;
 static LONG g_kbo_foreign_injury_below_min_log_count = 0;
+static void kbo_foreign_injury_replacement_scan_for_date_mode(
+    const char* source,
+    uint32_t today,
+    int process_existing_replacements);
+
 void kbo_foreign_injury_replacement_scan_once(const char* source)
+{
+    uint32_t today = 0u;
+    if (!kbo_get_current_yyyymmdd(&today)) {
+        kbo_rule_audit_emit_fields("foreign_injury.replacement.scan", "skip", "date_unavailable", source, NULL);
+        return;
+    }
+    kbo_foreign_injury_replacement_scan_for_date(source, today);
+}
+
+void kbo_foreign_injury_replacement_scan_for_date(const char* source, uint32_t today)
+{
+    kbo_foreign_injury_replacement_scan_for_date_mode(source, today, 1);
+}
+
+void kbo_foreign_injury_replacement_scan_discovery_for_date(const char* source, uint32_t today)
+{
+    kbo_foreign_injury_replacement_scan_for_date_mode(source, today, 0);
+}
+
+static void kbo_foreign_injury_replacement_scan_for_date_mode(
+    const char* source,
+    uint32_t today,
+    int process_existing_replacements)
 {
     KBO_PROFILE_BEGIN(profile_foreign_injury_scan);
     if (!kbo_runtime_pause_for_save_if_needed(source != NULL ? source : "foreign_injury_replacement_scan")) {
@@ -23,8 +51,7 @@ void kbo_foreign_injury_replacement_scan_once(const char* source)
         KBO_PROFILE_END(profile_foreign_injury_scan, "foreign_injury.scan.readonly");
         return;
     }
-    uint32_t today = 0u;
-    if (!kbo_get_current_yyyymmdd(&today)) {
+    if (today == 0u) {
         kbo_rule_audit_emit_fields("foreign_injury.replacement.scan", "skip", "date_unavailable", source, NULL);
         KBO_PROFILE_END(profile_foreign_injury_scan, "foreign_injury.scan.no_date");
         return;
@@ -95,19 +122,16 @@ void kbo_foreign_injury_replacement_scan_once(const char* source)
         int inactive_roster_present = !direct_injury_eligible && has_assignment
             ? kbo_foreign_injury_player_on_inactive_replacement_roster(player, player_id, team_id, today)
             : 0;
+        /* Message body files do not carry a reliable game date; lifecycle evidence must be date-locked. */
         int message_evidence_days = 0;
-        int message_injury_eligible = !direct_injury_eligible && has_assignment
-            ? kbo_foreign_injury_recent_message_has_long_term_injury(
-                player_id,
-                min_days,
-                &message_evidence_days)
-            : 0;
+        int message_injury_eligible = 0;
         int sql_evidence_days = 0;
         uint32_t sql_evidence_date = 0u;
         int sql_injury_eligible = !direct_injury_eligible && has_assignment
-            ? kbo_foreign_injury_recent_sql_has_long_term_injury_date(
+            ? kbo_foreign_injury_recent_sql_has_long_term_injury_date_on_date(
                 player_id,
                 min_days,
+                today,
                 &sql_evidence_days,
                 &sql_evidence_date)
             : 0;
@@ -359,10 +383,11 @@ void kbo_foreign_injury_replacement_scan_once(const char* source)
         }
         if (created) {
             opened++;
-            kbo_emit_foreign_injury_replacement_news(
+            kbo_emit_foreign_injury_replacement_news_on_date(
                 &created_rec,
                 effective_days_left,
-                direct_injury_eligible ? "open" : "open_roster");
+                direct_injury_eligible ? "open" : "open_roster",
+                today);
                         do {
                 KboLogFields audit_fields;
                 kbo_log_fields_init(&audit_fields);
@@ -410,9 +435,13 @@ void kbo_foreign_injury_replacement_scan_once(const char* source)
     }
     int active_count = 0;
     int closed_count = 0;
-    KBO_PROFILE_BEGIN(profile_foreign_injury_existing);
-    kbo_foreign_injury_process_existing_replacements(today, source, &active_count, &closed_count);
-    KBO_PROFILE_END(profile_foreign_injury_existing, "foreign_injury.scan.existing_replacements");
+    if (process_existing_replacements) {
+        KBO_PROFILE_BEGIN(profile_foreign_injury_existing);
+        kbo_foreign_injury_process_existing_replacements(today, source, &active_count, &closed_count);
+        KBO_PROFILE_END(profile_foreign_injury_existing, "foreign_injury.scan.existing_replacements");
+    } else {
+        kbo_profiler_record_us("foreign_injury.scan.discovery_only_existing_skipped", 0);
+    }
     if (opened > 0 || active_count > 0 || closed_count > 0) {
                 do {
             KboLogFields audit_fields;
@@ -422,6 +451,7 @@ void kbo_foreign_injury_replacement_scan_once(const char* source)
             kbo_log_field_i32(&audit_fields, "opened", opened);
             kbo_log_field_i32(&audit_fields, "activated", active_count);
             kbo_log_field_i32(&audit_fields, "closed", closed_count);
+            kbo_log_field_u32(&audit_fields, "discovery_only", process_existing_replacements ? 0u : 1u);
             kbo_rule_audit_emit_fields(
                 "foreign_injury.replacement.scan",
                 "process",
@@ -430,13 +460,14 @@ void kbo_foreign_injury_replacement_scan_once(const char* source)
                 &audit_fields);
         } while (0);
         kbo_log_runtimef(
-            "foreign injury replacement: scan source=%s scanned_foreign=%d opened=%d active=%d pending=%d closed=%d",
+            "foreign injury replacement: scan source=%s scanned_foreign=%d opened=%d active=%d pending=%d closed=%d discovery_only=%d",
             source != NULL ? source : "",
             scanned,
             opened,
             active_count,
             0,
-            closed_count);
+            closed_count,
+            process_existing_replacements ? 0 : 1);
     }
     kbo_foreign_injury_note_same_date_idle_scan(
         today,

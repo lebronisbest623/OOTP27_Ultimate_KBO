@@ -279,6 +279,7 @@ int kbo_foreign_injury_return_state_allows_close(
     uint8_t loan_active,
     int active_roster_present,
     int inactive_roster_present,
+    int roster_hold_flags_present,
     int close_decision_allowed)
 {
     if (!close_decision_allowed) {
@@ -288,7 +289,8 @@ int kbo_foreign_injury_return_state_allows_close(
         && days_left <= 0
         && loan_active == 0u
         && active_roster_present
-        && !inactive_roster_present;
+        && !inactive_roster_present
+        && !roster_hold_flags_present;
 }
 
 static int kbo_foreign_injury_state_record_has_minimum_injury_basis(

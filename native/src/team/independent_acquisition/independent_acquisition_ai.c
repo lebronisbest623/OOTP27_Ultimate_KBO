@@ -8,12 +8,14 @@
 #include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "../../bootstrap/abi/ootp_offsets.h"
 #include "../../core/core_flags/api/flags_api.h"
 #include "../../core/core_league_context_parts/api/league_context_lookup.h"
 #include "../../core/dates/core_text_date.h"
+#include "../../core/files/save_paths/core_save_paths.h"
 #include "../../core/logging/core_log.h"
 #include "../../core/season/phase/season_phase.h"
 #include "../../core/teams/core_team_collect.h"
@@ -28,54 +30,185 @@
 #include "window/independent_acquisition_window.h"
 
 extern volatile LONG g_kbo_runtime_date_stable_ready;
-static volatile LONG g_kbo_independent_acquisition_ai_last_run_date = 0;
+static volatile LONG g_kbo_independent_acquisition_ai_last_processed_date = 0;
 static volatile LONG g_kbo_independent_acquisition_ai_running = 0;
+static char g_kbo_independent_acquisition_ai_cursor_save_path[MAX_PATH] = {0};
 
-int kbo_run_independent_team_acquisition_ai(const char* source)
+#define KBO_INDEPENDENT_ACQUISITION_AI_CURSOR_FILE "independent_acquisition_ai_cursor.txt"
+#define KBO_INDEPENDENT_ACQUISITION_AI_MAX_CATCHUP_DAYS 220
+
+static int kbo_independent_acquisition_window_active_silent(uint32_t today)
 {
-    if (!kbo_fix_enabled()
-            || !kbo_custom_foreign_policy_enabled()
-            || read_kbo_localappdata_flag_file("disable_independent_acquisition_ai.txt")) {
-        return 0;
-    }
-    if (!kbo_runtime_pause_for_save_if_needed(source != NULL ? source : "independent_acquisition_ai")) {
-        return 0;
-    }
-    if (InterlockedCompareExchange(&g_kbo_runtime_date_stable_ready, 0, 0) == 0) {
-        static volatile LONG skipped_unstable_log_count = 0;
-        if (InterlockedIncrement(&skipped_unstable_log_count) <= 40) {
-            kbo_log_runtimef(
-                "independent acquisition AI skipped source=%s reason=date_not_stable",
-                source != NULL ? source : "");
-        }
-        return 0;
+    return kbo_independent_team_acquisition_window_active(today, NULL, NULL);
+}
+
+static uint32_t kbo_independent_acquisition_next_date(uint32_t today)
+{
+    return kbo_add_days_yyyymmdd(today, 1u);
+}
+
+static int kbo_independent_acquisition_ai_cursor_path(char* out, size_t out_size)
+{
+    return kbo_get_save_scoped_data_file(
+        KBO_INDEPENDENT_ACQUISITION_AI_CURSOR_FILE,
+        out,
+        out_size);
+}
+
+static uint32_t kbo_independent_acquisition_load_processed_date(void)
+{
+    char path[MAX_PATH] = {0};
+    if (!kbo_independent_acquisition_ai_cursor_path(path, sizeof(path))) {
+        return 0u;
     }
 
-    if (InterlockedCompareExchange(&g_kbo_independent_acquisition_ai_running, 1, 0) != 0) {
+    HANDLE file = CreateFileA(
+        path,
+        GENERIC_READ,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        NULL,
+        OPEN_EXISTING,
+        FILE_ATTRIBUTE_NORMAL,
+        NULL);
+    if (file == INVALID_HANDLE_VALUE) {
+        return 0u;
+    }
+
+    char text[32] = {0};
+    DWORD read = 0u;
+    int ok = ReadFile(file, text, sizeof(text) - 1u, &read, NULL) && read > 0u;
+    CloseHandle(file);
+    if (!ok) {
+        return 0u;
+    }
+
+    unsigned long value = strtoul(text, NULL, 10);
+    if (value < 19820101ul || value > 22001231ul) {
+        return 0u;
+    }
+    return (uint32_t)value;
+}
+
+static void kbo_independent_acquisition_persist_processed_date(uint32_t today, const char* source)
+{
+    char path[MAX_PATH] = {0};
+    if (today == 0u || !kbo_independent_acquisition_ai_cursor_path(path, sizeof(path))) {
+        return;
+    }
+
+    char text[32] = {0};
+    snprintf(text, sizeof(text), "%u\r\n", today);
+    HANDLE file = CreateFileA(
+        path,
+        GENERIC_WRITE,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        NULL,
+        CREATE_ALWAYS,
+        FILE_ATTRIBUTE_NORMAL,
+        NULL);
+    if (file == INVALID_HANDLE_VALUE) {
         kbo_log_runtimef(
-            "independent acquisition AI skipped source=%s reason=already_running",
-            source != NULL ? source : "");
-        return 0;
+            "independent acquisition AI cursor persist skipped source=%s date=%u gle=%lu path=%s",
+            source != NULL ? source : "",
+            today,
+            (unsigned long)GetLastError(),
+            path);
+        return;
     }
 
+    DWORD written = 0u;
+    DWORD len = (DWORD)strlen(text);
+    if (!WriteFile(file, text, len, &written, NULL) || written != len) {
+        kbo_log_runtimef(
+            "independent acquisition AI cursor persist failed source=%s date=%u gle=%lu path=%s",
+            source != NULL ? source : "",
+            today,
+            (unsigned long)GetLastError(),
+            path);
+    }
+    CloseHandle(file);
+}
+
+static uint32_t kbo_independent_acquisition_observed_processed_date(void)
+{
+    return (uint32_t)InterlockedCompareExchange(
+        &g_kbo_independent_acquisition_ai_last_processed_date,
+        0,
+        0);
+}
+
+static void kbo_independent_acquisition_sync_cursor_save_scope(void)
+{
+    char save_path[MAX_PATH] = {0};
+    if (!kbo_get_current_save_path(save_path, sizeof(save_path))) {
+        return;
+    }
+    if (g_kbo_independent_acquisition_ai_cursor_save_path[0] != '\0'
+            && strcmp(g_kbo_independent_acquisition_ai_cursor_save_path, save_path) == 0) {
+        return;
+    }
+
+    snprintf(
+        g_kbo_independent_acquisition_ai_cursor_save_path,
+        sizeof(g_kbo_independent_acquisition_ai_cursor_save_path),
+        "%s",
+        save_path);
+    InterlockedExchange(&g_kbo_independent_acquisition_ai_last_processed_date, 0);
+}
+
+static uint32_t kbo_independent_acquisition_processed_date(void)
+{
+    kbo_independent_acquisition_sync_cursor_save_scope();
+
+    uint32_t cached = kbo_independent_acquisition_observed_processed_date();
+    if (cached != 0u) {
+        return cached;
+    }
+
+    uint32_t loaded = kbo_independent_acquisition_load_processed_date();
+    if (loaded != 0u) {
+        InterlockedCompareExchange(
+            &g_kbo_independent_acquisition_ai_last_processed_date,
+            (LONG)loaded,
+            0);
+    }
+    return loaded;
+}
+
+static void kbo_independent_acquisition_mark_processed_date(uint32_t today, const char* source)
+{
+    if (today != 0u) {
+        kbo_independent_acquisition_sync_cursor_save_scope();
+        InterlockedExchange(
+            &g_kbo_independent_acquisition_ai_last_processed_date,
+            (LONG)today);
+        kbo_independent_acquisition_persist_processed_date(today, source);
+    }
+}
+
+static int kbo_run_independent_team_acquisition_ai_for_date(
+    uint32_t today,
+    const uintptr_t* snapshot,
+    int32_t player_count,
+    const char* source,
+    int* out_abort_for_save)
+{
     int result = 0;
     int abort_for_save = 0;
     int claimed_today = 0;
     int completed_daily_run = 0;
-    uintptr_t* snapshot = NULL;
-    uint32_t today = 0u;
-    if (kbo_independent_acquisition_abort_if_save(source, "after_lock", today)) {
-        abort_for_save = 1;
-        goto cleanup;
+
+    if (out_abort_for_save != NULL) {
+        *out_abort_for_save = 0;
+    }
+    if (today == 0u || snapshot == NULL || player_count <= 0) {
+        return 0;
     }
 
-    if (!kbo_get_current_yyyymmdd(&today)) {
-        goto cleanup;
-    }
     uint32_t season = kbo_independent_acquisition_effective_season(today);
-    int window_active = kbo_independent_acquisition_window_active(today);
+    int window_active = kbo_independent_acquisition_window_active_silent(today);
     if (!window_active) {
-        goto cleanup;
+        return 0;
     }
     if (kbo_independent_acquisition_abort_if_save(source, "after_date", today)) {
         abort_for_save = 1;
@@ -131,38 +264,7 @@ int kbo_run_independent_team_acquisition_ai(const char* source)
             available_seller_count,
             capped_sellers);
     }
-    if (kbo_independent_acquisition_abort_if_save(source, "before_player_snapshot", today)) {
-        abort_for_save = 1;
-        goto cleanup;
-    }
-
-    uintptr_t player_vector = 0u;
-    int32_t player_count = 0;
-    if (!find_kbo_global_player_vector(&player_vector, &player_count, NULL)
-            || player_vector == 0u
-            || player_count <= 0
-            || player_count > 200000) {
-        goto cleanup;
-    }
-    SIZE_T player_vector_bytes = (SIZE_T)player_count * sizeof(uintptr_t);
-    if (!memory_range_readable((void*)player_vector, player_vector_bytes)) {
-        goto cleanup;
-    }
-    snapshot = (uintptr_t*)HeapAlloc(GetProcessHeap(), 0, player_vector_bytes);
-    if (snapshot == NULL) {
-        goto cleanup;
-    }
-    SIZE_T bytes_read = 0u;
-    if (!ReadProcessMemory(
-            GetCurrentProcess(),
-            (LPCVOID)player_vector,
-            snapshot,
-            player_vector_bytes,
-            &bytes_read)
-            || bytes_read != player_vector_bytes) {
-        goto cleanup;
-    }
-    if (kbo_independent_acquisition_abort_if_save(source, "after_player_snapshot", today)) {
+    if (kbo_independent_acquisition_abort_if_save(source, "before_buyer_scan", today)) {
         abort_for_save = 1;
         goto cleanup;
     }
@@ -343,13 +445,166 @@ int kbo_run_independent_team_acquisition_ai(const char* source)
         snapshot,
         player_count,
         source);
-    result = requested + transferred;
+    result += requested + transferred;
     completed_daily_run = 1;
 
 cleanup:
     if (abort_for_save && claimed_today && !completed_daily_run) {
         kbo_independent_acquisition_release_daily_run(today);
     }
+    if (abort_for_save && out_abort_for_save != NULL) {
+        *out_abort_for_save = 1;
+    }
+    return result;
+}
+
+int kbo_run_independent_team_acquisition_ai(const char* source)
+{
+    if (!kbo_fix_enabled()
+            || !kbo_custom_foreign_policy_enabled()
+            || read_kbo_localappdata_flag_file("disable_independent_acquisition_ai.txt")) {
+        return 0;
+    }
+    if (!kbo_runtime_pause_for_save_if_needed(source != NULL ? source : "independent_acquisition_ai")) {
+        return 0;
+    }
+    if (InterlockedCompareExchange(&g_kbo_runtime_date_stable_ready, 0, 0) == 0) {
+        static volatile LONG skipped_unstable_log_count = 0;
+        if (InterlockedIncrement(&skipped_unstable_log_count) <= 40) {
+            kbo_log_runtimef(
+                "independent acquisition AI skipped source=%s reason=date_not_stable",
+                source != NULL ? source : "");
+        }
+        return 0;
+    }
+
+    if (InterlockedCompareExchange(&g_kbo_independent_acquisition_ai_running, 1, 0) != 0) {
+        kbo_log_runtimef(
+            "independent acquisition AI skipped source=%s reason=already_running",
+            source != NULL ? source : "");
+        return 0;
+    }
+
+    int result = 0;
+    int abort_for_save = 0;
+    uintptr_t* snapshot = NULL;
+    uint32_t today = 0u;
+    if (kbo_independent_acquisition_abort_if_save(source, "after_lock", today)) {
+        abort_for_save = 1;
+        goto cleanup;
+    }
+
+    if (!kbo_get_current_yyyymmdd(&today)) {
+        goto cleanup;
+    }
+
+    uint32_t previous_processed_date = kbo_independent_acquisition_processed_date();
+    if (previous_processed_date == today) {
+        goto cleanup;
+    }
+
+    if (kbo_independent_acquisition_abort_if_save(source, "before_player_snapshot", today)) {
+        abort_for_save = 1;
+        goto cleanup;
+    }
+
+    uintptr_t player_vector = 0u;
+    int32_t player_count = 0;
+    if (!find_kbo_global_player_vector(&player_vector, &player_count, NULL)
+            || player_vector == 0u
+            || player_count <= 0
+            || player_count > 200000) {
+        goto cleanup;
+    }
+    SIZE_T player_vector_bytes = (SIZE_T)player_count * sizeof(uintptr_t);
+    if (!memory_range_readable((void*)player_vector, player_vector_bytes)) {
+        goto cleanup;
+    }
+    snapshot = (uintptr_t*)HeapAlloc(GetProcessHeap(), 0, player_vector_bytes);
+    if (snapshot == NULL) {
+        goto cleanup;
+    }
+    SIZE_T bytes_read = 0u;
+    if (!ReadProcessMemory(
+            GetCurrentProcess(),
+            (LPCVOID)player_vector,
+            snapshot,
+            player_vector_bytes,
+            &bytes_read)
+            || bytes_read != player_vector_bytes) {
+        goto cleanup;
+    }
+    if (kbo_independent_acquisition_abort_if_save(source, "after_player_snapshot", today)) {
+        abort_for_save = 1;
+        goto cleanup;
+    }
+
+    uint32_t run_date = today;
+    if (previous_processed_date != 0u && previous_processed_date < today) {
+        uint32_t next_date = kbo_independent_acquisition_next_date(previous_processed_date);
+        if (next_date != 0u && next_date <= today) {
+            run_date = next_date;
+        }
+    }
+
+    int scanned_days = 0;
+    int active_days = 0;
+    int closed_days = 0;
+    int truncated = 0;
+    while (run_date != 0u && run_date <= today) {
+        if (scanned_days >= KBO_INDEPENDENT_ACQUISITION_AI_MAX_CATCHUP_DAYS) {
+            truncated = 1;
+            break;
+        }
+        scanned_days++;
+        if (kbo_independent_acquisition_abort_if_save(source, "date_loop", run_date)) {
+            abort_for_save = 1;
+            break;
+        }
+
+        if (kbo_independent_acquisition_window_active_silent(run_date)) {
+            active_days++;
+            result += kbo_run_independent_team_acquisition_ai_for_date(
+                run_date,
+                snapshot,
+                player_count,
+                source,
+                &abort_for_save);
+            if (abort_for_save) {
+                break;
+            }
+        } else {
+            closed_days++;
+            if (run_date == today) {
+                kbo_independent_acquisition_window_active(run_date);
+            }
+        }
+
+        kbo_independent_acquisition_mark_processed_date(run_date, source);
+        if (run_date == today) {
+            break;
+        }
+        uint32_t next_date = kbo_independent_acquisition_next_date(run_date);
+        if (next_date == 0u || next_date <= run_date) {
+            break;
+        }
+        run_date = next_date;
+    }
+
+    if (scanned_days > 1 || truncated) {
+        kbo_log_runtimef(
+            "independent acquisition AI date catchup source=%s previous=%u today=%u scanned_days=%d active_days=%d closed_days=%d result=%d truncated=%d",
+            source != NULL ? source : "",
+            previous_processed_date,
+            today,
+            scanned_days,
+            active_days,
+            closed_days,
+            result,
+            truncated);
+    }
+
+cleanup:
     if (snapshot != NULL) {
         HeapFree(GetProcessHeap(), 0, snapshot);
     }

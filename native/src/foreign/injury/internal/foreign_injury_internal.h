@@ -104,6 +104,7 @@ int kbo_foreign_injury_return_state_allows_close(
     uint8_t loan_active,
     int active_roster_present,
     int inactive_roster_present,
+    int roster_hold_flags_present,
     int close_decision_allowed);
 int kbo_foreign_injury_player_on_inactive_replacement_roster(
     uint8_t* player,
@@ -117,6 +118,12 @@ int kbo_foreign_injury_recent_message_has_long_term_injury(
 int kbo_foreign_injury_recent_sql_has_long_term_injury_date(
     uint32_t player_id,
     int min_days,
+    int* out_days,
+    uint32_t* out_evidence_date);
+int kbo_foreign_injury_recent_sql_has_long_term_injury_date_on_date(
+    uint32_t player_id,
+    int min_days,
+    uint32_t game_date_yyyymmdd,
     int* out_days,
     uint32_t* out_evidence_date);
 const char* kbo_foreign_injury_slot_label(uint8_t slot_type);
@@ -151,6 +158,9 @@ int kbo_foreign_injury_replacement_player_reserved_locked(
 int kbo_team_has_foreign_injury_slot_locked(uint32_t team_id, uint8_t slot_type, uint32_t* out_injured_player_id);
 int kbo_team_has_foreign_injury_slot(uint32_t team_id, uint8_t slot_type, uint32_t* out_injured_player_id);
 int kbo_foreign_injury_record_has_minimum_injury_basis(const KboForeignInjuryReplacement* rec);
+int kbo_foreign_injury_record_has_minimum_injury_basis_on_date(
+    const KboForeignInjuryReplacement* rec,
+    uint32_t today);
 int kbo_team_has_foreign_injury_slot_for_candidate_locked(
     uint32_t team_id,
     uint8_t slot_type,
@@ -185,7 +195,14 @@ void kbo_emit_foreign_injury_replacement_news(
     const KboForeignInjuryReplacement* rec,
     int days_left,
     const char* phase);
+void kbo_emit_foreign_injury_replacement_news_on_date(
+    const KboForeignInjuryReplacement* rec,
+    int days_left,
+    const char* phase,
+    uint32_t event_date);
 void kbo_foreign_injury_replacement_scan_once(const char* source);
+void kbo_foreign_injury_replacement_scan_for_date(const char* source, uint32_t today);
+void kbo_foreign_injury_replacement_scan_discovery_for_date(const char* source, uint32_t today);
 DWORD WINAPI kbo_foreign_injury_replacement_thread(LPVOID parameter);
 void start_kbo_foreign_injury_replacement_thread(void);
 

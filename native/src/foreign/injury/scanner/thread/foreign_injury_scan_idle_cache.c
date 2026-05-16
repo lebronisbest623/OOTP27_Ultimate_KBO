@@ -21,7 +21,8 @@ int kbo_foreign_injury_replacement_scan_source_is_periodic_thread(const char* so
 
 static int kbo_foreign_injury_replacement_scan_source_uses_idle_cache(const char* source)
 {
-    return kbo_foreign_injury_replacement_scan_source_is_periodic_thread(source);
+    (void)source;
+    return 0;
 }
 
 int kbo_foreign_injury_same_date_idle_scan_cached(uint32_t today, const char* source)

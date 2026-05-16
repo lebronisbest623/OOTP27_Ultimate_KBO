@@ -227,9 +227,6 @@ static int kbo_foreign_injury_try_player_team_assignment(
         || (org_team != NULL
             && memory_range_readable(org_team, OOTP27_KBO_TEAM_READABLE_BYTES)
             && kbo_foreign_injury_team_known_roster_contains_player(org_team, player_id));
-    if (!rostered) {
-        return 0;
-    }
 
     uint32_t league_id = org_league_id;
     if (league_id == 0u) {
@@ -240,6 +237,23 @@ static int kbo_foreign_injury_try_player_team_assignment(
     }
     if (configured_league_id != 0u && league_id != 0u && league_id != configured_league_id) {
         return 0;
+    }
+
+    if (!rostered) {
+        uint32_t current_team_id = *(uint32_t*)(player + OOTP27_PLAYER_CURRENT_TEAM_ID_OFFSET);
+        uint32_t active_team_id = *(uint32_t*)(player + OOTP27_PLAYER_ACTIVE_TEAM_ID_OFFSET);
+        uint32_t player_league_id = *(uint32_t*)(player + OOTP27_PLAYER_CURRENT_LEAGUE_ID_OFFSET);
+        if (candidate_team_id != current_team_id
+                && candidate_team_id != active_team_id
+                && org_team_id != current_team_id
+                && org_team_id != active_team_id) {
+            return 0;
+        }
+        if (configured_league_id != 0u
+                && player_league_id != 0u
+                && player_league_id != configured_league_id) {
+            return 0;
+        }
     }
 
     if (out_team_id != NULL) {
@@ -321,6 +335,11 @@ int kbo_foreign_injury_injured_player_returned_to_org_roster(
     if (injured[OOTP27_PLAYER_LOAN_ACTIVE_FLAG_OFFSET] != 0u) {
         return 0;
     }
+    if (injured[OOTP27_PLAYER_RESTRICTED_FLAG_OFFSET] != 0u
+            || injured[OOTP27_PLAYER_SECONDARY_RESTRICTED_FLAG_OFFSET] != 0u
+            || injured[OOTP27_PLAYER_DFA_FLAG_OFFSET] != 0u) {
+        return 0;
+    }
 
     uint32_t resolved_team_id = 0u;
     uint32_t resolved_league_id = 0u;
@@ -343,7 +362,8 @@ int kbo_foreign_injury_injured_player_returned_to_org_roster(
     if (top_team == NULL || !memory_range_readable(top_team, OOTP27_KBO_TEAM_READABLE_BYTES)) {
         return 0;
     }
-    return !kbo_foreign_injury_team_inactive_roster_contains_player(top_team, rec->injured_player_id);
+    return kbo_foreign_injury_team_active_roster_contains_player(top_team, rec->injured_player_id)
+        && !kbo_foreign_injury_team_inactive_roster_contains_player(top_team, rec->injured_player_id);
 }
 
 uint32_t kbo_foreign_injury_resolve_replacement_for_record(const KboForeignInjuryReplacement* rec)

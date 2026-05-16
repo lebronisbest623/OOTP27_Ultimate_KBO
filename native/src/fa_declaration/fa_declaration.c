@@ -257,7 +257,7 @@ int kbo_handle_fa_declaration_event(uint32_t event_yyyymmdd, const char* source)
         return -1;
     }
 
-    int retained_repaired = kbo_fa_declaration_repair_retained_contracts_for_season(
+    int deferred_arbitration_repaired = kbo_fa_declaration_repair_retained_contracts_for_season(
         season,
         source != NULL ? source : "fa_declaration_event");
 
@@ -298,7 +298,7 @@ int kbo_handle_fa_declaration_event(uint32_t event_yyyymmdd, const char* source)
     }
 
     kbo_log_runtimef(
-        "KBO FA declaration event source=%s date=%u season=%u league=%u market_rows=%d market_candidates=%d active_scanned=%d active_candidates=%d candidates=%d declared=%d deferred=%d retry=%d no_market=%d grades=%d retained_repaired=%d csv=%s",
+        "KBO FA declaration event source=%s date=%u season=%u league=%u market_rows=%d market_candidates=%d active_scanned=%d active_candidates=%d candidates=%d declared=%d deferred=%d retry=%d no_market=%d grades=%d deferred_arbitration_repaired=%d csv=%s",
         source != NULL ? source : "",
         event_yyyymmdd,
         season,
@@ -313,7 +313,7 @@ int kbo_handle_fa_declaration_event(uint32_t event_yyyymmdd, const char* source)
         deferred_retry,
         deferred_no_market,
         grade_count,
-        retained_repaired,
+        deferred_arbitration_repaired,
         csv_path);
         do {
         KboLogFields audit_fields;
@@ -331,7 +331,7 @@ int kbo_handle_fa_declaration_event(uint32_t event_yyyymmdd, const char* source)
         kbo_log_field_i32(&audit_fields, "retry", deferred_retry);
         kbo_log_field_i32(&audit_fields, "no_market", deferred_no_market);
         kbo_log_field_i32(&audit_fields, "grades", grade_count);
-        kbo_log_field_i32(&audit_fields, "retained_repaired", retained_repaired);
+        kbo_log_field_i32(&audit_fields, "deferred_arbitration_repaired", deferred_arbitration_repaired);
         kbo_rule_audit_emit_fields(
             "fa.declaration.event",
             "record_decisions",

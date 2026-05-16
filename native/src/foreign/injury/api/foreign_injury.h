@@ -75,6 +75,7 @@ int kbo_foreign_injury_return_state_allows_close(
     uint8_t loan_active,
     int active_roster_present,
     int inactive_roster_present,
+    int roster_hold_flags_present,
     int close_decision_allowed);
 int kbo_foreign_injury_player_excluded_from_foreign_count_locked(uint32_t team_id, uint32_t player_id);
 int kbo_foreign_injury_player_excluded_from_foreign_count(uint32_t team_id, uint32_t player_id);
@@ -123,6 +124,8 @@ void kbo_count_foreign_injury_replacements_for_team(
     int* out_pending,
     int* out_closed);
 void kbo_foreign_injury_replacement_scan_once(const char* source);
+void kbo_foreign_injury_replacement_scan_for_date(const char* source, uint32_t today);
+void kbo_foreign_injury_replacement_scan_discovery_for_date(const char* source, uint32_t today);
 void start_kbo_foreign_injury_replacement_thread(void);
 
 #endif

@@ -110,21 +110,27 @@ __declspec(noinline) void ootp_kbo_salary_arbitration_non_tender_wrapper(
             && kbo_fa_declaration_find_latest_decision(player_id, declaration_season, &decision);
 
         if (fa_declaration_decision_found && decision.declared == 0u) {
-            uint32_t repair_season = kbo_fa_declaration_retained_contract_season(
-                decision.season != 0u ? decision.season : declaration_season);
-            int retained_repaired = kbo_fa_declaration_repair_retained_contract_salary(
-                player,
-                repair_season,
-                &decision,
-                0,
-                "arbitration_non_tender_transition_skip");
+            uint32_t floor_league_id = original_team_league_id != 0u
+                ? original_team_league_id
+                : (player_league_id != 0u ? player_league_id : player_draft_league_id);
+            int32_t salary_floor = kbo_salary_arbitration_resolve_minimum_salary(floor_league_id);
+            int32_t arbitration_offer = old_offer;
+            if (decision.salary > arbitration_offer) {
+                arbitration_offer = decision.salary;
+            }
+            if (salary_floor > arbitration_offer) {
+                arbitration_offer = salary_floor;
+            }
+            if (arbitration_offer > 0) {
+                *(int32_t*)(player + OOTP27_PLAYER_ARBITRATION_OFFER_OFFSET) = arbitration_offer;
+            }
             int32_t new_offer = *(int32_t*)(player + OOTP27_PLAYER_ARBITRATION_OFFER_OFFSET);
 
             static LONG fa_declaration_skip_log_count = 0;
             LONG slot = InterlockedIncrement(&fa_declaration_skip_log_count);
             if (slot <= 120) {
                 kbo_log_runtimef(
-                    "KBO FA declaration transition skipped player=%u original_team=%u team_league=%u declaration_date=%u declaration_season=%u today=%u declared_salary=%d demand=%d old_offer=%d new_offer=%d retained_repaired=%d caller_rva=0x%llx",
+                    "KBO FA declaration transition kept arbitration player=%u original_team=%u team_league=%u declaration_date=%u declaration_season=%u today=%u declared_salary=%d demand=%d old_offer=%d new_offer=%d floor=%d caller_rva=0x%llx",
                     player_id,
                     original_team_id,
                     original_team_league_id,
@@ -135,7 +141,7 @@ __declspec(noinline) void ootp_kbo_salary_arbitration_non_tender_wrapper(
                     decision.fa_demand,
                     old_offer,
                     new_offer,
-                    retained_repaired,
+                    salary_floor,
                     (unsigned long long)caller_rva);
             }
             KBO_HOOK_PROFILE_RETURN_VOID(profile_hook, "arbitration.non_tender");

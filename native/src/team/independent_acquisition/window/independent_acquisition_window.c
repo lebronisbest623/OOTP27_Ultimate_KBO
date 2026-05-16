@@ -172,6 +172,20 @@ static int kbo_emit_independent_team_acquisition_open_news(
         return 0;
     }
 
+    /*
+     * This event fires while OOTP is advancing the calendar. Creating a native
+     * live news object here leaves OOTP inside its own event/news mutation path
+     * and has crashed at ootp27.exe+0x6f42b3 immediately after this message.
+     * Keep the acquisition window state and ledger behavior, but do not call
+     * into OOTP's live news allocator from this event.
+     */
+    kbo_log_runtimef(
+        "KBO independent futures acquisition news skipped source=%s date=%u league_id=%u reason=native_news_unsafe_during_custom_event",
+        source != NULL ? source : "",
+        event_yyyymmdd,
+        league_id);
+    return 1;
+
     char title[180] = {0};
     char body[2048] = {0};
     if (!kbo_independent_team_acquisition_build_news_text(

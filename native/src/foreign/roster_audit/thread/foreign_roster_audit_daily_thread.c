@@ -3,6 +3,7 @@
 #include "../../../team/add_player_guard/team_add_player_guard_ai_roster.h"
 #include "../../../team/independent_acquisition/independent_acquisition_ai.h"
 #include "../../injury/api/foreign_injury.h"
+#include "../../common/dates/foreign_waiver_date.h"
 #include "../../retention_guard/foreign_retention_guard.h"
 #include "../../rights/query/foreign_waiver_rights_query.h"
 #include "../../../fa_declaration/fa_declaration.h"
@@ -40,6 +41,7 @@ DWORD WINAPI kbo_foreign_roster_daily_audit_thread(LPVOID parameter)
     uint32_t last_fa_repair_previous_season = 0u;
     DWORD last_fa_repair_current_tick = 0u;
     DWORD last_fa_repair_previous_tick = 0u;
+    char last_audit_save_path[MAX_PATH] = {0};
     while (kbo_runtime_threads_should_continue()) {
         if (!kbo_runtime_sleep_should_continue((uint32_t)kbo_runtime_tuning_policy()->foreign_roster_daily_audit_sleep_ms)) {
             break;
@@ -55,6 +57,10 @@ DWORD WINAPI kbo_foreign_roster_daily_audit_thread(LPVOID parameter)
             continue;
         }
 
+        if (last_audit_save_path[0] == '\0' || strcmp(last_audit_save_path, save_path) != 0) {
+            snprintf(last_audit_save_path, sizeof(last_audit_save_path), "%s", save_path);
+            last_audit_date = 0u;
+        }
         if (today == 0u || today == last_audit_date) {
             continue;
         }
@@ -102,7 +108,32 @@ DWORD WINAPI kbo_foreign_roster_daily_audit_thread(LPVOID parameter)
             continue;
         }
         KBO_PROFILE_BEGIN(profile_foreign_roster_daily_injury);
-        kbo_foreign_injury_replacement_scan_once("foreign_roster_daily_date_change");
+        uint32_t injury_scan_date = today;
+        if (last_audit_date != 0u && last_audit_date < today) {
+            uint32_t next_date = kbo_add_days_yyyymmdd(last_audit_date, 1u);
+            if (next_date != 0u && next_date <= today) {
+                injury_scan_date = next_date;
+            }
+        }
+        while (injury_scan_date != 0u && injury_scan_date <= today) {
+            if (injury_scan_date == today) {
+                kbo_foreign_injury_replacement_scan_for_date(
+                    "foreign_roster_daily_date_change",
+                    injury_scan_date);
+            } else {
+                kbo_foreign_injury_replacement_scan_discovery_for_date(
+                    "foreign_roster_daily_date_change",
+                    injury_scan_date);
+            }
+            if (injury_scan_date == today) {
+                break;
+            }
+            uint32_t next_date = kbo_add_days_yyyymmdd(injury_scan_date, 1u);
+            if (next_date == 0u || next_date <= injury_scan_date) {
+                break;
+            }
+            injury_scan_date = next_date;
+        }
         KBO_PROFILE_END(profile_foreign_roster_daily_injury, "foreign_roster.daily.injury_replacement");
         if (kbo_foreign_roster_daily_abort_if_save("after_injury_replacement", today)) {
             KBO_PROFILE_END(profile_foreign_roster_daily_tick, "foreign_roster.daily.save_abort.after_injury_replacement");

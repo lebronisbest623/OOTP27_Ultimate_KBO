@@ -203,12 +203,24 @@ void kbo_emit_foreign_injury_replacement_news(
     int days_left,
     const char* phase)
 {
+    uint32_t event_date = 0u;
+    if (!kbo_get_current_yyyymmdd(&event_date) || event_date == 0u) {
+        event_date = rec != NULL ? rec->opened_on_yyyymmdd : 0u;
+    }
+    kbo_emit_foreign_injury_replacement_news_on_date(rec, days_left, phase, event_date);
+}
+
+void kbo_emit_foreign_injury_replacement_news_on_date(
+    const KboForeignInjuryReplacement* rec,
+    int days_left,
+    const char* phase,
+    uint32_t event_date)
+{
     if (rec == NULL || rec->team_id == 0u || rec->injured_player_id == 0u || rec->league_id == 0u) {
         return;
     }
 
-    uint32_t event_date = 0u;
-    if (!kbo_get_current_yyyymmdd(&event_date) || event_date == 0u) {
+    if (event_date == 0u) {
         event_date = rec->opened_on_yyyymmdd;
     }
     if (event_date == 0u) {

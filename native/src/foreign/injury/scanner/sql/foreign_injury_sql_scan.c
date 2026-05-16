@@ -591,6 +591,23 @@ int kbo_foreign_injury_recent_sql_has_long_term_injury_date(
     int* out_days,
     uint32_t* out_evidence_date)
 {
+    uint32_t game_date_yyyymmdd = 0u;
+    kbo_get_current_yyyymmdd(&game_date_yyyymmdd);
+    return kbo_foreign_injury_recent_sql_has_long_term_injury_date_on_date(
+        player_id,
+        min_days,
+        game_date_yyyymmdd,
+        out_days,
+        out_evidence_date);
+}
+
+int kbo_foreign_injury_recent_sql_has_long_term_injury_date_on_date(
+    uint32_t player_id,
+    int min_days,
+    uint32_t game_date_yyyymmdd,
+    int* out_days,
+    uint32_t* out_evidence_date)
+{
     if (out_days != NULL) {
         *out_days = 0;
     }
@@ -603,8 +620,9 @@ int kbo_foreign_injury_recent_sql_has_long_term_injury_date(
 
     uintptr_t database = 0u;
     KboSqlite3ExecFn sqlite_exec = NULL;
-    uint32_t game_date_yyyymmdd = 0u;
-    kbo_get_current_yyyymmdd(&game_date_yyyymmdd);
+    if (game_date_yyyymmdd == 0u) {
+        kbo_get_current_yyyymmdd(&game_date_yyyymmdd);
+    }
     uintptr_t global = get_ootp_global_database();
     if (global != 0 && memory_range_readable((void*)(global + OOTP27_GLOBAL_SQL_DATABASE_OFFSET), sizeof(uintptr_t))) {
         database = *(uintptr_t*)(global + OOTP27_GLOBAL_SQL_DATABASE_OFFSET);

@@ -126,8 +126,9 @@ int kbo_independent_acquisition_seller_pacing_deferred(
         return 0;
     }
 
+    uint32_t sales_window_days = window_days > 96u ? 96u : window_days;
     uint32_t base_day =
-        ((uint32_t)(seller_transfers + 1) * window_days) / (uint32_t)(seller_transfer_limit + 1);
+        ((uint32_t)(seller_transfers + 1) * sales_window_days) / (uint32_t)(seller_transfer_limit + 1);
     if (base_day < 2u) {
         base_day = 2u;
     }
@@ -218,27 +219,29 @@ int kbo_independent_acquisition_seller_strategy_deferred(
         return 0;
     }
 
-    int64_t reservation_score = 205000ll;
+    int64_t reservation_score = 188000ll;
     if (player_value_score > 0) {
-        reservation_score += (int64_t)player_value_score / 4ll;
+        reservation_score += (int64_t)player_value_score / 6ll;
     }
     if (remaining_transfers <= 1) {
-        reservation_score += 18000ll;
-    } else if (remaining_transfers == 2) {
         reservation_score += 9000ll;
+    } else if (remaining_transfers == 2) {
+        reservation_score += 4500ll;
+    } else if (remaining_transfers >= 4) {
+        reservation_score -= 9000ll;
     }
 
     int competition = market_offer_count > 0 ? market_offer_count - 1 : 0;
     if (competition > 8) {
         competition = 8;
     }
-    reservation_score -= (int64_t)competition * 6500ll;
+    reservation_score -= (int64_t)competition * 8500ll;
 
-    uint32_t aged_days = request_age_days > 30u ? 30u : request_age_days;
-    reservation_score -= (int64_t)aged_days * 850ll;
+    uint32_t aged_days = request_age_days > 45u ? 45u : request_age_days;
+    reservation_score -= (int64_t)aged_days * 1200ll;
 
     uint32_t market_days = window_age_days > 35u ? 35u : window_age_days;
-    reservation_score -= (int64_t)market_days * 250ll;
+    reservation_score -= (int64_t)market_days * 450ll;
 
     if (days_remaining <= 7u) {
         reservation_score -= (int64_t)(8u - days_remaining) * 2500ll;
@@ -247,10 +250,13 @@ int kbo_independent_acquisition_seller_strategy_deferred(
         reservation_score += 18000ll;
     }
     if (market_offer_count >= 4 && request_age_days >= 18u) {
-        reservation_score -= 12000ll;
+        reservation_score -= 18000ll;
     }
-    if (reservation_score < 165000ll) {
-        reservation_score = 165000ll;
+    if (remaining_transfers >= 3 && request_age_days >= 21u) {
+        reservation_score -= 14000ll;
+    }
+    if (reservation_score < 148000ll) {
+        reservation_score = 148000ll;
     }
 
     int64_t hold_value = reservation_score;
@@ -260,32 +266,34 @@ int kbo_independent_acquisition_seller_strategy_deferred(
         if (competition_pressure > 6) {
             competition_pressure = 6;
         }
-        option_value += (int64_t)competition_pressure * 4500ll;
+        option_value += (int64_t)competition_pressure * 2000ll;
 
-        uint32_t runway_days = days_remaining > 24u ? 24u : days_remaining;
-        option_value += (int64_t)runway_days * 450ll;
+        uint32_t runway_days = days_remaining > 18u ? 18u : days_remaining;
+        option_value += (int64_t)runway_days * 180ll;
 
         if (second_best_score > 0 && selected_score > second_best_score) {
             int64_t bid_gap = selected_score - second_best_score;
             if (bid_gap < 6000ll) {
-                option_value += 16000ll;
+                option_value += 7000ll;
             } else if (bid_gap < 14000ll) {
-                option_value += 9000ll;
+                option_value += 3500ll;
             } else if (bid_gap > 32000ll) {
-                option_value -= 7000ll;
+                option_value -= 10000ll;
             }
         } else if (market_offer_count <= 1) {
-            option_value += 18000ll;
+            option_value += 9000ll;
         }
 
         if (remaining_transfers <= 2) {
-            option_value += 7000ll;
+            option_value += 4500ll;
+        } else if (request_age_days >= 21u) {
+            option_value -= 10000ll;
         }
-        if (option_value > 36000ll) {
-            option_value = 36000ll;
+        if (option_value > 18000ll) {
+            option_value = 18000ll;
         }
-        if (option_value < -12000ll) {
-            option_value = -12000ll;
+        if (option_value < -18000ll) {
+            option_value = -18000ll;
         }
         hold_value += option_value;
     } else if (days_remaining <= 2u) {

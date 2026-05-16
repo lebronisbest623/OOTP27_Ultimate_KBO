@@ -14,7 +14,7 @@ void kbo_foreign_injury_emit_closed_news_batch(
         const KboForeignInjuryReplacement* rec = &closed_news[i].rec;
         const KboForeignInjuryReplacementDecision* decision = &closed_news[i].decision;
         const char* close_phase = closed_news[i].phase[0] != '\0' ? closed_news[i].phase : "closed";
-        kbo_emit_foreign_injury_replacement_news(rec, 0, close_phase);
+        kbo_emit_foreign_injury_replacement_news_on_date(rec, 0, close_phase, today);
                 do {
             KboLogFields audit_fields;
             kbo_log_fields_init(&audit_fields);

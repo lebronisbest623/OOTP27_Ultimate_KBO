@@ -182,10 +182,15 @@ int kbo_team_has_foreign_injury_slot_locked(uint32_t team_id, uint8_t slot_type,
     return 0;
 }
 
-int kbo_foreign_injury_record_has_minimum_injury_basis(const KboForeignInjuryReplacement* rec)
+int kbo_foreign_injury_record_has_minimum_injury_basis_on_date(
+    const KboForeignInjuryReplacement* rec,
+    uint32_t today)
 {
     if (rec == NULL || rec->injured_player_id == 0u) {
         return 0;
+    }
+    if (today == 0u) {
+        kbo_get_current_yyyymmdd(&today);
     }
 
     uint32_t team_id = 0u;
@@ -204,20 +209,37 @@ int kbo_foreign_injury_record_has_minimum_injury_basis(const KboForeignInjuryRep
         return 1;
     }
 
-    uint32_t today = 0u;
-    kbo_get_current_yyyymmdd(&today);
     int inactive_roster_present = kbo_foreign_injury_player_on_inactive_replacement_roster(
         injured,
         rec->injured_player_id,
         rec->team_id,
         today);
-    int message_days = 0;
+    int roster_hold_flag_present = injured[OOTP27_PLAYER_RESTRICTED_FLAG_OFFSET] != 0u
+        || injured[OOTP27_PLAYER_SECONDARY_RESTRICTED_FLAG_OFFSET] != 0u
+        || injured[OOTP27_PLAYER_DFA_FLAG_OFFSET] != 0u;
+    if ((inactive_roster_present || roster_hold_flag_present)
+            && rec->expected_end_yyyymmdd != 0u) {
+        return 1;
+    }
     if (inactive_roster_present
-            && kbo_foreign_injury_recent_message_has_long_term_injury(
+            && kbo_foreign_injury_expected_end_pending(today, rec->expected_end_yyyymmdd)) {
+        return 1;
+    }
+    int sql_days = 0;
+    uint32_t sql_date = 0u;
+    if (inactive_roster_present
+            && kbo_foreign_injury_recent_sql_has_long_term_injury_date_on_date(
                 rec->injured_player_id,
                 min_days,
-                &message_days)) {
-        return 1;
+                today,
+                &sql_days,
+                &sql_date)) {
+        uint32_t sql_expected_end = sql_date != 0u
+            ? kbo_foreign_injury_expected_end_from_duration(sql_date, sql_days)
+            : 0u;
+        if (sql_expected_end == 0u || !kbo_foreign_injury_expected_end_reached(today, sql_expected_end)) {
+            return 1;
+        }
     }
     if (rec->expected_end_yyyymmdd != 0u && (injury_active != 0u || days_left > 0)) {
         return 1;
@@ -230,6 +252,13 @@ int kbo_foreign_injury_record_has_minimum_injury_basis(const KboForeignInjuryRep
         days_left,
         min_days,
         inactive_roster_present);
+}
+
+int kbo_foreign_injury_record_has_minimum_injury_basis(const KboForeignInjuryReplacement* rec)
+{
+    uint32_t today = 0u;
+    kbo_get_current_yyyymmdd(&today);
+    return kbo_foreign_injury_record_has_minimum_injury_basis_on_date(rec, today);
 }
 
 int kbo_team_has_foreign_injury_slot(uint32_t team_id, uint8_t slot_type, uint32_t* out_injured_player_id)

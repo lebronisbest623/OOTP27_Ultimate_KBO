@@ -122,7 +122,7 @@ int kbo_attach_foreign_injury_replacement_after_signing(
         if (injured != NULL && memory_range_readable(injured, OOTP27_PLAYER_SCAN_BYTES)) {
             days_left = (int)*(int16_t*)(injured + OOTP27_PLAYER_INJURY_DAYS_LEFT_OFFSET);
         }
-        kbo_emit_foreign_injury_replacement_news(&updated_rec, days_left, "active");
+        kbo_emit_foreign_injury_replacement_news_on_date(&updated_rec, days_left, "active", today);
         do {
             KboLogFields audit_fields;
             kbo_log_fields_init(&audit_fields);
