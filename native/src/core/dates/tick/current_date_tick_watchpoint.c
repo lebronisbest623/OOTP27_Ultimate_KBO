@@ -71,9 +71,15 @@ static LONG CALLBACK kbo_current_date_tick_watchpoint_exception_handler(
     context->Dr6 = 0u;
     uintptr_t field = g_kbo_current_date_tick_watchpoint_address;
     uint32_t date = kbo_current_date_tick_watchpoint_read_date(field);
-    int published = kbo_current_date_tick_publish(
+    uint32_t previous_date = 0u;
+    int had_previous_date = kbo_current_date_tick_latest_published_date(&previous_date);
+    (void)kbo_current_date_tick_publish_and_dispatch(
         date,
         KBO_CURRENT_DATE_TICK_WATCHPOINT_SITE_RVA);
+    uint32_t latest_date = 0u;
+    int published = kbo_current_date_tick_latest_published_date(&latest_date)
+        && latest_date == date
+        && (!had_previous_date || previous_date != date);
 
     g_kbo_current_date_tick_watchpoint_last_rip = (uintptr_t)context->Rip;
     InterlockedExchange(&g_kbo_current_date_tick_watchpoint_last_date, (LONG)date);

@@ -1,10 +1,35 @@
 #include "team_add_player_guard_ai_roster_daily_internal.h"
 
+static volatile LONG g_kbo_ai_roster_daily_callup_dirty = 0;
+
+int kbo_run_foreign_ai_roster_daily_callup(const char* source);
+
 static int kbo_ai_roster_daily_apply_rescue_enabled(void)
 {
     return kbo_custom_foreign_policy_enabled()
         && !read_kbo_localappdata_flag_file("disable_ai_roster_foreign_apply_rescue.txt")
         && !read_kbo_localappdata_flag_file("disable_ai_roster_foreign_apply_rescue_team_add.txt");
+}
+
+void kbo_mark_foreign_ai_roster_daily_callup_dirty(const char* reason)
+{
+    LONG previous = InterlockedExchange(&g_kbo_ai_roster_daily_callup_dirty, 1);
+    static volatile LONG dirty_log_count = 0;
+    LONG slot = InterlockedIncrement(&dirty_log_count);
+    if (previous == 0 && slot <= 200) {
+        kbo_log_runtimef(
+            "ootp ai roster foreign dirty daily callup marked reason=%s",
+            reason != NULL ? reason : "");
+    }
+}
+
+int kbo_consume_foreign_ai_roster_daily_callup_dirty(const char* source)
+{
+    if (InterlockedExchange(&g_kbo_ai_roster_daily_callup_dirty, 0) == 0) {
+        return 0;
+    }
+    return kbo_run_foreign_ai_roster_daily_callup(
+        source != NULL ? source : "foreign_ai_roster_dirty_callup");
 }
 
 static int kbo_ai_roster_daily_player_already_tried(uint32_t player_id, const uint32_t* tried_player_ids, int tried_count)

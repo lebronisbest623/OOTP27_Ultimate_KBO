@@ -21,6 +21,7 @@
 #include "internal/team_add_player_guard_internal.h"
 #include "original_call/team_add_player_guard_original_call.h"
 #include "team_add_player_guard.h"
+#include "team_add_player_guard_ai_roster.h"
 
 __declspec(noinline) uint8_t ootp_kbo_team_add_player_guard_wrapper(
     uintptr_t team_ptr,
@@ -150,6 +151,9 @@ __declspec(noinline) uint8_t ootp_kbo_team_add_player_guard_wrapper(
                 before_active_team_id,
                 before_original_team_id,
                 caller_rva)) {
+        if (player != NULL && kbo_player_is_foreign_for_kbo_rights(player)) {
+            kbo_mark_foreign_ai_roster_daily_callup_dirty("team_add_foreign_policy_blocked");
+        }
         if (player != NULL
                 && before_current_team_id == 0u
                 && before_active_team_id == 0u
@@ -381,6 +385,9 @@ __declspec(noinline) uint8_t ootp_kbo_team_add_player_guard_wrapper(
         KBO_PROFILE_END(profile_team_add_amateur_assignment, "team_add_guard.amateur_assignment_after_original");
     }
     if (result != 0u) {
+        if (player != NULL && kbo_player_is_foreign_for_kbo_rights(player)) {
+            kbo_mark_foreign_ai_roster_daily_callup_dirty("team_add_foreign_assignment_success");
+        }
         kbo_team_add_note_foreign_assignment_success(
             player,
             before_current_team_id,

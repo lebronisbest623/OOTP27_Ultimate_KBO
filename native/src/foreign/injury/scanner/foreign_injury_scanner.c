@@ -1,6 +1,7 @@
 #include "foreign_injury_scanner_internal.h"
 #include "../../common/policy/foreign_player_policy.h"
 #include "../../../bootstrap/profiling/profiler.h"
+#include "../../../team/add_player_guard/team_add_player_guard_ai_roster.h"
 
 static LONG g_kbo_foreign_injury_non_roster_log_count = 0;
 static LONG g_kbo_foreign_injury_below_min_log_count = 0;
@@ -124,6 +125,7 @@ static int kbo_foreign_injury_replacement_scan_sql_discovery_only(
         }
 
         opened++;
+        kbo_mark_foreign_ai_roster_daily_callup_dirty("foreign_injury_sql_slot_opened");
         if (emit_open_news) {
             kbo_emit_foreign_injury_replacement_news_on_date(
                 &created_rec,
@@ -564,6 +566,7 @@ static void kbo_foreign_injury_replacement_scan_for_date_mode(
         }
         if (created) {
             opened++;
+            kbo_mark_foreign_ai_roster_daily_callup_dirty("foreign_injury_slot_opened");
             int open_news_allowed = kbo_foreign_injury_open_news_allowed(
                 today,
                 live_date,
