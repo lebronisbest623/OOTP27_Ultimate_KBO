@@ -508,11 +508,14 @@ static void test_current_date_tick_consumer_requires_published_dates(void)
     g_test_current_yyyymmdd = 20260305u;
     assert(!kbo_current_date_tick_consumer_next(&consumer, &work));
 
-    assert(kbo_current_date_tick_publish(20260305u, 0x5555u));
+    assert(!kbo_current_date_tick_publish(20260305u, 0x5555u));
+    assert(!kbo_current_date_tick_consumer_next(&consumer, &work));
+
+    assert(kbo_current_date_tick_publish(20260302u, 0x2222u));
     assert(kbo_current_date_tick_consumer_next(&consumer, &work));
-    assert(work.date == 20260305u);
-    assert(work.event_date == 20260305u);
-    assert(work.site_rva == 0x5555u);
+    assert(work.date == 20260302u);
+    assert(work.event_date == 20260302u);
+    assert(work.site_rva == 0x2222u);
     assert(work.sequence == 2u);
     assert(work.gap == 0);
     kbo_current_date_tick_consumer_mark_processed(&consumer);
@@ -520,6 +523,77 @@ static void test_current_date_tick_consumer_requires_published_dates(void)
 
     kbo_test_reset_current_date_tick_state();
     printf("test_current_date_tick_consumer_requires_published_dates: PASS\n");
+}
+
+static void test_current_date_tick_publish_rejects_non_adjacent_live_dates(void)
+{
+    kbo_test_reset_current_date_tick_state();
+
+    KboCurrentDateTickCursor cursor = {0};
+    KboCurrentDateTickEvent event = {0};
+    uint32_t latest = 0u;
+    kbo_current_date_tick_cursor_init(&cursor);
+
+    assert(kbo_current_date_tick_publish(20260430u, 0x1111u));
+    assert(!kbo_current_date_tick_publish(20260530u, 0x2222u));
+    assert(kbo_current_date_tick_latest_published_date(&latest));
+    assert(latest == 20260430u);
+    assert(kbo_current_date_tick_publish(20260501u, 0x3333u));
+
+    assert(kbo_current_date_tick_next(&cursor, &event));
+    assert(event.sequence == 1u);
+    assert(event.date == 20260430u);
+    assert(event.site_rva == 0x1111u);
+
+    assert(kbo_current_date_tick_next(&cursor, &event));
+    assert(event.sequence == 2u);
+    assert(event.date == 20260501u);
+    assert(event.site_rva == 0x3333u);
+
+    assert(!kbo_current_date_tick_next(&cursor, &event));
+
+    kbo_test_reset_current_date_tick_state();
+    printf("test_current_date_tick_publish_rejects_non_adjacent_live_dates: PASS\n");
+}
+
+static void test_current_date_tick_save_enter_does_not_advance_live_date(void)
+{
+    kbo_test_reset_current_date_tick_state();
+    snprintf(g_test_current_save_path, sizeof(g_test_current_save_path), "C:\\test\\saved_games\\New Game.lg");
+
+    KboCurrentDateTickConsumer first_consumer = {0};
+    KboCurrentDateTickWork work = {0};
+    kbo_current_date_tick_consumer_init(
+        &first_consumer,
+        "test_save_enter_initial",
+        KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER);
+
+    g_test_current_yyyymmdd = 20260301u;
+    assert(kbo_current_date_tick_consumer_next(&first_consumer, &work));
+    assert(work.date == 20260301u);
+    assert(work.site_rva == KBO_CURRENT_DATE_TICK_SAVE_ENTER_SITE_RVA);
+    kbo_current_date_tick_consumer_mark_processed(&first_consumer);
+
+    KboCurrentDateTickConsumer late_consumer = {0};
+    kbo_current_date_tick_consumer_init(
+        &late_consumer,
+        "test_save_enter_late",
+        KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER);
+
+    uint32_t latest = 0u;
+    g_test_current_yyyymmdd = 20260305u;
+    assert(!kbo_current_date_tick_consumer_next(&late_consumer, &work));
+    assert(kbo_current_date_tick_latest_published_date(&latest));
+    assert(latest == 20260301u);
+
+    assert(kbo_current_date_tick_publish(20260302u, 0x2222u));
+    assert(kbo_current_date_tick_consumer_next(&late_consumer, &work));
+    assert(work.date == 20260302u);
+    assert(work.event_date == 20260302u);
+    assert(work.site_rva == 0x2222u);
+
+    kbo_test_reset_current_date_tick_state();
+    printf("test_current_date_tick_save_enter_does_not_advance_live_date: PASS\n");
 }
 
 static void test_foreign_waiver_date_helpers(void)
@@ -2164,6 +2238,8 @@ int main(void)
     test_current_date_tick_consumer_retries_save_enter_until_date_ready();
     test_current_date_tick_consumer_preserves_hooks_before_save_path_ready();
     test_current_date_tick_consumer_requires_published_dates();
+    test_current_date_tick_publish_rejects_non_adjacent_live_dates();
+    test_current_date_tick_save_enter_does_not_advance_live_date();
     test_foreign_waiver_date_helpers();
     test_military_csv_parse();
     test_military_date_round_trip();

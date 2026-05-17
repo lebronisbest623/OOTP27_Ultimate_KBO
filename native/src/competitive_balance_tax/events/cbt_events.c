@@ -15,6 +15,8 @@
 #include "../../custom_events/runtime/markers/custom_event_markers.h"
 #include "../../custom_events/runtime/runner/custom_event_runner.h"
 #include "../../custom_events/runtime/state/custom_event_state.h"
+#include "../../fa_salary_snapshot/capture/salary_snapshot_write_capture.h"
+#include "../../fa_salary_snapshot/paths/salary_snapshot_paths_dates.h"
 #include "../../foreign/common/dates/foreign_waiver_date.h"
 #include "../../hotkey_window/api/hotkey_window_refresh.h"
 #include "../../runtime_memory/runtime_memory.h"
@@ -43,6 +45,62 @@ static int kbo_cbt_salary_snapshot_has_rows(uint32_t season)
     KboFaSalarySnapshotGrade grade;
     memset(&grade, 0, sizeof(grade));
     return kbo_fa_salary_snapshot_load_grade_rows(season, &grade, 1, NULL, 0) > 0;
+}
+
+static int kbo_cbt_ensure_salary_snapshot_rows(
+    uint32_t season,
+    uint32_t event_yyyymmdd,
+    const char* source)
+{
+    if (kbo_cbt_salary_snapshot_has_rows(season)) {
+        return 1;
+    }
+
+    uint32_t league_id = kbo_resolve_kbo_league_id();
+    if (league_id == 0u) {
+        kbo_log_runtimef(
+            "KBO CBT salary snapshot ensure deferred source=%s season=%u reason=league_id_unavailable",
+            source != NULL ? source : "",
+            season);
+        return 0;
+    }
+
+    uint32_t opening_day = 0u;
+    uintptr_t league_ptr = kbo_find_league_ptr_from_id(league_id);
+    if (league_ptr == 0u
+            || !kbo_fa_salary_snapshot_read_opening_day(league_ptr, &opening_day)) {
+        if (!kbo_fa_salary_snapshot_load_schedule_opening_day(season, &opening_day)) {
+            kbo_log_runtimef(
+                "KBO CBT salary snapshot ensure deferred source=%s season=%u league=%u reason=opening_day_unavailable",
+                source != NULL ? source : "",
+                season,
+                league_id);
+            return 0;
+        }
+    }
+
+    if (opening_day / 10000u != season
+            || event_yyyymmdd == 0u
+            || event_yyyymmdd < opening_day) {
+        kbo_log_runtimef(
+            "KBO CBT salary snapshot ensure deferred source=%s season=%u event_date=%u opening_day=%u reason=outside_opening_window",
+            source != NULL ? source : "",
+            season,
+            event_yyyymmdd,
+            opening_day);
+        return 0;
+    }
+
+    int captured = kbo_capture_fa_salary_opening_day_snapshot(
+        source != NULL ? source : "cbt_salary_snapshot_ensure",
+        event_yyyymmdd,
+        season,
+        opening_day,
+        league_id);
+    if (!captured) {
+        return kbo_cbt_salary_snapshot_has_rows(season);
+    }
+    return kbo_cbt_salary_snapshot_has_rows(season);
 }
 
 static int kbo_cbt_exception_designations_have_season(uint32_t season)
@@ -457,7 +515,10 @@ void start_kbo_cbt_event_scheduler_thread(void)
 int kbo_handle_cbt_deadline_event(uint32_t event_yyyymmdd, const char* source)
 {
     uint32_t season = event_yyyymmdd / 10000u;
-    if (!kbo_cbt_salary_snapshot_has_rows(season)) {
+    if (!kbo_cbt_ensure_salary_snapshot_rows(
+            season,
+            event_yyyymmdd,
+            "cbt_deadline_snapshot_ensure")) {
         kbo_log_runtimef(
             "KBO CBT exception designation deadline deferred source=%s date=%u season=%u reason=salary_snapshot_unavailable",
             source != NULL ? source : "",
@@ -479,6 +540,17 @@ int kbo_handle_cbt_announcement_event(uint32_t event_yyyymmdd, const char* sourc
 {
     uint32_t season = event_yyyymmdd / 10000u;
     uint32_t news_yyyymmdd = event_yyyymmdd;
+    if (!kbo_cbt_ensure_salary_snapshot_rows(
+            season,
+            event_yyyymmdd,
+            "cbt_announcement_snapshot_ensure")) {
+        kbo_log_runtimef(
+            "KBO CBT announcement event deferred source=%s event_date=%u season=%u reason=salary_snapshot_unavailable",
+            source != NULL ? source : "",
+            event_yyyymmdd,
+            season);
+        return 0;
+    }
     kbo_cbt_exception_auto_designate_missing(season, "cbt_announcement_event");
     kbo_cbt_audit_event_handler("process_tax", "announcement_event", source, event_yyyymmdd, season);
     kbo_log_runtimef(

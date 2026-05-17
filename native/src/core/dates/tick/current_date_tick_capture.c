@@ -17,8 +17,14 @@ volatile LONG g_kbo_current_date_tick_last_published_date = 0;
 uint32_t g_kbo_current_date_tick_event_dates[KBO_CURRENT_DATE_TICK_EVENT_RING_SIZE];
 uint32_t g_kbo_current_date_tick_event_site_rvas[KBO_CURRENT_DATE_TICK_EVENT_RING_SIZE];
 
+#define KBO_CURRENT_DATE_TICK_PUBLISH_LIVE 0
+#define KBO_CURRENT_DATE_TICK_PUBLISH_SAVE_ENTER 1
+
 static int kbo_current_date_tick_log_allowed(LONG* log_count);
 static const char* kbo_current_date_tick_log_label(const char* label);
+static volatile LONG g_kbo_current_date_tick_rejected_log_count = 0;
+static SRWLOCK g_kbo_current_date_tick_save_scope_lock = SRWLOCK_INIT;
+static char g_kbo_current_date_tick_save_scope_path[MAX_PATH];
 
 static LONG kbo_current_date_tick_latest_sequence(void)
 {
@@ -31,29 +37,52 @@ static LONG kbo_current_date_tick_latest_sequence(void)
 static int kbo_current_date_tick_publish_core(
     uint32_t date,
     uint32_t site_rva,
-    int allow_duplicate_date)
+    int publish_mode)
 {
     if (!kbo_yyyymmdd_valid(date)) {
         return 0;
     }
-    if (!allow_duplicate_date) {
-        for (;;) {
-            LONG previous_date = InterlockedCompareExchange(
-                &g_kbo_current_date_tick_last_published_date,
-                0,
-                0);
-            if ((uint32_t)previous_date == date) {
-                return 0;
-            }
-            if (InterlockedCompareExchange(
-                    &g_kbo_current_date_tick_last_published_date,
-                    (LONG)date,
-                    previous_date) == previous_date) {
+    for (;;) {
+        LONG previous_date = InterlockedCompareExchange(
+            &g_kbo_current_date_tick_last_published_date,
+            0,
+            0);
+        if ((uint32_t)previous_date == date) {
+            if (publish_mode == KBO_CURRENT_DATE_TICK_PUBLISH_SAVE_ENTER) {
                 break;
             }
+            return 0;
         }
-    } else {
-        InterlockedExchange(&g_kbo_current_date_tick_last_published_date, (LONG)date);
+        if (previous_date != 0) {
+            if (publish_mode == KBO_CURRENT_DATE_TICK_PUBLISH_SAVE_ENTER) {
+                if (kbo_current_date_tick_log_allowed((LONG*)&g_kbo_current_date_tick_rejected_log_count)) {
+                    kbo_log_runtimef(
+                        "KBO current date tick publish rejected previous=%u date=%u site=0x%x reason=save_enter_not_initial_source",
+                        (uint32_t)previous_date,
+                        date,
+                        site_rva);
+                }
+                return 0;
+            }
+            uint32_t expected_next = kbo_yyyymmdd_add_days((uint32_t)previous_date, 1u);
+            if (expected_next == 0u || date != expected_next) {
+                if (kbo_current_date_tick_log_allowed((LONG*)&g_kbo_current_date_tick_rejected_log_count)) {
+                    kbo_log_runtimef(
+                        "KBO current date tick publish rejected previous=%u date=%u expected_next=%u site=0x%x reason=non_adjacent_live_date",
+                        (uint32_t)previous_date,
+                        date,
+                        expected_next,
+                        site_rva);
+                }
+                return 0;
+            }
+        }
+        if (InterlockedCompareExchange(
+                &g_kbo_current_date_tick_last_published_date,
+                (LONG)date,
+                previous_date) == previous_date) {
+            break;
+        }
     }
 
     LONG event_no = InterlockedExchangeAdd(
@@ -68,7 +97,7 @@ static int kbo_current_date_tick_publish_core(
 
 int kbo_current_date_tick_publish(uint32_t date, uint32_t site_rva)
 {
-    return kbo_current_date_tick_publish_core(date, site_rva, 0);
+    return kbo_current_date_tick_publish_core(date, site_rva, KBO_CURRENT_DATE_TICK_PUBLISH_LIVE);
 }
 
 int kbo_current_date_tick_latest_published_date(uint32_t* out_date)
@@ -98,6 +127,18 @@ static int kbo_current_date_tick_publish_save_enter_current(
         return 0;
     }
 
+    AcquireSRWLockExclusive(&g_kbo_current_date_tick_save_scope_lock);
+    if (strcmp(g_kbo_current_date_tick_save_scope_path, save_path) != 0) {
+        LONG previous_date = InterlockedExchange(&g_kbo_current_date_tick_last_published_date, 0);
+        snprintf(g_kbo_current_date_tick_save_scope_path, sizeof(g_kbo_current_date_tick_save_scope_path), "%s", save_path);
+        kbo_log_runtimef(
+            "KBO current date tick save scope changed label=\"%s\" save=%s previous_date=%u",
+            kbo_current_date_tick_log_label(label),
+            save_path,
+            (uint32_t)previous_date);
+    }
+    ReleaseSRWLockExclusive(&g_kbo_current_date_tick_save_scope_lock);
+
     uint32_t today = 0u;
     if (!kbo_get_current_yyyymmdd(&today) || !kbo_yyyymmdd_valid(today)) {
         return 0;
@@ -106,7 +147,7 @@ static int kbo_current_date_tick_publish_save_enter_current(
     int published = kbo_current_date_tick_publish_core(
         today,
         KBO_CURRENT_DATE_TICK_SAVE_ENTER_SITE_RVA,
-        1);
+        KBO_CURRENT_DATE_TICK_PUBLISH_SAVE_ENTER);
     if (published && kbo_current_date_tick_log_allowed(NULL)) {
         kbo_log_runtimef(
             "KBO current date tick save-enter published label=\"%s\" save=%s date=%u",
