@@ -24,6 +24,7 @@
 #include "../../runtime/names/custom_event_names.h"
 #include "../../runtime/runner/custom_event_runner.h"
 #include "../../runtime/state/custom_event_state.h"
+#include "../../../team/independent_acquisition/window/independent_acquisition_window.h"
 
 static uint32_t kbo_independent_team_acquisition_add_months(
     uint32_t yyyymmdd,
@@ -143,14 +144,23 @@ static int kbo_process_due_independent_team_acquisition_open_event(
     if (today == 0u || open_date == 0u || today < open_date) {
         return 0;
     }
-    if (kbo_custom_event_processed_marker_exists_for_kind(
+    int completed = kbo_custom_event_processed_marker_exists_for_kind(
             open_date,
             KBO_CUSTOM_EVENT_KIND_INDEPENDENT_TEAM_ACQUISITION_OPEN)
-            || kbo_custom_event_ledger_completed(
-                league_id,
-                open_date,
-                KBO_CUSTOM_EVENT_KIND_INDEPENDENT_TEAM_ACQUISITION_OPEN)) {
+        || kbo_custom_event_ledger_completed(
+            league_id,
+            open_date,
+            KBO_CUSTOM_EVENT_KIND_INDEPENDENT_TEAM_ACQUISITION_OPEN);
+    if (completed
+            && kbo_independent_team_acquisition_completion_valid(league_id, open_date)) {
         return 0;
+    }
+    if (completed) {
+        kbo_log_runtimef(
+            "KBO independent futures acquisition stale completion ignored source=%s event_date=%u today=%u",
+            source != NULL ? source : "",
+            open_date,
+            today);
     }
 
     int result = kbo_run_custom_event_by_kind(

@@ -9,7 +9,7 @@
 #include "../../../foreign/common/dates/foreign_waiver_date.h"
 #include "../../../foreign/common/policy/foreign_waiver_policy.h"
 #include "../../../foreign/common/player_eval/foreign_waiver_player_eval.h"
-#include "../../../foreign/injury/api/foreign_injury_labels.h"
+#include "../../../foreign/injury/api/foreign_injury.h"
 #include "../../../foreign/rights/query/foreign_waiver_rights_query.h"
 #include "../../../runtime_memory/runtime_memory.h"
 #include "../../assignment/org_query/team_org_assignment_query.h"
@@ -242,6 +242,45 @@ int kbo_team_add_foreign_policy_should_block(
         if (source_org_team_id != 0u
                 && target_org_team_id != 0u
                 && source_org_team_id != target_org_team_id) {
+            uint8_t injury_slot_type = 0u;
+            uint32_t injured_player_id = 0u;
+            uint32_t effective_count = 0u;
+            uint32_t effective_limit = KBO_CUSTOM_FOREIGN_BASE_EFFECTIVE_LIMIT;
+            if (kbo_foreign_injury_replacement_signing_exception_available(
+                    team_id,
+                    player,
+                    &injury_slot_type,
+                    &injured_player_id,
+                    &effective_count,
+                    &effective_limit)) {
+                static volatile LONG former_org_injury_allow_log_count = 0;
+                LONG allow_slot = InterlockedIncrement(&former_org_injury_allow_log_count);
+                if (allow_slot <= 120) {
+                    uint32_t player_id = *(uint32_t*)(player + OOTP27_PLAYER_ID_OFFSET);
+                    uint32_t current_team_id = *(uint32_t*)(player + OOTP27_PLAYER_CURRENT_TEAM_ID_OFFSET);
+                    uint32_t active_team_id = *(uint32_t*)(player + OOTP27_PLAYER_ACTIVE_TEAM_ID_OFFSET);
+                    int score = kbo_foreign_waiver_value_score(player);
+                    kbo_log_runtimef(
+                        "custom foreign policy former-org market signing allowed by injury slot player=%u team=%u source_team=%u source_org=%u target_org=%u before_current=%u before_active=%u current=%u active=%u score=%d effective=%u limit=%u injury_slot=%s injured=%u caller_rva=0x%x",
+                        player_id,
+                        team_id,
+                        before_original_team_id,
+                        source_org_team_id,
+                        target_org_team_id,
+                        before_current_team_id,
+                        before_active_team_id,
+                        current_team_id,
+                        active_team_id,
+                        score,
+                        effective_count,
+                        effective_limit,
+                        kbo_foreign_injury_slot_label(injury_slot_type),
+                        injured_player_id,
+                        caller_rva);
+                }
+                return 0;
+            }
+
             static volatile LONG former_org_block_log_count = 0;
             LONG former_org_slot = InterlockedIncrement(&former_org_block_log_count);
             if (former_org_slot <= 200) {

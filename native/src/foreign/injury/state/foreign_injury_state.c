@@ -303,7 +303,8 @@ int kbo_foreign_injury_open_news_allowed(
     return process_existing_replacements
         && scan_date != 0u
         && (live_date == scan_date || captured_live_date)
-        && opened_on == scan_date;
+        && opened_on != 0u
+        && opened_on <= scan_date;
 }
 
 static int kbo_foreign_injury_state_record_has_minimum_injury_basis(

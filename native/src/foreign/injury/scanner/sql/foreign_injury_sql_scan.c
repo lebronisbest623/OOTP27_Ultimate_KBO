@@ -636,7 +636,17 @@ static void kbo_foreign_injury_sql_build_daily_query(
         out,
         out_size,
         "SELECT player_id, history_text, history_date FROM player_history "
-        "WHERE history_date <= '%08u' AND history_text LIKE '[I]Injured%%';",
+        "WHERE history_date <= '%08u' AND history_text LIKE '[I]Injured%%' "
+        "UNION ALL SELECT CAST(substr(injury_text, instr(injury_text, 'player_') + 7, "
+        "instr(substr(injury_text, instr(injury_text, 'player_') + 7), '.html') - 1) AS INTEGER), "
+        "injury_text, injury_date FROM league_injuries "
+        "WHERE injury_date <= '%08u' AND injury_text LIKE '%%player_%%.html%%' "
+        "UNION ALL SELECT CAST(substr(injury_text, instr(injury_text, 'player_') + 7, "
+        "instr(substr(injury_text, instr(injury_text, 'player_') + 7), '.html') - 1) AS INTEGER), "
+        "injury_text, injury_date FROM team_injuries "
+        "WHERE injury_date <= '%08u' AND injury_text LIKE '%%player_%%.html%%';",
+        game_date_yyyymmdd,
+        game_date_yyyymmdd,
         game_date_yyyymmdd);
 }
 
@@ -653,7 +663,17 @@ static void kbo_foreign_injury_sql_build_discovery_query(
         out,
         out_size,
         "SELECT player_id, history_text, history_date FROM player_history "
-        "WHERE history_date = '%08u' AND history_text LIKE '[I]Injured%%';",
+        "WHERE history_date = '%08u' AND history_text LIKE '[I]Injured%%' "
+        "UNION ALL SELECT CAST(substr(injury_text, instr(injury_text, 'player_') + 7, "
+        "instr(substr(injury_text, instr(injury_text, 'player_') + 7), '.html') - 1) AS INTEGER), "
+        "injury_text, injury_date FROM league_injuries "
+        "WHERE injury_date = '%08u' AND injury_text LIKE '%%player_%%.html%%' "
+        "UNION ALL SELECT CAST(substr(injury_text, instr(injury_text, 'player_') + 7, "
+        "instr(substr(injury_text, instr(injury_text, 'player_') + 7), '.html') - 1) AS INTEGER), "
+        "injury_text, injury_date FROM team_injuries "
+        "WHERE injury_date = '%08u' AND injury_text LIKE '%%player_%%.html%%';",
+        game_date_yyyymmdd,
+        game_date_yyyymmdd,
         game_date_yyyymmdd);
 }
 
@@ -727,18 +747,12 @@ static void kbo_foreign_injury_sql_ensure_daily_scan(
         cache_database,
         game_date_yyyymmdd,
         min_days);
-    if (!already_scanned) {
-        kbo_foreign_injury_sql_mark_daily_scanned_locked(
-            cache_database,
-            game_date_yyyymmdd,
-            min_days);
-    }
     kbo_foreign_injury_sql_cache_unlock();
     if (already_scanned) {
         return;
     }
 
-    char sql[512] = {0};
+    char sql[1600] = {0};
     kbo_foreign_injury_sql_build_daily_query(game_date_yyyymmdd, sql, sizeof(sql));
     KboForeignInjurySqlDailyScan scan;
     memset(&scan, 0, sizeof(scan));
@@ -775,6 +789,14 @@ static void kbo_foreign_injury_sql_ensure_daily_scan(
         scan.rows_seen,
         scan.found_count,
         result);
+    if (result == 0) {
+        kbo_foreign_injury_sql_cache_lock();
+        kbo_foreign_injury_sql_mark_daily_scanned_locked(
+            cache_database,
+            game_date_yyyymmdd,
+            min_days);
+        kbo_foreign_injury_sql_cache_unlock();
+    }
 }
 
 int kbo_foreign_injury_collect_sql_long_term_injuries_on_date(
@@ -798,7 +820,7 @@ int kbo_foreign_injury_collect_sql_long_term_injuries_on_date(
         return -1;
     }
 
-    char sql[512] = {0};
+    char sql[1600] = {0};
     kbo_foreign_injury_sql_build_discovery_query(game_date_yyyymmdd, sql, sizeof(sql));
 
     uintptr_t database = 0u;

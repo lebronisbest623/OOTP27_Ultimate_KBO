@@ -5,6 +5,7 @@
 
 #include "../../bootstrap/abi/ootp_offsets.h"
 #include "../../build_verify/build_verify.h"
+#include "../../core/core_flags/api/flags_api.h"
 #include "../../core/logging/core_log.h"
 #include "../../hook_stubs/current_date_tick/hook_stubs_current_date_tick.h"
 #include "../../patch_helpers/patch_helpers.h"
@@ -233,42 +234,49 @@ int install_kbo_current_date_tick_capture_hook(void)
     };
 
     int installed = 0;
-    installed += install_kbo_current_date_tick_date_add_hook(exe);
-    installed += install_kbo_current_date_tick_capture_site(
-        exe,
-        "KBO current date tick capture copy",
-        OOTP27_CURRENT_DATE_COPY_POST_WRITE_RVA,
-        copy_expected,
-        sizeof(copy_expected),
-        build_kbo_current_date_tick_capture_stub);
-    installed += install_kbo_current_date_tick_capture_site(
-        exe,
-        "KBO current date tick capture normalize",
-        OOTP27_CURRENT_DATE_NORMALIZE_POST_WRITE_RVA,
-        normalize_expected,
-        sizeof(normalize_expected),
-        build_kbo_current_date_tick_capture_stub_global_r12);
-    installed += install_kbo_current_date_tick_capture_site(
-        exe,
-        "KBO current date tick capture series-copy",
-        OOTP27_CURRENT_DATE_SERIES_COPY_POST_WRITE_RVA,
-        series_copy_expected,
-        sizeof(series_copy_expected),
-        build_kbo_current_date_tick_capture_stub_direct_r12);
-    installed += install_kbo_current_date_tick_capture_site(
-        exe,
-        "KBO current date tick capture year-sync",
-        OOTP27_CURRENT_DATE_YEAR_SYNC_POST_VALIDATE_RVA,
-        year_sync_expected,
-        sizeof(year_sync_expected),
-        build_kbo_current_date_tick_capture_stub_direct_r9);
-    installed += install_kbo_current_date_tick_capture_site(
-        exe,
-        "KBO current date tick capture sim-loop",
-        OOTP27_CURRENT_DATE_SIM_LOOP_GLOBAL_READ_RVA,
-        sim_loop_expected,
-        sizeof(sim_loop_expected),
-        build_kbo_current_date_tick_capture_stub_global_rax);
+    int enable_early_sources = read_kbo_localappdata_flag_file(
+        "enable_kbo_current_date_tick_early_sources.txt");
+    if (enable_early_sources) {
+        installed += install_kbo_current_date_tick_date_add_hook(exe);
+        installed += install_kbo_current_date_tick_capture_site(
+            exe,
+            "KBO current date tick capture copy",
+            OOTP27_CURRENT_DATE_COPY_POST_WRITE_RVA,
+            copy_expected,
+            sizeof(copy_expected),
+            build_kbo_current_date_tick_capture_stub);
+        installed += install_kbo_current_date_tick_capture_site(
+            exe,
+            "KBO current date tick capture normalize",
+            OOTP27_CURRENT_DATE_NORMALIZE_POST_WRITE_RVA,
+            normalize_expected,
+            sizeof(normalize_expected),
+            build_kbo_current_date_tick_capture_stub_global_r12);
+        installed += install_kbo_current_date_tick_capture_site(
+            exe,
+            "KBO current date tick capture series-copy",
+            OOTP27_CURRENT_DATE_SERIES_COPY_POST_WRITE_RVA,
+            series_copy_expected,
+            sizeof(series_copy_expected),
+            build_kbo_current_date_tick_capture_stub_direct_r12);
+        installed += install_kbo_current_date_tick_capture_site(
+            exe,
+            "KBO current date tick capture year-sync",
+            OOTP27_CURRENT_DATE_YEAR_SYNC_POST_VALIDATE_RVA,
+            year_sync_expected,
+            sizeof(year_sync_expected),
+            build_kbo_current_date_tick_capture_stub_direct_r9);
+        installed += install_kbo_current_date_tick_capture_site(
+            exe,
+            "KBO current date tick capture sim-loop",
+            OOTP27_CURRENT_DATE_SIM_LOOP_GLOBAL_READ_RVA,
+            sim_loop_expected,
+            sizeof(sim_loop_expected),
+            build_kbo_current_date_tick_capture_stub_global_rax);
+    } else {
+        kbo_log_runtime_line(
+            "KBO current date tick early capture sites skipped: using sim-loop-post-advance as primary SSOT");
+    }
     installed += install_kbo_current_date_tick_capture_site(
         exe,
         "KBO current date tick capture sim-loop-post-advance",

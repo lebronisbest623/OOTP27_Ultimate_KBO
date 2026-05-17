@@ -205,7 +205,14 @@ static void kbo_foreign_injury_replacement_scan_for_date_mode(
     }
     uint32_t live_date = 0u;
     kbo_get_current_yyyymmdd(&live_date);
-    int live_injury_fields_available = captured_live_date || live_date == today;
+    int live_injury_fields_available = live_date == today;
+    if (captured_live_date && live_date != 0u && live_date != today) {
+        kbo_log_runtimef(
+            "foreign injury replacement: date-locked scan source=%s event_date=%u live_date=%u reason=stale_hook_uses_sql_only",
+            source != NULL ? source : "",
+            today,
+            live_date);
+    }
     if (kbo_foreign_injury_same_date_idle_scan_cached(today, source)) {
         kbo_profiler_record_us("foreign_injury.scan.same_date_idle_cached", 0);
         KBO_PROFILE_END(profile_foreign_injury_scan, "foreign_injury.scan.same_date_idle_cached");

@@ -19,6 +19,9 @@ int kbo_custom_event_completed_state_is_valid(uint32_t league_id, uint32_t event
             || kind == KBO_CUSTOM_EVENT_KIND_CBT_ANNOUNCEMENT) {
         return kbo_cbt_custom_event_completion_valid(league_id, event_yyyymmdd, kind);
     }
+    if (kind == KBO_CUSTOM_EVENT_KIND_INDEPENDENT_TEAM_ACQUISITION_OPEN) {
+        return kbo_independent_team_acquisition_completion_valid(league_id, event_yyyymmdd);
+    }
     return 1;
 }
 

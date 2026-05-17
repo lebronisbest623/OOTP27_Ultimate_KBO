@@ -324,8 +324,14 @@ void install_kbo_full_runtime_after_roster_marker(HINSTANCE instance)
         kbo_log_runtime_line("KBO season phase capture hooks disabled: disable_kbo_season_phase_capture_hooks is true");
     }
     if (!read_kbo_localappdata_flag_file("disable_kbo_current_date_tick_capture_hook.txt")) {
-        install_kbo_current_date_tick_capture_hook();
-        start_kbo_current_date_tick_watchpoint_thread();
+        int date_tick_hooks = install_kbo_current_date_tick_capture_hook();
+        if (date_tick_hooks <= 0
+                || read_kbo_localappdata_flag_file("enable_kbo_current_date_tick_watchpoint.txt")) {
+            start_kbo_current_date_tick_watchpoint_thread();
+        } else {
+            kbo_log_runtime_line(
+                "KBO current date tick watchpoint fallback skipped: post-advance hook installed");
+        }
     } else {
         kbo_log_runtime_line("KBO current date tick capture hook disabled: disable_kbo_current_date_tick_capture_hook is true");
     }

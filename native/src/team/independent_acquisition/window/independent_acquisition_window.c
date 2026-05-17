@@ -14,14 +14,16 @@
 #include "../../../core/files/save_paths/core_save_paths.h"
 #include "../../../core/dates/core_text_date.h"
 #include "../../../core/logging/core_log.h"
-#include "../../../core/news/live/core_live_news.h"
+#include "../../../core/news/ledger/core_news_ledger.h"
 #include "../../../core/news/templates/core_news_templates.h"
+#include "../../../core/sql/league_news/core_sql_league_news.h"
 #include "../../../core/season/phase/season_phase.h"
 #include "../../../foreign/common/policy/foreign_waiver_policy.h"
 
 static volatile LONG g_kbo_independent_team_acquisition_open_date = 0;
 
 #define KBO_INDEPENDENT_TEAM_ACQUISITION_WINDOW_FILE "independent_acquisition_window.txt"
+#define KBO_INDEPENDENT_ACQUISITION_NEWS_LEDGER_DOMAIN "independent_acquisition"
 #define KBO_INDEPENDENT_ACQUISITION_REGULAR_SEASON_PLANNING_DAYS 160u
 
 static int kbo_independent_team_acquisition_window_path(char* out, size_t out_size)
@@ -118,6 +120,36 @@ static uint32_t kbo_independent_team_acquisition_event_league_id(void)
     return league_id;
 }
 
+static int kbo_independent_team_acquisition_open_news_marker(
+    uint32_t event_yyyymmdd,
+    uint32_t league_id,
+    char* out,
+    size_t out_size)
+{
+    if (event_yyyymmdd == 0u || league_id == 0u || out == NULL || out_size == 0u) {
+        return 0;
+    }
+    int len = snprintf(out, out_size, "open|%u|%u", event_yyyymmdd, league_id);
+    return len > 0 && len < (int)out_size;
+}
+
+static int kbo_independent_team_acquisition_open_news_completed(
+    uint32_t event_yyyymmdd,
+    uint32_t league_id)
+{
+    char marker[64] = {0};
+    if (!kbo_independent_team_acquisition_open_news_marker(
+            event_yyyymmdd,
+            league_id,
+            marker,
+            sizeof(marker))) {
+        return 0;
+    }
+    return kbo_custom_news_ledger_completed(
+        KBO_INDEPENDENT_ACQUISITION_NEWS_LEDGER_DOMAIN,
+        marker);
+}
+
 static int kbo_independent_team_acquisition_build_news_text(
     char* title,
     size_t title_size,
@@ -172,19 +204,29 @@ static int kbo_emit_independent_team_acquisition_open_news(
         return 0;
     }
 
-    /*
-     * This event fires while OOTP is advancing the calendar. Creating a native
-     * live news object here leaves OOTP inside its own event/news mutation path
-     * and has crashed at ootp27.exe+0x6f42b3 immediately after this message.
-     * Keep the acquisition window state and ledger behavior, but do not call
-     * into OOTP's live news allocator from this event.
-     */
-    kbo_log_runtimef(
-        "KBO independent futures acquisition news skipped source=%s date=%u league_id=%u reason=native_news_unsafe_during_custom_event",
-        source != NULL ? source : "",
-        event_yyyymmdd,
-        league_id);
-    return 1;
+    char marker[64] = {0};
+    if (!kbo_independent_team_acquisition_open_news_marker(
+            event_yyyymmdd,
+            league_id,
+            marker,
+            sizeof(marker))) {
+        kbo_log_runtimef(
+            "KBO independent futures acquisition news skipped source=%s date=%u league_id=%u reason=marker_unavailable",
+            source != NULL ? source : "",
+            event_yyyymmdd,
+            league_id);
+        return 0;
+    }
+    if (kbo_custom_news_ledger_completed(
+            KBO_INDEPENDENT_ACQUISITION_NEWS_LEDGER_DOMAIN,
+            marker)) {
+        kbo_log_runtimef(
+            "KBO independent futures acquisition news skipped source=%s date=%u league_id=%u reason=marker_exists",
+            source != NULL ? source : "",
+            event_yyyymmdd,
+            league_id);
+        return 1;
+    }
 
     char title[180] = {0};
     char body[2048] = {0};
@@ -202,20 +244,39 @@ static int kbo_emit_independent_team_acquisition_open_news(
         return 0;
     }
 
-    int created = create_kbo_native_live_news_with_body(
+    int league_news_created = insert_kbo_league_news_table_sql(
+        event_yyyymmdd / 10000u,
+        (event_yyyymmdd / 100u) % 100u,
+        event_yyyymmdd % 100u,
+        league_id,
+        title,
+        body,
+        "independent_acquisition_open");
+    int message_created = insert_kbo_league_news_sql(
         event_yyyymmdd / 10000u,
         (event_yyyymmdd / 100u) % 100u,
         event_yyyymmdd % 100u,
         league_id,
         OOTP27_EVENT_TYPE_CUSTOM_EVENT,
         title,
-        body);
+        body,
+        "independent_acquisition_open");
+    int created = message_created != 0;
+    if (created) {
+        kbo_custom_news_ledger_record_completed(
+            KBO_INDEPENDENT_ACQUISITION_NEWS_LEDGER_DOMAIN,
+            marker,
+            "open_news_created",
+            source);
+    }
     kbo_log_runtimef(
-        "KBO independent futures acquisition news source=%s title=%s date=%u league_id=%u created=%d",
+        "KBO independent futures acquisition news source=%s title=%s date=%u league_id=%u league_news=%d messages=%d created=%d",
         source != NULL ? source : "",
         title,
         event_yyyymmdd,
         league_id,
+        league_news_created,
+        message_created,
         created);
     return created;
 }
@@ -240,6 +301,16 @@ int kbo_handle_independent_team_acquisition_open_event(
         news_yyyymmdd,
         (uint32_t)previous);
     return kbo_emit_independent_team_acquisition_open_news(news_yyyymmdd, source) ? 1 : 0;
+}
+
+int kbo_independent_team_acquisition_completion_valid(
+    uint32_t league_id,
+    uint32_t event_yyyymmdd)
+{
+    if (league_id == 0u || event_yyyymmdd == 0u) {
+        return 0;
+    }
+    return kbo_independent_team_acquisition_open_news_completed(event_yyyymmdd, league_id);
 }
 
 uint32_t kbo_independent_team_acquisition_window_open_date(void)

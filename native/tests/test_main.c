@@ -1811,7 +1811,9 @@ static void test_foreign_injury_inactive_roster_long_term_basis(void)
     assert(kbo_foreign_injury_open_news_allowed(20260329u, 20260329u, 20260329u, 1, 0));
     assert(kbo_foreign_injury_open_news_allowed(20260329u, 20260330u, 20260329u, 1, 1));
     assert(!kbo_foreign_injury_open_news_allowed(20260329u, 20260330u, 20260329u, 1, 0));
-    assert(!kbo_foreign_injury_open_news_allowed(20260329u, 20260329u, 20260328u, 1, 1));
+    assert(kbo_foreign_injury_open_news_allowed(20260329u, 20260329u, 20260328u, 1, 1));
+    assert(!kbo_foreign_injury_open_news_allowed(20260329u, 20260329u, 0u, 1, 1));
+    assert(!kbo_foreign_injury_open_news_allowed(20260329u, 20260329u, 20260330u, 1, 1));
     assert(!kbo_foreign_injury_open_news_allowed(20260329u, 20260329u, 20260329u, 0, 1));
 
     printf("test_foreign_injury_inactive_roster_long_term_basis: PASS\n");

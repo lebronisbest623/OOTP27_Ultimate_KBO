@@ -488,6 +488,16 @@
       "lifecycle": "Recovery"
     },
     {
+      "key": "enable_kbo_current_date_tick_early_sources",
+      "defaultValue": false,
+      "lifecycle": "Diagnostic"
+    },
+    {
+      "key": "enable_kbo_current_date_tick_watchpoint",
+      "defaultValue": false,
+      "lifecycle": "Diagnostic"
+    },
+    {
       "key": "disable_military_ortools",
       "defaultValue": null,
       "lifecycle": "Recovery"
