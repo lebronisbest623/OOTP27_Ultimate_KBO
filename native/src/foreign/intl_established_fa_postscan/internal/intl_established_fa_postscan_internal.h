@@ -82,6 +82,12 @@ void kbo_intl_established_fa_postscan_schedule(
     int multiplier,
     uint32_t primary_league_id,
     uint32_t fallback_league_id);
+int kbo_intl_established_fa_postscan_persist_state(
+    const KboIntlEstablishedFaPostscanState* state,
+    const char* source);
+int kbo_intl_established_fa_postscan_load_state(
+    KboIntlEstablishedFaPostscanState* out,
+    const char* source);
 int kbo_intl_established_fa_postscan_candidate_matches(
     const KboIntlEstablishedFaPostscanState* batch,
     int32_t index,

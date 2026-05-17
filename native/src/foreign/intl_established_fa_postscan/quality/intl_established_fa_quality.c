@@ -321,6 +321,9 @@ void kbo_intl_established_fa_postscan_schedule(
     g_kbo_intl_established_fa_postscan.due_tick = GetTickCount64() + KBO_INTL_ESTABLISHED_FA_POSTSCAN_DELAY_MS;
     g_kbo_intl_established_fa_postscan.attempts = 0;
     InterlockedExchange(&g_kbo_intl_established_fa_postscan.pending, 1);
+    kbo_intl_established_fa_postscan_persist_state(
+        &g_kbo_intl_established_fa_postscan,
+        "intl_established_fa_postscan_schedule");
 
     kbo_log_runtimef(
         "international established FA postscan scheduled batch=%ld league_id=%u/%u before_count=%d before_max_player=%u original=%d multiplier=%d expected=%d date=%u vector_ready=%d",

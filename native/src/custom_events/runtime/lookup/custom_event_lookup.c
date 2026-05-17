@@ -196,6 +196,7 @@ int kbo_custom_event_name_matches_local(const char* name)
         || kbo_custom_event_name_is_cbt_exception_deadline(name)
         || kbo_custom_event_name_is_cbt_announcement(name)
         || kbo_custom_event_name_is_fa_declaration(name)
+        || kbo_custom_event_name_is_intl_established_fa(name)
         || kbo_custom_event_name_is_independent_team_acquisition_open(name);
 }
 

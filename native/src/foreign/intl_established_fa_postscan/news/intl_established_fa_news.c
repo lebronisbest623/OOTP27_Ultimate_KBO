@@ -8,6 +8,7 @@
 #include "../../../team/names/team_name_cache.h"
 
 #define KBO_INTL_FA_NEWS_TOP_MAX 8
+#define KBO_INTL_FA_NEWS_BATCH_MAX_AGE_DAYS 60u
 
 typedef struct KboIntlFaNewsCandidate {
     uint32_t player_id;
@@ -189,6 +190,29 @@ static void kbo_intl_fa_build_list(const KboIntlFaNewsCandidate* top, int top_co
     }
 }
 
+static int kbo_intl_fa_batch_available_for_event(
+    const KboIntlEstablishedFaPostscanState* batch,
+    uint32_t event_yyyymmdd)
+{
+    if (batch == NULL
+            || batch->scheduled_date == 0u
+            || event_yyyymmdd == 0u
+            || batch->expected_count <= 0) {
+        return 0;
+    }
+    if (batch->scheduled_date == event_yyyymmdd) {
+        return 1;
+    }
+    if (batch->scheduled_date > event_yyyymmdd) {
+        return 0;
+    }
+
+    uint32_t latest_allowed = kbo_add_days_yyyymmdd(
+        batch->scheduled_date,
+        KBO_INTL_FA_NEWS_BATCH_MAX_AGE_DAYS);
+    return latest_allowed != 0u && event_yyyymmdd <= latest_allowed;
+}
+
 int kbo_handle_intl_established_fa_event(uint32_t event_yyyymmdd, const char* source)
 {
     if (!kbo_fix_enabled() || event_yyyymmdd == 0u) {
@@ -206,7 +230,17 @@ int kbo_handle_intl_established_fa_event(uint32_t event_yyyymmdd, const char* so
     }
 
     KboIntlEstablishedFaPostscanState batch = g_kbo_intl_established_fa_postscan;
-    if (batch.scheduled_date != event_yyyymmdd || batch.expected_count <= 0) {
+    int loaded_batch = 0;
+    if (!kbo_intl_fa_batch_available_for_event(&batch, event_yyyymmdd)) {
+        KboIntlEstablishedFaPostscanState persisted = {0};
+        if (kbo_intl_established_fa_postscan_load_state(&persisted, source)
+                && kbo_intl_fa_batch_available_for_event(&persisted, event_yyyymmdd)) {
+            batch = persisted;
+            g_kbo_intl_established_fa_postscan = persisted;
+            loaded_batch = 1;
+        }
+    }
+    if (!kbo_intl_fa_batch_available_for_event(&batch, event_yyyymmdd)) {
         kbo_log_runtimef(
             "international established FA event deferred source=%s date=%u reason=batch_unavailable scheduled=%u expected=%d",
             source != NULL ? source : "",
@@ -214,6 +248,22 @@ int kbo_handle_intl_established_fa_event(uint32_t event_yyyymmdd, const char* so
             batch.scheduled_date,
             batch.expected_count);
         return 0;
+    }
+    if (loaded_batch) {
+        kbo_log_runtimef(
+            "international established FA event loaded postscan state source=%s event_date=%u generation_date=%u expected=%d",
+            source != NULL ? source : "",
+            event_yyyymmdd,
+            batch.scheduled_date,
+            batch.expected_count);
+    }
+    if (batch.scheduled_date != event_yyyymmdd) {
+        kbo_log_runtimef(
+            "international established FA event using delayed generation batch source=%s event_date=%u generation_date=%u expected=%d",
+            source != NULL ? source : "",
+            event_yyyymmdd,
+            batch.scheduled_date,
+            batch.expected_count);
     }
 
     KboIntlFaNewsCandidate top[KBO_INTL_FA_NEWS_TOP_MAX];
@@ -287,9 +337,10 @@ int kbo_handle_intl_established_fa_event(uint32_t event_yyyymmdd, const char* so
         source != NULL ? source : "intl_established_fa_event");
 
     kbo_log_runtimef(
-        "international established FA event news source=%s date=%u news=%u league=%u total=%d top=%d expected=%d multiplier=%d",
+        "international established FA event news source=%s date=%u generation=%u news=%u league=%u total=%d top=%d expected=%d multiplier=%d",
         source != NULL ? source : "",
         event_yyyymmdd,
+        batch.scheduled_date,
         news_date,
         league_id,
         total,

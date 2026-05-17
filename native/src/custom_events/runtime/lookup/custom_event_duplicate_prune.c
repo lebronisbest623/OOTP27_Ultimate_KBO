@@ -118,3 +118,57 @@ int kbo_prune_duplicate_custom_events_by_kind_for_date(
     }
     return pruned;
 }
+
+int kbo_delete_custom_events_by_kind_for_date(
+    uint32_t league_id,
+    uint32_t event_yyyymmdd,
+    KboCustomEventKind kind,
+    const char* source)
+{
+    if (league_id == 0u
+            || event_yyyymmdd == 0u
+            || kind <= KBO_CUSTOM_EVENT_KIND_UNKNOWN
+            || kind >= KBO_CUSTOM_EVENT_KIND_COUNT) {
+        return 0;
+    }
+
+    uintptr_t event_manager = get_kbo_league_event_manager();
+    if (event_manager == 0
+            || !memory_range_readable((void*)event_manager, OOTP27_EVENT_MANAGER_EVENT_COUNT_OFFSET + sizeof(int32_t))) {
+        return 0;
+    }
+
+    uintptr_t event_vector = *(uintptr_t*)(event_manager + OOTP27_EVENT_MANAGER_EVENT_VECTOR_OFFSET);
+    int32_t event_count = *(int32_t*)(event_manager + OOTP27_EVENT_MANAGER_EVENT_COUNT_OFFSET);
+    if (event_vector == 0 || event_count <= 0 || event_count > 20000
+            || !memory_range_readable((void*)event_vector, (SIZE_T)event_count * sizeof(uintptr_t))) {
+        return 0;
+    }
+
+    int deleted = 0;
+    for (int32_t i = 0; i < event_count; i++) {
+        uintptr_t event_ptr = *(uintptr_t*)(event_vector + ((uintptr_t)i * sizeof(uintptr_t)));
+        if (event_ptr == 0 || !memory_range_readable((void*)event_ptr, 0x48)) {
+            continue;
+        }
+
+        uint8_t* event = (uint8_t*)event_ptr;
+        if (!kbo_custom_event_row_matches_kind_date(event, league_id, event_yyyymmdd, kind)) {
+            continue;
+        }
+
+        kbo_mark_custom_event_deleted(event);
+        deleted++;
+    }
+
+    if (deleted > 0) {
+        kbo_log_runtimef(
+            "KBO custom event deleted source=%s league=%u date=%u kind=%d deleted=%d reason=rescheduled",
+            source != NULL ? source : "",
+            league_id,
+            event_yyyymmdd,
+            (int)kind,
+            deleted);
+    }
+    return deleted;
+}

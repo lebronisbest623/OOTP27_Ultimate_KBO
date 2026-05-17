@@ -90,6 +90,7 @@ public sealed class SeasonReplayHarnessTests
             BuildExpectedEvent(eventsByKind, "foreign_priority_open", anchor),
             BuildExpectedEvent(eventsByKind, "foreign_priority_close", anchor.AddDays(foreignPolicy.WaiverWindowDays)),
             BuildExpectedEvent(eventsByKind, "fa_declaration", anchor.AddDays(schedule.FaDeclarationOffsetDays)),
+            BuildExpectedEvent(eventsByKind, "intl_established_fa", anchor.AddDays(schedule.IntlEstablishedFaOffsetDays)),
             BuildExpectedEvent(eventsByKind, "military_selection", anchor.AddMonths(schedule.MilitarySelectionOffsetMonths)),
         ];
     }
@@ -103,6 +104,10 @@ public sealed class SeasonReplayHarnessTests
             .GetInt32()
             .Should()
             .Be(catalog.Schedule.ForeignPriority.FaDeclarationOffsetDays);
+        root.GetProperty("schedule.foreign_priority.intl_established_fa_offset_days")
+            .GetInt32()
+            .Should()
+            .Be(catalog.Schedule.ForeignPriority.IntlEstablishedFaOffsetDays);
         root.GetProperty("schedule.foreign_priority.military_selection_offset_months")
             .GetInt32()
             .Should()
@@ -363,6 +368,9 @@ public sealed class SeasonReplayHarnessTests
     {
         [JsonPropertyName("fa_declaration_offset_days")]
         public int FaDeclarationOffsetDays { get; set; }
+
+        [JsonPropertyName("intl_established_fa_offset_days")]
+        public int IntlEstablishedFaOffsetDays { get; set; }
 
         [JsonPropertyName("military_selection_offset_months")]
         public int MilitarySelectionOffsetMonths { get; set; }

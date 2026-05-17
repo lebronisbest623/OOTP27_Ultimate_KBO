@@ -22,6 +22,11 @@
       "title_key": "custom_event.fa.declaration.title"
     },
     {
+      "kind": "intl_established_fa",
+      "date": "2026-11-23",
+      "title_key": "custom_event.intl_established_fa.title"
+    },
+    {
       "kind": "military_selection",
       "date": "2026-12-02",
       "title_key": "custom_event.military.selection.title"

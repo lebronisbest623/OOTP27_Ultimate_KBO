@@ -121,6 +121,12 @@ static BOOL CALLBACK kbo_custom_event_schedule_policy_init_once(
         7,
         0,
         365);
+    p->foreign_priority_intl_established_fa_offset_days = kbo_read_clamped_policy_int(
+        KBO_CUSTOM_EVENT_CATALOG_FILE,
+        "schedule.foreign_priority.intl_established_fa_offset_days",
+        21,
+        0,
+        365);
     p->foreign_priority_military_selection_offset_months = kbo_read_clamped_policy_int(
         KBO_CUSTOM_EVENT_CATALOG_FILE,
         "schedule.foreign_priority.military_selection_offset_months",

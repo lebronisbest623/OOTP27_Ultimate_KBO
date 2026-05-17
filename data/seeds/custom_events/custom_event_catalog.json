@@ -1,6 +1,7 @@
 {
   "version": 1,
   "schedule.foreign_priority.fa_declaration_offset_days": 7,
+  "schedule.foreign_priority.intl_established_fa_offset_days": 21,
   "schedule.foreign_priority.military_selection_offset_months": 1,
   "schedule.independent_team_acquisition.open_offset_months": 2,
   "event.foreign_priority_open.title_key": "custom_event.foreign_priority.open.title",
@@ -17,6 +18,7 @@
   "schedule": {
     "foreign_priority": {
       "fa_declaration_offset_days": 7,
+      "intl_established_fa_offset_days": 21,
       "military_selection_offset_months": 1
     },
     "independent_team_acquisition": {

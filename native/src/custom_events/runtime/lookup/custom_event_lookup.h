@@ -18,5 +18,10 @@ int kbo_prune_duplicate_custom_events_by_kind_for_date(
     uint32_t event_yyyymmdd,
     KboCustomEventKind kind,
     const char* source);
+int kbo_delete_custom_events_by_kind_for_date(
+    uint32_t league_id,
+    uint32_t event_yyyymmdd,
+    KboCustomEventKind kind,
+    const char* source);
 
 #endif

@@ -10,10 +10,13 @@ typedef struct KboForeignPriorityEventAudit {
     uint32_t open_date;
     uint32_t close_date;
     uint32_t fa_declaration_date;
+    uint32_t intl_established_fa_date;
     uint32_t military_selection_date;
     int created_open;
     int created_close;
     int created_fa_declaration;
+    int created_intl_established_fa;
+    int pruned_old_intl_established_fa;
     int created_military;
     int ready;
 } KboForeignPriorityEventAudit;

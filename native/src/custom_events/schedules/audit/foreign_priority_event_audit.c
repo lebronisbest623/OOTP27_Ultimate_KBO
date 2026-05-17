@@ -19,10 +19,13 @@ void kbo_audit_foreign_priority_schedule(
         kbo_log_field_u32(&audit_fields, "open_date", a->open_date);
         kbo_log_field_u32(&audit_fields, "close_date", a->close_date);
         kbo_log_field_u32(&audit_fields, "fa_declaration_date", a->fa_declaration_date);
+        kbo_log_field_u32(&audit_fields, "intl_established_fa_date", a->intl_established_fa_date);
         kbo_log_field_u32(&audit_fields, "military_selection_date", a->military_selection_date);
         kbo_log_field_i32(&audit_fields, "created_open", a->created_open);
         kbo_log_field_i32(&audit_fields, "created_close", a->created_close);
         kbo_log_field_i32(&audit_fields, "created_fa_declaration", a->created_fa_declaration);
+        kbo_log_field_i32(&audit_fields, "created_intl_established_fa", a->created_intl_established_fa);
+        kbo_log_field_i32(&audit_fields, "pruned_old_intl_established_fa", a->pruned_old_intl_established_fa);
         kbo_log_field_i32(&audit_fields, "created_military", a->created_military);
         kbo_log_field_i32(&audit_fields, "ready", a->ready);
         kbo_rule_audit_emit_fields(
