@@ -55,7 +55,7 @@ extern KboForeignInjuryReplacement g_kbo_foreign_injury_replacements[KBO_FOREIGN
 extern int g_kbo_foreign_injury_replacement_count;
 extern KboLock g_kbo_foreign_injury_replacement_lock;
 extern char g_kbo_foreign_injury_replacement_loaded_path[MAX_PATH];
-extern LONG g_kbo_foreign_injury_replacement_thread_started;
+extern LONG g_kbo_foreign_injury_date_tick_thread_started;
 
 int kbo_foreign_injury_replacement_enabled(void);
 int kbo_foreign_injury_status_uses_slot(uint8_t status);
@@ -106,6 +106,12 @@ int kbo_foreign_injury_return_state_allows_close(
     int inactive_roster_present,
     int roster_hold_flags_present,
     int close_decision_allowed);
+int kbo_foreign_injury_open_news_allowed(
+    uint32_t scan_date,
+    uint32_t live_date,
+    uint32_t opened_on,
+    int process_existing_replacements,
+    int captured_live_date);
 int kbo_foreign_injury_player_on_inactive_replacement_roster(
     uint8_t* player,
     uint32_t player_id,
@@ -200,10 +206,8 @@ void kbo_emit_foreign_injury_replacement_news_on_date(
     int days_left,
     const char* phase,
     uint32_t event_date);
-void kbo_foreign_injury_replacement_scan_once(const char* source);
-void kbo_foreign_injury_replacement_scan_for_date(const char* source, uint32_t today);
+void kbo_foreign_injury_replacement_scan_captured_date(const char* source, uint32_t today);
 void kbo_foreign_injury_replacement_scan_discovery_for_date(const char* source, uint32_t today);
-DWORD WINAPI kbo_foreign_injury_replacement_thread(LPVOID parameter);
-void start_kbo_foreign_injury_replacement_thread(void);
+void start_kbo_foreign_injury_date_tick_thread(void);
 
 #endif

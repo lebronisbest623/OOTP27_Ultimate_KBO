@@ -7,6 +7,7 @@
 #include "../../core/core_league_context_parts/api/league_context_lookup.h"
 #include "../../core/core_flags/api/flags_api.h"
 #include "../../core/dates/core_current_date.h"
+#include "../../core/dates/tick/current_date_tick_capture.h"
 #include "../../core/events/core_league_events.h"
 #include "../../core/logging/core_log.h"
 #include "../../custom_events/runtime/dates/custom_event_dates.h"
@@ -83,12 +84,10 @@ static int kbo_process_due_cbt_custom_event(
     return -1;
 }
 
-int kbo_schedule_cbt_custom_events(const char* source)
+int kbo_schedule_cbt_custom_events_for_date(uint32_t today, const char* source)
 {
-    uint32_t year = 0u;
-    uint32_t month = 0u;
-    uint32_t day = 0u;
-    if (!kbo_current_date_is_valid(&year, &month, &day)) {
+    uint32_t year = today / 10000u;
+    if (today == 0u) {
         if (kbo_cbt_should_log_no_date()) {
             kbo_cbt_audit_event_schedule("skip", "current_date_unavailable", source, 0u, 0u, 0u, 0u, 0u, 0u, 0, 0, 0, 0, 0);
             kbo_log_runtimef("KBO CBT event schedule skipped source=%s reason=current_date_unavailable", source != NULL ? source : "");
@@ -96,7 +95,6 @@ int kbo_schedule_cbt_custom_events(const char* source)
         return -1;
     }
 
-    uint32_t today = year * 10000u + month * 100u + day;
     uint32_t opening_day = 0u;
     if (!kbo_cbt_exception_resolve_opening_day(year, &opening_day)) {
         static uint32_t last_logged_no_opening_day = 0u;
@@ -282,19 +280,56 @@ int kbo_schedule_cbt_custom_events(const char* source)
         : -1;
 }
 
+int kbo_schedule_cbt_custom_events(const char* source)
+{
+    uint32_t year = 0u;
+    uint32_t month = 0u;
+    uint32_t day = 0u;
+    if (!kbo_current_date_is_valid(&year, &month, &day)) {
+        if (kbo_cbt_should_log_no_date()) {
+            kbo_cbt_audit_event_schedule("skip", "current_date_unavailable", source, 0u, 0u, 0u, 0u, 0u, 0u, 0, 0, 0, 0, 0);
+            kbo_log_runtimef("KBO CBT event schedule skipped source=%s reason=current_date_unavailable", source != NULL ? source : "");
+        }
+        return -1;
+    }
+    return kbo_schedule_cbt_custom_events_for_date(
+        year * 10000u + month * 100u + day,
+        source);
+}
+
 static DWORD WINAPI kbo_cbt_event_scheduler_thread(LPVOID parameter)
 {
     (void)parameter;
     kbo_log_runtime_line("KBO CBT event scheduler started");
     uint32_t last_attempt_date = 0u;
+    int ready = 0;
+    KboCurrentDateTickConsumer consumer = {0};
+    kbo_current_date_tick_consumer_init(
+        &consumer,
+        "cbt_early_event_scheduler",
+        KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER
+            | KBO_CURRENT_DATE_TICK_CONSUMER_GAP_CATCHUP);
     KboCbtRules rules;
     kbo_cbt_rules_load(&rules);
-    for (uint32_t attempt = 1u; attempt <= rules.event_scheduler_max_attempts && kbo_runtime_threads_should_continue(); attempt++) {
+    for (uint32_t attempt = 1u;
+            !ready && attempt <= rules.event_scheduler_max_attempts && kbo_runtime_threads_should_continue();
+            attempt++) {
         uint32_t today = 0u;
         int result = -1;
         if (get_ootp_cached_global_database() != 0u) {
-            kbo_get_current_yyyymmdd(&today);
-            result = kbo_schedule_cbt_custom_events("cbt_early_event_scheduler");
+            KboCurrentDateTickWork work = {0};
+            while (kbo_current_date_tick_consumer_next(&consumer, &work)) {
+                today = work.date;
+                result = kbo_schedule_cbt_custom_events_for_date(
+                    today,
+                    "cbt_early_event_scheduler");
+                if (result >= 0) {
+                    kbo_current_date_tick_consumer_mark_processed(&consumer);
+                    ready = 1;
+                    break;
+                }
+                break;
+            }
         }
         if (result >= 0) {
             kbo_log_runtimef(

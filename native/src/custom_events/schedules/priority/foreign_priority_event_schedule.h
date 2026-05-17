@@ -12,6 +12,13 @@ int kbo_schedule_foreign_priority_custom_events_at_anchor(
 int kbo_schedule_foreign_priority_custom_events_for_anchor(
     const char* source,
     uint32_t offseason_starts_yyyymmdd);
+int kbo_schedule_foreign_priority_custom_events_for_anchor_on_date(
+    const char* source,
+    uint32_t today,
+    uint32_t offseason_starts_yyyymmdd);
+int kbo_schedule_foreign_priority_custom_events_for_date(
+    const char* source,
+    uint32_t today);
 int kbo_schedule_foreign_priority_custom_events(const char* source);
 
 #endif

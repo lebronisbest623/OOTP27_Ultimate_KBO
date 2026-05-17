@@ -11,6 +11,7 @@
 #include "../../competitive_balance_tax/exceptions/cbt_exceptions.h"
 #include "../../competitive_balance_tax/rules/cbt_rules.h"
 #include "../../core/dates/core_current_date.h"
+#include "../../core/dates/tick/current_date_tick_capture.h"
 #include "../../core/core_flags/api/flags_api.h"
 #include "../../core/core_league_context_parts/api/league_context_lookup.h"
 #include "../../core/files/save_paths/core_save_paths.h"
@@ -44,6 +45,13 @@ static DWORD WINAPI kbo_fa_salary_snapshot_thread(LPVOID parameter)
     uint32_t cached_schedule_opening_day = 0u;
     KboCbtRules cached_cbt_rules = {0};
     uint32_t cached_cbt_rules_date = 0u;
+    KboCurrentDateTickConsumer date_consumer = {0};
+    kbo_current_date_tick_consumer_init(
+        &date_consumer,
+        "fa_salary_snapshot_thread",
+        KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER
+            | KBO_CURRENT_DATE_TICK_CONSUMER_GAP_CATCHUP);
+
     while (kbo_runtime_threads_should_continue()) {
         if (!kbo_runtime_sleep_should_continue((uint32_t)kbo_runtime_tuning_policy()->fa_salary_snapshot_thread_sleep_ms)) {
             break;
@@ -64,16 +72,17 @@ static DWORD WINAPI kbo_fa_salary_snapshot_thread(LPVOID parameter)
             continue;
         }
 
-        uint32_t year = 0;
-        uint32_t month = 0;
-        uint32_t day = 0;
-        if (!kbo_current_date_is_valid(&year, &month, &day)) {
+        KboCurrentDateTickWork date_work = {0};
+        if (!kbo_current_date_tick_consumer_next(&date_consumer, &date_work)) {
             if (profile_snapshot_thread_tick_active) {
                 kbo_profiler_end("fa_salary_snapshot.thread.no_date", &profile_snapshot_thread_tick);
             }
             continue;
         }
-        uint32_t date = year * 10000u + month * 100u + day;
+        uint32_t date = date_work.date;
+        uint32_t year = date / 10000u;
+        uint32_t month = (date / 100u) % 100u;
+        kbo_current_date_tick_consumer_mark_processed(&date_consumer);
 
         char save_path[MAX_PATH] = {0};
         if (!kbo_get_current_save_path(save_path, sizeof(save_path))) {
@@ -219,7 +228,7 @@ static DWORD WINAPI kbo_fa_salary_snapshot_thread(LPVOID parameter)
                     year,
                     opening_day,
                     cbt_announcement_day);
-                kbo_schedule_cbt_custom_events("snapshot_thread_cbt_schedule");
+                kbo_schedule_cbt_custom_events_for_date(date, "snapshot_thread_cbt_schedule");
             }
             if (profile_snapshot_thread_tick_active) {
                 kbo_profiler_end("fa_salary_snapshot.thread.already_captured", &profile_snapshot_thread_tick);

@@ -4,9 +4,9 @@
 #include <string.h>
 #include "../../../bootstrap/abi/ootp_offsets.h"
 #include "../../../core/logging/core_log.h"
-#include "../../../core/dates/core_current_date.h"
 #include "../../../core/files/save_paths/core_save_paths.h"
 #include "../../../core/dates/core_text_date.h"
+#include "../../../core/dates/tick/current_date_tick_capture.h"
 #include "../../../core/core_flags/api/flags_api.h"
 #include "../../../core/runtime_tuning/runtime_tuning_policy.h"
 #include "../../../bootstrap/profiling/profiler.h"
@@ -25,7 +25,6 @@ static volatile LONG g_kbo_custom_event_global_fa_comp_yyyymmdd = 0;
 static volatile LONG g_kbo_custom_event_global_fa_comp_processing_yyyymmdd = 0;
 
 #define KBO_CUSTOM_EVENT_MONITOR_PULSE_MS 100u
-#define KBO_CUSTOM_EVENT_MONITOR_FAST_STABLE_TICKS 2
 
 static int kbo_custom_event_monitor_should_log_throttled(volatile LONG64* last_log_ms)
 {
@@ -37,7 +36,8 @@ static int kbo_custom_event_monitor_should_log_throttled(volatile LONG64* last_l
     return InterlockedCompareExchange64(last_log_ms, (LONG64)now, last) == last;
 }
 
-void kbo_custom_event_monitor_tick(
+int kbo_custom_event_monitor_tick_for_date(
+    uint32_t today_yyyymmdd,
     uint32_t* last_scheduled_yyyymmdd,
     uint32_t* last_scanned_yyyymmdd,
     uint32_t* last_fa_comp_yyyymmdd,
@@ -46,14 +46,14 @@ void kbo_custom_event_monitor_tick(
     KBO_PROFILE_BEGIN(profile_custom_event_monitor_tick);
     if (!kbo_runtime_pause_for_save_if_needed(source != NULL ? source : "custom_event_monitor")) {
         KBO_PROFILE_END(profile_custom_event_monitor_tick, "custom_event.monitor.save_pause_abort");
-        return;
+        return 0;
     }
 
-    uint32_t today_yyyymmdd = 0u;
-    if (!kbo_get_current_yyyymmdd(&today_yyyymmdd) || today_yyyymmdd == 0u) {
+    if (!kbo_yyyymmdd_valid(today_yyyymmdd)) {
         KBO_PROFILE_END(profile_custom_event_monitor_tick, "custom_event.monitor.no_date");
-        return;
+        return 0;
     }
+    int deferred = 0;
 
     KBO_PROFILE_BEGIN(profile_custom_event_monitor_transition);
     int offseason_transition_ready = kbo_custom_event_monitor_check_offseason_transition(
@@ -98,15 +98,19 @@ void kbo_custom_event_monitor_tick(
                     }
                     InterlockedExchange(&g_kbo_custom_event_global_scanned_yyyymmdd, (LONG)today_yyyymmdd);
                 }
-            } else if (kbo_custom_event_monitor_should_log_throttled(&g_kbo_custom_event_schedule_deferred_log_ms)) {
-                kbo_log_runtimef(
-                    "KBO custom event schedule deferred reason=state_not_ready today=%u due_result=%d",
-                    today_yyyymmdd,
-                    due_result);
+            } else {
+                deferred = 1;
+                if (kbo_custom_event_monitor_should_log_throttled(&g_kbo_custom_event_schedule_deferred_log_ms)) {
+                    kbo_log_runtimef(
+                        "KBO custom event schedule deferred reason=state_not_ready today=%u due_result=%d",
+                        today_yyyymmdd,
+                        due_result);
+                }
             }
         } else {
             KBO_PROFILE_BEGIN(profile_custom_event_monitor_due_busy);
             KBO_PROFILE_END(profile_custom_event_monitor_due_busy, "custom_event.monitor.process_due_busy");
+            deferred = 1;
         }
     }
     LONG global_scanned = InterlockedCompareExchange(&g_kbo_custom_event_global_scanned_yyyymmdd, 0, 0);
@@ -126,10 +130,13 @@ void kbo_custom_event_monitor_tick(
                 *last_scanned_yyyymmdd = today_yyyymmdd;
             }
             InterlockedExchange(&g_kbo_custom_event_global_scanned_yyyymmdd, (LONG)today_yyyymmdd);
-        } else if (kbo_custom_event_monitor_should_log_throttled(&g_kbo_custom_event_scan_deferred_log_ms)) {
-            kbo_log_runtimef(
-                "KBO custom event monitor scan deferred reason=state_not_ready today=%u",
-                today_yyyymmdd);
+        } else {
+            deferred = 1;
+            if (kbo_custom_event_monitor_should_log_throttled(&g_kbo_custom_event_scan_deferred_log_ms)) {
+                kbo_log_runtimef(
+                    "KBO custom event monitor scan deferred reason=state_not_ready today=%u",
+                    today_yyyymmdd);
+            }
         }
     } else {
         KBO_PROFILE_BEGIN(profile_custom_event_monitor_scan_skip);
@@ -145,19 +152,28 @@ void kbo_custom_event_monitor_tick(
                 (LONG)today_yyyymmdd,
                 0);
         }
+        int fa_comp_complete = 0;
         if ((uint32_t)global_fa_comp != today_yyyymmdd && processing_date == 0) {
             KBO_PROFILE_BEGIN(profile_custom_event_monitor_fa_comp);
             kbo_process_due_fa_compensation_protected_lists(source);
             KBO_PROFILE_END(profile_custom_event_monitor_fa_comp, "custom_event.monitor.fa_comp_protected_lists");
             InterlockedExchange(&g_kbo_custom_event_global_fa_comp_yyyymmdd, (LONG)today_yyyymmdd);
             InterlockedExchange(&g_kbo_custom_event_global_fa_comp_processing_yyyymmdd, 0);
+            fa_comp_complete = 1;
         } else {
             KBO_PROFILE_BEGIN(profile_custom_event_monitor_fa_comp_skip);
             KBO_PROFILE_END(profile_custom_event_monitor_fa_comp_skip, "custom_event.monitor.fa_comp_protected_lists_cached");
+            fa_comp_complete = (uint32_t)global_fa_comp == today_yyyymmdd;
+            if (!fa_comp_complete) {
+                deferred = 1;
+            }
         }
-        *last_fa_comp_yyyymmdd = today_yyyymmdd;
+        if (fa_comp_complete) {
+            *last_fa_comp_yyyymmdd = today_yyyymmdd;
+        }
     }
     KBO_PROFILE_END(profile_custom_event_monitor_tick, "custom_event.monitor.tick");
+    return deferred ? 0 : 1;
 }
 
 DWORD WINAPI kbo_custom_event_monitor_thread(LPVOID parameter)
@@ -168,21 +184,19 @@ DWORD WINAPI kbo_custom_event_monitor_thread(LPVOID parameter)
     uint32_t last_scheduled_yyyymmdd = 0u;
     uint32_t last_scanned_yyyymmdd = 0u;
     uint32_t last_fa_comp_yyyymmdd = 0u;
-    uint32_t observed_yyyymmdd = 0u;
-    uint32_t fast_processed_yyyymmdd = 0u;
-    int observed_stable_ticks = 0;
+    uint32_t latest_hook_date = 0u;
     LONG last_phase_capture_sequence = InterlockedCompareExchange(
         &g_kbo_season_phase_capture_event_published_sequence,
         0,
         0);
-    DWORD last_periodic_tick = GetTickCount();
-    if (kbo_runtime_pause_for_save_if_needed("custom_event_monitor")) {
-        kbo_custom_event_monitor_tick(
-            &last_scheduled_yyyymmdd,
-            &last_scanned_yyyymmdd,
-            &last_fa_comp_yyyymmdd,
-            g_kbo_default_event_source);
-    }
+
+    KboCurrentDateTickConsumer consumer = {0};
+    kbo_current_date_tick_consumer_init(
+        &consumer,
+        "custom_event_monitor",
+        KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER
+            | KBO_CURRENT_DATE_TICK_CONSUMER_GAP_CATCHUP);
+
     while (kbo_runtime_threads_should_continue()) {
         if (!kbo_runtime_sleep_should_continue(KBO_CUSTOM_EVENT_MONITOR_PULSE_MS)) {
             break;
@@ -191,55 +205,36 @@ DWORD WINAPI kbo_custom_event_monitor_thread(LPVOID parameter)
             break;
         }
 
-        uint32_t today_yyyymmdd = 0u;
-        int has_date = kbo_get_current_yyyymmdd(&today_yyyymmdd) && today_yyyymmdd != 0u;
-        if (has_date) {
-            if (today_yyyymmdd != observed_yyyymmdd) {
-                observed_yyyymmdd = today_yyyymmdd;
-                observed_stable_ticks = 1;
-            } else if (observed_stable_ticks < KBO_CUSTOM_EVENT_MONITOR_FAST_STABLE_TICKS) {
-                observed_stable_ticks++;
-            }
-
-            if (today_yyyymmdd != fast_processed_yyyymmdd
-                    && observed_stable_ticks >= KBO_CUSTOM_EVENT_MONITOR_FAST_STABLE_TICKS) {
-                kbo_custom_event_monitor_tick(
+        KboCurrentDateTickWork work = {0};
+        while (kbo_current_date_tick_consumer_next(&consumer, &work)) {
+            const char* source = work.gap
+                ? "custom_event_monitor_date_gap"
+                : "custom_event_monitor_date_tick";
+            if (!kbo_custom_event_monitor_tick_for_date(
+                    work.date,
                     &last_scheduled_yyyymmdd,
                     &last_scanned_yyyymmdd,
                     &last_fa_comp_yyyymmdd,
-                    "custom_event_monitor_date_pulse");
-                fast_processed_yyyymmdd = today_yyyymmdd;
-                last_periodic_tick = GetTickCount();
-                continue;
+                    source)) {
+                break;
             }
+            latest_hook_date = work.date;
+            kbo_current_date_tick_consumer_mark_processed(&consumer);
         }
 
         LONG phase_capture_sequence = InterlockedCompareExchange(
             &g_kbo_season_phase_capture_event_published_sequence,
             0,
             0);
-        if (has_date && phase_capture_sequence != last_phase_capture_sequence) {
+        if (latest_hook_date != 0u && phase_capture_sequence != last_phase_capture_sequence) {
             last_phase_capture_sequence = phase_capture_sequence;
-            kbo_custom_event_monitor_tick(
+            kbo_custom_event_monitor_tick_for_date(
+                latest_hook_date,
                 &last_scheduled_yyyymmdd,
                 &last_scanned_yyyymmdd,
                 &last_fa_comp_yyyymmdd,
                 "custom_event_monitor_phase_pulse");
-            last_periodic_tick = GetTickCount();
-            continue;
         }
-
-        DWORD now = GetTickCount();
-        DWORD elapsed = now - last_periodic_tick;
-        if (elapsed < (DWORD)kbo_runtime_tuning_policy()->custom_event_monitor_sleep_ms) {
-            continue;
-        }
-        last_periodic_tick = now;
-        kbo_custom_event_monitor_tick(
-            &last_scheduled_yyyymmdd,
-            &last_scanned_yyyymmdd,
-            &last_fa_comp_yyyymmdd,
-            g_kbo_default_event_source);
     }
     InterlockedExchange(&g_kbo_custom_event_monitor_started, 0);
     kbo_log_runtime_line("KBO custom event monitor stopped");

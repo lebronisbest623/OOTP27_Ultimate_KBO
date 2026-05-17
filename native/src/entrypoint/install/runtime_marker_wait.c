@@ -21,6 +21,11 @@ DWORD WINAPI kbo_full_runtime_marker_wait_thread(LPVOID parameter)
     kbo_log_runtime_line("KBO full runtime marker guard thread started");
 
     int early_amateur_team_add_guard_installed = 0;
+    KboCurrentDateTickConsumer date_consumer = {0};
+    kbo_current_date_tick_consumer_init(
+        &date_consumer,
+        "runtime_marker_wait",
+        KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER);
     const KboRuntimeTuningPolicy* tuning = kbo_runtime_tuning_policy();
     for (int attempt = 1; attempt <= tuning->runtime_marker_wait_attempts; attempt++) {
         int log_detail = kbo_runtime_tuning_runtime_marker_log_attempt(attempt);
@@ -36,20 +41,20 @@ DWORD WINAPI kbo_full_runtime_marker_wait_thread(LPVOID parameter)
                 early_amateur_team_add_guard_installed = install_kbo_military_team_add_guard_patch();
             }
 
-            uint32_t today_serial = kbo_current_date_serial();
-            if (today_serial != 0u) {
+            KboCurrentDateTickWork date_work = {0};
+            if (kbo_current_date_tick_consumer_next(&date_consumer, &date_work)) {
+                kbo_current_date_tick_consumer_mark_processed(&date_consumer);
                 InterlockedExchange(&g_kbo_runtime_date_stable_ready, 1);
                 kbo_log_runtimef(
-                    "KBO full runtime marker guard ready source=runtime_marker_wait date_serial=%u",
-                    today_serial);
+                    "KBO full runtime marker guard ready source=runtime_marker_wait date=%u",
+                    date_work.date);
                 install_kbo_full_runtime_after_roster_marker(instance);
                 return 0;
             }
 
             if (log_detail) {
                 kbo_log_runtimef(
-                    "KBO full runtime marker guard waiting source=runtime_marker_wait reason=current_date_unavailable date_serial=%u",
-                    today_serial);
+                    "KBO full runtime marker guard waiting source=runtime_marker_wait reason=current_date_hook_unavailable");
             }
         }
         Sleep((DWORD)tuning->runtime_marker_wait_sleep_ms);

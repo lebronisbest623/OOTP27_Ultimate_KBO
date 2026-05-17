@@ -483,6 +483,11 @@
       "lifecycle": "Recovery"
     },
     {
+      "key": "disable_kbo_current_date_tick_capture_hook",
+      "defaultValue": null,
+      "lifecycle": "Recovery"
+    },
+    {
       "key": "disable_military_ortools",
       "defaultValue": null,
       "lifecycle": "Recovery"

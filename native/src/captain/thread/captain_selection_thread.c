@@ -1,5 +1,6 @@
 #include "../internal/captain_selection_internal.h"
 #include "../../bootstrap/profiling/profiler.h"
+#include "../../core/dates/tick/current_date_tick_capture.h"
 #include "../../core/runtime_tuning/runtime_tuning_policy.h"
 
 int kbo_run_captain_preseason_selection_once(const char* source)
@@ -58,13 +59,31 @@ DWORD WINAPI kbo_captain_preseason_selection_thread(LPVOID parameter)
     (void)parameter;
     kbo_log_runtime_line("KBO captain selection maintenance thread started");
 
+    KboCurrentDateTickConsumer consumer = {0};
+    kbo_current_date_tick_consumer_init(
+        &consumer,
+        "captain_selection_thread",
+        KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER
+            | KBO_CURRENT_DATE_TICK_CONSUMER_GAP_CATCHUP);
+
     while (kbo_runtime_threads_should_continue()) {
         if (!kbo_runtime_pause_for_save_if_needed("captain_selection_thread")) {
             break;
         }
-        KBO_PROFILE_BEGIN(profile_captain_selection_thread_tick);
-        kbo_run_captain_selection_maintenance_once("captain_selection_thread");
-        KBO_PROFILE_END(profile_captain_selection_thread_tick, "captain.selection_thread.tick");
+
+        KboCurrentDateTickWork work = {0};
+        while (kbo_current_date_tick_consumer_next(&consumer, &work)) {
+            KBO_PROFILE_BEGIN(profile_captain_selection_thread_tick);
+            int result = kbo_run_captain_selection_maintenance_for_date(
+                work.date,
+                "captain_selection_thread");
+            KBO_PROFILE_END(profile_captain_selection_thread_tick, "captain.selection_thread.tick");
+            if (result < 0 || kbo_runtime_save_in_progress()) {
+                break;
+            }
+            kbo_current_date_tick_consumer_mark_processed(&consumer);
+        }
+
         if (!kbo_runtime_sleep_should_continue((uint32_t)kbo_runtime_tuning_policy()->captain_selection_thread_sleep_ms)) {
             break;
         }

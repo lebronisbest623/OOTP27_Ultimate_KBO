@@ -5,6 +5,7 @@
 
 #define KBO_FOREIGN_INJURY_DECISION_KEEP_INJURED      1u
 #define KBO_FOREIGN_INJURY_DECISION_KEEP_REPLACEMENT  2u
+#define KBO_FOREIGN_INJURY_SQL_DISCOVERY_MAX          256
 
 typedef struct KboForeignInjuryReplacementDecision {
     uint8_t choice;
@@ -20,6 +21,12 @@ typedef struct KboForeignInjuryClosedNews {
     KboForeignInjuryReplacementDecision decision;
     char phase[32];
 } KboForeignInjuryClosedNews;
+
+typedef struct KboForeignInjurySqlDiscoveryRow {
+    uint32_t player_id;
+    uint32_t evidence_date;
+    int days;
+} KboForeignInjurySqlDiscoveryRow;
 
 int kbo_foreign_injury_player_matches_team(uint8_t* player, uint32_t team_id);
 int kbo_foreign_injury_candidate_matches_slot(uint8_t* player, uint8_t slot_type);
@@ -51,6 +58,13 @@ int kbo_foreign_injury_recent_sql_has_long_term_injury_date_on_date(
     uint32_t game_date_yyyymmdd,
     int* out_days,
     uint32_t* out_evidence_date);
+int kbo_foreign_injury_collect_sql_long_term_injuries_on_date(
+    uint32_t game_date_yyyymmdd,
+    int min_days,
+    KboForeignInjurySqlDiscoveryRow* out_rows,
+    int max_rows,
+    int* out_count,
+    int* out_rows_seen);
 int kbo_foreign_injury_resolve_player_team_assignment(
     uint8_t* player,
     uint32_t player_id,

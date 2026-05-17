@@ -6,6 +6,7 @@
 #include "../bootstrap/abi/ootp_offsets.h"
 #include "../bootstrap/profiling/profiler.h"
 #include "../core/dates/core_current_date.h"
+#include "../core/dates/tick/current_date_tick_capture.h"
 #include "../core/core_flags/api/flags_api.h"
 #include "../core/core_league_context_parts/api/league_context_lookup.h"
 #include "../core/logging/core_log.h"
@@ -39,13 +40,10 @@ __declspec(noinline) void ootp_kbo_season_phase_write_probe(
     *(uint8_t*)(league_ptr + OOTP27_KBO_LEAGUE_PHASE_OFFSET) = (uint8_t)value;
     uint8_t new_value = *(uint8_t*)(league_ptr + OOTP27_KBO_LEAGUE_PHASE_OFFSET);
 
-    uint32_t year = 0;
-    uint32_t month = 0;
-    uint32_t day = 0;
-    uint32_t date_key = 0;
-    if (kbo_current_date_is_valid(&year, &month, &day)) {
-        date_key = year * 10000u + month * 100u + day;
-    }
+    uint32_t date_key = (uint32_t)InterlockedCompareExchange(
+        &g_kbo_current_date_tick_last_published_date,
+        0,
+        0);
 
     uint32_t league_id_a = 0;
     uint32_t league_id_b = 0;
@@ -302,6 +300,12 @@ static DWORD WINAPI kbo_season_phase_monitor_thread(LPVOID parameter)
     uint32_t last_phase_year = 0xffffffffu;
     uint8_t last_phase = 0xffu;
     uintptr_t last_league_ptr = 0;
+    KboCurrentDateTickConsumer date_consumer = {0};
+    kbo_current_date_tick_consumer_init(
+        &date_consumer,
+        "season_phase_monitor",
+        KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER
+            | KBO_CURRENT_DATE_TICK_CONSUMER_GAP_CATCHUP);
 
     kbo_log_runtime_line("KBO season phase monitor started");
 
@@ -315,19 +319,20 @@ static DWORD WINAPI kbo_season_phase_monitor_thread(LPVOID parameter)
         }
 
         KBO_PROFILE_BEGIN(profile_season_phase_monitor_tick);
-        uint32_t year = 0;
-        uint32_t month = 0;
-        uint32_t day = 0;
-        if (!kbo_current_date_is_valid(&year, &month, &day)) {
+        KboCurrentDateTickWork date_work = {0};
+        if (!kbo_current_date_tick_consumer_next(&date_consumer, &date_work)) {
             if (last_date != 0u) {
-                kbo_log_runtime_line("KBO season phase monitor waiting reason=current_date_unavailable");
+                kbo_log_runtime_line("KBO season phase monitor waiting reason=current_date_hook_unavailable");
             }
             last_league_ptr = 0;
             last_date = 0u;
             KBO_PROFILE_END(profile_season_phase_monitor_tick, "season_phase.monitor.no_date");
             continue;
         }
-        uint32_t date_key = year * 10000u + month * 100u + day;
+        uint32_t date_key = date_work.date;
+        uint32_t year = date_key / 10000u;
+        uint32_t month = (date_key / 100u) % 100u;
+        uint32_t day = date_key % 100u;
 
         uint32_t league_id = kbo_resolve_kbo_league_id();
         uintptr_t league_ptr = kbo_find_league_ptr_from_id(league_id);
@@ -376,6 +381,7 @@ static DWORD WINAPI kbo_season_phase_monitor_thread(LPVOID parameter)
             last_phase = phase;
             last_phase_year = phase_year;
         }
+        kbo_current_date_tick_consumer_mark_processed(&date_consumer);
         KBO_PROFILE_END(profile_season_phase_monitor_tick, "season_phase.monitor.tick");
     }
     kbo_log_runtime_line("KBO season phase monitor stopped");

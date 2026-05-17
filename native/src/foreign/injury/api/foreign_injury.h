@@ -77,6 +77,12 @@ int kbo_foreign_injury_return_state_allows_close(
     int inactive_roster_present,
     int roster_hold_flags_present,
     int close_decision_allowed);
+int kbo_foreign_injury_open_news_allowed(
+    uint32_t scan_date,
+    uint32_t live_date,
+    uint32_t opened_on,
+    int process_existing_replacements,
+    int captured_live_date);
 int kbo_foreign_injury_player_excluded_from_foreign_count_locked(uint32_t team_id, uint32_t player_id);
 int kbo_foreign_injury_player_excluded_from_foreign_count(uint32_t team_id, uint32_t player_id);
 void kbo_lock_foreign_injury_replacements(void);
@@ -123,9 +129,8 @@ void kbo_count_foreign_injury_replacements_for_team(
     int* out_open,
     int* out_pending,
     int* out_closed);
-void kbo_foreign_injury_replacement_scan_once(const char* source);
-void kbo_foreign_injury_replacement_scan_for_date(const char* source, uint32_t today);
+void kbo_foreign_injury_replacement_scan_captured_date(const char* source, uint32_t today);
 void kbo_foreign_injury_replacement_scan_discovery_for_date(const char* source, uint32_t today);
-void start_kbo_foreign_injury_replacement_thread(void);
+void start_kbo_foreign_injury_date_tick_thread(void);
 
 #endif

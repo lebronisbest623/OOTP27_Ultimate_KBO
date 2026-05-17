@@ -7,6 +7,7 @@
 #include "../../bootstrap/abi/ootp_offsets.h"
 #include "../../bootstrap/profiling/profiler.h"
 #include "../../core/dates/core_current_date.h"
+#include "../../core/dates/tick/current_date_tick_capture.h"
 #include "../../core/core_flags/api/flags_api.h"
 #include "../../core/core_league_context_parts/api/league_context_lookup.h"
 #include "../../core/logging/core_log.h"
@@ -80,7 +81,7 @@ static void kbo_fa_salary_snapshot_drain_phase_events_once(void)
     InterlockedExchange(&g_kbo_fa_salary_snapshot_phase_event_consumed_sequence, latest);
 }
 
-static void kbo_fa_salary_snapshot_try_pending_phase_event(void)
+static void kbo_fa_salary_snapshot_try_pending_phase_event(uint32_t date)
 {
     if (InterlockedCompareExchange(&g_kbo_fa_salary_snapshot_phase_pending_active, 1, 1) == 0) {
         return;
@@ -110,14 +111,10 @@ static void kbo_fa_salary_snapshot_try_pending_phase_event(void)
         return;
     }
 
-    uint32_t year = 0u;
-    uint32_t month = 0u;
-    uint32_t day = 0u;
-    if (!kbo_current_date_is_valid(&year, &month, &day)) {
+    if (date == 0u) {
         return;
     }
 
-    uint32_t date = year * 10000u + month * 100u + day;
     if (date < opening_day) {
         return;
     }
@@ -156,6 +153,14 @@ static DWORD WINAPI kbo_fa_salary_snapshot_phase_event_thread(LPVOID parameter)
     (void)parameter;
     kbo_log_runtime_line("KBO FA salary opening-day phase hook event thread started");
 
+    uint32_t latest_hook_date = 0u;
+    KboCurrentDateTickConsumer date_consumer = {0};
+    kbo_current_date_tick_consumer_init(
+        &date_consumer,
+        "fa_salary_snapshot_phase_events",
+        KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER
+            | KBO_CURRENT_DATE_TICK_CONSUMER_GAP_CATCHUP);
+
     while (kbo_runtime_threads_should_continue()) {
         if (!kbo_runtime_sleep_should_continue((uint32_t)kbo_runtime_tuning_policy()->fa_salary_snapshot_phase_event_sleep_ms)) {
             break;
@@ -169,8 +174,14 @@ static DWORD WINAPI kbo_fa_salary_snapshot_phase_event_thread(LPVOID parameter)
             continue;
         }
 
+        KboCurrentDateTickWork date_work = {0};
+        while (kbo_current_date_tick_consumer_next(&date_consumer, &date_work)) {
+            latest_hook_date = date_work.date;
+            kbo_current_date_tick_consumer_mark_processed(&date_consumer);
+        }
+
         kbo_fa_salary_snapshot_drain_phase_events_once();
-        kbo_fa_salary_snapshot_try_pending_phase_event();
+        kbo_fa_salary_snapshot_try_pending_phase_event(latest_hook_date);
         if (profile_phase_thread_tick_active) {
             kbo_profiler_end("fa_salary_snapshot.phase_thread.tick", &profile_phase_thread_tick);
         }

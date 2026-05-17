@@ -340,7 +340,12 @@ int run_kbo_custom_military_event(
 {
     (void)event_ptr;
     int seeded = 0;
-    int returned = kbo_tick_military_service_days("military_selection_event", &seeded);
+    uint32_t event_yyyymmdd =
+        event_year * 10000u + event_month * 100u + event_day;
+    int returned = kbo_tick_military_service_days_for_date(
+        event_yyyymmdd,
+        "military_selection_event",
+        &seeded);
     uint8_t* sang = find_kbo_team_by_csv_id_any_league("SANG", 0);
     uint32_t sang_id = sang != NULL && memory_range_readable(sang, OOTP27_KBO_TEAM_READABLE_BYTES)
         ? *(uint32_t*)(sang + OOTP27_KBO_TEAM_ID_OFFSET)
@@ -355,8 +360,6 @@ int run_kbo_custom_military_event(
         news_entries,
         (int)(sizeof(news_entries) / sizeof(news_entries[0])),
         source);
-    uint32_t event_yyyymmdd =
-        event_year * 10000u + event_month * 100u + event_day;
     uint32_t news_yyyymmdd = kbo_custom_event_effective_news_date(event_yyyymmdd);
     int news_created = 0;
     if (routed > 0) {

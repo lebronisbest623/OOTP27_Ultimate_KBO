@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <windows.h>
 
+int kbo_schedule_asian_games_custom_events_for_date(uint32_t today, const char* source);
 int kbo_schedule_asian_games_custom_events(const char* source);
 
 #endif

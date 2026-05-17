@@ -53,6 +53,11 @@ DWORD WINAPI kbo_delayed_no_minor_contract_patch_install_thread(LPVOID parameter
     kbo_log_runtime_line("KBO no-minor-contract delayed install thread started");
 
     const KboRuntimeTuningPolicy* tuning = kbo_runtime_tuning_policy();
+    KboCurrentDateTickConsumer date_consumer = {0};
+    kbo_current_date_tick_consumer_init(
+        &date_consumer,
+        "no_minor_contract_delayed_install",
+        KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER);
     for (int attempt = 1; attempt <= tuning->no_minor_delayed_install_attempts; attempt++) {
         uint32_t sleep_ms = attempt == 1
             ? (uint32_t)tuning->no_minor_delayed_install_first_sleep_ms
@@ -70,15 +75,16 @@ DWORD WINAPI kbo_delayed_no_minor_contract_patch_install_thread(LPVOID parameter
         }
 
         char save_path[MAX_PATH] = {0};
-        uint32_t today_serial = kbo_current_date_serial();
         int has_save = kbo_get_current_save_path(save_path, sizeof(save_path));
-        if (today_serial == 0u || !has_save) {
+        KboCurrentDateTickWork date_work = {0};
+        int has_date = has_save && kbo_current_date_tick_consumer_next(&date_consumer, &date_work);
+        if (!has_date || !has_save) {
             if (attempt <= tuning->no_minor_delayed_install_log_initial_attempts
                     || attempt % tuning->no_minor_delayed_install_log_interval == 0) {
                 kbo_log_runtimef(
-                    "KBO no-minor-contract delayed install waiting attempt=%d reason=state_not_ready date_serial=%u save=%d",
+                    "KBO no-minor-contract delayed install waiting attempt=%d reason=state_not_ready date=%u save=%d",
                     attempt,
-                    today_serial,
+                    has_date ? date_work.date : 0u,
                     has_save);
             }
             continue;
@@ -96,6 +102,7 @@ DWORD WINAPI kbo_delayed_no_minor_contract_patch_install_thread(LPVOID parameter
         }
 
         int installed = install_kbo_no_minor_contract_patch_once("delayed_opening_day_guard");
+        kbo_current_date_tick_consumer_mark_processed(&date_consumer);
         kbo_log_runtimef(
             "KBO no-minor-contract delayed install complete attempt=%d installed_any=%d save=%s",
             attempt,

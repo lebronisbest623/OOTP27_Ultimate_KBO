@@ -7,6 +7,8 @@
 #include "../../../amateur_player_quality/api/amateur_player_quality.h"
 #include "../../../bootstrap/abi/ootp_offsets.h"
 #include "../../../core/dates/core_current_date.h"
+#include "../../../core/dates/core_text_date.h"
+#include "../../../core/dates/tick/current_date_tick_capture.h"
 #include "../../../core/core_flags/api/flags_api.h"
 #include "../../../core/core_league_context_parts/api/league_context_lookup.h"
 #include "../../../core/season/opening_day_storyline_guard.h"
@@ -29,7 +31,41 @@
 #include "military_service_days_tick_internal.h"
 #include "military_service_tick.h"
 
-int kbo_tick_military_service_days(const char* source, int* out_seeded_assignments)
+static uint32_t kbo_military_days_tick_serial_from_work_date(uint32_t date)
+{
+    return kbo_date_serial(
+        date / 10000u,
+        (date / 100u) % 100u,
+        date % 100u);
+}
+
+static int kbo_military_days_tick_ready_for_work(const KboCurrentDateTickWork* work)
+{
+    if (work == NULL || kbo_military_days_tick_serial_from_work_date(work->date) == 0u) {
+        return 0;
+    }
+    if (!kbo_fix_enabled() || get_ootp_cached_global_database() == 0u) {
+        return 0;
+    }
+    if (kbo_runtime_save_in_progress()) {
+        return 0;
+    }
+
+    uintptr_t player_vector = 0u;
+    int32_t player_count = 0;
+    if (!find_kbo_global_player_vector(&player_vector, &player_count, NULL)
+            || player_vector == 0u
+            || player_count <= 0
+            || player_count > 200000) {
+        return 0;
+    }
+    return 1;
+}
+
+static int kbo_tick_military_service_days_for_serial(
+    uint32_t today_serial,
+    const char* source,
+    int* out_seeded_assignments)
 {
     if (out_seeded_assignments != NULL) {
         *out_seeded_assignments = 0;
@@ -41,7 +77,6 @@ int kbo_tick_military_service_days(const char* source, int* out_seeded_assignmen
         return 0;
     }
 
-    uint32_t today_serial = kbo_current_date_serial();
     if (today_serial == 0) {
         return 0;
     }
@@ -350,42 +385,43 @@ int kbo_tick_military_service_days(const char* source, int* out_seeded_assignmen
     return returned;
 }
 
+int kbo_tick_military_service_days_for_date(
+    uint32_t today_yyyymmdd,
+    const char* source,
+    int* out_seeded_assignments)
+{
+    uint32_t today_serial = kbo_military_days_tick_serial_from_work_date(today_yyyymmdd);
+    return kbo_tick_military_service_days_for_serial(today_serial, source, out_seeded_assignments);
+}
+
 DWORD WINAPI kbo_military_days_tick_thread(LPVOID parameter)
 {
     (void)parameter;
     kbo_log_runtime_line("KBO military service day tick thread started");
-    uint32_t last_processed_serial = 0u;
-    char last_processed_save_path[MAX_PATH] = {0};
+
+    KboCurrentDateTickConsumer consumer = {0};
+    kbo_current_date_tick_consumer_init(
+        &consumer,
+        "military_days_tick",
+        KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER
+            | KBO_CURRENT_DATE_TICK_CONSUMER_GAP_CATCHUP);
+
     while (kbo_runtime_threads_should_continue()) {
         if (!kbo_runtime_sleep_should_continue((uint32_t)kbo_runtime_tuning_policy()->military_days_tick_sleep_ms)) {
             break;
         }
-        uint32_t today_serial = kbo_current_date_serial();
-        char save_path[MAX_PATH] = {0};
-        if (today_serial == 0u || !kbo_get_current_save_path(save_path, sizeof(save_path))) {
-            continue;
-        }
-        if (last_processed_save_path[0] == '\0' || strcmp(last_processed_save_path, save_path) != 0) {
-            snprintf(last_processed_save_path, sizeof(last_processed_save_path), "%s", save_path);
-            last_processed_serial = 0u;
-        }
-        if (today_serial == last_processed_serial || !kbo_fix_enabled() || get_ootp_cached_global_database() == 0u) {
-            continue;
-        }
-        if (kbo_runtime_save_in_progress()) {
-            continue;
-        }
-        uintptr_t player_vector = 0u;
-        int32_t player_count = 0;
-        if (!find_kbo_global_player_vector(&player_vector, &player_count, NULL)
-                || player_vector == 0u
-                || player_count <= 0
-                || player_count > 200000) {
-            continue;
-        }
-        kbo_tick_military_service_days("military_days_tick", NULL);
-        if (!kbo_runtime_save_in_progress()) {
-            last_processed_serial = today_serial;
+
+        KboCurrentDateTickWork work = {0};
+        while (kbo_current_date_tick_consumer_next(&consumer, &work)) {
+            if (!kbo_military_days_tick_ready_for_work(&work)) {
+                break;
+            }
+
+            kbo_tick_military_service_days_for_date(work.date, "military_days_tick", NULL);
+            if (kbo_runtime_save_in_progress()) {
+                break;
+            }
+            kbo_current_date_tick_consumer_mark_processed(&consumer);
         }
     }
     InterlockedExchange(&g_military_days_tick_started, 0);

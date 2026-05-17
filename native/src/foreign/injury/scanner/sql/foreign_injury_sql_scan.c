@@ -28,6 +28,15 @@ typedef struct KboForeignInjurySqlDailyScan {
     int found_count;
 } KboForeignInjurySqlDailyScan;
 
+typedef struct KboForeignInjurySqlDiscoveryScan {
+    int min_days;
+    uint32_t game_date_yyyymmdd;
+    int rows_seen;
+    int found_count;
+    KboForeignInjurySqlDiscoveryRow* rows;
+    int max_rows;
+} KboForeignInjurySqlDiscoveryScan;
+
 typedef struct KboForeignInjurySqliteDb KboForeignInjurySqliteDb;
 typedef int (__cdecl *KboForeignInjurySqliteOpenV2Fn)(const char*, KboForeignInjurySqliteDb**, int, const char*);
 typedef int (__cdecl *KboForeignInjurySqliteCloseFn)(KboForeignInjurySqliteDb*);
@@ -44,6 +53,7 @@ typedef struct KboForeignInjurySqliteFileApi {
 #define KBO_FOREIGN_INJURY_SQL_EVIDENCE_CACHE_SIZE 512
 #define KBO_FOREIGN_INJURY_SQL_EVIDENCE_CACHE_TTL_MS 10000u
 #define KBO_FOREIGN_INJURY_SQL_DAILY_CACHE_SIZE 2048
+#define KBO_FOREIGN_INJURY_SQL_DAILY_SCANNED_SIZE 512
 
 typedef struct KboForeignInjurySqlEvidenceCacheEntry {
     uintptr_t database;
@@ -67,15 +77,21 @@ typedef struct KboForeignInjurySqlDailyEvidenceEntry {
     uint8_t valid;
 } KboForeignInjurySqlDailyEvidenceEntry;
 
+typedef struct KboForeignInjurySqlDailyScannedEntry {
+    uintptr_t database;
+    uint32_t game_date_yyyymmdd;
+    int min_days;
+    uint8_t valid;
+} KboForeignInjurySqlDailyScannedEntry;
+
 static KboForeignInjurySqlEvidenceCacheEntry
     g_kbo_foreign_injury_sql_evidence_cache[KBO_FOREIGN_INJURY_SQL_EVIDENCE_CACHE_SIZE];
 static KboForeignInjurySqlDailyEvidenceEntry
     g_kbo_foreign_injury_sql_daily_cache[KBO_FOREIGN_INJURY_SQL_DAILY_CACHE_SIZE];
+static KboForeignInjurySqlDailyScannedEntry
+    g_kbo_foreign_injury_sql_daily_scanned[KBO_FOREIGN_INJURY_SQL_DAILY_SCANNED_SIZE];
 static KboLock g_kbo_foreign_injury_sql_evidence_cache_lock = KBO_LOCK_INIT;
 static KboForeignInjurySqliteFileApi g_kbo_foreign_injury_sqlite_file_api = {0};
-static uintptr_t g_kbo_foreign_injury_sql_daily_scanned_database = 0u;
-static uint32_t g_kbo_foreign_injury_sql_daily_scanned_date = 0u;
-static int g_kbo_foreign_injury_sql_daily_scanned_min_days = 0;
 
 #define KBO_SQLITE_OPEN_READONLY 0x00000001
 
@@ -134,6 +150,71 @@ static uint32_t kbo_foreign_injury_sql_daily_cache_slot(uint32_t player_id, int 
     h ^= (uint32_t)min_days * 3266489917u;
     h ^= h >> 15;
     return h & (KBO_FOREIGN_INJURY_SQL_DAILY_CACHE_SIZE - 1u);
+}
+
+static uint32_t kbo_foreign_injury_sql_daily_scanned_slot(
+    uintptr_t database,
+    uint32_t game_date_yyyymmdd,
+    int min_days)
+{
+    uint32_t h = (uint32_t)(database >> 4) ^ (uint32_t)database;
+    h ^= game_date_yyyymmdd * 2654435761u;
+    h ^= (uint32_t)min_days * 2246822519u;
+    h ^= h >> 16;
+    return h & (KBO_FOREIGN_INJURY_SQL_DAILY_SCANNED_SIZE - 1u);
+}
+
+static int kbo_foreign_injury_sql_daily_scanned_locked(
+    uintptr_t database,
+    uint32_t game_date_yyyymmdd,
+    int min_days)
+{
+    uint32_t start = kbo_foreign_injury_sql_daily_scanned_slot(
+        database,
+        game_date_yyyymmdd,
+        min_days);
+    for (uint32_t probe = 0; probe < KBO_FOREIGN_INJURY_SQL_DAILY_SCANNED_SIZE; probe++) {
+        uint32_t slot = (start + probe) & (KBO_FOREIGN_INJURY_SQL_DAILY_SCANNED_SIZE - 1u);
+        KboForeignInjurySqlDailyScannedEntry* entry = &g_kbo_foreign_injury_sql_daily_scanned[slot];
+        if (!entry->valid) {
+            return 0;
+        }
+        if (entry->database == database
+                && entry->game_date_yyyymmdd == game_date_yyyymmdd
+                && entry->min_days == min_days) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static void kbo_foreign_injury_sql_mark_daily_scanned_locked(
+    uintptr_t database,
+    uint32_t game_date_yyyymmdd,
+    int min_days)
+{
+    uint32_t start = kbo_foreign_injury_sql_daily_scanned_slot(
+        database,
+        game_date_yyyymmdd,
+        min_days);
+    for (uint32_t probe = 0; probe < KBO_FOREIGN_INJURY_SQL_DAILY_SCANNED_SIZE; probe++) {
+        uint32_t slot = (start + probe) & (KBO_FOREIGN_INJURY_SQL_DAILY_SCANNED_SIZE - 1u);
+        KboForeignInjurySqlDailyScannedEntry* entry = &g_kbo_foreign_injury_sql_daily_scanned[slot];
+        if (!entry->valid
+                || (entry->database == database
+                    && entry->game_date_yyyymmdd == game_date_yyyymmdd
+                    && entry->min_days == min_days)) {
+            entry->database = database;
+            entry->game_date_yyyymmdd = game_date_yyyymmdd;
+            entry->min_days = min_days;
+            entry->valid = 1u;
+            return;
+        }
+    }
+    g_kbo_foreign_injury_sql_daily_scanned[start].database = database;
+    g_kbo_foreign_injury_sql_daily_scanned[start].game_date_yyyymmdd = game_date_yyyymmdd;
+    g_kbo_foreign_injury_sql_daily_scanned[start].min_days = min_days;
+    g_kbo_foreign_injury_sql_daily_scanned[start].valid = 1u;
 }
 
 static int kbo_foreign_injury_sql_daily_cache_get(
@@ -210,11 +291,6 @@ static void kbo_foreign_injury_sql_daily_cache_store(
         }
     }
     kbo_foreign_injury_sql_cache_unlock();
-}
-
-static void kbo_foreign_injury_sql_daily_cache_clear_locked(void)
-{
-    memset(g_kbo_foreign_injury_sql_daily_cache, 0, sizeof(g_kbo_foreign_injury_sql_daily_cache));
 }
 
 static int kbo_foreign_injury_sql_cache_get(
@@ -352,6 +428,49 @@ static int __cdecl kbo_foreign_injury_sql_daily_scan_callback(void* arg, int col
         evidence_days,
         evidence_date);
     scan->found_count++;
+    return 0;
+}
+
+static int __cdecl kbo_foreign_injury_sql_discovery_scan_callback(void* arg, int column_count, char** values, char** names)
+{
+    (void)names;
+    KboForeignInjurySqlDiscoveryScan* scan = (KboForeignInjurySqlDiscoveryScan*)arg;
+    if (scan == NULL || column_count < 3 || values == NULL || values[0] == NULL || values[1] == NULL) {
+        return 0;
+    }
+
+    scan->rows_seen++;
+    uint32_t player_id = (uint32_t)strtoul(values[0], NULL, 10);
+    if (player_id == 0u) {
+        return 0;
+    }
+    int evidence_days = 0;
+    if (!kbo_foreign_injury_duration_text_meets_minimum(values[1], scan->min_days, &evidence_days)) {
+        return 0;
+    }
+    uint32_t evidence_date = values[2] != NULL
+        ? kbo_foreign_injury_parse_history_date(values[2])
+        : 0u;
+    if (evidence_date == 0u) {
+        evidence_date = scan->game_date_yyyymmdd;
+    }
+
+    for (int i = 0; i < scan->found_count; i++) {
+        KboForeignInjurySqlDiscoveryRow* row = &scan->rows[i];
+        if (row->player_id == player_id) {
+            if (evidence_days > row->days) {
+                row->days = evidence_days;
+                row->evidence_date = evidence_date;
+            }
+            return 0;
+        }
+    }
+    if (scan->rows != NULL && scan->found_count < scan->max_rows) {
+        KboForeignInjurySqlDiscoveryRow* row = &scan->rows[scan->found_count++];
+        row->player_id = player_id;
+        row->days = evidence_days;
+        row->evidence_date = evidence_date;
+    }
     return 0;
 }
 
@@ -521,6 +640,78 @@ static void kbo_foreign_injury_sql_build_daily_query(
         game_date_yyyymmdd);
 }
 
+static void kbo_foreign_injury_sql_build_discovery_query(
+    uint32_t game_date_yyyymmdd,
+    char* out,
+    size_t out_size)
+{
+    if (out == NULL || out_size == 0u) {
+        return;
+    }
+    out[0] = '\0';
+    snprintf(
+        out,
+        out_size,
+        "SELECT player_id, history_text, history_date FROM player_history "
+        "WHERE history_date = '%08u' AND history_text LIKE '[I]Injured%%';",
+        game_date_yyyymmdd);
+}
+
+static int kbo_foreign_injury_scan_text_data_sqlite_discovery(
+    const char* sql,
+    int min_days,
+    uint32_t game_date_yyyymmdd,
+    KboForeignInjurySqlDiscoveryRow* out_rows,
+    int max_rows,
+    KboForeignInjurySqlDiscoveryScan* out_scan)
+{
+    if (out_scan != NULL) {
+        memset(out_scan, 0, sizeof(*out_scan));
+        out_scan->min_days = min_days;
+        out_scan->game_date_yyyymmdd = game_date_yyyymmdd;
+        out_scan->rows = out_rows;
+        out_scan->max_rows = max_rows;
+    }
+    if (sql == NULL || min_days <= 0 || game_date_yyyymmdd == 0u || out_scan == NULL) {
+        return -1;
+    }
+
+    char save_path[MAX_PATH] = {0};
+    if (!kbo_get_current_save_path(save_path, sizeof(save_path))) {
+        return -1;
+    }
+
+    char db_path[MAX_PATH] = {0};
+    snprintf(db_path, sizeof(db_path), "%s\\temp\\text_data.sqlite3", save_path);
+    if (GetFileAttributesA(db_path) == INVALID_FILE_ATTRIBUTES) {
+        return -1;
+    }
+
+    KboForeignInjurySqliteFileApi* api = kbo_foreign_injury_get_sqlite_file_api();
+    if (api == NULL) {
+        return -1;
+    }
+
+    KboForeignInjurySqliteDb* db = NULL;
+    int open_result = api->open_v2(db_path, &db, KBO_SQLITE_OPEN_READONLY, NULL);
+    if (open_result != 0 || db == NULL) {
+        kbo_log_runtimef(
+            "foreign injury replacement: text_data sqlite discovery open failed result=%d path=%s",
+            open_result,
+            db_path);
+        return open_result != 0 ? open_result : -1;
+    }
+
+    int result = api->exec(
+        db,
+        sql,
+        (void*)&kbo_foreign_injury_sql_discovery_scan_callback,
+        out_scan,
+        NULL);
+    api->close(db);
+    return result;
+}
+
 static void kbo_foreign_injury_sql_ensure_daily_scan(
     uintptr_t database,
     KboSqlite3ExecFn sqlite_exec,
@@ -532,14 +723,15 @@ static void kbo_foreign_injury_sql_ensure_daily_scan(
     }
     uintptr_t cache_database = database != 0u ? database : 1u;
     kbo_foreign_injury_sql_cache_lock();
-    int already_scanned = g_kbo_foreign_injury_sql_daily_scanned_database == cache_database
-        && g_kbo_foreign_injury_sql_daily_scanned_date == game_date_yyyymmdd
-        && g_kbo_foreign_injury_sql_daily_scanned_min_days == min_days;
+    int already_scanned = kbo_foreign_injury_sql_daily_scanned_locked(
+        cache_database,
+        game_date_yyyymmdd,
+        min_days);
     if (!already_scanned) {
-        kbo_foreign_injury_sql_daily_cache_clear_locked();
-        g_kbo_foreign_injury_sql_daily_scanned_database = cache_database;
-        g_kbo_foreign_injury_sql_daily_scanned_date = game_date_yyyymmdd;
-        g_kbo_foreign_injury_sql_daily_scanned_min_days = min_days;
+        kbo_foreign_injury_sql_mark_daily_scanned_locked(
+            cache_database,
+            game_date_yyyymmdd,
+            min_days);
     }
     kbo_foreign_injury_sql_cache_unlock();
     if (already_scanned) {
@@ -583,6 +775,101 @@ static void kbo_foreign_injury_sql_ensure_daily_scan(
         scan.rows_seen,
         scan.found_count,
         result);
+}
+
+int kbo_foreign_injury_collect_sql_long_term_injuries_on_date(
+    uint32_t game_date_yyyymmdd,
+    int min_days,
+    KboForeignInjurySqlDiscoveryRow* out_rows,
+    int max_rows,
+    int* out_count,
+    int* out_rows_seen)
+{
+    if (out_count != NULL) {
+        *out_count = 0;
+    }
+    if (out_rows_seen != NULL) {
+        *out_rows_seen = 0;
+    }
+    if (out_rows != NULL && max_rows > 0) {
+        memset(out_rows, 0, (size_t)max_rows * sizeof(out_rows[0]));
+    }
+    if (game_date_yyyymmdd == 0u || min_days <= 0 || out_rows == NULL || max_rows <= 0) {
+        return -1;
+    }
+
+    char sql[512] = {0};
+    kbo_foreign_injury_sql_build_discovery_query(game_date_yyyymmdd, sql, sizeof(sql));
+
+    uintptr_t database = 0u;
+    KboSqlite3ExecFn sqlite_exec = NULL;
+    uintptr_t global = get_ootp_global_database();
+    if (global != 0 && memory_range_readable((void*)(global + OOTP27_GLOBAL_SQL_DATABASE_OFFSET), sizeof(uintptr_t))) {
+        database = *(uintptr_t*)(global + OOTP27_GLOBAL_SQL_DATABASE_OFFSET);
+        sqlite_exec = kbo_get_sqlite3_exec_fn();
+        if (database == 0 || !memory_range_readable((void*)database, 0x10) || sqlite_exec == NULL) {
+            database = 0u;
+            sqlite_exec = NULL;
+        }
+    }
+
+    KboForeignInjurySqlDiscoveryScan scan;
+    memset(&scan, 0, sizeof(scan));
+    scan.min_days = min_days;
+    scan.game_date_yyyymmdd = game_date_yyyymmdd;
+    scan.rows = out_rows;
+    scan.max_rows = max_rows;
+
+    int result = -1;
+    if (database != 0u && sqlite_exec != NULL) {
+        result = sqlite_exec(
+            (void*)database,
+            sql,
+            (void*)&kbo_foreign_injury_sql_discovery_scan_callback,
+            &scan,
+            NULL);
+    }
+
+    KboForeignInjurySqlDiscoveryRow file_rows[KBO_FOREIGN_INJURY_SQL_DISCOVERY_MAX];
+    memset(file_rows, 0, sizeof(file_rows));
+    KboForeignInjurySqlDiscoveryScan file_scan;
+    int file_result = kbo_foreign_injury_scan_text_data_sqlite_discovery(
+        sql,
+        min_days,
+        game_date_yyyymmdd,
+        file_rows,
+        max_rows < KBO_FOREIGN_INJURY_SQL_DISCOVERY_MAX ? max_rows : KBO_FOREIGN_INJURY_SQL_DISCOVERY_MAX,
+        &file_scan);
+    if (file_result == 0
+            && (result != 0
+                || file_scan.rows_seen >= scan.rows_seen
+                || file_scan.found_count > scan.found_count)) {
+        int copy_count = file_scan.found_count;
+        if (copy_count > max_rows) {
+            copy_count = max_rows;
+        }
+        memcpy(out_rows, file_rows, (size_t)copy_count * sizeof(out_rows[0]));
+        scan = file_scan;
+        scan.found_count = copy_count;
+        result = file_result;
+    }
+
+    if (out_count != NULL) {
+        *out_count = scan.found_count;
+    }
+    if (out_rows_seen != NULL) {
+        *out_rows_seen = scan.rows_seen;
+    }
+    if (scan.rows_seen > 0 || scan.found_count > 0) {
+        kbo_log_runtimef(
+            "foreign injury replacement: sql discovery injury scan date=%u min_days=%d rows=%d found=%d exec=%d",
+            game_date_yyyymmdd,
+            min_days,
+            scan.rows_seen,
+            scan.found_count,
+            result);
+    }
+    return result;
 }
 
 int kbo_foreign_injury_recent_sql_has_long_term_injury_date(

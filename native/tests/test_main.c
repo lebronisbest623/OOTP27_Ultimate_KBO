@@ -39,6 +39,14 @@ int kbo_current_date_is_valid(uint32_t* out_year, uint32_t* out_month, uint32_t*
     return 0;
 }
 
+int kbo_get_current_yyyymmdd(uint32_t* out_date)
+{
+    if (out_date != NULL) {
+        *out_date = 0u;
+    }
+    return 0;
+}
+
 #include "../src/military_service/calendar/military_service_date.h"
 #include "../src/military_service/seed/parse/military_service_seed_parse.h"
 #include "../src/military_service/players/team_policy/military_service_team_policy_parse.h"
@@ -360,6 +368,18 @@ static void test_date_serial(void)
     assert(kbo_date_serial(2024u, 4u, 31u) == 0u);
     assert(kbo_date_serial(0u, 1u, 1u) == 0u);
     assert(kbo_date_serial(2024u, 13u, 1u) == 0u);
+    assert(kbo_yyyymmdd_valid(19800101u));
+    assert(kbo_yyyymmdd_valid(22001231u));
+    assert(kbo_yyyymmdd_valid(20240229u));
+    assert(!kbo_yyyymmdd_valid(19791231u));
+    assert(!kbo_yyyymmdd_valid(22010101u));
+    assert(!kbo_yyyymmdd_valid(20230229u));
+    assert(kbo_yyyymmdd_add_days(20240228u, 1u) == 20240229u);
+    assert(kbo_yyyymmdd_add_days(20240229u, 1u) == 20240301u);
+    assert(kbo_yyyymmdd_add_days(20231231u, 1u) == 20240101u);
+    assert(kbo_yyyymmdd_add_days(20240101u, 0u) == 20240101u);
+    assert(kbo_yyyymmdd_add_days(20230229u, 1u) == 0u);
+    assert(kbo_yyyymmdd_add_days(22001231u, 1u) == 0u);
     assert(kbo_current_date_serial() == 0u);
     printf("test_date_serial: PASS\n");
 }
@@ -1650,6 +1670,12 @@ static void test_foreign_injury_inactive_roster_long_term_basis(void)
     assert(!kbo_foreign_injury_return_state_allows_close(0u, 0, 0u, 0, 1, 0, 1));
     assert(!kbo_foreign_injury_return_state_allows_close(0u, 0, 0u, 1, 1, 0, 1));
     assert(!kbo_foreign_injury_return_state_allows_close(0u, 0, 0u, 1, 0, 1, 1));
+
+    assert(kbo_foreign_injury_open_news_allowed(20260329u, 20260329u, 20260329u, 1, 0));
+    assert(kbo_foreign_injury_open_news_allowed(20260329u, 20260330u, 20260329u, 1, 1));
+    assert(!kbo_foreign_injury_open_news_allowed(20260329u, 20260330u, 20260329u, 1, 0));
+    assert(!kbo_foreign_injury_open_news_allowed(20260329u, 20260329u, 20260328u, 1, 1));
+    assert(!kbo_foreign_injury_open_news_allowed(20260329u, 20260329u, 20260329u, 0, 1));
 
     printf("test_foreign_injury_inactive_roster_long_term_basis: PASS\n");
 }

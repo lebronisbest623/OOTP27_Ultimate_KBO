@@ -134,22 +134,6 @@ int kbo_parse_yyyymmdd(const char* date_text, uint32_t* out_date)
     return 1;
 }
 
-int kbo_get_current_yyyymmdd(uint32_t* out_date)
-{
-    if (out_date == NULL) {
-        return 0;
-    }
-
-    uint32_t year = 0;
-    uint32_t month = 0;
-    uint32_t day = 0;
-    if (!kbo_current_date_is_valid(&year, &month, &day)) {
-        return 0;
-    }
-    *out_date = year * 10000u + month * 100u + day;
-    return 1;
-}
-
 int kbo_get_foreign_waiver_current_yyyymmdd(uint32_t* out_date)
 {
     return kbo_get_current_yyyymmdd(out_date);

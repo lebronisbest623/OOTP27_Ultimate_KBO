@@ -63,6 +63,11 @@ DWORD WINAPI patch_thread(LPVOID parameter)
         kbo_log_runtime_line("KBO player tooltip rating panel ctor probe disabled: disable_kbo_player_tooltip_rating_panel_ctor_probe is true");
     }
     install_kbo_early_foreign_policy_hooks_once("presave_bootstrap");
+    if (!read_kbo_localappdata_flag_file("disable_kbo_current_date_tick_capture_hook.txt")) {
+        install_kbo_current_date_tick_capture_hook();
+    } else {
+        kbo_log_runtime_line("KBO current date tick capture hook disabled: disable_kbo_current_date_tick_capture_hook is true");
+    }
     install_kbo_early_no_minor_contract_hooks_once("presave_bootstrap");
     int foreign_ai_roster_management =
         read_kbo_localappdata_flag_file("enable_foreign_ai_roster_management.txt");

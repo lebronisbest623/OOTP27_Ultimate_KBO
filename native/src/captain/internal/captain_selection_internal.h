@@ -175,6 +175,7 @@ int kbo_run_captain_inseason_repair_once(
     uint32_t season,
     uint32_t league_id,
     const char* source);
+int kbo_run_captain_selection_maintenance_for_date(uint32_t date, const char* source);
 int kbo_run_captain_selection_maintenance_once(const char* source);
 
 #endif

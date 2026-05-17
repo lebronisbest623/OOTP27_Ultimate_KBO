@@ -9,6 +9,7 @@
 #include "../../bootstrap/abi/ootp_offsets.h"
 #include "../../core/core_flags/api/flags_api.h"
 #include "../../core/dates/core_text_date.h"
+#include "../../core/dates/tick/current_date_tick_capture.h"
 #include "../../core/files/save_paths/core_save_paths.h"
 #include "../../core/logging/core_log.h"
 #include "../../fa_market_classification/api/fa_market_classification.h"
@@ -207,8 +208,13 @@ static DWORD WINAPI kbo_domestic_fa_market_investigation_thread(LPVOID parameter
 {
     (void)parameter;
 
-    uint32_t last_scan_date = 0u;
-    char last_save_path[MAX_PATH] = {0};
+    KboCurrentDateTickConsumer consumer = {0};
+    kbo_current_date_tick_consumer_init(
+        &consumer,
+        "domestic_fa_market_investigation",
+        KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER
+            | KBO_CURRENT_DATE_TICK_CONSUMER_GAP_CATCHUP);
+
     int last_enabled = 0;
     while (kbo_runtime_threads_should_continue()) {
         const KboFaMarketPolicy* policy = kbo_fa_market_policy();
@@ -219,33 +225,34 @@ static DWORD WINAPI kbo_domestic_fa_market_investigation_thread(LPVOID parameter
         int enabled = kbo_domestic_fa_market_investigation_enabled();
         if (!enabled) {
             last_enabled = 0;
+            kbo_current_date_tick_consumer_skip_to_latest(&consumer);
             continue;
         }
         if (!last_enabled) {
             kbo_log_runtime_line("domestic FA market investigation enabled: observe-only mode active");
-            last_scan_date = 0u;
-            last_save_path[0] = '\0';
+            kbo_current_date_tick_consumer_init(
+                &consumer,
+                "domestic_fa_market_investigation",
+                KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER
+                    | KBO_CURRENT_DATE_TICK_CONSUMER_GAP_CATCHUP);
             last_enabled = 1;
         }
 
-        uint32_t today = 0u;
-        char save_path[MAX_PATH] = {0};
-        if (!kbo_get_current_yyyymmdd(&today)
-                || today == 0u
-                || !kbo_get_current_save_path(save_path, sizeof(save_path))) {
-            continue;
-        }
-
-        if (today == last_scan_date && strcmp(save_path, last_save_path) == 0) {
-            continue;
-        }
         if (!kbo_runtime_pause_for_save_if_needed("domestic_fa_market_investigation")) {
             break;
         }
 
-        kbo_domestic_fa_run_investigation_once(today, "domestic_fa_market_investigation");
-        last_scan_date = today;
-        snprintf(last_save_path, sizeof(last_save_path), "%s", save_path);
+        KboCurrentDateTickWork work = {0};
+        while (kbo_current_date_tick_consumer_next(&consumer, &work)) {
+            const char* source = work.gap
+                ? "domestic_fa_market_investigation_date_gap"
+                : "domestic_fa_market_investigation";
+            kbo_domestic_fa_run_investigation_once(work.date, source);
+            if (kbo_runtime_save_in_progress()) {
+                break;
+            }
+            kbo_current_date_tick_consumer_mark_processed(&consumer);
+        }
     }
 
     InterlockedExchange(&g_kbo_domestic_fa_market_investigation_started, 0);

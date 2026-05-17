@@ -14,11 +14,6 @@ int kbo_foreign_injury_replacement_scan_source_is_read_only(const char* source)
         || strcmp(source, "foreign_slot_cache") == 0);
 }
 
-int kbo_foreign_injury_replacement_scan_source_is_periodic_thread(const char* source)
-{
-    return source != NULL && strcmp(source, "foreign_injury_replacement_thread") == 0;
-}
-
 static int kbo_foreign_injury_replacement_scan_source_uses_idle_cache(const char* source)
 {
     (void)source;

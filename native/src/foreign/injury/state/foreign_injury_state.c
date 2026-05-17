@@ -293,6 +293,19 @@ int kbo_foreign_injury_return_state_allows_close(
         && !roster_hold_flags_present;
 }
 
+int kbo_foreign_injury_open_news_allowed(
+    uint32_t scan_date,
+    uint32_t live_date,
+    uint32_t opened_on,
+    int process_existing_replacements,
+    int captured_live_date)
+{
+    return process_existing_replacements
+        && scan_date != 0u
+        && (live_date == scan_date || captured_live_date)
+        && opened_on == scan_date;
+}
+
 static int kbo_foreign_injury_state_record_has_minimum_injury_basis(
     const KboForeignInjuryReplacement* rec)
 {
@@ -370,5 +383,5 @@ int kbo_foreign_injury_player_excluded_from_foreign_count_locked(uint32_t team_i
 
 /* Foreign injury replacement native news emission. Included from native/KBOFix.c. */
 
-LONG g_kbo_foreign_injury_replacement_thread_started = 0;
+LONG g_kbo_foreign_injury_date_tick_thread_started = 0;
 

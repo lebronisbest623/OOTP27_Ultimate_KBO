@@ -14,6 +14,7 @@
 #include "../../core/core_league_context_parts/event_manager/event_manager.h"
 #include "../../core/core_league_context_parts/api/league_context_lookup.h"
 #include "../../core/dates/core_current_date.h"
+#include "../../core/dates/tick/current_date_tick_capture.h"
 #include "../../core/files/save_paths/core_save_paths.h"
 #include "../../core/logging/core_log.h"
 #include "../../core/text/ootp_text_encoding.h"

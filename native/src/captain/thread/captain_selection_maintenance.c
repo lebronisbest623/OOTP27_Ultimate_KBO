@@ -39,7 +39,7 @@ static void kbo_captain_audit_maintenance(
     } while (0);
 }
 
-int kbo_run_captain_selection_maintenance_once(const char* source)
+int kbo_run_captain_selection_maintenance_for_date(uint32_t date, const char* source)
 {
     KBO_PROFILE_BEGIN(profile_captain_selection_maintenance);
     if (!kbo_fix_enabled()) {
@@ -48,19 +48,18 @@ int kbo_run_captain_selection_maintenance_once(const char* source)
     }
     if (!kbo_runtime_pause_for_save_if_needed(source != NULL ? source : "captain_selection_maintenance")) {
         KBO_PROFILE_END(profile_captain_selection_maintenance, "captain.maintenance.save_pause_abort");
-        return 0;
+        return -1;
     }
 
-    uint32_t date = 0;
-    if (!kbo_captain_current_yyyymmdd(&date)) {
+    if (date == 0u) {
         KBO_PROFILE_END(profile_captain_selection_maintenance, "captain.maintenance.no_date");
-        return 0;
+        return -1;
     }
 
     char save_path[MAX_PATH] = {0};
     if (!kbo_get_current_save_path(save_path, sizeof(save_path))) {
         KBO_PROFILE_END(profile_captain_selection_maintenance, "captain.maintenance.no_save");
-        return 0;
+        return -1;
     }
 
     uint32_t league_id = kbo_resolve_kbo_league_id();
@@ -329,4 +328,14 @@ int kbo_run_captain_selection_maintenance_once(const char* source)
         calendar_preseason_start);
     KBO_PROFILE_END(profile_captain_selection_maintenance, "captain.maintenance.no_trigger");
     return 0;
+}
+
+int kbo_run_captain_selection_maintenance_once(const char* source)
+{
+    uint32_t date = 0u;
+    if (!kbo_captain_current_yyyymmdd(&date)) {
+        return 0;
+    }
+    int result = kbo_run_captain_selection_maintenance_for_date(date, source);
+    return result < 0 ? 0 : result;
 }

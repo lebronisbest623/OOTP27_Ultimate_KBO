@@ -70,13 +70,20 @@ DWORD WINAPI kbo_delayed_sangmu_fa_hooks_install_thread(LPVOID parameter)
 
     const KboRuntimeTuningPolicy* tuning = kbo_runtime_tuning_policy();
     int stable_ticks = 0;
+    KboCurrentDateTickConsumer date_consumer = {0};
+    kbo_current_date_tick_consumer_init(
+        &date_consumer,
+        "sangmu_delayed_install",
+        KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER);
     for (int attempt = 1; attempt <= tuning->sangmu_delayed_install_attempts; attempt++) {
         char save_path[MAX_PATH] = {0};
-        uint32_t today_serial = kbo_current_date_serial();
         int has_save = kbo_get_current_save_path(save_path, sizeof(save_path));
-        if (has_save && today_serial != 0u) {
+        KboCurrentDateTickWork date_work = {0};
+        int has_date = has_save && kbo_current_date_tick_consumer_next(&date_consumer, &date_work);
+        if (has_save && has_date) {
             stable_ticks++;
             if (stable_ticks >= tuning->sangmu_delayed_install_stable_ticks) {
+                kbo_current_date_tick_consumer_mark_processed(&date_consumer);
                 break;
             }
         } else {
@@ -88,7 +95,7 @@ DWORD WINAPI kbo_delayed_sangmu_fa_hooks_install_thread(LPVOID parameter)
                 "KBO Sangmu FA hooks delayed install not ready attempt=%d save=%d today=%u stable=%d",
                 attempt,
                 has_save,
-                today_serial,
+                has_date ? date_work.date : 0u,
                 stable_ticks);
         }
         if (!kbo_runtime_sleep_should_continue((uint32_t)tuning->sangmu_delayed_install_sleep_ms)) {
@@ -316,6 +323,12 @@ void install_kbo_full_runtime_after_roster_marker(HINSTANCE instance)
     } else {
         kbo_log_runtime_line("KBO season phase capture hooks disabled: disable_kbo_season_phase_capture_hooks is true");
     }
+    if (!read_kbo_localappdata_flag_file("disable_kbo_current_date_tick_capture_hook.txt")) {
+        install_kbo_current_date_tick_capture_hook();
+    } else {
+        kbo_log_runtime_line("KBO current date tick capture hook disabled: disable_kbo_current_date_tick_capture_hook is true");
+    }
+    start_kbo_foreign_injury_date_tick_thread();
     start_kbo_custom_event_monitor();
     if (kbo_no_minor_contract_patch_enabled()) {
         if (!kbo_opening_day_storyline_guard_active("no_minor_contract_patch_install", NULL, NULL)) {
@@ -349,7 +362,6 @@ void install_kbo_full_runtime_after_roster_marker(HINSTANCE instance)
         kbo_log_runtime_line("KBO callup foreign limit branch patches disabled: custom foreign policy is org-level");
     }
     start_kbo_foreign_waiver_scanner_thread();
-    start_kbo_foreign_injury_replacement_thread();
     if (!read_kbo_localappdata_flag_file("disable_kbo_fa_salary_opening_day_snapshot.txt")) {
         kbo_log_runtime_line("KBO FA salary opening-day phase hook retired: using league-memory/news snapshot thread only");
         start_kbo_fa_salary_snapshot_thread();

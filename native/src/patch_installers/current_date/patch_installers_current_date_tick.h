@@ -1,0 +1,6 @@
+#ifndef KBOFIX_SRC_PATCH_INSTALLERS_CURRENT_DATE_TICK_H_
+#define KBOFIX_SRC_PATCH_INSTALLERS_CURRENT_DATE_TICK_H_
+
+int install_kbo_current_date_tick_capture_hook(void);
+
+#endif

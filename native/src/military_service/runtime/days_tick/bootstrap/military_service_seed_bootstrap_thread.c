@@ -6,6 +6,8 @@
 
 #include "../../../../core/core_flags/api/flags_api.h"
 #include "../../../../core/dates/core_current_date.h"
+#include "../../../../core/dates/core_text_date.h"
+#include "../../../../core/dates/tick/current_date_tick_capture.h"
 #include "../../../../core/files/save_paths/core_save_paths.h"
 #include "../../../../core/logging/core_log.h"
 #include "../../../../core/runtime_tuning/runtime_tuning_policy.h"
@@ -24,6 +26,13 @@ DWORD WINAPI kbo_military_seed_bootstrap_thread(LPVOID parameter)
     char last_save_path[MAX_PATH] = {0};
     int settled_attempts = 0;
     const KboRuntimeTuningPolicy* tuning = kbo_runtime_tuning_policy();
+    KboCurrentDateTickConsumer consumer = {0};
+    kbo_current_date_tick_consumer_init(
+        &consumer,
+        "military_seed_bootstrap",
+        KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER
+            | KBO_CURRENT_DATE_TICK_CONSUMER_GAP_CATCHUP);
+
     for (int attempt = 1; attempt <= tuning->military_seed_bootstrap_attempts; attempt++) {
         uint32_t sleep_ms = attempt == 1
             ? (uint32_t)tuning->military_seed_bootstrap_first_sleep_ms
@@ -50,7 +59,19 @@ DWORD WINAPI kbo_military_seed_bootstrap_thread(LPVOID parameter)
             kbo_military_prewarm_save_scoped_bootstrap_files(save_path);
         }
 
-        uint32_t today_serial = kbo_current_date_serial();
+        KboCurrentDateTickWork work = {0};
+        if (!kbo_current_date_tick_consumer_next(&consumer, &work)) {
+            if (attempt <= tuning->military_seed_bootstrap_log_initial_attempts
+                    || attempt % tuning->military_seed_bootstrap_log_interval == 0) {
+                kbo_log_runtimef("KBO military service seed bootstrap waiting attempt=%d reason=no_hook_date save=%s", attempt, save_path);
+            }
+            continue;
+        }
+
+        uint32_t today_serial = kbo_date_serial(
+            work.date / 10000u,
+            (work.date / 100u) % 100u,
+            work.date % 100u);
         uintptr_t player_vector = 0;
         int32_t player_count = 0;
         uint32_t vector_offset = 0;
@@ -79,8 +100,15 @@ DWORD WINAPI kbo_military_seed_bootstrap_thread(LPVOID parameter)
         }
 
         int seeded = 0;
-        int returned = kbo_tick_military_service_days("military_seed_bootstrap", &seeded);
+        int returned = kbo_tick_military_service_days_for_date(
+            work.date,
+            "military_seed_bootstrap",
+            &seeded);
+        if (kbo_runtime_save_in_progress()) {
+            continue;
+        }
         if (seeded > 0 || returned > 0) {
+            kbo_current_date_tick_consumer_mark_processed(&consumer);
             kbo_log_runtimef(
                 "KBO military service seed bootstrap applied attempt=%d seeded=%d returned=%d save=%s",
                 attempt,
@@ -94,6 +122,7 @@ DWORD WINAPI kbo_military_seed_bootstrap_thread(LPVOID parameter)
             settled_attempts++;
         }
         if (settled_attempts >= 3) {
+            kbo_current_date_tick_consumer_mark_processed(&consumer);
             kbo_log_runtimef(
                 "KBO military service seed bootstrap settled attempt=%d seeded=0 returned=0 save=%s",
                 attempt,

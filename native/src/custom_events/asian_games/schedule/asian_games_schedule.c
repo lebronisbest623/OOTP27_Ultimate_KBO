@@ -65,12 +65,10 @@ static int kbo_process_due_asian_games_custom_event(
     return -1;
 }
 
-int kbo_schedule_asian_games_custom_events(const char* source)
+int kbo_schedule_asian_games_custom_events_for_date(uint32_t today, const char* source)
 {
-    uint32_t year = 0;
-    uint32_t month = 0;
-    uint32_t day = 0;
-    if (!kbo_current_date_is_valid(&year, &month, &day)) {
+    uint32_t year = today / 10000u;
+    if (kbo_date_serial(year, (today / 100u) % 100u, today % 100u) == 0u) {
         kbo_log_runtimef(
             "KBO Asian Games schedule skipped source=%s reason=current_date_unavailable",
             source != NULL ? source : "");
@@ -100,7 +98,6 @@ int kbo_schedule_asian_games_custom_events(const char* source)
     uint32_t selection_date = schedule.selection_date;
     uint32_t departure_date = schedule.departure_date;
     uint32_t final_date = schedule.final_date;
-    uint32_t today = year * 10000u + month * 100u + day;
     if (today > final_date) {
         g_kbo_asian_games_last_scheduled_year = year;
         kbo_log_runtimef(
@@ -322,4 +319,20 @@ int kbo_schedule_asian_games_custom_events(const char* source)
         return -1;
     }
     return created_selection || created_departure || created_final || direct_processed;
+}
+
+int kbo_schedule_asian_games_custom_events(const char* source)
+{
+    uint32_t year = 0u;
+    uint32_t month = 0u;
+    uint32_t day = 0u;
+    if (!kbo_current_date_is_valid(&year, &month, &day)) {
+        kbo_log_runtimef(
+            "KBO Asian Games schedule skipped source=%s reason=current_date_unavailable",
+            source != NULL ? source : "");
+        return -1;
+    }
+    return kbo_schedule_asian_games_custom_events_for_date(
+        year * 10000u + month * 100u + day,
+        source);
 }

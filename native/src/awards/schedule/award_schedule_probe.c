@@ -110,6 +110,12 @@ static DWORD WINAPI kbo_award_schedule_probe_thread(LPVOID parameter)
     char last_save_path[MAX_PATH] = {0};
     int logged = 0;
     int fast_retry_pulses = 0;
+    KboCurrentDateTickConsumer date_consumer = {0};
+    kbo_current_date_tick_consumer_init(
+        &date_consumer,
+        "award_schedule_probe",
+        KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER
+            | KBO_CURRENT_DATE_TICK_CONSUMER_GAP_CATCHUP);
 
     kbo_log_runtime_line("KBO award schedule probe started");
 
@@ -136,13 +142,12 @@ static DWORD WINAPI kbo_award_schedule_probe_thread(LPVOID parameter)
             fast_retry_pulses = 0;
         }
 
-        uint32_t year = 0u;
-        uint32_t month = 0u;
-        uint32_t day = 0u;
-        if (!kbo_current_date_is_valid(&year, &month, &day)) {
+        KboCurrentDateTickWork date_work = {0};
+        int has_hook_date = kbo_current_date_tick_consumer_next(&date_consumer, &date_work);
+        uint32_t date_key = has_hook_date ? date_work.date : last_date;
+        if (date_key == 0u || date_key == 0xffffffffu || (!has_hook_date && fast_retry_pulses <= 0)) {
             continue;
         }
-        uint32_t date_key = year * 10000u + month * 100u + day;
 
         uint32_t league_id = kbo_resolve_kbo_league_id();
         uintptr_t league_ptr = kbo_find_league_ptr_from_id(league_id);
@@ -167,10 +172,16 @@ static DWORD WINAPI kbo_award_schedule_probe_thread(LPVOID parameter)
             } else {
                 fast_retry_pulses = 0;
             }
+            if (has_hook_date) {
+                kbo_current_date_tick_consumer_mark_processed(&date_consumer);
+            }
         } else {
             kbo_award_schedule_apply_once(league_id, date_key, 0);
             if (fast_retry_pulses > 0) {
                 fast_retry_pulses--;
+            }
+            if (has_hook_date) {
+                kbo_current_date_tick_consumer_mark_processed(&date_consumer);
             }
         }
     }

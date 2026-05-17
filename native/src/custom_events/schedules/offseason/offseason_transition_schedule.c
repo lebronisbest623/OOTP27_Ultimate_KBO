@@ -194,8 +194,9 @@ int kbo_custom_event_schedule_pending_offseason_transition(
         return 0;
     }
 
-    int scheduled = kbo_schedule_foreign_priority_custom_events_for_anchor(
+    int scheduled = kbo_schedule_foreign_priority_custom_events_for_anchor_on_date(
         source,
+        today_yyyymmdd,
         g_kbo_custom_event_pending_offseason_transition_anchor);
     kbo_log_runtimef(
         "KBO custom event offseason transition schedule source=%s today=%u anchor=%u result=%d",

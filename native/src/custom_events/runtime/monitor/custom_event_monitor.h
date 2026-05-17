@@ -5,7 +5,8 @@
 #include <stdint.h>
 #include <windows.h>
 
-void kbo_custom_event_monitor_tick(
+int kbo_custom_event_monitor_tick_for_date(
+    uint32_t today_yyyymmdd,
     uint32_t* last_scheduled_yyyymmdd,
     uint32_t* last_scanned_yyyymmdd,
     uint32_t* last_fa_comp_yyyymmdd,

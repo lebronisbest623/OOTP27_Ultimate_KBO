@@ -182,10 +182,11 @@ static int kbo_process_due_independent_team_acquisition_open_event(
     return -1;
 }
 
-int kbo_schedule_independent_team_acquisition_custom_events(const char* source)
+int kbo_schedule_independent_team_acquisition_custom_events_for_date(
+    uint32_t today,
+    const char* source)
 {
-    uint32_t today = 0u;
-    if (!kbo_get_current_yyyymmdd(&today) || today == 0u) {
+    if (today == 0u) {
         kbo_log_runtimef(
             "KBO independent futures acquisition schedule skipped source=%s reason=current_date_unavailable",
             source != NULL ? source : "");
@@ -356,4 +357,16 @@ int kbo_schedule_independent_team_acquisition_custom_events(const char* source)
         return -1;
     }
     return created || direct_processed;
+}
+
+int kbo_schedule_independent_team_acquisition_custom_events(const char* source)
+{
+    uint32_t today = 0u;
+    if (!kbo_get_current_yyyymmdd(&today) || today == 0u) {
+        kbo_log_runtimef(
+            "KBO independent futures acquisition schedule skipped source=%s reason=current_date_unavailable",
+            source != NULL ? source : "");
+        return -1;
+    }
+    return kbo_schedule_independent_team_acquisition_custom_events_for_date(today, source);
 }

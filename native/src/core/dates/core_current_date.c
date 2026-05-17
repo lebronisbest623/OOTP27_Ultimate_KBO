@@ -60,6 +60,22 @@ int kbo_current_date_is_valid(uint32_t* out_year, uint32_t* out_month, uint32_t*
     return 1;
 }
 
+int kbo_get_current_yyyymmdd(uint32_t* out_date)
+{
+    if (out_date == NULL) {
+        return 0;
+    }
+
+    uint32_t year = 0;
+    uint32_t month = 0;
+    uint32_t day = 0;
+    if (!kbo_current_date_is_valid(&year, &month, &day)) {
+        return 0;
+    }
+    *out_date = year * 10000u + month * 100u + day;
+    return 1;
+}
+
 int kbo_current_year_relaxed(uint32_t* out_year)
 {
     if (out_year != NULL) {

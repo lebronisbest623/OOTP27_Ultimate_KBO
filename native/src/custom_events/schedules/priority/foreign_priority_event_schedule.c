@@ -305,20 +305,42 @@ int kbo_schedule_foreign_priority_custom_events_for_anchor(
         offseason_starts_yyyymmdd);
 }
 
-int kbo_schedule_foreign_priority_custom_events(const char* source)
+int kbo_schedule_foreign_priority_custom_events_for_anchor_on_date(
+    const char* source,
+    uint32_t today,
+    uint32_t offseason_starts_yyyymmdd)
 {
-    uint32_t today = 0u;
     uint32_t league_id = kbo_get_foreign_waiver_league_id();
     if (league_id == 0u) {
         league_id = kbo_resolve_kbo_league_id();
     }
-    if (!kbo_get_current_yyyymmdd(&today) || today == 0u) {
+    if (today == 0u) {
         kbo_log_runtimef(
             "KBO custom event schedule skipped source=%s reason=current_date_unavailable",
             source != NULL ? source : "");
         return -1;
     }
+    return kbo_schedule_foreign_priority_custom_events_at_anchor(
+        source,
+        today,
+        league_id,
+        offseason_starts_yyyymmdd);
+}
 
+int kbo_schedule_foreign_priority_custom_events_for_date(
+    const char* source,
+    uint32_t today)
+{
+    uint32_t league_id = kbo_get_foreign_waiver_league_id();
+    if (league_id == 0u) {
+        league_id = kbo_resolve_kbo_league_id();
+    }
+    if (today == 0u) {
+        kbo_log_runtimef(
+            "KBO custom event schedule skipped source=%s reason=current_date_unavailable",
+            source != NULL ? source : "");
+        return -1;
+    }
     uint32_t offseason_starts_yyyymmdd = kbo_get_latest_offseason_starts_event(today);
     if (offseason_starts_yyyymmdd == 0u) {
         offseason_starts_yyyymmdd = kbo_detect_offseason_anchor_by_league_year(league_id, today, source);
@@ -353,5 +375,17 @@ int kbo_schedule_foreign_priority_custom_events(const char* source)
         today,
         league_id,
         offseason_starts_yyyymmdd);
+}
+
+int kbo_schedule_foreign_priority_custom_events(const char* source)
+{
+    uint32_t today = 0u;
+    if (!kbo_get_current_yyyymmdd(&today) || today == 0u) {
+        kbo_log_runtimef(
+            "KBO custom event schedule skipped source=%s reason=current_date_unavailable",
+            source != NULL ? source : "");
+        return -1;
+    }
+    return kbo_schedule_foreign_priority_custom_events_for_date(source, today);
 }
 

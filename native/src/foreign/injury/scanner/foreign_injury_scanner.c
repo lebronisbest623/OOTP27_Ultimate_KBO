@@ -7,32 +7,179 @@ static LONG g_kbo_foreign_injury_below_min_log_count = 0;
 static void kbo_foreign_injury_replacement_scan_for_date_mode(
     const char* source,
     uint32_t today,
-    int process_existing_replacements);
+    int process_existing_replacements,
+    int captured_live_date);
+static int kbo_foreign_injury_replacement_scan_sql_discovery_only(
+    const char* source,
+    uint32_t today,
+    uint32_t configured_league_id,
+    int slot_opening_allowed);
 
-void kbo_foreign_injury_replacement_scan_once(const char* source)
+void kbo_foreign_injury_replacement_scan_captured_date(const char* source, uint32_t today)
 {
-    uint32_t today = 0u;
-    if (!kbo_get_current_yyyymmdd(&today)) {
-        kbo_rule_audit_emit_fields("foreign_injury.replacement.scan", "skip", "date_unavailable", source, NULL);
-        return;
-    }
-    kbo_foreign_injury_replacement_scan_for_date(source, today);
-}
-
-void kbo_foreign_injury_replacement_scan_for_date(const char* source, uint32_t today)
-{
-    kbo_foreign_injury_replacement_scan_for_date_mode(source, today, 1);
+    kbo_foreign_injury_replacement_scan_for_date_mode(source, today, 1, 1);
 }
 
 void kbo_foreign_injury_replacement_scan_discovery_for_date(const char* source, uint32_t today)
 {
-    kbo_foreign_injury_replacement_scan_for_date_mode(source, today, 0);
+    kbo_foreign_injury_replacement_scan_for_date_mode(source, today, 0, 0);
+}
+
+static int kbo_foreign_injury_replacement_scan_sql_discovery_only(
+    const char* source,
+    uint32_t today,
+    uint32_t configured_league_id,
+    int slot_opening_allowed)
+{
+    if (!slot_opening_allowed) {
+        kbo_profiler_record_us("foreign_injury.scan.sql_discovery_skipped_closed_window", 0);
+        return 0;
+    }
+
+    KboForeignInjurySqlDiscoveryRow rows[KBO_FOREIGN_INJURY_SQL_DISCOVERY_MAX];
+    int row_count = 0;
+    int rows_seen = 0;
+    int min_days = kbo_foreign_player_policy()->injury_replacement_min_days;
+    int sql_result = kbo_foreign_injury_collect_sql_long_term_injuries_on_date(
+        today,
+        min_days,
+        rows,
+        KBO_FOREIGN_INJURY_SQL_DISCOVERY_MAX,
+        &row_count,
+        &rows_seen);
+    if (sql_result != 0 || row_count <= 0) {
+        return 0;
+    }
+
+    int opened = 0;
+    for (int i = 0; i < row_count; i++) {
+        const KboForeignInjurySqlDiscoveryRow* evidence = &rows[i];
+        if (evidence->player_id == 0u || evidence->days < min_days) {
+            continue;
+        }
+
+        uint8_t* player = kbo_find_player_by_id(evidence->player_id, NULL, NULL);
+        if (player == NULL || !memory_range_readable(player, OOTP27_PLAYER_SCAN_BYTES)) {
+            continue;
+        }
+        if (!kbo_player_is_foreign_for_kbo_rights(player)
+                || !kbo_foreign_injury_player_has_baseball_position(player)) {
+            continue;
+        }
+
+        uint32_t team_id = 0u;
+        uint32_t league_id = 0u;
+        int has_assignment = kbo_foreign_injury_resolve_player_team_assignment(
+            player,
+            evidence->player_id,
+            configured_league_id,
+            &team_id,
+            &league_id);
+        if (!has_assignment) {
+            continue;
+        }
+
+        uint32_t opened_on = evidence->evidence_date != 0u ? evidence->evidence_date : today;
+        uint32_t expected_end = kbo_foreign_injury_expected_end_from_duration(
+            opened_on,
+            evidence->days);
+        if (expected_end == 0u || kbo_foreign_injury_expected_end_reached(today, expected_end)) {
+            continue;
+        }
+
+        KboForeignInjuryReplacement created_rec;
+        memset(&created_rec, 0, sizeof(created_rec));
+        int created = 0;
+
+        kbo_lock_foreign_injury_replacements();
+        int existing = kbo_find_foreign_injury_replacement_locked(evidence->player_id, 1);
+        int already_replacement = kbo_foreign_injury_replacement_player_reserved_locked(evidence->player_id, NULL);
+        if (existing < 0
+                && !already_replacement
+                && g_kbo_foreign_injury_replacement_count < KBO_FOREIGN_INJURY_REPLACEMENT_MAX) {
+            KboForeignInjuryReplacement* rec = &g_kbo_foreign_injury_replacements[g_kbo_foreign_injury_replacement_count++];
+            rec->team_id = team_id;
+            rec->league_id = league_id != 0u ? league_id : configured_league_id;
+            rec->injured_player_id = evidence->player_id;
+            rec->replacement_player_id = 0u;
+            rec->opened_on_yyyymmdd = opened_on;
+            rec->expected_end_yyyymmdd = expected_end;
+            rec->slot_type = kbo_foreign_injury_slot_type_for_player(player);
+            rec->status = KBO_FOREIGN_INJURY_STATUS_OPEN;
+            rec->converted = 0u;
+            created_rec = *rec;
+            created = kbo_persist_foreign_injury_replacements_locked();
+        }
+        kbo_unlock_foreign_injury_replacements();
+
+        if (!created) {
+            continue;
+        }
+
+        opened++;
+        do {
+            KboLogFields audit_fields;
+            kbo_log_fields_init(&audit_fields);
+            kbo_log_field_u32(&audit_fields, "date", today);
+            kbo_log_field_u32(&audit_fields, "team_id", created_rec.team_id);
+            kbo_log_field_u32(&audit_fields, "league_id", created_rec.league_id);
+            kbo_log_field_u32(&audit_fields, "injured_player_id", created_rec.injured_player_id);
+            kbo_log_field_i32(&audit_fields, "effective_days_left", evidence->days);
+            kbo_log_field_i32(&audit_fields, "sql_evidence_days", evidence->days);
+            kbo_log_field_u32(&audit_fields, "sql_evidence_date", opened_on);
+            kbo_log_field_u32(&audit_fields, "opened_on", created_rec.opened_on_yyyymmdd);
+            kbo_log_field_u32(&audit_fields, "expected_end", created_rec.expected_end_yyyymmdd);
+            kbo_log_field_u32(&audit_fields, "slot_type", (uint32_t)created_rec.slot_type);
+            kbo_rule_audit_emit_fields(
+                "foreign_injury.replacement.lifecycle",
+                "open_slot",
+                "sql_date_locked_discovery",
+                source,
+                &audit_fields);
+        } while (0);
+        kbo_log_runtimef(
+            "foreign injury replacement: opened source=%s team=%u player=%u league=%u days_left=0 effective_days_left=%d trigger=injury_sql_date_locked slot=%s opened_on=%u expected_end=%u",
+            source != NULL ? source : "",
+            created_rec.team_id,
+            created_rec.injured_player_id,
+            created_rec.league_id,
+            evidence->days,
+            kbo_foreign_injury_slot_label(created_rec.slot_type),
+            created_rec.opened_on_yyyymmdd,
+            created_rec.expected_end_yyyymmdd);
+    }
+
+    if (opened > 0) {
+        do {
+            KboLogFields audit_fields;
+            kbo_log_fields_init(&audit_fields);
+            kbo_log_field_u32(&audit_fields, "date", today);
+            kbo_log_field_i32(&audit_fields, "rows_seen", rows_seen);
+            kbo_log_field_i32(&audit_fields, "sql_candidates", row_count);
+            kbo_log_field_i32(&audit_fields, "opened", opened);
+            kbo_rule_audit_emit_fields(
+                "foreign_injury.replacement.scan",
+                "process",
+                "sql_date_locked_discovery",
+                source,
+                &audit_fields);
+        } while (0);
+        kbo_log_runtimef(
+            "foreign injury replacement: sql date-locked discovery source=%s date=%u rows=%d candidates=%d opened=%d",
+            source != NULL ? source : "",
+            today,
+            rows_seen,
+            row_count,
+            opened);
+    }
+    return opened;
 }
 
 static void kbo_foreign_injury_replacement_scan_for_date_mode(
     const char* source,
     uint32_t today,
-    int process_existing_replacements)
+    int process_existing_replacements,
+    int captured_live_date)
 {
     KBO_PROFILE_BEGIN(profile_foreign_injury_scan);
     if (!kbo_runtime_pause_for_save_if_needed(source != NULL ? source : "foreign_injury_replacement_scan")) {
@@ -56,6 +203,9 @@ static void kbo_foreign_injury_replacement_scan_for_date_mode(
         KBO_PROFILE_END(profile_foreign_injury_scan, "foreign_injury.scan.no_date");
         return;
     }
+    uint32_t live_date = 0u;
+    kbo_get_current_yyyymmdd(&live_date);
+    int live_injury_fields_available = captured_live_date || live_date == today;
     if (kbo_foreign_injury_same_date_idle_scan_cached(today, source)) {
         kbo_profiler_record_us("foreign_injury.scan.same_date_idle_cached", 0);
         KBO_PROFILE_END(profile_foreign_injury_scan, "foreign_injury.scan.same_date_idle_cached");
@@ -94,6 +244,14 @@ static void kbo_foreign_injury_replacement_scan_for_date_mode(
     int opened = 0;
     if (!slot_opening_allowed) {
         kbo_profiler_record_us("foreign_injury.scan.player_loop_skipped_closed_window", 0);
+    } else if (!process_existing_replacements && !live_injury_fields_available) {
+        KBO_PROFILE_BEGIN(profile_foreign_injury_player_loop);
+        opened = kbo_foreign_injury_replacement_scan_sql_discovery_only(
+            source,
+            today,
+            configured_league_id,
+            slot_opening_allowed);
+        KBO_PROFILE_END(profile_foreign_injury_player_loop, "foreign_injury.scan.sql_date_locked_discovery");
     } else {
         KBO_PROFILE_BEGIN(profile_foreign_injury_player_loop);
         for (int32_t i = 0; i < player_count; i++) {
@@ -110,7 +268,8 @@ static void kbo_foreign_injury_replacement_scan_for_date_mode(
         uint8_t injury_active = player[OOTP27_PLAYER_INJURY_ACTIVE_OFFSET];
         int16_t days_left = *(int16_t*)(player + OOTP27_PLAYER_INJURY_DAYS_LEFT_OFFSET);
         int min_days = kbo_foreign_player_policy()->injury_replacement_min_days;
-        int direct_injury_eligible = kbo_foreign_injury_duration_meets_minimum(days_left, min_days);
+        int direct_injury_eligible = live_injury_fields_available
+            && kbo_foreign_injury_duration_meets_minimum(days_left, min_days);
         uint32_t team_id = 0u;
         uint32_t league_id = 0u;
         int has_assignment = kbo_foreign_injury_resolve_player_team_assignment(
@@ -119,7 +278,7 @@ static void kbo_foreign_injury_replacement_scan_for_date_mode(
             configured_league_id,
             &team_id,
             &league_id);
-        int inactive_roster_present = !direct_injury_eligible && has_assignment
+        int inactive_roster_present = live_injury_fields_available && !direct_injury_eligible && has_assignment
             ? kbo_foreign_injury_player_on_inactive_replacement_roster(player, player_id, team_id, today)
             : 0;
         /* Message body files do not carry a reliable game date; lifecycle evidence must be date-locked. */
@@ -127,7 +286,7 @@ static void kbo_foreign_injury_replacement_scan_for_date_mode(
         int message_injury_eligible = 0;
         int sql_evidence_days = 0;
         uint32_t sql_evidence_date = 0u;
-        int sql_injury_eligible = !direct_injury_eligible && has_assignment
+        int sql_injury_eligible = has_assignment
             ? kbo_foreign_injury_recent_sql_has_long_term_injury_date_on_date(
                 player_id,
                 min_days,
@@ -383,12 +542,50 @@ static void kbo_foreign_injury_replacement_scan_for_date_mode(
         }
         if (created) {
             opened++;
-            kbo_emit_foreign_injury_replacement_news_on_date(
-                &created_rec,
-                effective_days_left,
-                direct_injury_eligible ? "open" : "open_roster",
-                today);
-                        do {
+            int open_news_allowed = kbo_foreign_injury_open_news_allowed(
+                today,
+                live_date,
+                created_rec.opened_on_yyyymmdd,
+                process_existing_replacements,
+                captured_live_date);
+            if (open_news_allowed) {
+                kbo_emit_foreign_injury_replacement_news_on_date(
+                    &created_rec,
+                    effective_days_left,
+                    direct_injury_eligible ? "open" : "open_roster",
+                    today);
+            } else {
+                do {
+                    KboLogFields audit_fields;
+                    kbo_log_fields_init(&audit_fields);
+                    kbo_log_field_u32(&audit_fields, "date", today);
+                    kbo_log_field_u32(&audit_fields, "live_date", live_date);
+                    kbo_log_field_u32(&audit_fields, "team_id", created_rec.team_id);
+                    kbo_log_field_u32(&audit_fields, "league_id", created_rec.league_id);
+                    kbo_log_field_u32(&audit_fields, "injured_player_id", created_rec.injured_player_id);
+                    kbo_log_field_u32(&audit_fields, "opened_on", created_rec.opened_on_yyyymmdd);
+                    kbo_log_field_u32(&audit_fields, "discovery_only", process_existing_replacements ? 0u : 1u);
+                    kbo_log_field_u32(&audit_fields, "captured_live_date", captured_live_date ? 1u : 0u);
+                    kbo_rule_audit_emit_fields(
+                        "foreign_injury.replacement.lifecycle",
+                        "suppress_news",
+                        "open_slot_not_live_date",
+                        source,
+                        &audit_fields);
+                } while (0);
+                kbo_log_runtimef(
+                    "foreign injury replacement: suppressed open news source=%s team=%u injured=%u league=%u scan_date=%u live_date=%u opened_on=%u discovery_only=%d captured_live_date=%d",
+                    source != NULL ? source : "",
+                    created_rec.team_id,
+                    created_rec.injured_player_id,
+                    created_rec.league_id,
+                    today,
+                    live_date,
+                    created_rec.opened_on_yyyymmdd,
+                    process_existing_replacements ? 0 : 1,
+                    captured_live_date ? 1 : 0);
+            }
+            do {
                 KboLogFields audit_fields;
                 kbo_log_fields_init(&audit_fields);
                 kbo_log_field_u32(&audit_fields, "date", today);

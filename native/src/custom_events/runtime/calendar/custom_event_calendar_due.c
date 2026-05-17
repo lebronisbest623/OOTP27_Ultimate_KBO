@@ -135,10 +135,10 @@ int kbo_process_custom_events_due_through(uint32_t today_yyyymmdd, const char* s
         return KBO_CUSTOM_EVENT_DUE_RESULT_NOOP;
     }
 
-    int foreign_schedule = kbo_schedule_foreign_priority_custom_events(source);
-    int asian_schedule = kbo_schedule_asian_games_custom_events(source);
-    int cbt_schedule = kbo_schedule_cbt_custom_events(source);
-    int independent_schedule = kbo_schedule_independent_team_acquisition_custom_events(source);
+    int foreign_schedule = kbo_schedule_foreign_priority_custom_events_for_date(source, today_yyyymmdd);
+    int asian_schedule = kbo_schedule_asian_games_custom_events_for_date(today_yyyymmdd, source);
+    int cbt_schedule = kbo_schedule_cbt_custom_events_for_date(today_yyyymmdd, source);
+    int independent_schedule = kbo_schedule_independent_team_acquisition_custom_events_for_date(today_yyyymmdd, source);
     int scanned = kbo_custom_event_calendar_scan_until_idle(source);
 
     int schedule_blocked = foreign_schedule < 0
