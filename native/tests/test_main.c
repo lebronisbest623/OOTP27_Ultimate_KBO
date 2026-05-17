@@ -432,6 +432,7 @@ static void test_current_date_tick_consumer_retries_save_enter_until_date_ready(
     assert(work.sequence == 0u);
     kbo_current_date_tick_consumer_mark_processed(&consumer);
 
+    g_test_current_yyyymmdd = 20260302u;
     assert(!kbo_current_date_tick_consumer_next(&consumer, &work));
     assert(kbo_current_date_tick_publish(20260302u, 0x1234u));
     assert(kbo_current_date_tick_consumer_next(&consumer, &work));
@@ -443,6 +444,43 @@ static void test_current_date_tick_consumer_retries_save_enter_until_date_ready(
 
     kbo_test_reset_current_date_tick_state();
     printf("test_current_date_tick_consumer_retries_save_enter_until_date_ready: PASS\n");
+}
+
+static void test_current_date_tick_consumer_observed_current_catches_up_when_hook_missing(void)
+{
+    kbo_test_reset_current_date_tick_state();
+    snprintf(g_test_current_save_path, sizeof(g_test_current_save_path), "C:\\test\\saved_games\\New Game.lg");
+
+    KboCurrentDateTickConsumer consumer = {0};
+    KboCurrentDateTickWork work = {0};
+    kbo_current_date_tick_consumer_init(
+        &consumer,
+        "test_observed_current",
+        KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER
+            | KBO_CURRENT_DATE_TICK_CONSUMER_GAP_CATCHUP
+            | KBO_CURRENT_DATE_TICK_CONSUMER_OBSERVE_CURRENT_WHEN_IDLE);
+
+    g_test_current_yyyymmdd = 20260301u;
+    assert(kbo_current_date_tick_consumer_next(&consumer, &work));
+    assert(work.date == 20260301u);
+    assert(work.event_date == 20260301u);
+    assert(work.sequence == 0u);
+    kbo_current_date_tick_consumer_mark_processed(&consumer);
+
+    g_test_current_yyyymmdd = 20260305u;
+    for (uint32_t expected = 20260302u; expected <= 20260305u; expected++) {
+        assert(kbo_current_date_tick_consumer_next(&consumer, &work));
+        assert(work.date == expected);
+        assert(work.event_date == 20260305u);
+        assert(work.site_rva == KBO_CURRENT_DATE_TICK_OBSERVED_CURRENT_SITE_RVA);
+        assert(work.sequence == 0u);
+        assert(work.gap == (expected != 20260305u));
+        kbo_current_date_tick_consumer_mark_processed(&consumer);
+    }
+    assert(!kbo_current_date_tick_consumer_next(&consumer, &work));
+
+    kbo_test_reset_current_date_tick_state();
+    printf("test_current_date_tick_consumer_observed_current_catches_up_when_hook_missing: PASS\n");
 }
 
 static void test_foreign_waiver_date_helpers(void)
@@ -2053,6 +2091,7 @@ int main(void)
     test_news_related_link_parse();
     test_date_serial();
     test_current_date_tick_consumer_retries_save_enter_until_date_ready();
+    test_current_date_tick_consumer_observed_current_catches_up_when_hook_missing();
     test_foreign_waiver_date_helpers();
     test_military_csv_parse();
     test_military_date_round_trip();
@@ -2204,6 +2243,25 @@ uint32_t read_u32_leading_number_from_file(const char* filename)
 int read_kbo_localappdata_flag_file(const char* file_name)
 {
     (void)file_name;
+    return 0;
+}
+
+int kbo_runtime_threads_should_continue(void)
+{
+    return 0;
+}
+
+int kbo_runtime_sleep_should_continue(uint32_t total_ms)
+{
+    (void)total_ms;
+    return 0;
+}
+
+int kbo_start_runtime_thread(LPTHREAD_START_ROUTINE start, LPVOID parameter, const char* label)
+{
+    (void)start;
+    (void)parameter;
+    (void)label;
     return 0;
 }
 

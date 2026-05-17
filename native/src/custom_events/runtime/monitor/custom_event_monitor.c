@@ -123,7 +123,7 @@ int kbo_custom_event_monitor_tick_for_date(
     }
     if (should_scan) {
         KBO_PROFILE_BEGIN(profile_custom_event_monitor_scan);
-        int triggered = scan_kbo_custom_events_once(source);
+        int triggered = scan_kbo_custom_events_once_for_date(today_yyyymmdd, source);
         KBO_PROFILE_END(profile_custom_event_monitor_scan, "custom_event.monitor.scan_once");
         if (triggered >= 0) {
             if (last_scanned_yyyymmdd != NULL) {
@@ -207,9 +207,13 @@ DWORD WINAPI kbo_custom_event_monitor_thread(LPVOID parameter)
 
         KboCurrentDateTickWork work = {0};
         while (kbo_current_date_tick_consumer_next(&consumer, &work)) {
-            const char* source = work.gap
-                ? "custom_event_monitor_date_gap"
-                : "custom_event_monitor_date_tick";
+            const char* source = (work.site_rva == KBO_CURRENT_DATE_TICK_OBSERVED_CURRENT_SITE_RVA)
+                ? "custom_event_monitor_date_pulse"
+                : (work.sequence == 0u && work.site_rva == 0u
+                    ? "custom_event_monitor_save_enter"
+                : (work.gap
+                    ? "custom_event_monitor_date_gap"
+                    : "custom_event_monitor_date_tick"));
             if (!kbo_custom_event_monitor_tick_for_date(
                     work.date,
                     &last_scheduled_yyyymmdd,

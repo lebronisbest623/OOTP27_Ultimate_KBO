@@ -329,7 +329,6 @@ void install_kbo_full_runtime_after_roster_marker(HINSTANCE instance)
         kbo_log_runtime_line("KBO current date tick capture hook disabled: disable_kbo_current_date_tick_capture_hook is true");
     }
     start_kbo_foreign_injury_date_tick_thread();
-    start_kbo_custom_event_monitor();
     if (kbo_no_minor_contract_patch_enabled()) {
         if (!kbo_opening_day_storyline_guard_active("no_minor_contract_patch_install", NULL, NULL)) {
             install_kbo_no_minor_contract_patch_once("runtime_install");
@@ -377,6 +376,8 @@ void install_kbo_full_runtime_after_roster_marker(HINSTANCE instance)
     start_kbo_award_schedule_probe_thread();
     start_kbo_military_seed_bootstrap_thread();
     start_kbo_military_days_tick_thread();
+    start_kbo_cbt_event_scheduler_thread();
+    start_kbo_custom_event_monitor();
     if (read_kbo_localappdata_flag_file("enable_kbo_cbt_service_time_probe.txt")) {
         kbo_cbt_service_time_probe_once();
     } else {

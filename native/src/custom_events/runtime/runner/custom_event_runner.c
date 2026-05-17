@@ -87,8 +87,9 @@ int kbo_run_custom_event_by_kind(
         return KBO_CUSTOM_EVENT_RUN_IN_PROGRESS;
     }
 
-    if (kbo_custom_event_ledger_completed(league_id, event_yyyymmdd, kind)
-            || kbo_custom_event_processed_marker_exists_for_kind(event_yyyymmdd, kind)) {
+    int completed = kbo_custom_event_ledger_completed(league_id, event_yyyymmdd, kind)
+        || kbo_custom_event_processed_marker_exists_for_kind(event_yyyymmdd, kind);
+    if (completed && kbo_custom_event_completed_state_is_valid(league_id, event_yyyymmdd, kind)) {
         if (event_ptr != 0) {
             kbo_mark_custom_event_processed(event_ptr);
         }
@@ -103,6 +104,14 @@ int kbo_run_custom_event_by_kind(
             league_id);
         kbo_custom_event_leave_run(league_id, event_yyyymmdd, kind);
         return KBO_CUSTOM_EVENT_RUN_ALREADY_COMPLETED;
+    }
+    if (completed) {
+        kbo_log_runtimef(
+            "KBO custom event runner stale completion ignored source=%s kind=%s date=%u league_id=%u",
+            source != NULL ? source : "",
+            kbo_custom_event_kind_key(kind),
+            event_yyyymmdd,
+            league_id);
     }
 
     uint32_t event_year = event_yyyymmdd / 10000u;

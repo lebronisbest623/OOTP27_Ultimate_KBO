@@ -213,7 +213,8 @@ static DWORD WINAPI kbo_domestic_fa_market_investigation_thread(LPVOID parameter
         &consumer,
         "domestic_fa_market_investigation",
         KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER
-            | KBO_CURRENT_DATE_TICK_CONSUMER_GAP_CATCHUP);
+            | KBO_CURRENT_DATE_TICK_CONSUMER_GAP_CATCHUP
+            | KBO_CURRENT_DATE_TICK_CONSUMER_OBSERVE_CURRENT_WHEN_IDLE);
 
     int last_enabled = 0;
     while (kbo_runtime_threads_should_continue()) {
@@ -234,7 +235,8 @@ static DWORD WINAPI kbo_domestic_fa_market_investigation_thread(LPVOID parameter
                 &consumer,
                 "domestic_fa_market_investigation",
                 KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER
-                    | KBO_CURRENT_DATE_TICK_CONSUMER_GAP_CATCHUP);
+                    | KBO_CURRENT_DATE_TICK_CONSUMER_GAP_CATCHUP
+                    | KBO_CURRENT_DATE_TICK_CONSUMER_OBSERVE_CURRENT_WHEN_IDLE);
             last_enabled = 1;
         }
 

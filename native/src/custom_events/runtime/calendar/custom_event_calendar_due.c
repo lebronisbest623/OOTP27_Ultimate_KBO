@@ -96,11 +96,11 @@ static int kbo_custom_event_calendar_should_log_idle_due(
     return slot <= 20 || (slot % 200) == 0;
 }
 
-static int kbo_custom_event_calendar_scan_until_idle(const char* source)
+static int kbo_custom_event_calendar_scan_until_idle(uint32_t today_yyyymmdd, const char* source)
 {
     int total_triggered = 0;
     for (int attempt = 0; attempt < 32; attempt++) {
-        int triggered = scan_kbo_custom_events_once(source);
+        int triggered = scan_kbo_custom_events_once_for_date(today_yyyymmdd, source);
         if (triggered < 0) {
             return total_triggered > 0 ? total_triggered : -1;
         }
@@ -124,22 +124,28 @@ int kbo_process_custom_events_due_through(uint32_t today_yyyymmdd, const char* s
     }
 
     uint32_t previous_cursor = kbo_custom_event_calendar_read_cursor();
-    if (previous_cursor >= today_yyyymmdd) {
+    if (previous_cursor > today_yyyymmdd) {
+        kbo_log_runtimef(
+            "KBO custom event calendar cursor reset source=%s previous_cursor=%u today=%u reason=cursor_ahead_of_game_date",
+            source != NULL ? source : "",
+            previous_cursor,
+            today_yyyymmdd);
+        previous_cursor = 0u;
+    } else if (previous_cursor == today_yyyymmdd) {
         if (kbo_custom_event_calendar_should_log_idle_due(0, 0, 0)) {
             kbo_log_runtimef(
-                "KBO custom event calendar due-through skipped source=%s previous_cursor=%u today=%u reason=cursor_current",
+                "KBO custom event calendar due-through repairing current cursor source=%s previous_cursor=%u today=%u reason=cursor_current",
                 source != NULL ? source : "",
                 previous_cursor,
                 today_yyyymmdd);
         }
-        return KBO_CUSTOM_EVENT_DUE_RESULT_NOOP;
     }
 
     int foreign_schedule = kbo_schedule_foreign_priority_custom_events_for_date(source, today_yyyymmdd);
     int asian_schedule = kbo_schedule_asian_games_custom_events_for_date(today_yyyymmdd, source);
     int cbt_schedule = kbo_schedule_cbt_custom_events_for_date(today_yyyymmdd, source);
     int independent_schedule = kbo_schedule_independent_team_acquisition_custom_events_for_date(today_yyyymmdd, source);
-    int scanned = kbo_custom_event_calendar_scan_until_idle(source);
+    int scanned = kbo_custom_event_calendar_scan_until_idle(today_yyyymmdd, source);
 
     int critical_schedule_deferred = asian_schedule < 0
         || independent_schedule < 0;

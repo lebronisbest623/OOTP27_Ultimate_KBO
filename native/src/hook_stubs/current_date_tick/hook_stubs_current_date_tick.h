@@ -9,6 +9,15 @@ uint8_t* build_kbo_current_date_tick_capture_stub(
 uint8_t* build_kbo_current_date_tick_capture_stub_global_r12(
     void* patch_site,
     uint32_t site_rva);
+uint8_t* build_kbo_current_date_tick_capture_stub_global_rax(
+    void* patch_site,
+    uint32_t site_rva);
+uint8_t* build_kbo_current_date_tick_capture_stub_live_date_rbp_0x200_global_rax(
+    void* patch_site,
+    uint32_t site_rva);
+uint8_t* build_kbo_current_date_tick_capture_stub_direct_r9(
+    void* patch_site,
+    uint32_t site_rva);
 uint8_t* build_kbo_current_date_tick_capture_stub_direct_r12(
     void* patch_site,
     uint32_t site_rva);

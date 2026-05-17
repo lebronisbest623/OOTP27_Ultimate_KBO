@@ -7,6 +7,7 @@
 #include "current_date_tick_capture.h"
 #include "../core_current_date.h"
 #include "../core_text_date.h"
+#include "../../core_flags/api/flags_api.h"
 #include "../../files/save_paths/core_save_paths.h"
 #include "../../logging/core_log.h"
 
@@ -15,6 +16,8 @@ volatile LONG g_kbo_current_date_tick_event_published_sequence = 0;
 volatile LONG g_kbo_current_date_tick_last_published_date = 0;
 uint32_t g_kbo_current_date_tick_event_dates[KBO_CURRENT_DATE_TICK_EVENT_RING_SIZE];
 uint32_t g_kbo_current_date_tick_event_site_rvas[KBO_CURRENT_DATE_TICK_EVENT_RING_SIZE];
+
+static int kbo_current_date_tick_log_allowed(LONG* log_count);
 
 static LONG kbo_current_date_tick_latest_sequence(void)
 {
@@ -347,6 +350,53 @@ static uint32_t kbo_current_date_tick_consumer_first_pending_date(
     return event_date;
 }
 
+static int kbo_current_date_tick_consumer_can_observe_current(
+    const KboCurrentDateTickConsumer* consumer)
+{
+    return consumer != NULL
+        && (consumer->flags & KBO_CURRENT_DATE_TICK_CONSUMER_OBSERVE_CURRENT_WHEN_IDLE) != 0u
+        && consumer->last_processed_date != 0u
+        && !consumer->pending_valid;
+}
+
+static int kbo_current_date_tick_consumer_observe_current(
+    KboCurrentDateTickConsumer* consumer,
+    KboCurrentDateTickWork* out_work)
+{
+    if (!kbo_current_date_tick_consumer_can_observe_current(consumer)
+            || out_work == NULL) {
+        return 0;
+    }
+
+    uint32_t today = 0u;
+    if (!kbo_get_current_yyyymmdd(&today) || !kbo_yyyymmdd_valid(today)) {
+        return 0;
+    }
+    if (today <= consumer->last_processed_date) {
+        return 0;
+    }
+
+    KboCurrentDateTickEvent event = {
+        .sequence = 0u,
+        .date = today,
+        .site_rva = KBO_CURRENT_DATE_TICK_OBSERVED_CURRENT_SITE_RVA
+    };
+    kbo_current_date_tick_consumer_set_pending(
+        consumer,
+        event,
+        kbo_current_date_tick_consumer_first_pending_date(consumer, today),
+        0u);
+
+    if (kbo_current_date_tick_log_allowed(&consumer->observed_log_count)) {
+        kbo_log_runtimef(
+            "KBO current date tick consumer observed current date label=\"%s\" last=%u current=%u",
+            kbo_current_date_tick_consumer_label(consumer),
+            consumer->last_processed_date,
+            today);
+    }
+    return kbo_current_date_tick_consumer_pending_work(consumer, out_work);
+}
+
 void kbo_current_date_tick_consumer_init(
     KboCurrentDateTickConsumer* consumer,
     const char* label,
@@ -398,7 +448,7 @@ int kbo_current_date_tick_consumer_next(
                 &consumer->overflow_log_count,
                 &event,
                 &missed_events)) {
-            return 0;
+            return kbo_current_date_tick_consumer_observe_current(consumer, out_work);
         }
 
         if (!kbo_yyyymmdd_valid(event.date)
@@ -413,6 +463,17 @@ int kbo_current_date_tick_consumer_next(
             event,
             kbo_current_date_tick_consumer_first_pending_date(consumer, event.date),
             missed_events);
+        if (kbo_current_date_tick_log_allowed(&consumer->hook_log_count)) {
+            kbo_log_runtimef(
+                "KBO current date tick consumer hook event label=\"%s\" last=%u pending=%u event=%u site=0x%x seq=%u missed=%u",
+                kbo_current_date_tick_consumer_label(consumer),
+                consumer->last_processed_date,
+                consumer->pending_date,
+                event.date,
+                event.site_rva,
+                event.sequence,
+                missed_events);
+        }
         return kbo_current_date_tick_consumer_pending_work(consumer, out_work);
     }
 }

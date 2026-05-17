@@ -13,6 +13,15 @@
 #include "../../../foreign/intl_established_fa_postscan/api/intl_established_fa_postscan.h"
 #include "../names/custom_event_names.h"
 
+int kbo_custom_event_completed_state_is_valid(uint32_t league_id, uint32_t event_yyyymmdd, KboCustomEventKind kind)
+{
+    if (kind == KBO_CUSTOM_EVENT_KIND_CBT_EXCEPTION_DEADLINE
+            || kind == KBO_CUSTOM_EVENT_KIND_CBT_ANNOUNCEMENT) {
+        return kbo_cbt_custom_event_completion_valid(league_id, event_yyyymmdd, kind);
+    }
+    return 1;
+}
+
 int kbo_dispatch_custom_event(
     uintptr_t event_ptr,
     const char* name,

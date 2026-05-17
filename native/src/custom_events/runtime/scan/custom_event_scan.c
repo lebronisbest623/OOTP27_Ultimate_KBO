@@ -30,23 +30,26 @@ static int kbo_custom_event_scan_should_log_deferred(void)
     return InterlockedCompareExchange64(&g_kbo_custom_event_scan_deferred_log_ms, (LONG64)now, last) == last;
 }
 
-int scan_kbo_custom_events_once(const char* source)
+int scan_kbo_custom_events_once_for_date(uint32_t current_yyyymmdd, const char* source)
 {
     uintptr_t event_manager = get_kbo_league_event_manager();
     if (event_manager == 0 || !memory_range_readable((void*)event_manager, OOTP27_EVENT_MANAGER_EVENT_COUNT_OFFSET + sizeof(int32_t))) {
         return -1;
     }
 
-    uint32_t current_year = 0;
-    uint32_t current_month = 0;
-    uint32_t current_day = 0;
-    if (!kbo_current_date_is_valid(&current_year, &current_month, &current_day)) {
+    uint32_t current_year = current_yyyymmdd / 10000u;
+    uint32_t current_month = (current_yyyymmdd / 100u) % 100u;
+    uint32_t current_day = current_yyyymmdd % 100u;
+    if (kbo_date_serial(current_year, current_month, current_day) == 0u) {
         return -1;
     }
 
     uintptr_t event_vector = *(uintptr_t*)(event_manager + OOTP27_EVENT_MANAGER_EVENT_VECTOR_OFFSET);
     int32_t event_count = *(int32_t*)(event_manager + OOTP27_EVENT_MANAGER_EVENT_COUNT_OFFSET);
-    if (event_vector == 0 || event_count <= 0 || event_count > 20000
+    if (event_count == 0) {
+        return 0;
+    }
+    if (event_vector == 0 || event_count < 0 || event_count > 20000
             || !memory_range_readable((void*)event_vector, (SIZE_T)event_count * sizeof(uintptr_t))) {
         return -1;
     }
@@ -107,9 +110,10 @@ int scan_kbo_custom_events_once(const char* source)
         if (!due || event_over != 0 || kbo_custom_event_already_processed(event_ptr)) {
             continue;
         }
-        if (kbo_custom_event_processed_marker_exists(event_yyyymmdd, name)
-                || kbo_custom_event_processed_marker_exists_for_kind(event_yyyymmdd, kind)
-                || kbo_custom_event_ledger_completed(event_league_id, event_yyyymmdd, kind)) {
+        int completed = kbo_custom_event_processed_marker_exists(event_yyyymmdd, name)
+            || kbo_custom_event_processed_marker_exists_for_kind(event_yyyymmdd, kind)
+            || kbo_custom_event_ledger_completed(event_league_id, event_yyyymmdd, kind);
+        if (completed && kbo_custom_event_completed_state_is_valid(event_league_id, event_yyyymmdd, kind)) {
             kbo_mark_custom_event_processed(event_ptr);
             kbo_persist_custom_event_processed_marker(event_yyyymmdd, name, source);
             kbo_log_runtimef(
@@ -121,6 +125,16 @@ int scan_kbo_custom_events_once(const char* source)
                 event_month,
                 event_day);
             continue;
+        }
+        if (completed) {
+            kbo_log_runtimef(
+                "KBO custom event stale completion ignored source=%s kind=%s name=%s event_date=%04u-%02u-%02u",
+                source != NULL ? source : "",
+                kbo_custom_event_kind_key(kind),
+                name,
+                event_year,
+                event_month,
+                event_day);
         }
 
         int action_result = kbo_run_custom_event_by_kind(
@@ -187,4 +201,13 @@ int scan_kbo_custom_events_once(const char* source)
             (void*)event_vector);
     }
     return triggered;
+}
+
+int scan_kbo_custom_events_once(const char* source)
+{
+    uint32_t current_yyyymmdd = 0u;
+    if (!kbo_get_current_yyyymmdd(&current_yyyymmdd)) {
+        return -1;
+    }
+    return scan_kbo_custom_events_once_for_date(current_yyyymmdd, source);
 }

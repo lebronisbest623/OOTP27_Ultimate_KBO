@@ -22,6 +22,8 @@
 #include "../api/competitive_balance_tax.h"
 #include "../audit/cbt_rule_audit.h"
 #include "../exceptions/cbt_exceptions.h"
+#include "../internal/cbt_internal.h"
+#include "../records/cbt_records.h"
 #include "../rules/cbt_rules.h"
 
 static volatile LONG g_kbo_cbt_event_scheduler_started = 0;
@@ -37,6 +39,75 @@ static int kbo_cbt_should_log_no_date(void)
     return InterlockedCompareExchange64(&g_kbo_cbt_last_no_date_log_ms, (LONG64)now, last) == last;
 }
 
+static int kbo_cbt_salary_snapshot_has_rows(uint32_t season)
+{
+    KboFaSalarySnapshotGrade grade;
+    memset(&grade, 0, sizeof(grade));
+    return kbo_fa_salary_snapshot_load_grade_rows(season, &grade, 1, NULL, 0) > 0;
+}
+
+static int kbo_cbt_exception_designations_have_season(uint32_t season)
+{
+    KboCbtExceptionDesignation rows[KBO_CBT_EXCEPTION_MAX];
+    int count = kbo_cbt_exception_load_designations(rows, KBO_CBT_EXCEPTION_MAX);
+    for (int i = 0; i < count; i++) {
+        if (rows[i].season == season) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static int kbo_cbt_records_have_season(uint32_t season)
+{
+    KboCbtRecord* records = (KboCbtRecord*)HeapAlloc(
+        GetProcessHeap(),
+        HEAP_ZERO_MEMORY,
+        (SIZE_T)KBO_CBT_RECORDS_MAX * sizeof(KboCbtRecord));
+    if (records == NULL) {
+        return 0;
+    }
+    int count = kbo_cbt_load_records(records, KBO_CBT_RECORDS_MAX, NULL, 0);
+    int found = 0;
+    for (int i = 0; i < count; i++) {
+        if (records[i].season == season) {
+            found = 1;
+            break;
+        }
+    }
+    HeapFree(GetProcessHeap(), 0, records);
+    return found;
+}
+
+int kbo_cbt_custom_event_completion_valid(uint32_t league_id, uint32_t event_yyyymmdd, KboCustomEventKind kind)
+{
+    uint32_t season = event_yyyymmdd / 10000u;
+    if (season < 1982u || season > 2200u) {
+        return 1;
+    }
+    if (read_kbo_localappdata_flag_file("disable_kbo_competitive_balance_tax.txt")) {
+        return 1;
+    }
+    KboCbtRules rules;
+    kbo_cbt_rules_load(&rules);
+    if (!rules.enabled) {
+        return 1;
+    }
+
+    if (kind == KBO_CUSTOM_EVENT_KIND_CBT_EXCEPTION_DEADLINE) {
+        return kbo_cbt_salary_snapshot_has_rows(season)
+            && kbo_cbt_exception_designations_have_season(season);
+    }
+    if (kind == KBO_CUSTOM_EVENT_KIND_CBT_ANNOUNCEMENT) {
+        char summary_marker[64] = {0};
+        snprintf(summary_marker, sizeof(summary_marker), "summary|%u|%u", season, league_id);
+        return kbo_cbt_records_have_season(season)
+            && league_id != 0u
+            && kbo_cbt_news_marker_exists(summary_marker);
+    }
+    return 1;
+}
+
 static int kbo_process_due_cbt_custom_event(
     uint32_t today,
     uint32_t league_id,
@@ -48,9 +119,18 @@ static int kbo_process_due_cbt_custom_event(
     if (event_date == 0u || today == 0u || today < event_date) {
         return 0;
     }
-    if (kbo_custom_event_processed_marker_exists_for_kind(event_date, kind)
-            || kbo_custom_event_ledger_completed(league_id, event_date, kind)) {
+    int completed = kbo_custom_event_processed_marker_exists_for_kind(event_date, kind)
+        || kbo_custom_event_ledger_completed(league_id, event_date, kind);
+    if (completed && kbo_cbt_custom_event_completion_valid(league_id, event_date, kind)) {
         return 0;
+    }
+    if (completed) {
+        kbo_log_runtimef(
+            "KBO CBT due event stale completion ignored source=%s kind=%s event_date=%u today=%u",
+            source != NULL ? source : "",
+            kbo_custom_event_kind_key(kind),
+            event_date,
+            today);
     }
 
     int result = kbo_run_custom_event_by_kind(
@@ -383,6 +463,14 @@ void start_kbo_cbt_event_scheduler_thread(void)
 int kbo_handle_cbt_deadline_event(uint32_t event_yyyymmdd, const char* source)
 {
     uint32_t season = event_yyyymmdd / 10000u;
+    if (!kbo_cbt_salary_snapshot_has_rows(season)) {
+        kbo_log_runtimef(
+            "KBO CBT exception designation deadline deferred source=%s date=%u season=%u reason=salary_snapshot_unavailable",
+            source != NULL ? source : "",
+            event_yyyymmdd,
+            season);
+        return 0;
+    }
     kbo_cbt_exception_auto_designate_missing(season, "cbt_deadline_event");
     kbo_cbt_audit_event_handler("apply_exception_designations", "deadline_event", source, event_yyyymmdd, season);
     kbo_log_runtimef(
@@ -405,6 +493,5 @@ int kbo_handle_cbt_announcement_event(uint32_t event_yyyymmdd, const char* sourc
         event_yyyymmdd,
         news_yyyymmdd,
         season);
-    kbo_process_competitive_balance_tax_for_date(season, news_yyyymmdd, "cbt_announcement_event");
-    return 1;
+    return kbo_process_competitive_balance_tax_for_date(season, news_yyyymmdd, "cbt_announcement_event");
 }

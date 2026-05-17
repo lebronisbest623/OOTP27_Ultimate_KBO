@@ -5,12 +5,12 @@
 #include "payroll/cbt_payroll_compute.h"
 #include "../../hotkey_window/api/hotkey_window_refresh.h"
 
-void kbo_process_competitive_balance_tax(uint32_t season, const char* source)
+int kbo_process_competitive_balance_tax(uint32_t season, const char* source)
 {
-    kbo_process_competitive_balance_tax_for_date(season, 0u, source);
+    return kbo_process_competitive_balance_tax_for_date(season, 0u, source);
 }
 
-void kbo_process_competitive_balance_tax_for_date(uint32_t season, uint32_t news_yyyymmdd, const char* source)
+int kbo_process_competitive_balance_tax_for_date(uint32_t season, uint32_t news_yyyymmdd, const char* source)
 {
     if (source == NULL || strcmp(source, "cbt_announcement_event") != 0) {
         kbo_cbt_audit_process("skip", "announcement_event_required", source, season, news_yyyymmdd, 0, 0, 0, 0, 0u, 0, 0);
@@ -18,18 +18,18 @@ void kbo_process_competitive_balance_tax_for_date(uint32_t season, uint32_t news
             "KBO CBT skipped season=%u source=%s reason=announcement_event_required",
             season,
             source != NULL ? source : "");
-        return;
+        return 0;
     }
 
     if (season < 1982u || season > 2200u) {
         kbo_cbt_audit_process("skip", "season_out_of_range", source, season, news_yyyymmdd, 0, 0, 0, 0, 0u, 0, 0);
-        return;
+        return 0;
     }
 
     if (read_kbo_localappdata_flag_file("disable_kbo_competitive_balance_tax.txt")) {
         kbo_cbt_audit_process("skip", "flag_disabled", source, season, news_yyyymmdd, 0, 0, 0, 0, 0u, 0, 0);
         kbo_log_runtimef("KBO CBT skipped season=%u source=%s reason=flag_disabled", season, source != NULL ? source : "");
-        return;
+        return 1;
     }
 
     /* One-shot schema probe so we can discover the draft pick table structure */
@@ -49,14 +49,14 @@ void kbo_process_competitive_balance_tax_for_date(uint32_t season, uint32_t news
     if (!rules.enabled) {
         kbo_cbt_audit_process("skip", "rules_disabled", source, season, news_yyyymmdd, 0, 0, 0, 0, 0u, 0, 0);
         kbo_log_runtimef("KBO CBT skipped season=%u source=%s reason=disabled", season, source != NULL ? source : "");
-        return;
+        return 1;
     }
 
     int32_t threshold = kbo_cbt_get_threshold(&rules, season);
     if (threshold <= 0) {
         kbo_cbt_audit_process("skip", "threshold_unavailable", source, season, news_yyyymmdd, threshold, 0, 0, 0, 0u, 0, 0);
         kbo_log_runtimef("KBO CBT skipped season=%u source=%s reason=no_threshold", season, source != NULL ? source : "");
-        return;
+        return 0;
     }
 
     /* Load salary snapshot for this season */
@@ -65,7 +65,7 @@ void kbo_process_competitive_balance_tax_for_date(uint32_t season, uint32_t news
         (SIZE_T)KBO_FA_SALARY_SNAPSHOT_GRADE_MAX * sizeof(KboFaSalarySnapshotGrade));
     if (grades == NULL) {
         kbo_cbt_audit_process("fail", "salary_snapshot_alloc_failed", source, season, news_yyyymmdd, threshold, 0, 0, 0, 0u, 0, 0);
-        return;
+        return 0;
     }
 
     int grade_count = kbo_fa_salary_snapshot_load_grade_rows(season, grades, KBO_FA_SALARY_SNAPSHOT_GRADE_MAX, NULL, 0);
@@ -73,7 +73,7 @@ void kbo_process_competitive_balance_tax_for_date(uint32_t season, uint32_t news
         kbo_cbt_audit_process("skip", "salary_snapshot_empty", source, season, news_yyyymmdd, threshold, grade_count, 0, 0, 0u, 0, 0);
         kbo_log_runtimef("KBO CBT skipped season=%u source=%s reason=no_salary_data", season, source != NULL ? source : "");
         HeapFree(GetProcessHeap(), 0, grades);
-        return;
+        return 0;
     }
 
     /* Compute per-team domestic payroll (top N) */
@@ -85,7 +85,7 @@ void kbo_process_competitive_balance_tax_for_date(uint32_t season, uint32_t news
         kbo_cbt_audit_process("fail", "team_payroll_alloc_failed", source, season, news_yyyymmdd, threshold, grade_count, 0, 0, 0u, 0, 0);
         kbo_log_runtimef("KBO CBT skipped season=%u source=%s reason=team_alloc_failed", season, source != NULL ? source : "");
         HeapFree(GetProcessHeap(), 0, grades);
-        return;
+        return 0;
     }
 
     int team_count = 0;
@@ -99,7 +99,7 @@ void kbo_process_competitive_balance_tax_for_date(uint32_t season, uint32_t news
         kbo_cbt_audit_process("skip", "no_teams", source, season, news_yyyymmdd, threshold, grade_count, team_count, exception_count, 0u, 0, 0);
         kbo_log_runtimef("KBO CBT skipped season=%u source=%s reason=no_teams", season, source != NULL ? source : "");
         HeapFree(GetProcessHeap(), 0, teams);
-        return;
+        return 0;
     }
 
     /* Load existing records to check consecutive history */
@@ -109,7 +109,7 @@ void kbo_process_competitive_balance_tax_for_date(uint32_t season, uint32_t news
     if (records == NULL) {
         kbo_cbt_audit_process("fail", "records_alloc_failed", source, season, news_yyyymmdd, threshold, grade_count, team_count, exception_count, 0u, 0, 0);
         HeapFree(GetProcessHeap(), 0, teams);
-        return;
+        return 0;
     }
     int record_count = kbo_cbt_load_records(records, KBO_CBT_RECORDS_MAX, NULL, 0);
 
@@ -238,7 +238,7 @@ void kbo_process_competitive_balance_tax_for_date(uint32_t season, uint32_t news
         }
     }
 
-    kbo_cbt_save_records(records, record_count);
+    int records_saved = kbo_cbt_save_records(records, record_count);
     int draft_order_moves = kbo_cbt_apply_pending_draft_order_penalties("cbt_process_post_records");
     if (draft_order_moves > 0) {
         kbo_log_runtimef(
@@ -247,10 +247,12 @@ void kbo_process_competitive_balance_tax_for_date(uint32_t season, uint32_t news
             draft_order_moves,
             source != NULL ? source : "");
     }
+    int summary_ready = 0;
     if (league_id != 0u) {
         char summary_marker[64] = {0};
         snprintf(summary_marker, sizeof(summary_marker), "summary|%u|%u", season, league_id);
         if (kbo_cbt_news_marker_exists(summary_marker)) {
+            summary_ready = 1;
             kbo_cbt_audit_summary_news("skip", "marker_exists", source, season, league_id, team_count, new_violations);
             kbo_log_runtimef(
                 "KBO CBT opening-day news skipped season=%u league_id=%u reason=summary_marker_exists source=%s",
@@ -277,17 +279,31 @@ void kbo_process_competitive_balance_tax_for_date(uint32_t season, uint32_t news
                 team_count,
                 new_violations);
             if (summary_created) {
+                summary_ready = 1;
                 kbo_cbt_news_persist_marker(summary_marker, source);
             }
         }
     }
     kbo_request_hotkey_window_refresh("competitive_balance_tax_processed");
+    int success = records_saved && (league_id == 0u || summary_ready);
+
+    if (success) {
+        kbo_log_runtimef(
+            "KBO CBT processed season=%u teams=%d violations=%d threshold=%d source=%s",
+            season, team_count, new_violations, threshold,
+            source != NULL ? source : "");
+        kbo_cbt_audit_process("processed", "completed", source, season, news_yyyymmdd, threshold, grade_count, team_count, exception_count, league_id, new_violations, record_count);
+    } else {
+        kbo_log_runtimef(
+            "KBO CBT completion deferred season=%u records_saved=%d summary_ready=%d league_id=%u source=%s",
+            season,
+            records_saved,
+            summary_ready,
+            league_id,
+            source != NULL ? source : "");
+        kbo_cbt_audit_process("deferred", "outputs_incomplete", source, season, news_yyyymmdd, threshold, grade_count, team_count, exception_count, league_id, new_violations, record_count);
+    }
     HeapFree(GetProcessHeap(), 0, records);
     HeapFree(GetProcessHeap(), 0, teams);
-
-    kbo_log_runtimef(
-        "KBO CBT processed season=%u teams=%d violations=%d threshold=%d source=%s",
-        season, team_count, new_violations, threshold,
-        source != NULL ? source : "");
-    kbo_cbt_audit_process("processed", "completed", source, season, news_yyyymmdd, threshold, grade_count, team_count, exception_count, league_id, new_violations, record_count);
+    return success;
 }

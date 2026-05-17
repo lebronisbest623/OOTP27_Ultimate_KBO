@@ -64,7 +64,8 @@ DWORD WINAPI kbo_captain_preseason_selection_thread(LPVOID parameter)
         &consumer,
         "captain_selection_thread",
         KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER
-            | KBO_CURRENT_DATE_TICK_CONSUMER_GAP_CATCHUP);
+            | KBO_CURRENT_DATE_TICK_CONSUMER_GAP_CATCHUP
+            | KBO_CURRENT_DATE_TICK_CONSUMER_OBSERVE_CURRENT_WHEN_IDLE);
 
     while (kbo_runtime_threads_should_continue()) {
         if (!kbo_runtime_pause_for_save_if_needed("captain_selection_thread")) {

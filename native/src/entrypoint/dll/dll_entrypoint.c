@@ -109,8 +109,7 @@ DWORD WINAPI patch_thread(LPVOID parameter)
 
     kbo_log_runtime_line("KBO F2 hub starting before runtime marker guard");
     start_kbo_hotkey_window_thread((HINSTANCE)parameter);
-    start_kbo_cbt_event_scheduler_thread();
-    start_kbo_custom_event_monitor();
+    kbo_log_runtime_line("KBO CBT/custom event startup deferred until full runtime marker");
     if (!read_kbo_localappdata_flag_file("disable_kbo_cbt_draft_order_penalty_hook.txt")) {
         kbo_log_runtime_line("KBO CBT draft order penalty hook install requested");
         install_kbo_cbt_draft_order_penalty_patch();

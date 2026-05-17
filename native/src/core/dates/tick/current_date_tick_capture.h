@@ -37,10 +37,14 @@ typedef struct KboCurrentDateTickConsumer {
     int pending_valid;
     LONG overflow_log_count;
     LONG reset_log_count;
+    LONG observed_log_count;
+    LONG hook_log_count;
 } KboCurrentDateTickConsumer;
 
 #define KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER 1u
 #define KBO_CURRENT_DATE_TICK_CONSUMER_GAP_CATCHUP 2u
+#define KBO_CURRENT_DATE_TICK_CONSUMER_OBSERVE_CURRENT_WHEN_IDLE 4u
+#define KBO_CURRENT_DATE_TICK_OBSERVED_CURRENT_SITE_RVA 0xffffffffu
 
 extern volatile LONG g_kbo_current_date_tick_event_write_cursor;
 extern volatile LONG g_kbo_current_date_tick_event_published_sequence;

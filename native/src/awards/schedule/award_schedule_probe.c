@@ -115,7 +115,8 @@ static DWORD WINAPI kbo_award_schedule_probe_thread(LPVOID parameter)
         &date_consumer,
         "award_schedule_probe",
         KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER
-            | KBO_CURRENT_DATE_TICK_CONSUMER_GAP_CATCHUP);
+            | KBO_CURRENT_DATE_TICK_CONSUMER_GAP_CATCHUP
+            | KBO_CURRENT_DATE_TICK_CONSUMER_OBSERVE_CURRENT_WHEN_IDLE);
 
     kbo_log_runtime_line("KBO award schedule probe started");
 

@@ -6,5 +6,6 @@
 #include <windows.h>
 
 int scan_kbo_custom_events_once(const char* source);
+int scan_kbo_custom_events_once_for_date(uint32_t current_yyyymmdd, const char* source);
 
 #endif

@@ -17,29 +17,48 @@
 #include "../../dates/core_text_date.h"
 #include "../../text/ootp_text_encoding.h"
 
+static KboSqlite3ExecFn kbo_sqlite3_exec_from_proc(FARPROC proc)
+{
+    union {
+        FARPROC proc;
+        KboSqlite3ExecFn exec;
+    } cast;
+    cast.proc = proc;
+    return cast.exec;
+}
+
 KboSqlite3ExecFn kbo_get_sqlite3_exec_fn(void)
 {
     static KboSqlite3ExecFn cached_exec = NULL;
-    static LONG attempted = 0;
-    if (InterlockedCompareExchange(&attempted, 1, 1) != 0) {
+    if (cached_exec != NULL) {
         return cached_exec;
     }
 
-    HMODULE module = GetModuleHandleA("sqlite3.dll");
-    if (module == NULL) {
-        module = GetModuleHandleA("SQLite3.dll");
-    }
-    if (module == NULL) {
-        module = GetModuleHandleA(NULL);
+    const char* module_names[] = {
+        "winsqlite3.dll",
+        "WinSQLite3.dll",
+        "sqlite3.dll",
+        "SQLite3.dll",
+    };
+    for (int i = 0; i < (int)(sizeof(module_names) / sizeof(module_names[0])); i++) {
+        HMODULE module = GetModuleHandleA(module_names[i]);
+        if (module == NULL) {
+            continue;
+        }
+        FARPROC proc = GetProcAddress(module, "sqlite3_exec");
+        if (proc != NULL) {
+            cached_exec = kbo_sqlite3_exec_from_proc(proc);
+            return cached_exec;
+        }
     }
 
+    HMODULE module = GetModuleHandleA(NULL);
     if (module != NULL) {
         FARPROC proc = GetProcAddress(module, "sqlite3_exec");
         if (proc != NULL) {
-            cached_exec = (KboSqlite3ExecFn)proc;
+            cached_exec = kbo_sqlite3_exec_from_proc(proc);
         }
     }
-    InterlockedExchange(&attempted, 1);
     return cached_exec;
 }
 

@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "../../bootstrap/abi/ootp_offsets.h"
+#include "../../build_verify/build_verify.h"
 #include "../../core/logging/core_log.h"
 #include "../../hook_stubs/current_date_tick/hook_stubs_current_date_tick.h"
 #include "../../patch_helpers/patch_helpers.h"
@@ -20,6 +21,12 @@ static int install_kbo_current_date_tick_capture_site(
     size_t expected_size,
     KboCurrentDateTickStubBuilder build_stub)
 {
+    uint8_t* direct_target = (uint8_t*)kbo_resolve_build_specific_rva_ptr(exe, rva);
+    if (memory_range_readable(direct_target, 5u) && direct_target[0] == 0xE8) {
+        kbo_log_runtimef("%s already installed target=%p", label, direct_target);
+        return 1;
+    }
+
     uint8_t* target = resolve_patch_target_by_rva_or_pattern(
         exe,
         rva,
@@ -115,6 +122,17 @@ int install_kbo_current_date_tick_capture_hook(void)
         0x44, 0x8B, 0xFF,
         0x41, 0x39, 0xBC, 0x24, 0xFC, 0x01, 0x00, 0x00
     };
+    const uint8_t year_sync_expected[] = {
+        0x48, 0x8B, 0x8D, 0x38, 0x22, 0x00, 0x00,
+        0x33, 0xFF,
+        0x48, 0x89, 0x5C, 0x24, 0x60
+    };
+    const uint8_t sim_loop_expected[] = {
+        0x48, 0x8B, 0x90, 0xD8, 0x02, 0x00, 0x00
+    };
+    const uint8_t sim_loop_post_advance_expected[] = {
+        0x48, 0x8B, 0x05, 0x7D, 0xC4, 0xC0, 0x01
+    };
 
     int installed = 0;
     installed += install_kbo_current_date_tick_capture_site(
@@ -138,6 +156,27 @@ int install_kbo_current_date_tick_capture_hook(void)
         series_copy_expected,
         sizeof(series_copy_expected),
         build_kbo_current_date_tick_capture_stub_direct_r12);
+    installed += install_kbo_current_date_tick_capture_site(
+        exe,
+        "KBO current date tick capture year-sync",
+        OOTP27_CURRENT_DATE_YEAR_SYNC_POST_VALIDATE_RVA,
+        year_sync_expected,
+        sizeof(year_sync_expected),
+        build_kbo_current_date_tick_capture_stub_direct_r9);
+    installed += install_kbo_current_date_tick_capture_site(
+        exe,
+        "KBO current date tick capture sim-loop",
+        OOTP27_CURRENT_DATE_SIM_LOOP_GLOBAL_READ_RVA,
+        sim_loop_expected,
+        sizeof(sim_loop_expected),
+        build_kbo_current_date_tick_capture_stub_global_rax);
+    installed += install_kbo_current_date_tick_capture_site(
+        exe,
+        "KBO current date tick capture sim-loop-post-advance",
+        OOTP27_CURRENT_DATE_SIM_LOOP_POST_ADVANCE_RVA,
+        sim_loop_post_advance_expected,
+        sizeof(sim_loop_post_advance_expected),
+        build_kbo_current_date_tick_capture_stub_live_date_rbp_0x200_global_rax);
 
     kbo_log_runtimef("KBO current date tick capture hooks install complete ok=%d", installed);
     return installed > 0;
