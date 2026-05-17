@@ -45,6 +45,7 @@ typedef struct KboCurrentDateTickConsumer {
 #define KBO_CURRENT_DATE_TICK_CONSUMER_GAP_CATCHUP 2u
 #define KBO_CURRENT_DATE_TICK_CONSUMER_OBSERVE_CURRENT_WHEN_IDLE 4u
 #define KBO_CURRENT_DATE_TICK_OBSERVED_CURRENT_SITE_RVA 0xffffffffu
+#define KBO_CURRENT_DATE_TICK_WATCHPOINT_SITE_RVA 0xfffffff0u
 
 extern volatile LONG g_kbo_current_date_tick_event_write_cursor;
 extern volatile LONG g_kbo_current_date_tick_event_published_sequence;

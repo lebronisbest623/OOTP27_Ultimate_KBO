@@ -195,7 +195,7 @@ DWORD WINAPI kbo_custom_event_monitor_thread(LPVOID parameter)
         &consumer,
         "custom_event_monitor",
         KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER
-            | KBO_CURRENT_DATE_TICK_CONSUMER_GAP_CATCHUP);
+            | KBO_CURRENT_DATE_TICK_CONSUMER_OBSERVE_CURRENT_WHEN_IDLE);
 
     while (kbo_runtime_threads_should_continue()) {
         if (!kbo_runtime_sleep_should_continue(KBO_CUSTOM_EVENT_MONITOR_PULSE_MS)) {

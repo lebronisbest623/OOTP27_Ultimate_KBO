@@ -244,27 +244,35 @@ static const char* kbo_current_date_tick_consumer_label(
 
 static void kbo_current_date_tick_consumer_reset_save(
     KboCurrentDateTickConsumer* consumer,
-    const char* save_path)
+    const char* save_path,
+    int preserve_pending_hooks)
 {
     snprintf(consumer->save_path, sizeof(consumer->save_path), "%s", save_path);
     consumer->last_processed_date = 0u;
     kbo_current_date_tick_consumer_clear_pending(consumer);
-    kbo_current_date_tick_cursor_skip_to_latest(&consumer->cursor);
+    if (!preserve_pending_hooks) {
+        kbo_current_date_tick_cursor_skip_to_latest(&consumer->cursor);
+    }
 
     if (kbo_current_date_tick_log_allowed(&consumer->reset_log_count)) {
         kbo_log_runtimef(
-            "KBO current date tick consumer save scope reset label=\"%s\" save=%s",
+            "KBO current date tick consumer save scope reset label=\"%s\" save=%s preserve_pending_hooks=%d",
             kbo_current_date_tick_consumer_label(consumer),
-            consumer->save_path);
+            consumer->save_path,
+            preserve_pending_hooks);
     }
 }
 
 static int kbo_current_date_tick_consumer_refresh_save_path(
     KboCurrentDateTickConsumer* consumer,
-    int* out_changed)
+    int* out_changed,
+    int* out_first_known_save)
 {
     if (out_changed != NULL) {
         *out_changed = 0;
+    }
+    if (out_first_known_save != NULL) {
+        *out_first_known_save = 0;
     }
 
     char save_path[MAX_PATH] = {0};
@@ -276,9 +284,13 @@ static int kbo_current_date_tick_consumer_refresh_save_path(
         return 1;
     }
 
-    kbo_current_date_tick_consumer_reset_save(consumer, save_path);
+    int first_known_save = consumer->save_path[0] == '\0';
+    kbo_current_date_tick_consumer_reset_save(consumer, save_path, first_known_save);
     if (out_changed != NULL) {
         *out_changed = 1;
+    }
+    if (out_first_known_save != NULL) {
+        *out_first_known_save = first_known_save;
     }
     return 1;
 }
@@ -428,10 +440,15 @@ int kbo_current_date_tick_consumer_next(
     }
 
     int save_changed = 0;
-    if (!kbo_current_date_tick_consumer_refresh_save_path(consumer, &save_changed)) {
+    int first_known_save = 0;
+    if (!kbo_current_date_tick_consumer_refresh_save_path(
+            consumer,
+            &save_changed,
+            &first_known_save)) {
         return 0;
     }
-    if (save_changed || kbo_current_date_tick_consumer_needs_save_enter_current(consumer)) {
+    if ((!save_changed || !first_known_save)
+            && (save_changed || kbo_current_date_tick_consumer_needs_save_enter_current(consumer))) {
         kbo_current_date_tick_consumer_emit_save_enter_current(consumer);
     }
 
@@ -448,6 +465,13 @@ int kbo_current_date_tick_consumer_next(
                 &consumer->overflow_log_count,
                 &event,
                 &missed_events)) {
+            if (first_known_save
+                    && kbo_current_date_tick_consumer_needs_save_enter_current(consumer)) {
+                kbo_current_date_tick_consumer_emit_save_enter_current(consumer);
+                if (consumer->pending_valid) {
+                    return kbo_current_date_tick_consumer_pending_work(consumer, out_work);
+                }
+            }
             return kbo_current_date_tick_consumer_observe_current(consumer, out_work);
         }
 

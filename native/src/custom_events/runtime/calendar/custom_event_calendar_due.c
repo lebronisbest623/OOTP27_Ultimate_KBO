@@ -19,6 +19,8 @@ static int kbo_custom_event_calendar_cursor_path(char* out, size_t out_size)
 
 static volatile LONG g_kbo_custom_event_calendar_cursor_cached_initialized = 0;
 static volatile LONG g_kbo_custom_event_calendar_cursor_cached_value = 0;
+static volatile LONG g_kbo_custom_event_calendar_due_processing = 0;
+static volatile LONG64 g_kbo_custom_event_calendar_due_busy_log_ms = 0;
 static char g_kbo_custom_event_calendar_cursor_cached_path[MAX_PATH] = {0};
 
 static void kbo_custom_event_calendar_cache_cursor(const char* path, uint32_t cursor)
@@ -122,6 +124,19 @@ int kbo_process_custom_events_due_through(uint32_t today_yyyymmdd, const char* s
     if (today_yyyymmdd == 0u) {
         return -1;
     }
+    if (InterlockedCompareExchange(&g_kbo_custom_event_calendar_due_processing, 1, 0) != 0) {
+        ULONGLONG now = GetTickCount64();
+        LONG64 last = InterlockedCompareExchange64(&g_kbo_custom_event_calendar_due_busy_log_ms, 0, 0);
+        if (last <= 0 || now < (ULONGLONG)last || now - (ULONGLONG)last >= 30000ull) {
+            if (InterlockedCompareExchange64(&g_kbo_custom_event_calendar_due_busy_log_ms, (LONG64)now, last) == last) {
+                kbo_log_runtimef(
+                    "KBO custom event calendar due-through skipped source=%s today=%u reason=already_processing",
+                    source != NULL ? source : "",
+                    today_yyyymmdd);
+            }
+        }
+        return -1;
+    }
 
     uint32_t previous_cursor = kbo_custom_event_calendar_read_cursor();
     if (previous_cursor > today_yyyymmdd) {
@@ -172,6 +187,7 @@ int kbo_process_custom_events_due_through(uint32_t today_yyyymmdd, const char* s
             scanned,
             schedule_blocked,
             deferred);
+        InterlockedExchange(&g_kbo_custom_event_calendar_due_processing, 0);
         return -1;
     }
     int changed = foreign_schedule > 0 || asian_schedule > 0 || cbt_schedule > 0 || independent_schedule > 0 || scanned > 0;
@@ -189,7 +205,9 @@ int kbo_process_custom_events_due_through(uint32_t today_yyyymmdd, const char* s
             schedule_blocked,
             deferred);
     }
-    return changed
+    int result = changed
         ? KBO_CUSTOM_EVENT_DUE_RESULT_CHANGED
         : KBO_CUSTOM_EVENT_DUE_RESULT_SCANNED_IDLE;
+    InterlockedExchange(&g_kbo_custom_event_calendar_due_processing, 0);
+    return result;
 }

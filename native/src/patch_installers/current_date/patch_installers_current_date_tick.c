@@ -102,6 +102,104 @@ static int install_kbo_current_date_tick_capture_site(
     return 1;
 }
 
+static int install_kbo_current_date_tick_date_add_hook(HMODULE exe)
+{
+    const char* label = "KBO current date tick capture date-add";
+    const size_t stolen_len = 15u;
+    const uint8_t expected[] = {
+        0x40, 0x57,                                     /* rex; push rdi */
+        0x44, 0x0F, 0xB6, 0x49, 0x0A,                  /* movzx r9d, byte ptr [rcx+0xa] */
+        0x8B, 0xFA,                                     /* mov edi, edx */
+        0x4C, 0x8B, 0xD9,                               /* mov r11, rcx */
+        0x45, 0x84, 0xC9                                /* test r9b, r9b */
+    };
+
+    uint8_t* direct_target = (uint8_t*)kbo_resolve_build_specific_rva_ptr(
+        exe,
+        OOTP27_CURRENT_DATE_DATE_ADD_MUTATE_RVA);
+    if ((memory_range_readable(direct_target, 12u) && is_rax_absolute_jump_patch(direct_target))
+            || (memory_range_readable(direct_target, 13u)
+                && direct_target[0] == 0x40
+                && is_rax_absolute_jump_patch(direct_target + 1u))) {
+        kbo_log_runtimef("%s already installed target=%p", label, direct_target);
+        return 1;
+    }
+
+    uint8_t* target = resolve_patch_target_by_rva_or_pattern(
+        exe,
+        OOTP27_CURRENT_DATE_DATE_ADD_MUTATE_RVA,
+        expected,
+        sizeof(expected),
+        label);
+    if (target == NULL) {
+        return 0;
+    }
+    if ((memory_range_readable(target, 12u) && is_rax_absolute_jump_patch(target))
+            || (memory_range_readable(target, 13u)
+                && target[0] == 0x40
+                && is_rax_absolute_jump_patch(target + 1u))) {
+        kbo_log_runtimef("%s already installed target=%p", label, target);
+        return 1;
+    }
+    if (!memory_range_readable(target, sizeof(expected))) {
+        kbo_log_runtimef("%s skipped target=%p reason=unreadable", label, target);
+        return 0;
+    }
+    if (memcmp(target, expected, sizeof(expected)) != 0) {
+        log_patch_bytes_mismatch(label, target, sizeof(expected));
+        return 0;
+    }
+
+    uint8_t* trampoline = build_kbo_current_date_tick_date_add_trampoline(
+        target,
+        stolen_len);
+    if (trampoline == NULL) {
+        kbo_log_runtimef("%s skipped target=%p reason=trampoline_alloc_failed", label, target);
+        return 0;
+    }
+
+    uint8_t* stub = build_kbo_current_date_tick_date_add_detour_stub(
+        trampoline,
+        OOTP27_CURRENT_DATE_DATE_ADD_MUTATE_RVA);
+    if (stub == NULL) {
+        kbo_log_runtimef("%s skipped target=%p reason=stub_alloc_failed", label, target);
+        return 0;
+    }
+
+    uint8_t patch[15] = {
+        0x48, 0xB8,                                     /* mov rax, stub */
+        0,0,0,0,0,0,0,0,
+        0xFF, 0xE0,                                     /* jmp rax */
+        0x90, 0x90, 0x90
+    };
+    write_u64(&patch[2], (uint64_t)(uintptr_t)stub);
+
+    DWORD old_protect = 0;
+    if (!VirtualProtect(target, sizeof(patch), PAGE_EXECUTE_READWRITE, &old_protect)) {
+        kbo_log_runtimef(
+            "%s VirtualProtect failed target=%p error=%lu",
+            label,
+            target,
+            GetLastError());
+        return 0;
+    }
+
+    memcpy(target, patch, sizeof(patch));
+    FlushInstructionCache(GetCurrentProcess(), target, sizeof(patch));
+
+    DWORD ignored = 0;
+    VirtualProtect(target, sizeof(patch), old_protect, &ignored);
+
+    kbo_log_runtimef(
+        "%s installed target=%p stub=%p trampoline=%p rva=0x%x",
+        label,
+        target,
+        stub,
+        trampoline,
+        OOTP27_CURRENT_DATE_DATE_ADD_MUTATE_RVA);
+    return 1;
+}
+
 int install_kbo_current_date_tick_capture_hook(void)
 {
     HMODULE exe = GetModuleHandleA(NULL);
@@ -135,6 +233,7 @@ int install_kbo_current_date_tick_capture_hook(void)
     };
 
     int installed = 0;
+    installed += install_kbo_current_date_tick_date_add_hook(exe);
     installed += install_kbo_current_date_tick_capture_site(
         exe,
         "KBO current date tick capture copy",

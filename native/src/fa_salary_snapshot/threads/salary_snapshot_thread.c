@@ -7,10 +7,10 @@
 
 #include "../../bootstrap/profiling/profiler.h"
 #include "../../competitive_balance_tax/api/competitive_balance_tax.h"
-#include "../../competitive_balance_tax/events/cbt_events.h"
 #include "../../competitive_balance_tax/exceptions/cbt_exceptions.h"
 #include "../../competitive_balance_tax/rules/cbt_rules.h"
 #include "../../core/dates/core_current_date.h"
+#include "../../core/dates/core_text_date.h"
 #include "../../core/dates/tick/current_date_tick_capture.h"
 #include "../../core/core_flags/api/flags_api.h"
 #include "../../core/core_league_context_parts/api/league_context_lookup.h"
@@ -31,13 +31,13 @@ static DWORD WINAPI kbo_fa_salary_snapshot_thread(LPVOID parameter)
     uint32_t last_log_date = 0u;
     uint32_t last_log_opening_day = 0u;
     uint32_t captured_season = 0u;
-    uint32_t cbt_event_schedule_done_season = 0u;
     uint32_t cbt_auto_exception_done_season = 0u;
     char captured_save_path[MAX_PATH] = {0};
     uint32_t cached_message_date = 0u;
     int cached_message_found = 0;
     DWORD cached_message_checked_ms = 0u;
     uint32_t quiet_opening_unavailable_year = 0u;
+    uint32_t last_fast_forward_log_date = 0u;
     /* Per-tick caches to avoid repeated file I/O and memory scans. */
     uintptr_t cached_league_ptr = 0u;
     uint32_t cached_league_ptr_year = 0u;
@@ -50,7 +50,6 @@ static DWORD WINAPI kbo_fa_salary_snapshot_thread(LPVOID parameter)
         &date_consumer,
         "fa_salary_snapshot_thread",
         KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER
-            | KBO_CURRENT_DATE_TICK_CONSUMER_GAP_CATCHUP
             | KBO_CURRENT_DATE_TICK_CONSUMER_OBSERVE_CURRENT_WHEN_IDLE);
 
     while (kbo_runtime_threads_should_continue()) {
@@ -81,9 +80,30 @@ static DWORD WINAPI kbo_fa_salary_snapshot_thread(LPVOID parameter)
             continue;
         }
         uint32_t date = date_work.date;
+        uint32_t observed_today = 0u;
+        int fast_forwarded_to_current = 0;
+        if (kbo_get_current_yyyymmdd(&observed_today)
+                && kbo_yyyymmdd_valid(observed_today)
+                && observed_today > date) {
+            date = observed_today;
+            fast_forwarded_to_current = 1;
+            if (last_fast_forward_log_date != date) {
+                last_fast_forward_log_date = date;
+                kbo_log_runtimef(
+                    "KBO FA salary snapshot fast-forwarded stale hook date=%u current=%u event=%u site=0x%x seq=%u",
+                    date_work.date,
+                    observed_today,
+                    date_work.event_date,
+                    date_work.site_rva,
+                    date_work.sequence);
+            }
+        }
         uint32_t year = date / 10000u;
         uint32_t month = (date / 100u) % 100u;
         kbo_current_date_tick_consumer_mark_processed(&date_consumer);
+        if (fast_forwarded_to_current) {
+            kbo_current_date_tick_consumer_skip_to_latest(&date_consumer);
+        }
 
         char save_path[MAX_PATH] = {0};
         if (!kbo_get_current_save_path(save_path, sizeof(save_path))) {
@@ -97,12 +117,12 @@ static DWORD WINAPI kbo_fa_salary_snapshot_thread(LPVOID parameter)
             last_log_date = 0u;
             last_log_opening_day = 0u;
             captured_season = 0u;
-            cbt_event_schedule_done_season = 0u;
             cbt_auto_exception_done_season = 0u;
             cached_message_date = 0u;
             cached_message_found = 0;
             cached_message_checked_ms = 0u;
             quiet_opening_unavailable_year = 0u;
+            last_fast_forward_log_date = 0u;
             cached_league_ptr = 0u;
             cached_league_ptr_year = 0u;
             cached_schedule_year = 0u;
@@ -220,16 +240,6 @@ static DWORD WINAPI kbo_fa_salary_snapshot_thread(LPVOID parameter)
                     kbo_profiler_end("fa_salary_snapshot.thread.cbt_wait_exception_window", &profile_snapshot_thread_tick);
                 }
                 continue;
-            }
-            if (cbt_event_schedule_done_season != year) {
-                cbt_event_schedule_done_season = year;
-                kbo_log_runtimef(
-                    "KBO FA salary snapshot CBT event schedule date=%u season=%u opening_day=%u announce=%u reason=snapshot_exists",
-                    date,
-                    year,
-                    opening_day,
-                    cbt_announcement_day);
-                kbo_schedule_cbt_custom_events_for_date(date, "snapshot_thread_cbt_schedule");
             }
             if (profile_snapshot_thread_tick_active) {
                 kbo_profiler_end("fa_salary_snapshot.thread.already_captured", &profile_snapshot_thread_tick);

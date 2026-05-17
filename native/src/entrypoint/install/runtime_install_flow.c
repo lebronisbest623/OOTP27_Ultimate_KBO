@@ -325,6 +325,7 @@ void install_kbo_full_runtime_after_roster_marker(HINSTANCE instance)
     }
     if (!read_kbo_localappdata_flag_file("disable_kbo_current_date_tick_capture_hook.txt")) {
         install_kbo_current_date_tick_capture_hook();
+        start_kbo_current_date_tick_watchpoint_thread();
     } else {
         kbo_log_runtime_line("KBO current date tick capture hook disabled: disable_kbo_current_date_tick_capture_hook is true");
     }

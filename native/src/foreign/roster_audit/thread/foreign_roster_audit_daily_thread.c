@@ -1,5 +1,4 @@
 #include "../internal/foreign_roster_audit_internal.h"
-#include "../../../custom_events/runtime/monitor/custom_event_monitor.h"
 #include "../../../team/add_player_guard/team_add_player_guard_ai_roster.h"
 #include "../../../team/independent_acquisition/independent_acquisition_ai.h"
 #include "../../common/dates/foreign_waiver_date.h"
@@ -166,9 +165,6 @@ DWORD WINAPI kbo_foreign_roster_daily_audit_thread(LPVOID parameter)
     kbo_log_runtime_line("foreign roster daily audit thread started");
 
     uint32_t last_audit_date = 0u;
-    uint32_t last_custom_event_scheduled_date = 0u;
-    uint32_t last_custom_event_scanned_date = 0u;
-    uint32_t last_custom_event_fa_comp_date = 0u;
     uint32_t last_fa_repair_current_season = 0u;
     uint32_t last_fa_repair_previous_season = 0u;
     DWORD last_fa_repair_current_tick = 0u;
@@ -203,9 +199,6 @@ DWORD WINAPI kbo_foreign_roster_daily_audit_thread(LPVOID parameter)
             snprintf(last_audit_save_path, sizeof(last_audit_save_path), "%s", save_path);
             last_audit_date = kbo_foreign_roster_daily_load_last_audit_date(
                 "foreign_roster_daily_save_scope");
-            last_custom_event_scheduled_date = 0u;
-            last_custom_event_scanned_date = 0u;
-            last_custom_event_fa_comp_date = 0u;
         }
         if (today == 0u || today == last_audit_date) {
             kbo_current_date_tick_consumer_mark_processed(&consumer);
@@ -216,22 +209,6 @@ DWORD WINAPI kbo_foreign_roster_daily_audit_thread(LPVOID parameter)
         }
 
         KBO_PROFILE_BEGIN(profile_foreign_roster_daily_tick);
-        KBO_PROFILE_BEGIN(profile_foreign_roster_daily_custom_events);
-        if (!kbo_custom_event_monitor_tick_for_date(
-            today,
-            &last_custom_event_scheduled_date,
-            &last_custom_event_scanned_date,
-            &last_custom_event_fa_comp_date,
-            "foreign_roster_daily_date_change")) {
-            KBO_PROFILE_END(profile_foreign_roster_daily_custom_events, "foreign_roster.daily.custom_events");
-            KBO_PROFILE_END(profile_foreign_roster_daily_tick, "foreign_roster.daily.custom_events_deferred");
-            goto defer_current_work;
-        }
-        KBO_PROFILE_END(profile_foreign_roster_daily_custom_events, "foreign_roster.daily.custom_events");
-        if (kbo_foreign_roster_daily_abort_if_save("after_custom_events", today)) {
-            KBO_PROFILE_END(profile_foreign_roster_daily_tick, "foreign_roster.daily.save_abort.after_custom_events");
-            goto defer_current_work;
-        }
 
         int aborted_tick = 0;
         uint32_t catchup_date = kbo_foreign_roster_daily_first_catchup_date(last_audit_date, today);

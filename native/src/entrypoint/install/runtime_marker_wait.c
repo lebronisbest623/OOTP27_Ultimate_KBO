@@ -1,4 +1,29 @@
 #include "../entrypoint_internal.h"
+#include "../../custom_events/asian_games/schedule/asian_games_schedule.h"
+#include "../../custom_events/schedules/independent/independent_team_acquisition_schedule.h"
+#include "../../custom_events/schedules/priority/foreign_priority_event_schedule.h"
+
+static void kbo_prime_startup_custom_event_schedules(uint32_t today)
+{
+    if (today == 0u) {
+        return;
+    }
+
+    const char* source = "runtime_marker_wait_startup";
+    int foreign = kbo_schedule_foreign_priority_custom_events_for_date(source, today);
+    int asian = kbo_schedule_asian_games_custom_events_for_date(today, source);
+    int cbt = kbo_schedule_cbt_custom_events_for_date(today, source);
+    int independent = kbo_schedule_independent_team_acquisition_custom_events_for_date(today, source);
+
+    kbo_log_runtimef(
+        "KBO startup custom event schedules primed source=%s today=%u foreign=%d asian=%d cbt=%d independent=%d",
+        source,
+        today,
+        foreign,
+        asian,
+        cbt,
+        independent);
+}
 
 static volatile LONG64 g_kbo_runtime_marker_guard_started_filetime = 0;
 
@@ -45,6 +70,7 @@ DWORD WINAPI kbo_full_runtime_marker_wait_thread(LPVOID parameter)
             if (kbo_current_date_tick_consumer_next(&date_consumer, &date_work)) {
                 kbo_current_date_tick_consumer_mark_processed(&date_consumer);
                 InterlockedExchange(&g_kbo_runtime_date_stable_ready, 1);
+                kbo_prime_startup_custom_event_schedules(date_work.date);
                 kbo_log_runtimef(
                     "KBO full runtime marker guard ready source=runtime_marker_wait date=%u",
                     date_work.date);

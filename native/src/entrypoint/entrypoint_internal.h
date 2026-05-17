@@ -13,6 +13,7 @@
 #include "../captain/api/captain_selection.h"
 #include "../core/core_flags/api/flags_api.h"
 #include "../core/dates/tick/current_date_tick_capture.h"
+#include "../core/dates/tick/current_date_tick_watchpoint.h"
 #include "../core/runtime_tuning/runtime_tuning_policy.h"
 #include "../core/logging/core_log.h"
 #include "../core/files/save_paths/core_save_paths.h"

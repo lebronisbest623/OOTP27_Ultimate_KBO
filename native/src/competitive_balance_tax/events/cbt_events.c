@@ -10,7 +10,6 @@
 #include "../../core/dates/tick/current_date_tick_capture.h"
 #include "../../core/events/core_league_events.h"
 #include "../../core/logging/core_log.h"
-#include "../../custom_events/runtime/dates/custom_event_dates.h"
 #include "../../custom_events/runtime/ledger/custom_event_ledger.h"
 #include "../../custom_events/runtime/lookup/custom_event_lookup.h"
 #include "../../custom_events/runtime/markers/custom_event_markers.h"
@@ -484,7 +483,7 @@ int kbo_handle_cbt_deadline_event(uint32_t event_yyyymmdd, const char* source)
 int kbo_handle_cbt_announcement_event(uint32_t event_yyyymmdd, const char* source)
 {
     uint32_t season = event_yyyymmdd / 10000u;
-    uint32_t news_yyyymmdd = kbo_custom_event_effective_news_date(event_yyyymmdd);
+    uint32_t news_yyyymmdd = event_yyyymmdd;
     kbo_cbt_exception_auto_designate_missing(season, "cbt_announcement_event");
     kbo_cbt_audit_event_handler("process_tax", "announcement_event", source, event_yyyymmdd, season);
     kbo_log_runtimef(

@@ -446,6 +446,44 @@ static void test_current_date_tick_consumer_retries_save_enter_until_date_ready(
     printf("test_current_date_tick_consumer_retries_save_enter_until_date_ready: PASS\n");
 }
 
+static void test_current_date_tick_consumer_preserves_hooks_before_save_path_ready(void)
+{
+    kbo_test_reset_current_date_tick_state();
+
+    KboCurrentDateTickConsumer consumer = {0};
+    KboCurrentDateTickWork work = {0};
+    kbo_current_date_tick_consumer_init(
+        &consumer,
+        "test_preserve_pre_save_hooks",
+        KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER);
+
+    assert(!kbo_current_date_tick_consumer_next(&consumer, &work));
+    assert(kbo_current_date_tick_publish(20260302u, 0x2222u));
+    assert(kbo_current_date_tick_publish(20260303u, 0x3333u));
+
+    snprintf(g_test_current_save_path, sizeof(g_test_current_save_path), "C:\\test\\saved_games\\New Game.lg");
+    g_test_current_yyyymmdd = 20260303u;
+
+    assert(kbo_current_date_tick_consumer_next(&consumer, &work));
+    assert(work.date == 20260302u);
+    assert(work.event_date == 20260302u);
+    assert(work.site_rva == 0x2222u);
+    assert(work.sequence == 1u);
+    kbo_current_date_tick_consumer_mark_processed(&consumer);
+
+    assert(kbo_current_date_tick_consumer_next(&consumer, &work));
+    assert(work.date == 20260303u);
+    assert(work.event_date == 20260303u);
+    assert(work.site_rva == 0x3333u);
+    assert(work.sequence == 2u);
+    kbo_current_date_tick_consumer_mark_processed(&consumer);
+
+    assert(!kbo_current_date_tick_consumer_next(&consumer, &work));
+
+    kbo_test_reset_current_date_tick_state();
+    printf("test_current_date_tick_consumer_preserves_hooks_before_save_path_ready: PASS\n");
+}
+
 static void test_current_date_tick_consumer_observed_current_catches_up_when_hook_missing(void)
 {
     kbo_test_reset_current_date_tick_state();
@@ -2091,6 +2129,7 @@ int main(void)
     test_news_related_link_parse();
     test_date_serial();
     test_current_date_tick_consumer_retries_save_enter_until_date_ready();
+    test_current_date_tick_consumer_preserves_hooks_before_save_path_ready();
     test_current_date_tick_consumer_observed_current_catches_up_when_hook_missing();
     test_foreign_waiver_date_helpers();
     test_military_csv_parse();
