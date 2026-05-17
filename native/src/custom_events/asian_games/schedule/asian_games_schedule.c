@@ -17,6 +17,21 @@
 #include "../../runtime/ledger/custom_event_ledger.h"
 #include "../../runtime/runner/custom_event_runner.h"
 
+static volatile LONG64 g_kbo_asian_games_schedule_seed_deferred_log_ms = 0;
+
+static int kbo_asian_games_schedule_should_log_seed_deferred(void)
+{
+    ULONGLONG now = GetTickCount64();
+    LONG64 last = InterlockedCompareExchange64(&g_kbo_asian_games_schedule_seed_deferred_log_ms, 0, 0);
+    if (last > 0 && now >= (ULONGLONG)last && now - (ULONGLONG)last < 30000ull) {
+        return 0;
+    }
+    return InterlockedCompareExchange64(
+        &g_kbo_asian_games_schedule_seed_deferred_log_ms,
+        (LONG64)now,
+        last) == last;
+}
+
 static int kbo_process_due_asian_games_custom_event(
     uint32_t today,
     uint32_t league_id,
@@ -65,6 +80,28 @@ static int kbo_process_due_asian_games_custom_event(
     return -1;
 }
 
+static int kbo_asian_games_schedule_seed_source_available(void)
+{
+    char global_path[MAX_PATH] = {0};
+    if (kbo_get_global_asian_games_schedule_seed_path(global_path, sizeof(global_path))
+            && global_path[0] != '\0') {
+        DWORD attrs = GetFileAttributesA(global_path);
+        if (attrs != INVALID_FILE_ATTRIBUTES && (attrs & FILE_ATTRIBUTE_DIRECTORY) == 0u) {
+            return 1;
+        }
+    }
+
+    char save_path[MAX_PATH] = {0};
+    if (kbo_get_save_asian_games_schedule_seed_path(save_path, sizeof(save_path))
+            && save_path[0] != '\0') {
+        DWORD attrs = GetFileAttributesA(save_path);
+        if (attrs != INVALID_FILE_ATTRIBUTES && (attrs & FILE_ATTRIBUTE_DIRECTORY) == 0u) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 int kbo_schedule_asian_games_custom_events_for_date(uint32_t today, const char* source)
 {
     uint32_t year = today / 10000u;
@@ -76,6 +113,16 @@ int kbo_schedule_asian_games_custom_events_for_date(uint32_t today, const char* 
     }
     KboAsianGamesScheduleSeed schedule;
     if (!kbo_get_asian_games_schedule_for_year(year, &schedule)) {
+        if (!kbo_asian_games_schedule_seed_source_available()) {
+            if (kbo_asian_games_schedule_should_log_seed_deferred()) {
+                kbo_log_runtimef(
+                    "KBO Asian Games schedule deferred source=%s reason=schedule_seed_source_unavailable year=%u today=%u",
+                    source != NULL ? source : "",
+                    year,
+                    today);
+            }
+            return -1;
+        }
         return 0;
     }
     if (!kbo_asian_games_schedule_auto_events_enabled(&schedule)) {

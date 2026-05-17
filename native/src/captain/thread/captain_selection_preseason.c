@@ -321,8 +321,19 @@ int kbo_captain_run_seed_startup_without_league_ptr(
 {
     uint32_t season = date / 10000u;
     int startup_window = kbo_captain_seed_startup_window_active(date, season);
-    int seed_available = startup_window && kbo_captain_seed_available_for_season(season, league_id);
-    if (!startup_window || !seed_available) {
+    if (!startup_window) {
+        return 0;
+    }
+    if (league_id == 0u) {
+        kbo_log_runtimef(
+            "KBO captain seed startup deferred source=%s date=%u season=%u reason=league_id_unavailable",
+            source != NULL ? source : "",
+            date,
+            season);
+        return -1;
+    }
+    int seed_available = kbo_captain_seed_available_for_season(season, league_id);
+    if (!seed_available) {
         return 0;
     }
 
@@ -352,12 +363,17 @@ int kbo_captain_run_seed_startup_without_league_ptr(
         kbo_captain_audit_seed_startup(
             "write_missing_selection_csv", "league_ptr_unavailable", source, date, season, league_id,
             startup_window, seed_available, csv_exists, 0);
-        return kbo_captain_write_missing_selection_csv(
+        int result = kbo_captain_write_missing_selection_csv(
             date,
             season,
             league_id,
             0u,
             source != NULL ? source : "captain_seed_startup_no_league_ptr");
+        return result > 0 || kbo_captain_selection_csv_exists(season) ? result : -1;
+    }
+
+    if (kbo_captain_initial_selection_news_exists(season, league_id)) {
+        return 0;
     }
 
     KboCaptainSelectionRow summary_rows[KBO_CAPTAIN_MAX_TEAMS];
@@ -367,16 +383,17 @@ int kbo_captain_run_seed_startup_without_league_ptr(
         kbo_captain_audit_seed_startup(
             "skip", "summary_rows_unavailable", source, date, season, league_id,
             startup_window, seed_available, csv_exists, summary_count);
-        return 0;
+        return -1;
     }
     kbo_captain_audit_seed_startup(
         "emit_initial_selection_news", "league_ptr_unavailable_existing_csv", source, date, season, league_id,
         startup_window, seed_available, csv_exists, summary_count);
-    return kbo_emit_captain_initial_selection_news(
+    int result = kbo_emit_captain_initial_selection_news(
         date,
         season,
         league_id,
         summary_rows,
         summary_count,
         source != NULL ? source : "captain_seed_startup_summary_no_league_ptr");
+    return result > 0 || kbo_captain_initial_selection_news_exists(season, league_id) ? result : -1;
 }

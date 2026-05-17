@@ -30,6 +30,7 @@ static KboTeamClassificationEntry g_kbo_independent_teams[KBO_TEAM_CLASSIFICATIO
 static volatile LONG g_kbo_independent_team_count = 0;
 static volatile LONG g_kbo_team_classification_loaded_state = 0;
 static volatile LONG g_kbo_team_classification_refresh_tick = 0;
+static volatile LONG64 g_kbo_team_classification_seed_deferred_log_ms = 0;
 
 static void kbo_team_classification_copy_text(char* out, size_t out_size, const char* text)
 {
@@ -58,6 +59,16 @@ static const char* kbo_team_classification_independent_kind_label(int kind)
         return "league";
     }
     return "none";
+}
+
+static int kbo_team_classification_should_log_seed_deferred(void)
+{
+    ULONGLONG now = GetTickCount64();
+    LONG64 last = InterlockedCompareExchange64(&g_kbo_team_classification_seed_deferred_log_ms, 0, 0);
+    if (last > 0 && now >= (ULONGLONG)last && now - (ULONGLONG)last < 30000ull) {
+        return 0;
+    }
+    return InterlockedCompareExchange64(&g_kbo_team_classification_seed_deferred_log_ms, (LONG64)now, last) == last;
 }
 
 static int kbo_team_classification_add_independent_row(
@@ -144,23 +155,45 @@ static int kbo_team_classification_load_seed_file(void)
     return loaded;
 }
 
+int kbo_team_classification_seed_source_available(void)
+{
+    char path[MAX_PATH] = {0};
+    if (!kbo_get_global_data_file(KBO_TEAM_CLASSIFICATION_SEED_FILE, path, sizeof(path))) {
+        return 0;
+    }
+
+    FILE* file = fopen(path, "rb");
+    if (file == NULL) {
+        return 0;
+    }
+    fclose(file);
+    return 1;
+}
+
 static void kbo_team_classification_load_once(void)
 {
-    LONG state = InterlockedCompareExchange(&g_kbo_team_classification_loaded_state, 1, 0);
-    if (state == 2) {
-        return;
-    }
-    if (state != 0) {
-        while (InterlockedCompareExchange(&g_kbo_team_classification_loaded_state, 0, 0) != 2) {
-            SwitchToThread();
+    for (;;) {
+        LONG state = InterlockedCompareExchange(&g_kbo_team_classification_loaded_state, 0, 0);
+        if (state == 2) {
+            return;
         }
-        return;
+        if (state == 1) {
+            SwitchToThread();
+            continue;
+        }
+        if (InterlockedCompareExchange(&g_kbo_team_classification_loaded_state, 1, 0) == 0) {
+            break;
+        }
     }
 
     if (kbo_team_classification_load_seed_file() < 0) {
-        kbo_log_runtimef(
-            "KBO team classification seed missing; no independent teams enabled file=%s",
-            KBO_TEAM_CLASSIFICATION_SEED_FILE);
+        if (kbo_team_classification_should_log_seed_deferred()) {
+            kbo_log_runtimef(
+                "KBO team classification seed deferred; source unavailable file=%s",
+                KBO_TEAM_CLASSIFICATION_SEED_FILE);
+        }
+        InterlockedExchange(&g_kbo_team_classification_loaded_state, 0);
+        return;
     }
     InterlockedExchange(&g_kbo_team_classification_loaded_state, 2);
 }

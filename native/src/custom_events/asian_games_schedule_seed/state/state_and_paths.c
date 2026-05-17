@@ -14,7 +14,7 @@ KboAsianGamesScheduleSeed g_kbo_asian_games_schedule_seeds[KBO_ASIAN_GAMES_SCHED
 int g_kbo_asian_games_schedule_seed_count = 0;
 static KboLock g_kbo_asian_games_schedule_seed_lock = KBO_LOCK_INIT;
 LONG g_kbo_asian_games_schedule_seed_loaded = 0;
-char g_kbo_asian_games_schedule_seed_loaded_key[MAX_PATH * 3] = {0};
+char g_kbo_asian_games_schedule_seed_loaded_key[MAX_PATH * 6] = {0};
 
 void kbo_lock_asian_games_schedule_seeds(void)
 {

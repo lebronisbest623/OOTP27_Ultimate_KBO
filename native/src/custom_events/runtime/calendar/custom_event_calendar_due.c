@@ -141,10 +141,13 @@ int kbo_process_custom_events_due_through(uint32_t today_yyyymmdd, const char* s
     int independent_schedule = kbo_schedule_independent_team_acquisition_custom_events_for_date(today_yyyymmdd, source);
     int scanned = kbo_custom_event_calendar_scan_until_idle(source);
 
-    int schedule_blocked = foreign_schedule < 0
-        && asian_schedule < 0
-        && cbt_schedule < 0
-        && independent_schedule < 0;
+    int critical_schedule_deferred = asian_schedule < 0
+        || independent_schedule < 0;
+    int schedule_blocked = critical_schedule_deferred
+        || (foreign_schedule < 0
+            && asian_schedule < 0
+            && cbt_schedule < 0
+            && independent_schedule < 0);
     int deferred = schedule_blocked || scanned < 0;
     if (!deferred) {
         kbo_custom_event_calendar_write_cursor(today_yyyymmdd, source);

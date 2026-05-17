@@ -8,6 +8,29 @@
 #include "../../core/news/live/core_live_news.h"
 #include "../../core/news/templates/core_news_templates.h"
 
+static void kbo_captain_initial_selection_news_marker_key(
+    uint32_t season,
+    uint32_t league_id,
+    char* out,
+    size_t out_size)
+{
+    if (out == NULL || out_size == 0u) {
+        return;
+    }
+    out[0] = '\0';
+    if (season < 1982u || season > 2200u || league_id == 0u) {
+        return;
+    }
+    snprintf(out, out_size, "summary|%u|%u", season, league_id);
+}
+
+int kbo_captain_initial_selection_news_exists(uint32_t season, uint32_t league_id)
+{
+    char marker[128] = {0};
+    kbo_captain_initial_selection_news_marker_key(season, league_id, marker, sizeof(marker));
+    return marker[0] != '\0' && kbo_captain_news_marker_exists(marker);
+}
+
 int kbo_emit_captain_initial_selection_news(
     uint32_t date,
     uint32_t season,
@@ -21,8 +44,8 @@ int kbo_emit_captain_initial_selection_news(
     }
 
     char marker[128] = {0};
-    snprintf(marker, sizeof(marker), "summary|%u|%u", season, league_id);
-    if (kbo_captain_news_marker_exists(marker)) {
+    kbo_captain_initial_selection_news_marker_key(season, league_id, marker, sizeof(marker));
+    if (marker[0] == '\0' || kbo_captain_news_marker_exists(marker)) {
         return 0;
     }
 

@@ -118,6 +118,7 @@ int kbo_emit_captain_initial_selection_news(
     const KboCaptainSelectionRow* rows,
     int row_count,
     const char* source);
+int kbo_captain_initial_selection_news_exists(uint32_t season, uint32_t league_id);
 int kbo_emit_captain_replacement_news(
     uint32_t date,
     uint32_t season,

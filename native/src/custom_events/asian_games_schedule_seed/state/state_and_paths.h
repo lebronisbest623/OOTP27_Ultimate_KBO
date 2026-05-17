@@ -25,7 +25,7 @@ typedef struct KboAsianGamesScheduleSeed {
 extern KboAsianGamesScheduleSeed g_kbo_asian_games_schedule_seeds[KBO_ASIAN_GAMES_SCHEDULE_SEED_MAX];
 extern int g_kbo_asian_games_schedule_seed_count;
 extern LONG g_kbo_asian_games_schedule_seed_loaded;
-extern char g_kbo_asian_games_schedule_seed_loaded_key[MAX_PATH * 3];
+extern char g_kbo_asian_games_schedule_seed_loaded_key[MAX_PATH * 6];
 
 void kbo_lock_asian_games_schedule_seeds(void);
 void kbo_unlock_asian_games_schedule_seeds(void);

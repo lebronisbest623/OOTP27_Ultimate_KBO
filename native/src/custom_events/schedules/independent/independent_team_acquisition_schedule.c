@@ -202,6 +202,17 @@ int kbo_schedule_independent_team_acquisition_custom_events_for_date(
         &seed_rows,
         &unresolved_rows);
     if (seed_rows <= 0) {
+        if (!kbo_team_classification_seed_source_available()) {
+            static uint32_t last_logged_seed_missing_date = 0u;
+            if (last_logged_seed_missing_date != today) {
+                last_logged_seed_missing_date = today;
+                kbo_log_runtimef(
+                    "KBO independent futures acquisition schedule deferred source=%s reason=team_classification_seed_unavailable today=%u",
+                    source != NULL ? source : "",
+                    today);
+            }
+            return -1;
+        }
         return 0;
     }
     if (league_count <= 0) {

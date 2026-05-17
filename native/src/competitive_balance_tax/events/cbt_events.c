@@ -95,6 +95,12 @@ int kbo_schedule_cbt_custom_events_for_date(uint32_t today, const char* source)
         return -1;
     }
 
+    KboCbtRules rules;
+    kbo_cbt_rules_load(&rules);
+    if (!rules.enabled) {
+        return 0;
+    }
+
     uint32_t opening_day = 0u;
     if (!kbo_cbt_exception_resolve_opening_day(year, &opening_day)) {
         static uint32_t last_logged_no_opening_day = 0u;
@@ -110,8 +116,6 @@ int kbo_schedule_cbt_custom_events_for_date(uint32_t today, const char* source)
         return -1;
     }
 
-    KboCbtRules rules;
-    kbo_cbt_rules_load(&rules);
     uint32_t deadline = kbo_add_days_yyyymmdd(opening_day, rules.exception_deadline_days_after_opening);
     uint32_t announcement = kbo_add_days_yyyymmdd(opening_day, rules.announcement_days_after_opening);
     if (deadline == 0u || announcement == 0u) {
