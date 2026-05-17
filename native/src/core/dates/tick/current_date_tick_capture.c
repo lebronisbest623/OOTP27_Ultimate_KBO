@@ -301,6 +301,15 @@ static int kbo_current_date_tick_consumer_emit_save_enter_current(
     return 1;
 }
 
+static int kbo_current_date_tick_consumer_needs_save_enter_current(
+    const KboCurrentDateTickConsumer* consumer)
+{
+    return consumer != NULL
+        && (consumer->flags & KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER) != 0u
+        && consumer->last_processed_date == 0u
+        && !consumer->pending_valid;
+}
+
 static int kbo_current_date_tick_consumer_pending_work(
     const KboCurrentDateTickConsumer* consumer,
     KboCurrentDateTickWork* out_work)
@@ -372,7 +381,7 @@ int kbo_current_date_tick_consumer_next(
     if (!kbo_current_date_tick_consumer_refresh_save_path(consumer, &save_changed)) {
         return 0;
     }
-    if (save_changed) {
+    if (save_changed || kbo_current_date_tick_consumer_needs_save_enter_current(consumer)) {
         kbo_current_date_tick_consumer_emit_save_enter_current(consumer);
     }
 

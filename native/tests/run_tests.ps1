@@ -84,6 +84,7 @@ if ($LASTEXITCODE -ne 0) {
     (Join-Path $Root "src\team\classification\parse\team_classification_seed_parse.c") `
     (Join-Path $Root "src\fa_market_classification\policy\fa_market_row_policy.c") `
     (Join-Path $Root "src\team\names\team_string.c") `
+    (Join-Path $Root "src\core\dates\tick\current_date_tick_capture.c") `
     (Join-Path $Root "src\core\dates\core_text_date.c") `
     (Join-Path $Root "src\core\sql\escape\core_sql_escape.c") `
     (Join-Path $Root "src\core\core_flags\keys\flag_key.c") `

@@ -19,11 +19,15 @@
 #include "../src/core/news/links/core_news_links.h"
 #include "../src/core/csv/core_csv.h"
 #include "../src/core/sql/escape/core_sql_escape.h"
+#include "../src/core/dates/tick/current_date_tick_capture.h"
 #include "../src/foreign/replacement_seed/parse/foreign_replacement_seed_parse.h"
 #include "../src/captain/season/captain_season.h"
 #include "../src/captain/seed/parse/captain_seed_parse.h"
 #include "../src/patch_helpers/patch_helpers.h"
 #include "../src/awards/schedule/award_schedule_probe_internal.h"
+
+static uint32_t g_test_current_yyyymmdd = 0u;
+static char g_test_current_save_path[MAX_PATH] = {0};
 
 int kbo_current_date_is_valid(uint32_t* out_year, uint32_t* out_month, uint32_t* out_day)
 {
@@ -42,9 +46,21 @@ int kbo_current_date_is_valid(uint32_t* out_year, uint32_t* out_month, uint32_t*
 int kbo_get_current_yyyymmdd(uint32_t* out_date)
 {
     if (out_date != NULL) {
-        *out_date = 0u;
+        *out_date = g_test_current_yyyymmdd;
     }
-    return 0;
+    return g_test_current_yyyymmdd != 0u;
+}
+
+int kbo_get_current_save_path(char* out, size_t out_size)
+{
+    if (out != NULL && out_size > 0u) {
+        out[0] = '\0';
+    }
+    if (out == NULL || out_size == 0u || g_test_current_save_path[0] == '\0') {
+        return 0;
+    }
+    snprintf(out, out_size, "%s", g_test_current_save_path);
+    return out[0] != '\0';
 }
 
 #include "../src/military_service/calendar/military_service_date.h"
@@ -382,6 +398,51 @@ static void test_date_serial(void)
     assert(kbo_yyyymmdd_add_days(22001231u, 1u) == 0u);
     assert(kbo_current_date_serial() == 0u);
     printf("test_date_serial: PASS\n");
+}
+
+static void kbo_test_reset_current_date_tick_state(void)
+{
+    InterlockedExchange(&g_kbo_current_date_tick_event_write_cursor, 0);
+    InterlockedExchange(&g_kbo_current_date_tick_event_published_sequence, 0);
+    InterlockedExchange(&g_kbo_current_date_tick_last_published_date, 0);
+    memset(g_kbo_current_date_tick_event_dates, 0, sizeof(g_kbo_current_date_tick_event_dates));
+    memset(g_kbo_current_date_tick_event_site_rvas, 0, sizeof(g_kbo_current_date_tick_event_site_rvas));
+    g_test_current_yyyymmdd = 0u;
+    g_test_current_save_path[0] = '\0';
+}
+
+static void test_current_date_tick_consumer_retries_save_enter_until_date_ready(void)
+{
+    kbo_test_reset_current_date_tick_state();
+    snprintf(g_test_current_save_path, sizeof(g_test_current_save_path), "C:\\test\\saved_games\\New Game.lg");
+
+    KboCurrentDateTickConsumer consumer = {0};
+    KboCurrentDateTickWork work = {0};
+    kbo_current_date_tick_consumer_init(
+        &consumer,
+        "test_save_enter_retry",
+        KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER);
+
+    assert(!kbo_current_date_tick_consumer_next(&consumer, &work));
+
+    g_test_current_yyyymmdd = 20260301u;
+    assert(kbo_current_date_tick_consumer_next(&consumer, &work));
+    assert(work.date == 20260301u);
+    assert(work.event_date == 20260301u);
+    assert(work.sequence == 0u);
+    kbo_current_date_tick_consumer_mark_processed(&consumer);
+
+    assert(!kbo_current_date_tick_consumer_next(&consumer, &work));
+    assert(kbo_current_date_tick_publish(20260302u, 0x1234u));
+    assert(kbo_current_date_tick_consumer_next(&consumer, &work));
+    assert(work.date == 20260302u);
+    assert(work.event_date == 20260302u);
+    assert(work.site_rva == 0x1234u);
+    assert(work.sequence == 1u);
+    kbo_current_date_tick_consumer_mark_processed(&consumer);
+
+    kbo_test_reset_current_date_tick_state();
+    printf("test_current_date_tick_consumer_retries_save_enter_until_date_ready: PASS\n");
 }
 
 static void test_foreign_waiver_date_helpers(void)
@@ -1991,6 +2052,7 @@ int main(void)
     test_news_template_render();
     test_news_related_link_parse();
     test_date_serial();
+    test_current_date_tick_consumer_retries_save_enter_until_date_ready();
     test_foreign_waiver_date_helpers();
     test_military_csv_parse();
     test_military_date_round_trip();
