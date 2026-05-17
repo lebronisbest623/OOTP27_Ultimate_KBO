@@ -15,6 +15,7 @@
 #include "../../../core/dates/core_text_date.h"
 #include "../../../core/logging/core_log.h"
 #include "../../../core/news/ledger/core_news_ledger.h"
+#include "../../../core/news/objects/core_news_object.h"
 #include "../../../core/news/templates/core_news_templates.h"
 #include "../../../core/sql/league_news/core_sql_league_news.h"
 #include "../../../core/season/phase/season_phase.h"
@@ -244,6 +245,15 @@ static int kbo_emit_independent_team_acquisition_open_news(
         return 0;
     }
 
+    int real_created = create_kbo_real_add_news(
+        event_yyyymmdd / 10000u,
+        (event_yyyymmdd / 100u) % 100u,
+        event_yyyymmdd % 100u,
+        league_id,
+        OOTP27_EVENT_TYPE_CUSTOM_EVENT,
+        title,
+        body,
+        "independent_acquisition_open");
     int league_news_created = insert_kbo_league_news_table_sql(
         event_yyyymmdd / 10000u,
         (event_yyyymmdd / 100u) % 100u,
@@ -261,7 +271,7 @@ static int kbo_emit_independent_team_acquisition_open_news(
         title,
         body,
         "independent_acquisition_open");
-    int created = message_created != 0;
+    int created = real_created != 0 || league_news_created != 0 || message_created != 0;
     if (created) {
         kbo_custom_news_ledger_record_completed(
             KBO_INDEPENDENT_ACQUISITION_NEWS_LEDGER_DOMAIN,
@@ -270,11 +280,12 @@ static int kbo_emit_independent_team_acquisition_open_news(
             source);
     }
     kbo_log_runtimef(
-        "KBO independent futures acquisition news source=%s title=%s date=%u league_id=%u league_news=%d messages=%d created=%d",
+        "KBO independent futures acquisition news source=%s title=%s date=%u league_id=%u real=%d league_news=%d messages=%d created=%d",
         source != NULL ? source : "",
         title,
         event_yyyymmdd,
         league_id,
+        real_created,
         league_news_created,
         message_created,
         created);

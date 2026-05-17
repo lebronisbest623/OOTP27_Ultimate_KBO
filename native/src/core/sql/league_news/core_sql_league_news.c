@@ -12,10 +12,59 @@
 #include "../../../runtime_memory/runtime_memory.h"
 #include "../../logging/core_log.h"
 #include "../../files/message_body/core_message_body_file.h"
+#include "../../files/save_paths/core_save_paths.h"
 #include "../../news/links/core_news_links.h"
 #include "../escape/core_sql_escape.h"
 #include "../../dates/core_text_date.h"
 #include "../../text/ootp_text_encoding.h"
+
+typedef int (__cdecl *KboLeagueNewsSqliteOpenV2Fn)(const char*, void**, int, const char*);
+typedef int (__cdecl *KboLeagueNewsSqliteCloseFn)(void*);
+typedef void (__cdecl *KboLeagueNewsSqliteFreeFn)(void*);
+
+#define KBO_LEAGUE_NEWS_SQLITE_OPEN_READWRITE 0x00000002
+
+typedef struct KboLeagueNewsSqliteFileApi {
+    int attempted;
+    int available;
+    HMODULE module;
+    KboLeagueNewsSqliteOpenV2Fn open_v2;
+    KboLeagueNewsSqliteCloseFn close;
+    KboSqlite3ExecFn exec;
+    KboLeagueNewsSqliteFreeFn free_fn;
+} KboLeagueNewsSqliteFileApi;
+
+static KboLeagueNewsSqliteFileApi g_kbo_league_news_sqlite_file_api = {0};
+
+static KboLeagueNewsSqliteOpenV2Fn kbo_league_news_sqlite_open_v2_from_proc(FARPROC proc)
+{
+    union {
+        FARPROC proc;
+        KboLeagueNewsSqliteOpenV2Fn open_v2;
+    } cast;
+    cast.proc = proc;
+    return cast.open_v2;
+}
+
+static KboLeagueNewsSqliteCloseFn kbo_league_news_sqlite_close_from_proc(FARPROC proc)
+{
+    union {
+        FARPROC proc;
+        KboLeagueNewsSqliteCloseFn close;
+    } cast;
+    cast.proc = proc;
+    return cast.close;
+}
+
+static KboLeagueNewsSqliteFreeFn kbo_league_news_sqlite_free_from_proc(FARPROC proc)
+{
+    union {
+        FARPROC proc;
+        KboLeagueNewsSqliteFreeFn free_fn;
+    } cast;
+    cast.proc = proc;
+    return cast.free_fn;
+}
 
 static KboSqlite3ExecFn kbo_sqlite3_exec_from_proc(FARPROC proc)
 {
@@ -34,11 +83,20 @@ KboSqlite3ExecFn kbo_get_sqlite3_exec_fn(void)
         return cached_exec;
     }
 
+    HMODULE exe = GetModuleHandleA(NULL);
+    if (exe != NULL) {
+        FARPROC proc = GetProcAddress(exe, "sqlite3_exec");
+        if (proc != NULL) {
+            cached_exec = kbo_sqlite3_exec_from_proc(proc);
+            return cached_exec;
+        }
+    }
+
     const char* module_names[] = {
-        "winsqlite3.dll",
-        "WinSQLite3.dll",
         "sqlite3.dll",
         "SQLite3.dll",
+        "winsqlite3.dll",
+        "WinSQLite3.dll",
     };
     for (int i = 0; i < (int)(sizeof(module_names) / sizeof(module_names[0])); i++) {
         HMODULE module = GetModuleHandleA(module_names[i]);
@@ -52,14 +110,153 @@ KboSqlite3ExecFn kbo_get_sqlite3_exec_fn(void)
         }
     }
 
-    HMODULE module = GetModuleHandleA(NULL);
-    if (module != NULL) {
-        FARPROC proc = GetProcAddress(module, "sqlite3_exec");
-        if (proc != NULL) {
-            cached_exec = kbo_sqlite3_exec_from_proc(proc);
-        }
-    }
     return cached_exec;
+}
+
+static KboLeagueNewsSqliteFileApi* kbo_league_news_get_sqlite_file_api(void)
+{
+    if (g_kbo_league_news_sqlite_file_api.attempted) {
+        return g_kbo_league_news_sqlite_file_api.available
+            ? &g_kbo_league_news_sqlite_file_api
+            : NULL;
+    }
+
+    g_kbo_league_news_sqlite_file_api.attempted = 1;
+    HMODULE module = LoadLibraryA("winsqlite3.dll");
+    if (module == NULL) {
+        kbo_log_runtimef(
+            "league_news text_data fallback unavailable reason=load_winsqlite3_failed gle=%lu",
+            GetLastError());
+        return NULL;
+    }
+
+    g_kbo_league_news_sqlite_file_api.module = module;
+    g_kbo_league_news_sqlite_file_api.open_v2 =
+        kbo_league_news_sqlite_open_v2_from_proc(GetProcAddress(module, "sqlite3_open_v2"));
+    g_kbo_league_news_sqlite_file_api.close =
+        kbo_league_news_sqlite_close_from_proc(GetProcAddress(module, "sqlite3_close"));
+    g_kbo_league_news_sqlite_file_api.exec =
+        kbo_sqlite3_exec_from_proc(GetProcAddress(module, "sqlite3_exec"));
+    g_kbo_league_news_sqlite_file_api.free_fn =
+        kbo_league_news_sqlite_free_from_proc(GetProcAddress(module, "sqlite3_free"));
+    g_kbo_league_news_sqlite_file_api.available =
+        g_kbo_league_news_sqlite_file_api.open_v2 != NULL
+        && g_kbo_league_news_sqlite_file_api.close != NULL
+        && g_kbo_league_news_sqlite_file_api.exec != NULL
+        && g_kbo_league_news_sqlite_file_api.free_fn != NULL;
+    if (!g_kbo_league_news_sqlite_file_api.available) {
+        kbo_log_runtime_line("league_news text_data fallback unavailable reason=missing_winsqlite3_exports");
+        return NULL;
+    }
+    return &g_kbo_league_news_sqlite_file_api;
+}
+
+static int kbo_league_news_text_data_path(char* out, size_t out_size)
+{
+    if (out == NULL || out_size == 0u) {
+        return 0;
+    }
+    out[0] = '\0';
+
+    char save_path[MAX_PATH] = {0};
+    if (!kbo_get_current_save_path(save_path, sizeof(save_path)) || save_path[0] == '\0') {
+        return 0;
+    }
+
+    int written = snprintf(
+        out,
+        out_size,
+        "%s\\temp\\text_data.sqlite3",
+        save_path);
+    return written > 0 && (size_t)written < out_size;
+}
+
+static void kbo_league_news_sqlite_free_error(
+    KboLeagueNewsSqliteFileApi* api,
+    char* err)
+{
+    if (api != NULL && api->free_fn != NULL && err != NULL) {
+        api->free_fn(err);
+    }
+}
+
+static int kbo_insert_league_news_table_text_data_fallback(
+    const char* create_sql,
+    const char* delete_sql,
+    const char* insert_sql,
+    const char* source,
+    const char* title,
+    const char* news_date,
+    uint32_t league_id)
+{
+    if (create_sql == NULL || delete_sql == NULL || insert_sql == NULL) {
+        return 0;
+    }
+
+    KboLeagueNewsSqliteFileApi* api = kbo_league_news_get_sqlite_file_api();
+    if (api == NULL) {
+        return 0;
+    }
+
+    char db_path[MAX_PATH] = {0};
+    if (!kbo_league_news_text_data_path(db_path, sizeof(db_path))) {
+        kbo_log_runtimef(
+            "league_news text_data fallback skipped source=%s title=%s date=%s league_id=%u reason=save_path_unavailable",
+            source != NULL ? source : "",
+            title != NULL ? title : "",
+            news_date != NULL ? news_date : "",
+            league_id);
+        return 0;
+    }
+
+    void* database = NULL;
+    int open_rc = api->open_v2(
+        db_path,
+        &database,
+        KBO_LEAGUE_NEWS_SQLITE_OPEN_READWRITE,
+        NULL);
+    if (open_rc != 0 || database == NULL) {
+        kbo_log_runtimef(
+            "league_news text_data fallback skipped source=%s title=%s date=%s league_id=%u reason=open_failed rc=%d db=%p path=%s",
+            source != NULL ? source : "",
+            title != NULL ? title : "",
+            news_date != NULL ? news_date : "",
+            league_id,
+            open_rc,
+            database,
+            db_path);
+        if (database != NULL) {
+            api->close(database);
+        }
+        return 0;
+    }
+
+    char* create_err = NULL;
+    char* delete_err = NULL;
+    char* insert_err = NULL;
+    int create_rc = api->exec(database, create_sql, NULL, NULL, &create_err);
+    int delete_rc = api->exec(database, delete_sql, NULL, NULL, &delete_err);
+    int insert_rc = api->exec(database, insert_sql, NULL, NULL, &insert_err);
+    int inserted = insert_rc == 0;
+    kbo_log_runtimef(
+        "league_news text_data fallback insert source=%s title=%s date=%s league_id=%u create_rc=%d delete_rc=%d insert_rc=%d inserted=%d create_err=%s delete_err=%s insert_err=%s path=%s",
+        source != NULL ? source : "",
+        title != NULL ? title : "",
+        news_date != NULL ? news_date : "",
+        league_id,
+        create_rc,
+        delete_rc,
+        insert_rc,
+        inserted,
+        create_err != NULL ? create_err : "",
+        delete_err != NULL ? delete_err : "",
+        insert_err != NULL ? insert_err : "",
+        db_path);
+    kbo_league_news_sqlite_free_error(api, create_err);
+    kbo_league_news_sqlite_free_error(api, delete_err);
+    kbo_league_news_sqlite_free_error(api, insert_err);
+    api->close(database);
+    return inserted;
 }
 
 int kbo_sqlite_exec_direct(void* database, const char* sql)
@@ -345,8 +542,19 @@ int insert_kbo_league_news_table_sql(
     int create_result = sqlite_exec((void*)database, create_sql, NULL, NULL, NULL) == 0 ? 1 : 0;
     int delete_result = sqlite_exec((void*)database, delete_sql, NULL, NULL, NULL) == 0 ? 1 : 0;
     int insert_result = sqlite_exec((void*)database, insert_sql, NULL, NULL, NULL) == 0 ? 1 : 0;
+    int fallback_result = 0;
+    if (insert_result == 0) {
+        fallback_result = kbo_insert_league_news_table_text_data_fallback(
+            create_sql,
+            delete_sql,
+            insert_sql,
+            source,
+            title,
+            news_date,
+            league_id);
+    }
     kbo_log_runtimef(
-        "league_news table sql insert source=%s title=%s date=%s league_id=%u create=%d delete=%d insert=%d db=%p exec=%p encoding=%s",
+        "league_news table sql insert source=%s title=%s date=%s league_id=%u create=%d delete=%d insert=%d fallback=%d db=%p exec=%p encoding=%s",
         source != NULL ? source : "",
         title,
         news_date,
@@ -354,10 +562,11 @@ int insert_kbo_league_news_table_sql(
         create_result,
         delete_result,
         insert_result,
+        fallback_result,
         (void*)database,
         (void*)sqlite_exec,
         uses_internal_encoding ? "ootp-internal" : "raw");
     kbo_free_ootp_internal_text(internal_title);
     kbo_free_ootp_internal_text(internal_body);
-    return insert_result != 0;
+    return insert_result != 0 || fallback_result != 0;
 }
