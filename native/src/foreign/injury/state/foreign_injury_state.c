@@ -246,6 +246,46 @@ int kbo_foreign_injury_expected_end_pending(
         && today_yyyymmdd < expected_end_yyyymmdd;
 }
 
+int kbo_foreign_injury_sql_evidence_date_allowed(
+    uint32_t scan_date_yyyymmdd,
+    uint32_t evidence_date_yyyymmdd,
+    int duration_days,
+    int allow_backdated)
+{
+    if (scan_date_yyyymmdd == 0u || evidence_date_yyyymmdd == 0u || duration_days <= 0) {
+        return 0;
+    }
+    if (evidence_date_yyyymmdd == scan_date_yyyymmdd) {
+        return 1;
+    }
+    if (!allow_backdated || evidence_date_yyyymmdd > scan_date_yyyymmdd) {
+        return 0;
+    }
+
+    uint32_t expected_end = kbo_foreign_injury_expected_end_from_duration(
+        evidence_date_yyyymmdd,
+        duration_days);
+    return expected_end != 0u
+        && !kbo_foreign_injury_expected_end_reached(scan_date_yyyymmdd, expected_end);
+}
+
+uint32_t kbo_foreign_injury_slot_opened_on_from_sql_evidence(
+    uint32_t scan_date_yyyymmdd,
+    uint32_t evidence_date_yyyymmdd,
+    int allow_backdated)
+{
+    if (scan_date_yyyymmdd != 0u
+            && evidence_date_yyyymmdd != 0u
+            && evidence_date_yyyymmdd < scan_date_yyyymmdd
+            && allow_backdated) {
+        return scan_date_yyyymmdd;
+    }
+    if (evidence_date_yyyymmdd != 0u) {
+        return evidence_date_yyyymmdd;
+    }
+    return scan_date_yyyymmdd;
+}
+
 uint32_t kbo_foreign_injury_expected_end_from_duration(
     uint32_t anchor_yyyymmdd,
     int duration_days)

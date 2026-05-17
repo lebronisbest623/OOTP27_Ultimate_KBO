@@ -58,6 +58,13 @@ int kbo_foreign_injury_recent_sql_has_long_term_injury_date_on_date(
     uint32_t game_date_yyyymmdd,
     int* out_days,
     uint32_t* out_evidence_date);
+int kbo_foreign_injury_recent_sql_has_long_term_injury_date_on_date_mode(
+    uint32_t player_id,
+    int min_days,
+    uint32_t game_date_yyyymmdd,
+    int allow_backdated,
+    int* out_days,
+    uint32_t* out_evidence_date);
 int kbo_foreign_injury_collect_sql_long_term_injuries_on_date(
     uint32_t game_date_yyyymmdd,
     int min_days,

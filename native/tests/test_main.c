@@ -1927,6 +1927,14 @@ static void test_foreign_injury_inactive_roster_long_term_basis(void)
     assert(kbo_foreign_injury_expected_end_from_duration(20260621, 150) == 20261118u);
     assert(kbo_foreign_injury_expected_end_from_duration(0, 150) == 0u);
     assert(kbo_foreign_injury_expected_end_from_duration(20260602, 0) == 0u);
+    assert(kbo_foreign_injury_sql_evidence_date_allowed(20260524u, 20260524u, 120, 0));
+    assert(!kbo_foreign_injury_sql_evidence_date_allowed(20260530u, 20260524u, 120, 0));
+    assert(kbo_foreign_injury_sql_evidence_date_allowed(20260530u, 20260524u, 120, 1));
+    assert(!kbo_foreign_injury_sql_evidence_date_allowed(20260922u, 20260524u, 120, 1));
+    assert(!kbo_foreign_injury_sql_evidence_date_allowed(20260523u, 20260524u, 120, 1));
+    assert(kbo_foreign_injury_slot_opened_on_from_sql_evidence(20260530u, 20260524u, 1) == 20260530u);
+    assert(kbo_foreign_injury_slot_opened_on_from_sql_evidence(20260530u, 20260524u, 0) == 20260524u);
+    assert(kbo_foreign_injury_slot_opened_on_from_sql_evidence(20260524u, 20260524u, 1) == 20260524u);
 
     assert(!kbo_foreign_injury_replacement_phase_allows_signing(KBO_SEASON_PHASE_OFFSEASON_RESET));
     assert(!kbo_foreign_injury_replacement_phase_allows_signing(KBO_SEASON_PHASE_OFFSEASON_STARTED));

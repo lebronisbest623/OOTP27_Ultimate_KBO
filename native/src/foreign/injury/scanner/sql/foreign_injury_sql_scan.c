@@ -1129,10 +1129,11 @@ int kbo_foreign_injury_recent_sql_has_long_term_injury_date(
         out_evidence_date);
 }
 
-int kbo_foreign_injury_recent_sql_has_long_term_injury_date_on_date(
+int kbo_foreign_injury_recent_sql_has_long_term_injury_date_on_date_mode(
     uint32_t player_id,
     int min_days,
     uint32_t game_date_yyyymmdd,
+    int allow_backdated,
     int* out_days,
     uint32_t* out_evidence_date)
 {
@@ -1176,7 +1177,11 @@ int kbo_foreign_injury_recent_sql_has_long_term_injury_date_on_date(
             min_days,
             &daily_days,
             &daily_date)) {
-        if (daily_date != game_date_yyyymmdd) {
+        if (!kbo_foreign_injury_sql_evidence_date_allowed(
+                game_date_yyyymmdd,
+                daily_date,
+                daily_days,
+                allow_backdated)) {
             return 0;
         }
         if (out_days != NULL) {
@@ -1198,16 +1203,24 @@ int kbo_foreign_injury_recent_sql_has_long_term_injury_date_on_date(
             &cached_days,
             &cached_date);
     if (cached != 0) {
-        if (cached_date != game_date_yyyymmdd) {
-            return 0;
+        if (cached < 0 && allow_backdated) {
+            cached = 0;
+        } else {
+            if (!kbo_foreign_injury_sql_evidence_date_allowed(
+                    game_date_yyyymmdd,
+                    cached_date,
+                    cached_days,
+                    allow_backdated)) {
+                return 0;
+            }
+            if (out_days != NULL) {
+                *out_days = cached_days;
+            }
+            if (out_evidence_date != NULL) {
+                *out_evidence_date = cached_date;
+            }
+            return cached > 0;
         }
-        if (out_days != NULL) {
-            *out_days = cached_days;
-        }
-        if (out_evidence_date != NULL) {
-            *out_evidence_date = cached_date;
-        }
-        return cached > 0;
     }
 
     char sql[1600] = {0};
@@ -1241,7 +1254,11 @@ int kbo_foreign_injury_recent_sql_has_long_term_injury_date_on_date(
 
     int found = result == 0
         && scan.found
-        && scan.best_date == game_date_yyyymmdd;
+        && kbo_foreign_injury_sql_evidence_date_allowed(
+            game_date_yyyymmdd,
+            scan.best_date,
+            scan.best_days,
+            allow_backdated);
     if (scan.found && !found) {
         kbo_log_runtimef(
             "foreign injury replacement: sql long-term injury evidence ignored stale player=%u scan_date=%u evidence_date=%u days=%d",
@@ -1275,6 +1292,22 @@ int kbo_foreign_injury_recent_sql_has_long_term_injury_date_on_date(
         scan.best_days,
         scan.best_date);
     return found;
+}
+
+int kbo_foreign_injury_recent_sql_has_long_term_injury_date_on_date(
+    uint32_t player_id,
+    int min_days,
+    uint32_t game_date_yyyymmdd,
+    int* out_days,
+    uint32_t* out_evidence_date)
+{
+    return kbo_foreign_injury_recent_sql_has_long_term_injury_date_on_date_mode(
+        player_id,
+        min_days,
+        game_date_yyyymmdd,
+        0,
+        out_days,
+        out_evidence_date);
 }
 
 int kbo_foreign_injury_recent_sql_has_long_term_injury(

@@ -17,6 +17,12 @@ static int kbo_foreign_injury_replacement_scan_sql_discovery_only(
     int slot_opening_allowed,
     int emit_open_news);
 
+static int kbo_foreign_injury_scan_source_allows_late_sql_evidence(const char* source)
+{
+    return source != NULL
+        && strcmp(source, "foreign_injury_text_data_sql_watch") == 0;
+}
+
 void kbo_foreign_injury_replacement_scan_captured_date(const char* source, uint32_t today)
 {
     kbo_foreign_injury_replacement_scan_for_date_mode(source, today, 1, 1);
@@ -263,6 +269,7 @@ static void kbo_foreign_injury_replacement_scan_for_date_mode(
         today,
         source,
         "scan_open_slot");
+    int allow_late_sql_evidence = kbo_foreign_injury_scan_source_allows_late_sql_evidence(source);
     int scanned = 0;
     int opened = 0;
     if (!slot_opening_allowed) {
@@ -311,10 +318,11 @@ static void kbo_foreign_injury_replacement_scan_for_date_mode(
         int sql_evidence_days = 0;
         uint32_t sql_evidence_date = 0u;
         int sql_injury_eligible = has_assignment
-            ? kbo_foreign_injury_recent_sql_has_long_term_injury_date_on_date(
+            ? kbo_foreign_injury_recent_sql_has_long_term_injury_date_on_date_mode(
                 player_id,
                 min_days,
                 today,
+                allow_late_sql_evidence,
                 &sql_evidence_days,
                 &sql_evidence_date)
             : 0;
@@ -323,6 +331,17 @@ static void kbo_foreign_injury_replacement_scan_for_date_mode(
             days_left,
             min_days,
             inactive_roster_present);
+        int late_sql_evidence = allow_late_sql_evidence
+            && sql_injury_eligible
+            && sql_evidence_date != 0u
+            && sql_evidence_date < today;
+        if (late_sql_evidence
+                && injury_active == 0u
+                && days_left <= 0
+                && !inactive_roster_present) {
+            sql_injury_eligible = 0;
+            late_sql_evidence = 0;
+        }
         if (!direct_injury_eligible && !inactive_roster_eligible && !message_injury_eligible && !sql_injury_eligible) {
             if (injury_active != 0u || days_left > 0 || inactive_roster_present) {
                 LONG log_slot = InterlockedIncrement(&g_kbo_foreign_injury_below_min_log_count);
@@ -451,13 +470,19 @@ static void kbo_foreign_injury_replacement_scan_for_date_mode(
         int updated_expected_end = 0;
         KboForeignInjuryReplacement updated_rec;
         memset(&updated_rec, 0, sizeof(updated_rec));
+        uint32_t sql_expected_anchor = sql_injury_eligible && sql_evidence_date != 0u
+            ? sql_evidence_date
+            : today;
         uint32_t candidate_expected_end = (direct_injury_eligible || message_injury_eligible || sql_injury_eligible)
             ? kbo_foreign_injury_expected_end_from_duration(
-                sql_injury_eligible && sql_evidence_date != 0u ? sql_evidence_date : today,
+                sql_expected_anchor,
                 effective_days_left)
             : 0u;
-        uint32_t candidate_opened_on = sql_injury_eligible && sql_evidence_date != 0u
-            ? sql_evidence_date
+        uint32_t candidate_opened_on = sql_injury_eligible
+            ? kbo_foreign_injury_slot_opened_on_from_sql_evidence(
+                today,
+                sql_evidence_date,
+                late_sql_evidence)
             : today;
         if ((message_injury_eligible || sql_injury_eligible)
                 && candidate_expected_end != 0u
@@ -634,7 +659,9 @@ static void kbo_foreign_injury_replacement_scan_for_date_mode(
                     direct_injury_eligible
                         ? "injury_min_days_met"
                         : (sql_injury_eligible
-                            ? "inactive_roster_long_term_injury_sql"
+                            ? (late_sql_evidence
+                                ? "late_sql_long_term_injury"
+                                : "inactive_roster_long_term_injury_sql")
                             : (message_injury_eligible
                             ? "inactive_roster_long_term_injury_news"
                             : "inactive_roster_long_term_il")),
