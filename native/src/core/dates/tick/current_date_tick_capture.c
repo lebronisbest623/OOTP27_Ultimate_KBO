@@ -17,6 +17,17 @@ volatile LONG g_kbo_current_date_tick_last_published_date = 0;
 uint32_t g_kbo_current_date_tick_event_dates[KBO_CURRENT_DATE_TICK_EVENT_RING_SIZE];
 uint32_t g_kbo_current_date_tick_event_site_rvas[KBO_CURRENT_DATE_TICK_EVENT_RING_SIZE];
 
+#define KBO_CURRENT_DATE_TICK_SYNC_CONSUMER_MAX 16u
+
+typedef struct KboCurrentDateTickSyncConsumerSlot {
+    char label[64];
+    KboCurrentDateTickSyncConsumerFn callback;
+    void* context;
+    volatile LONG last_dispatched_date;
+    volatile LONG processing_date;
+    volatile LONG log_count;
+} KboCurrentDateTickSyncConsumerSlot;
+
 #define KBO_CURRENT_DATE_TICK_PUBLISH_LIVE 0
 #define KBO_CURRENT_DATE_TICK_PUBLISH_SAVE_ENTER 1
 
@@ -25,6 +36,12 @@ static const char* kbo_current_date_tick_log_label(const char* label);
 static volatile LONG g_kbo_current_date_tick_rejected_log_count = 0;
 static SRWLOCK g_kbo_current_date_tick_save_scope_lock = SRWLOCK_INIT;
 static char g_kbo_current_date_tick_save_scope_path[MAX_PATH];
+static SRWLOCK g_kbo_current_date_tick_sync_consumer_lock = SRWLOCK_INIT;
+static KboCurrentDateTickSyncConsumerSlot
+    g_kbo_current_date_tick_sync_consumers[KBO_CURRENT_DATE_TICK_SYNC_CONSUMER_MAX];
+static volatile LONG g_kbo_current_date_tick_sync_consumer_count = 0;
+
+static void kbo_current_date_tick_reset_sync_consumer_dates(void);
 
 static LONG kbo_current_date_tick_latest_sequence(void)
 {
@@ -100,6 +117,159 @@ int kbo_current_date_tick_publish(uint32_t date, uint32_t site_rva)
     return kbo_current_date_tick_publish_core(date, site_rva, KBO_CURRENT_DATE_TICK_PUBLISH_LIVE);
 }
 
+int kbo_current_date_tick_register_sync_consumer(
+    const char* label,
+    KboCurrentDateTickSyncConsumerFn callback,
+    void* context)
+{
+    if (callback == NULL) {
+        return 0;
+    }
+
+    const char* safe_label = kbo_current_date_tick_log_label(label);
+    AcquireSRWLockExclusive(&g_kbo_current_date_tick_sync_consumer_lock);
+    LONG count = InterlockedCompareExchange(
+        &g_kbo_current_date_tick_sync_consumer_count,
+        0,
+        0);
+    for (LONG i = 0; i < count; ++i) {
+        KboCurrentDateTickSyncConsumerSlot* slot =
+            &g_kbo_current_date_tick_sync_consumers[i];
+        if (slot->callback == callback
+                && (label == NULL || strcmp(slot->label, safe_label) == 0)) {
+            ReleaseSRWLockExclusive(&g_kbo_current_date_tick_sync_consumer_lock);
+            return 1;
+        }
+    }
+    if (count < 0 || (uint32_t)count >= KBO_CURRENT_DATE_TICK_SYNC_CONSUMER_MAX) {
+        ReleaseSRWLockExclusive(&g_kbo_current_date_tick_sync_consumer_lock);
+        kbo_log_runtimef(
+            "KBO current date tick sync consumer register failed label=\"%s\" reason=capacity",
+            safe_label);
+        return 0;
+    }
+
+    KboCurrentDateTickSyncConsumerSlot* slot =
+        &g_kbo_current_date_tick_sync_consumers[count];
+    memset(slot, 0, sizeof(*slot));
+    snprintf(slot->label, sizeof(slot->label), "%s", safe_label);
+    slot->callback = callback;
+    slot->context = context;
+    InterlockedExchange(&g_kbo_current_date_tick_sync_consumer_count, count + 1);
+    ReleaseSRWLockExclusive(&g_kbo_current_date_tick_sync_consumer_lock);
+
+    kbo_log_runtimef(
+        "KBO current date tick sync consumer registered label=\"%s\" count=%ld",
+        safe_label,
+        (long)(count + 1));
+    return 1;
+}
+
+static int kbo_current_date_tick_dispatch_sync_consumers(uint32_t date, uint32_t site_rva)
+{
+    if (!kbo_yyyymmdd_valid(date)) {
+        return 0;
+    }
+
+    LONG indices[KBO_CURRENT_DATE_TICK_SYNC_CONSUMER_MAX] = {0};
+    LONG count = 0;
+    AcquireSRWLockShared(&g_kbo_current_date_tick_sync_consumer_lock);
+    LONG registered = InterlockedCompareExchange(
+        &g_kbo_current_date_tick_sync_consumer_count,
+        0,
+        0);
+    if (registered > (LONG)KBO_CURRENT_DATE_TICK_SYNC_CONSUMER_MAX) {
+        registered = (LONG)KBO_CURRENT_DATE_TICK_SYNC_CONSUMER_MAX;
+    }
+    for (LONG i = 0; i < registered; ++i) {
+        if (g_kbo_current_date_tick_sync_consumers[i].callback != NULL) {
+            indices[count++] = i;
+        }
+    }
+    ReleaseSRWLockShared(&g_kbo_current_date_tick_sync_consumer_lock);
+
+    int complete = 1;
+    for (LONG i = 0; i < count; ++i) {
+        KboCurrentDateTickSyncConsumerSlot* slot =
+            &g_kbo_current_date_tick_sync_consumers[indices[i]];
+        LONG last = InterlockedCompareExchange(&slot->last_dispatched_date, 0, 0);
+        if ((uint32_t)last == date) {
+            continue;
+        }
+
+        LONG processing = InterlockedCompareExchange(
+            &slot->processing_date,
+            (LONG)date,
+            0);
+        if (processing != 0) {
+            complete = 0;
+            continue;
+        }
+
+        int ok = 0;
+        if ((uint32_t)InterlockedCompareExchange(&slot->last_dispatched_date, 0, 0) != date
+                && slot->callback != NULL) {
+            if (kbo_current_date_tick_log_allowed((LONG*)&slot->log_count)) {
+                kbo_log_runtimef(
+                    "KBO current date tick sync consumer event label=\"%s\" date=%u site=0x%x",
+                    slot->label,
+                    date,
+                    site_rva);
+            }
+            ok = slot->callback(date, site_rva, slot->context);
+        } else {
+            ok = 1;
+        }
+
+        if (ok) {
+            InterlockedExchange(&slot->last_dispatched_date, (LONG)date);
+        } else {
+            complete = 0;
+            if (kbo_current_date_tick_log_allowed((LONG*)&slot->log_count)) {
+                kbo_log_runtimef(
+                    "KBO current date tick sync consumer deferred label=\"%s\" date=%u site=0x%x",
+                    slot->label,
+                    date,
+                    site_rva);
+            }
+        }
+        InterlockedExchange(&slot->processing_date, 0);
+    }
+
+    return complete;
+}
+
+int kbo_current_date_tick_publish_and_dispatch(uint32_t date, uint32_t site_rva)
+{
+    (void)kbo_current_date_tick_publish(date, site_rva);
+    uint32_t latest = 0u;
+    if (!kbo_current_date_tick_latest_published_date(&latest) || latest != date) {
+        return 0;
+    }
+    return kbo_current_date_tick_dispatch_sync_consumers(date, site_rva);
+}
+
+static void kbo_current_date_tick_reset_sync_consumer_dates(void)
+{
+    AcquireSRWLockExclusive(&g_kbo_current_date_tick_sync_consumer_lock);
+    LONG count = InterlockedCompareExchange(
+        &g_kbo_current_date_tick_sync_consumer_count,
+        0,
+        0);
+    if (count > (LONG)KBO_CURRENT_DATE_TICK_SYNC_CONSUMER_MAX) {
+        count = (LONG)KBO_CURRENT_DATE_TICK_SYNC_CONSUMER_MAX;
+    }
+    for (LONG i = 0; i < count; ++i) {
+        InterlockedExchange(
+            &g_kbo_current_date_tick_sync_consumers[i].last_dispatched_date,
+            0);
+        InterlockedExchange(
+            &g_kbo_current_date_tick_sync_consumers[i].processing_date,
+            0);
+    }
+    ReleaseSRWLockExclusive(&g_kbo_current_date_tick_sync_consumer_lock);
+}
+
 int kbo_current_date_tick_latest_published_date(uint32_t* out_date)
 {
     if (out_date != NULL) {
@@ -127,6 +297,7 @@ static int kbo_current_date_tick_publish_save_enter_current(
         return 0;
     }
 
+    int save_scope_changed = 0;
     AcquireSRWLockExclusive(&g_kbo_current_date_tick_save_scope_lock);
     if (strcmp(g_kbo_current_date_tick_save_scope_path, save_path) != 0) {
         LONG previous_date = InterlockedExchange(&g_kbo_current_date_tick_last_published_date, 0);
@@ -136,8 +307,12 @@ static int kbo_current_date_tick_publish_save_enter_current(
             kbo_current_date_tick_log_label(label),
             save_path,
             (uint32_t)previous_date);
+        save_scope_changed = 1;
     }
     ReleaseSRWLockExclusive(&g_kbo_current_date_tick_save_scope_lock);
+    if (save_scope_changed) {
+        kbo_current_date_tick_reset_sync_consumer_dates();
+    }
 
     uint32_t today = 0u;
     if (!kbo_get_current_yyyymmdd(&today) || !kbo_yyyymmdd_valid(today)) {
@@ -154,6 +329,11 @@ static int kbo_current_date_tick_publish_save_enter_current(
             kbo_current_date_tick_log_label(label),
             save_path,
             today);
+    }
+    if (published) {
+        (void)kbo_current_date_tick_dispatch_sync_consumers(
+            today,
+            KBO_CURRENT_DATE_TICK_SAVE_ENTER_SITE_RVA);
     }
     return published;
 }

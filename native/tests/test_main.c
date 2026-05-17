@@ -556,6 +556,56 @@ static void test_current_date_tick_publish_rejects_non_adjacent_live_dates(void)
     printf("test_current_date_tick_publish_rejects_non_adjacent_live_dates: PASS\n");
 }
 
+static int g_test_current_date_tick_sync_calls = 0;
+static uint32_t g_test_current_date_tick_sync_date = 0u;
+static uint32_t g_test_current_date_tick_sync_site = 0u;
+static int g_test_current_date_tick_sync_result = 1;
+
+static int kbo_test_current_date_tick_sync_consumer(
+    uint32_t date,
+    uint32_t site_rva,
+    void* context)
+{
+    int* result = (int*)context;
+    ++g_test_current_date_tick_sync_calls;
+    g_test_current_date_tick_sync_date = date;
+    g_test_current_date_tick_sync_site = site_rva;
+    return result != NULL ? *result : 1;
+}
+
+static void test_current_date_tick_publish_and_dispatch_waits_sync_consumers(void)
+{
+    kbo_test_reset_current_date_tick_state();
+    g_test_current_date_tick_sync_calls = 0;
+    g_test_current_date_tick_sync_date = 0u;
+    g_test_current_date_tick_sync_site = 0u;
+    g_test_current_date_tick_sync_result = 0;
+
+    assert(kbo_current_date_tick_register_sync_consumer(
+        "test_sync_consumer",
+        kbo_test_current_date_tick_sync_consumer,
+        &g_test_current_date_tick_sync_result));
+
+    assert(kbo_current_date_tick_publish(20260404u, KBO_CURRENT_DATE_TICK_WATCHPOINT_SITE_RVA));
+    assert(!kbo_current_date_tick_publish_and_dispatch(20260404u, 0x15ddf9cu));
+    assert(g_test_current_date_tick_sync_calls == 1);
+    assert(g_test_current_date_tick_sync_date == 20260404u);
+    assert(g_test_current_date_tick_sync_site == 0x15ddf9cu);
+
+    g_test_current_date_tick_sync_result = 1;
+    assert(kbo_current_date_tick_publish_and_dispatch(20260404u, 0x15ddf9cu));
+    assert(g_test_current_date_tick_sync_calls == 2);
+
+    assert(kbo_current_date_tick_publish_and_dispatch(20260404u, 0x15ddf9cu));
+    assert(g_test_current_date_tick_sync_calls == 2);
+
+    assert(!kbo_current_date_tick_publish_and_dispatch(20260406u, 0x15ddf9cu));
+    assert(g_test_current_date_tick_sync_calls == 2);
+
+    kbo_test_reset_current_date_tick_state();
+    printf("test_current_date_tick_publish_and_dispatch_waits_sync_consumers: PASS\n");
+}
+
 static void test_current_date_tick_save_enter_does_not_advance_live_date(void)
 {
     kbo_test_reset_current_date_tick_state();
@@ -2239,6 +2289,7 @@ int main(void)
     test_current_date_tick_consumer_preserves_hooks_before_save_path_ready();
     test_current_date_tick_consumer_requires_published_dates();
     test_current_date_tick_publish_rejects_non_adjacent_live_dates();
+    test_current_date_tick_publish_and_dispatch_waits_sync_consumers();
     test_current_date_tick_save_enter_does_not_advance_live_date();
     test_foreign_waiver_date_helpers();
     test_military_csv_parse();

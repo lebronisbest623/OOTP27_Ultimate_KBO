@@ -394,6 +394,28 @@ int kbo_tick_military_service_days_for_date(
     return kbo_tick_military_service_days_for_serial(today_serial, source, out_seeded_assignments);
 }
 
+int kbo_military_days_tick_sync_consumer(uint32_t date, uint32_t site_rva, void* context)
+{
+    (void)context;
+    KboCurrentDateTickWork work = {
+        .date = date,
+        .event_date = date,
+        .site_rva = site_rva,
+        .sequence = 0u,
+        .missed_events = 0u,
+        .gap = 0
+    };
+    if (!kbo_military_days_tick_ready_for_work(&work)) {
+        return 0;
+    }
+
+    const char* source = site_rva == KBO_CURRENT_DATE_TICK_SAVE_ENTER_SITE_RVA
+        ? "military_days_tick_sync_save_enter"
+        : "military_days_tick_sync_post_advance";
+    kbo_tick_military_service_days_for_date(date, source, NULL);
+    return !kbo_runtime_save_in_progress();
+}
+
 DWORD WINAPI kbo_military_days_tick_thread(LPVOID parameter)
 {
     (void)parameter;
@@ -412,14 +434,7 @@ DWORD WINAPI kbo_military_days_tick_thread(LPVOID parameter)
 
         KboCurrentDateTickWork work = {0};
         while (kbo_current_date_tick_consumer_next(&consumer, &work)) {
-            if (!kbo_military_days_tick_ready_for_work(&work)) {
-                break;
-            }
-
-            kbo_tick_military_service_days_for_date(work.date, "military_days_tick", NULL);
-            if (kbo_runtime_save_in_progress()) {
-                break;
-            }
+            (void)work;
             kbo_current_date_tick_consumer_mark_processed(&consumer);
         }
     }

@@ -23,6 +23,10 @@ static volatile LONG g_kbo_custom_event_global_scheduled_processing_yyyymmdd = 0
 static volatile LONG g_kbo_custom_event_global_scanned_yyyymmdd = 0;
 static volatile LONG g_kbo_custom_event_global_fa_comp_yyyymmdd = 0;
 static volatile LONG g_kbo_custom_event_global_fa_comp_processing_yyyymmdd = 0;
+static volatile LONG g_kbo_custom_event_monitor_live_delegated_log_count = 0;
+static uint32_t g_kbo_custom_event_sync_last_scheduled_yyyymmdd = 0u;
+static uint32_t g_kbo_custom_event_sync_last_scanned_yyyymmdd = 0u;
+static uint32_t g_kbo_custom_event_sync_last_fa_comp_yyyymmdd = 0u;
 
 #define KBO_CUSTOM_EVENT_MONITOR_PULSE_MS 100u
 
@@ -176,6 +180,23 @@ int kbo_custom_event_monitor_tick_for_date(
     return deferred ? 0 : 1;
 }
 
+static int kbo_custom_event_monitor_sync_date_consumer(
+    uint32_t today_yyyymmdd,
+    uint32_t site_rva,
+    void* context)
+{
+    (void)context;
+    const char* source = site_rva == KBO_CURRENT_DATE_TICK_SAVE_ENTER_SITE_RVA
+        ? "custom_event_monitor_sync_save_enter"
+        : "custom_event_monitor_sync_post_advance";
+    return kbo_custom_event_monitor_tick_for_date(
+        today_yyyymmdd,
+        &g_kbo_custom_event_sync_last_scheduled_yyyymmdd,
+        &g_kbo_custom_event_sync_last_scanned_yyyymmdd,
+        &g_kbo_custom_event_sync_last_fa_comp_yyyymmdd,
+        source);
+}
+
 DWORD WINAPI kbo_custom_event_monitor_thread(LPVOID parameter)
 {
     (void)parameter;
@@ -184,7 +205,6 @@ DWORD WINAPI kbo_custom_event_monitor_thread(LPVOID parameter)
     uint32_t last_scheduled_yyyymmdd = 0u;
     uint32_t last_scanned_yyyymmdd = 0u;
     uint32_t last_fa_comp_yyyymmdd = 0u;
-    uint32_t latest_hook_date = 0u;
     LONG last_phase_capture_sequence = InterlockedCompareExchange(
         &g_kbo_season_phase_capture_event_published_sequence,
         0,
@@ -206,29 +226,29 @@ DWORD WINAPI kbo_custom_event_monitor_thread(LPVOID parameter)
 
         KboCurrentDateTickWork work = {0};
         while (kbo_current_date_tick_consumer_next(&consumer, &work)) {
-            const char* source = work.site_rva == KBO_CURRENT_DATE_TICK_SAVE_ENTER_SITE_RVA
-                ? "custom_event_monitor_save_enter"
-                : "custom_event_monitor_date_tick";
-            if (!kbo_custom_event_monitor_tick_for_date(
+            LONG log_no = InterlockedIncrement(
+                &g_kbo_custom_event_monitor_live_delegated_log_count);
+            if (log_no <= 20 || (log_no % 500) == 0) {
+                kbo_log_runtimef(
+                    "KBO custom event monitor date delegated to sync source=custom_event_monitor date=%u site=0x%x seq=%u",
                     work.date,
-                    &last_scheduled_yyyymmdd,
-                    &last_scanned_yyyymmdd,
-                    &last_fa_comp_yyyymmdd,
-                    source)) {
-                break;
+                    work.site_rva,
+                    work.sequence);
             }
-            latest_hook_date = work.date;
             kbo_current_date_tick_consumer_mark_processed(&consumer);
+            continue;
         }
 
         LONG phase_capture_sequence = InterlockedCompareExchange(
             &g_kbo_season_phase_capture_event_published_sequence,
             0,
             0);
-        if (latest_hook_date != 0u && phase_capture_sequence != last_phase_capture_sequence) {
+        uint32_t current_date = 0u;
+        if (phase_capture_sequence != last_phase_capture_sequence
+                && kbo_current_date_tick_latest_published_date(&current_date)) {
             last_phase_capture_sequence = phase_capture_sequence;
             kbo_custom_event_monitor_tick_for_date(
-                latest_hook_date,
+                current_date,
                 &last_scheduled_yyyymmdd,
                 &last_scanned_yyyymmdd,
                 &last_fa_comp_yyyymmdd,
@@ -247,6 +267,10 @@ int start_kbo_custom_event_monitor(void)
         kbo_log_runtime_line("KBO custom event monitor skipped reason=fix_disabled");
         return 0;
     }
+    kbo_current_date_tick_register_sync_consumer(
+        "custom_event_monitor",
+        kbo_custom_event_monitor_sync_date_consumer,
+        NULL);
     if (InterlockedCompareExchange(&g_kbo_custom_event_monitor_started, 1, 0) != 0) {
         return 1;
     }

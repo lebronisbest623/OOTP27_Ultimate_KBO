@@ -76,6 +76,31 @@ static void kbo_foreign_injury_process_sql_settle_dates(void)
     }
 }
 
+static int kbo_foreign_injury_date_tick_sync_consumer(
+    uint32_t date,
+    uint32_t site_rva,
+    void* context)
+{
+    (void)context;
+    if (!kbo_foreign_injury_replacement_enabled()) {
+        return 1;
+    }
+    if (kbo_runtime_save_in_progress()) {
+        kbo_log_runtimef(
+            "foreign injury date tick sync deferred reason=save_in_progress date=%u site=0x%x",
+            date,
+            site_rva);
+        return 0;
+    }
+
+    const char* source = site_rva == KBO_CURRENT_DATE_TICK_SAVE_ENTER_SITE_RVA
+        ? "foreign_injury_current_date_tick_sync_save_enter"
+        : "foreign_injury_current_date_tick_sync_post_advance";
+    kbo_foreign_injury_replacement_scan_captured_date(source, date);
+    kbo_foreign_injury_schedule_sql_settle_date(date);
+    return !kbo_runtime_save_in_progress();
+}
+
 static int kbo_foreign_injury_date_tick_process_work(
     KboCurrentDateTickConsumer* consumer,
     const KboCurrentDateTickWork* work)
@@ -83,20 +108,6 @@ static int kbo_foreign_injury_date_tick_process_work(
     if (consumer == NULL || work == NULL) {
         return 1;
     }
-
-    if (kbo_runtime_save_in_progress()) {
-        kbo_log_runtimef(
-            "foreign injury date tick deferred reason=save_in_progress date=%u site=0x%x seq=%u",
-            work->date,
-            work->site_rva,
-            work->sequence);
-        return 0;
-    }
-
-    kbo_foreign_injury_replacement_scan_captured_date(
-        "foreign_injury_current_date_tick",
-        work->date);
-    kbo_foreign_injury_schedule_sql_settle_date(work->date);
 
     kbo_current_date_tick_consumer_mark_processed(consumer);
     return 1;
@@ -154,6 +165,10 @@ void start_kbo_foreign_injury_date_tick_thread(void)
     if (InterlockedCompareExchange(&g_kbo_foreign_injury_date_tick_thread_started, 1, 0) != 0) {
         return;
     }
+    kbo_current_date_tick_register_sync_consumer(
+        "foreign_injury_current_date_tick",
+        kbo_foreign_injury_date_tick_sync_consumer,
+        NULL);
 
     if (kbo_start_runtime_thread(
             kbo_foreign_injury_date_tick_thread,

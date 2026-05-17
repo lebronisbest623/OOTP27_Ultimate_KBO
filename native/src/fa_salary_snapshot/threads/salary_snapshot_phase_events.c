@@ -148,12 +148,26 @@ static void kbo_fa_salary_snapshot_try_pending_phase_event(uint32_t date)
     }
 }
 
+static int kbo_fa_salary_snapshot_phase_sync_consumer(
+    uint32_t date,
+    uint32_t site_rva,
+    void* context)
+{
+    (void)site_rva;
+    (void)context;
+    if (!kbo_fix_enabled()) {
+        return 1;
+    }
+    kbo_fa_salary_snapshot_drain_phase_events_once();
+    kbo_fa_salary_snapshot_try_pending_phase_event(date);
+    return 1;
+}
+
 static DWORD WINAPI kbo_fa_salary_snapshot_phase_event_thread(LPVOID parameter)
 {
     (void)parameter;
     kbo_log_runtime_line("KBO FA salary opening-day phase hook event thread started");
 
-    uint32_t latest_hook_date = 0u;
     KboCurrentDateTickConsumer date_consumer = {0};
     kbo_current_date_tick_consumer_init(
         &date_consumer,
@@ -175,12 +189,15 @@ static DWORD WINAPI kbo_fa_salary_snapshot_phase_event_thread(LPVOID parameter)
 
         KboCurrentDateTickWork date_work = {0};
         while (kbo_current_date_tick_consumer_next(&date_consumer, &date_work)) {
-            latest_hook_date = date_work.date;
+            (void)date_work;
             kbo_current_date_tick_consumer_mark_processed(&date_consumer);
         }
 
         kbo_fa_salary_snapshot_drain_phase_events_once();
-        kbo_fa_salary_snapshot_try_pending_phase_event(latest_hook_date);
+        uint32_t current_date = 0u;
+        if (kbo_current_date_tick_latest_published_date(&current_date)) {
+            kbo_fa_salary_snapshot_try_pending_phase_event(current_date);
+        }
         if (profile_phase_thread_tick_active) {
             kbo_profiler_end("fa_salary_snapshot.phase_thread.tick", &profile_phase_thread_tick);
         }
@@ -199,6 +216,10 @@ void start_kbo_fa_salary_snapshot_phase_event_thread(void)
     if (InterlockedCompareExchange(&g_kbo_fa_salary_snapshot_phase_event_thread_started, 1, 0) != 0) {
         return;
     }
+    kbo_current_date_tick_register_sync_consumer(
+        "fa_salary_snapshot_phase_events",
+        kbo_fa_salary_snapshot_phase_sync_consumer,
+        NULL);
 
     if (!kbo_start_runtime_thread(
             kbo_fa_salary_snapshot_phase_event_thread,

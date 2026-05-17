@@ -437,62 +437,8 @@ int kbo_schedule_cbt_custom_events(const char* source)
 static DWORD WINAPI kbo_cbt_event_scheduler_thread(LPVOID parameter)
 {
     (void)parameter;
-    kbo_log_runtime_line("KBO CBT event scheduler started");
-    uint32_t last_attempt_date = 0u;
-    int ready = 0;
-    KboCurrentDateTickConsumer consumer = {0};
-    kbo_current_date_tick_consumer_init(
-        &consumer,
-        "cbt_early_event_scheduler",
-        KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER);
-    KboCbtRules rules;
-    kbo_cbt_rules_load(&rules);
-    for (uint32_t attempt = 1u;
-            !ready && attempt <= rules.event_scheduler_max_attempts && kbo_runtime_threads_should_continue();
-            attempt++) {
-        uint32_t today = 0u;
-        int result = -1;
-        if (get_ootp_cached_global_database() != 0u) {
-            KboCurrentDateTickWork work = {0};
-            while (kbo_current_date_tick_consumer_next(&consumer, &work)) {
-                today = work.date;
-                result = kbo_schedule_cbt_custom_events_for_date(
-                    today,
-                    "cbt_early_event_scheduler");
-                if (result >= 0) {
-                    kbo_current_date_tick_consumer_mark_processed(&consumer);
-                    ready = 1;
-                    break;
-                }
-                break;
-            }
-        }
-        if (result >= 0) {
-            kbo_log_runtimef(
-                "KBO CBT event scheduler ready attempt=%d today=%u result=%d",
-                (int)attempt,
-                today,
-                result);
-            break;
-        }
-        int should_log = today != last_attempt_date;
-        for (int i = 0; i < 5; i++) {
-            if (attempt == rules.event_scheduler_log_attempts[i]) {
-                should_log = 1;
-            }
-        }
-        if (should_log) {
-            kbo_log_runtimef(
-                "KBO CBT event scheduler waiting attempt=%d today=%u result=%d",
-                (int)attempt,
-                today,
-                result);
-            last_attempt_date = today;
-        }
-        if (!kbo_runtime_sleep_should_continue(rules.event_scheduler_sleep_ms)) {
-            break;
-        }
-    }
+    kbo_log_runtime_line(
+        "KBO CBT event scheduler retired: custom_event_monitor sync owns CBT scheduling");
     InterlockedExchange(&g_kbo_cbt_event_scheduler_started, 0);
     kbo_log_runtime_line("KBO CBT event scheduler stopped");
     return 0;

@@ -19,6 +19,35 @@
 
 LONG g_kbo_foreign_waiver_scanner_started = 0;
 
+static int kbo_foreign_waiver_scanner_sync_consumer(
+    uint32_t date,
+    uint32_t site_rva,
+    void* context)
+{
+    (void)date;
+    (void)site_rva;
+    (void)context;
+    if (!kbo_foreign_waiver_ai_enabled()) {
+        return 1;
+    }
+    if (kbo_runtime_save_in_progress()) {
+        return 0;
+    }
+
+    char save_path[MAX_PATH] = {0};
+    char readiness_path[MAX_PATH] = {0};
+    if (!kbo_get_current_save_path(save_path, sizeof(save_path))
+            || !kbo_get_save_scoped_data_file("foreign_waiver_commands.txt", readiness_path, sizeof(readiness_path))) {
+        return 0;
+    }
+    process_foreign_waiver_commands();
+    if (!kbo_is_foreign_waiver_negotiation_window_open()) {
+        return 1;
+    }
+    run_foreign_waiver_ai_core_once();
+    return !kbo_runtime_save_in_progress();
+}
+
 static DWORD WINAPI kbo_foreign_waiver_scanner_thread(LPVOID parameter)
 {
     (void)parameter;
@@ -65,10 +94,7 @@ static DWORD WINAPI kbo_foreign_waiver_scanner_thread(LPVOID parameter)
 
         KboCurrentDateTickWork work = {0};
         while (kbo_current_date_tick_consumer_next(&consumer, &work)) {
-            run_foreign_waiver_ai_core_once();
-            if (kbo_runtime_save_in_progress()) {
-                break;
-            }
+            (void)work;
             kbo_current_date_tick_consumer_mark_processed(&consumer);
         }
 
@@ -92,6 +118,10 @@ void start_kbo_foreign_waiver_scanner_thread(void)
     if (InterlockedCompareExchange(&g_kbo_foreign_waiver_scanner_started, 1, 0) != 0) {
         return;
     }
+    kbo_current_date_tick_register_sync_consumer(
+        "foreign_waiver_scanner",
+        kbo_foreign_waiver_scanner_sync_consumer,
+        NULL);
 
     if (kbo_start_runtime_thread(kbo_foreign_waiver_scanner_thread, NULL, "foreign waiver scanner")) {
         if (background_scanner_enabled) {

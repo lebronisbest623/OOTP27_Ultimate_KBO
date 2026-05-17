@@ -3,14 +3,6 @@
 volatile LONG g_kbo_award_schedule_probe_started = 0;
 
 #define KBO_AWARD_SCHEDULE_NORMAL_SLEEP_MS 2000u
-#define KBO_AWARD_SCHEDULE_FAST_SLEEP_MS 250u
-#define KBO_AWARD_SCHEDULE_FAST_RETRY_PULSES 80
-
-static int kbo_award_schedule_probe_fast_window(uint32_t date_key)
-{
-    uint32_t month_day = date_key % 10000u;
-    return month_day >= 1001u && month_day <= 1215u;
-}
 
 static void kbo_award_probe_copy_name(
     uint8_t* league,
@@ -105,11 +97,6 @@ static DWORD WINAPI kbo_award_schedule_probe_thread(LPVOID parameter)
 {
     (void)parameter;
 
-    uintptr_t last_league = 0u;
-    uint32_t last_date = 0u;
-    char last_save_path[MAX_PATH] = {0};
-    int logged = 0;
-    int fast_retry_pulses = 0;
     KboCurrentDateTickConsumer date_consumer = {0};
     kbo_current_date_tick_consumer_init(
         &date_consumer,
@@ -119,69 +106,17 @@ static DWORD WINAPI kbo_award_schedule_probe_thread(LPVOID parameter)
     kbo_log_runtime_line("KBO award schedule probe started");
 
     while (kbo_runtime_threads_should_continue()) {
-        uint32_t sleep_ms = fast_retry_pulses > 0
-            ? KBO_AWARD_SCHEDULE_FAST_SLEEP_MS
-            : KBO_AWARD_SCHEDULE_NORMAL_SLEEP_MS;
-        if (!kbo_runtime_sleep_should_continue(sleep_ms)) {
+        if (!kbo_runtime_sleep_should_continue(KBO_AWARD_SCHEDULE_NORMAL_SLEEP_MS)) {
             break;
         }
         if (!kbo_fix_enabled()) {
             continue;
         }
 
-        char save_path[MAX_PATH] = {0};
-        if (!kbo_get_current_save_path(save_path, sizeof(save_path))) {
-            continue;
-        }
-        if (last_save_path[0] == '\0' || strcmp(last_save_path, save_path) != 0) {
-            snprintf(last_save_path, sizeof(last_save_path), "%s", save_path);
-            last_league = 0u;
-            last_date = 0u;
-            logged = 0;
-            fast_retry_pulses = 0;
-        }
-
         KboCurrentDateTickWork date_work = {0};
-        int has_hook_date = kbo_current_date_tick_consumer_next(&date_consumer, &date_work);
-        uint32_t date_key = has_hook_date ? date_work.date : last_date;
-        if (date_key == 0u || date_key == 0xffffffffu || (!has_hook_date && fast_retry_pulses <= 0)) {
-            continue;
-        }
-
-        uint32_t league_id = kbo_resolve_kbo_league_id();
-        uintptr_t league_ptr = kbo_find_league_ptr_from_id(league_id);
-        if (league_ptr == 0u) {
-            continue;
-        }
-
-        if (!logged || league_ptr != last_league || date_key != last_date) {
-            kbo_log_award_schedule_probe(league_ptr, league_id, date_key);
-            logged = 1;
-            last_league = league_ptr;
-            last_date = date_key;
-            kbo_award_schedule_apply_once(league_id, date_key, 1);
-            kbo_award_schedule_log_event_inventory(league_id, date_key);
-            if (kbo_award_schedule_probe_fast_window(date_key)) {
-                fast_retry_pulses = KBO_AWARD_SCHEDULE_FAST_RETRY_PULSES;
-                kbo_log_runtimef(
-                    "KBO award schedule fast retry window date=%u pulses=%d sleep_ms=%u",
-                    date_key,
-                    fast_retry_pulses,
-                    (uint32_t)KBO_AWARD_SCHEDULE_FAST_SLEEP_MS);
-            } else {
-                fast_retry_pulses = 0;
-            }
-            if (has_hook_date) {
-                kbo_current_date_tick_consumer_mark_processed(&date_consumer);
-            }
-        } else {
-            kbo_award_schedule_apply_once(league_id, date_key, 0);
-            if (fast_retry_pulses > 0) {
-                fast_retry_pulses--;
-            }
-            if (has_hook_date) {
-                kbo_current_date_tick_consumer_mark_processed(&date_consumer);
-            }
+        while (kbo_current_date_tick_consumer_next(&date_consumer, &date_work)) {
+            (void)date_work;
+            kbo_current_date_tick_consumer_mark_processed(&date_consumer);
         }
     }
 
@@ -190,11 +125,40 @@ static DWORD WINAPI kbo_award_schedule_probe_thread(LPVOID parameter)
     return 0;
 }
 
+static int kbo_award_schedule_probe_sync_consumer(
+    uint32_t date,
+    uint32_t site_rva,
+    void* context)
+{
+    (void)site_rva;
+    (void)context;
+    if (!kbo_fix_enabled()) {
+        return 1;
+    }
+    char save_path[MAX_PATH] = {0};
+    if (!kbo_get_current_save_path(save_path, sizeof(save_path))) {
+        return 0;
+    }
+    uint32_t league_id = kbo_resolve_kbo_league_id();
+    uintptr_t league_ptr = kbo_find_league_ptr_from_id(league_id);
+    if (league_ptr == 0u) {
+        return 0;
+    }
+    kbo_log_award_schedule_probe(league_ptr, league_id, date);
+    kbo_award_schedule_apply_once(league_id, date, 1);
+    kbo_award_schedule_log_event_inventory(league_id, date);
+    return 1;
+}
+
 int start_kbo_award_schedule_probe_thread(void)
 {
     if (InterlockedCompareExchange(&g_kbo_award_schedule_probe_started, 1, 0) != 0) {
         return 1;
     }
+    kbo_current_date_tick_register_sync_consumer(
+        "award_schedule_probe",
+        kbo_award_schedule_probe_sync_consumer,
+        NULL);
     if (!kbo_start_runtime_thread(kbo_award_schedule_probe_thread, NULL, "award schedule probe")) {
         InterlockedExchange(&g_kbo_award_schedule_probe_started, 0);
         return 0;

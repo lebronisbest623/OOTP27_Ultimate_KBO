@@ -551,7 +551,7 @@ uint8_t* build_kbo_current_date_tick_capture_stub_live_date_rbp_0x200_global_rax
     n += 4;
     code[n++] = 0x48; code[n++] = 0x83; code[n++] = 0xEC; code[n++] = 0x28; /* sub rsp, 0x28 */
     code[n++] = 0x48; code[n++] = 0xB8;
-    write_u64(&code[n], (uint64_t)(uintptr_t)&kbo_current_date_tick_publish);
+    write_u64(&code[n], (uint64_t)(uintptr_t)&kbo_current_date_tick_publish_and_dispatch);
     n += 8;
     code[n++] = 0xFF; code[n++] = 0xD0; /* call rax */
     code[n++] = 0x48; code[n++] = 0x83; code[n++] = 0xC4; code[n++] = 0x28; /* add rsp, 0x28 */

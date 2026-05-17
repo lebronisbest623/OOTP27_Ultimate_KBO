@@ -204,6 +204,22 @@ static int kbo_domestic_fa_run_investigation_once(uint32_t today, const char* so
     return candidate_count;
 }
 
+static int kbo_domestic_fa_market_investigation_sync_consumer(
+    uint32_t date,
+    uint32_t site_rva,
+    void* context)
+{
+    (void)context;
+    if (!kbo_domestic_fa_market_investigation_enabled()) {
+        return 1;
+    }
+    const char* source = site_rva == KBO_CURRENT_DATE_TICK_SAVE_ENTER_SITE_RVA
+        ? "domestic_fa_market_investigation_sync_save_enter"
+        : "domestic_fa_market_investigation_sync_post_advance";
+    kbo_domestic_fa_run_investigation_once(date, source);
+    return !kbo_runtime_save_in_progress();
+}
+
 static DWORD WINAPI kbo_domestic_fa_market_investigation_thread(LPVOID parameter)
 {
     (void)parameter;
@@ -242,10 +258,7 @@ static DWORD WINAPI kbo_domestic_fa_market_investigation_thread(LPVOID parameter
 
         KboCurrentDateTickWork work = {0};
         while (kbo_current_date_tick_consumer_next(&consumer, &work)) {
-            kbo_domestic_fa_run_investigation_once(work.date, "domestic_fa_market_investigation");
-            if (kbo_runtime_save_in_progress()) {
-                break;
-            }
+            (void)work;
             kbo_current_date_tick_consumer_mark_processed(&consumer);
         }
     }
@@ -260,6 +273,10 @@ void start_kbo_domestic_fa_market_investigation_thread(void)
     if (InterlockedCompareExchange(&g_kbo_domestic_fa_market_investigation_started, 1, 0) != 0) {
         return;
     }
+    kbo_current_date_tick_register_sync_consumer(
+        "domestic_fa_market_investigation",
+        kbo_domestic_fa_market_investigation_sync_consumer,
+        NULL);
 
     if (!kbo_start_runtime_thread(
             kbo_domestic_fa_market_investigation_thread,

@@ -2,6 +2,7 @@
 #include <windows.h>
 
 #include "../../../core/core_flags/api/flags_api.h"
+#include "../../../core/dates/tick/current_date_tick_capture.h"
 #include "../../../core/logging/core_log.h"
 #include "../../military_service.h"
 #include "../days_tick/military_service_days_tick_internal.h"
@@ -29,6 +30,10 @@ void start_kbo_military_days_tick_thread(void)
     if (InterlockedCompareExchange(&g_military_days_tick_started, 1, 0) != 0) {
         return;
     }
+    kbo_current_date_tick_register_sync_consumer(
+        "military_days_tick",
+        kbo_military_days_tick_sync_consumer,
+        NULL);
 
     if (!kbo_start_runtime_thread(kbo_military_days_tick_thread, NULL, "military days tick")) {
         InterlockedExchange(&g_military_days_tick_started, 0);
