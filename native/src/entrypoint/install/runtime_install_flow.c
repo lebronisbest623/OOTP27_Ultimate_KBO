@@ -323,19 +323,22 @@ void install_kbo_full_runtime_after_roster_marker(HINSTANCE instance)
     } else {
         kbo_log_runtime_line("KBO season phase capture hooks disabled: disable_kbo_season_phase_capture_hooks is true");
     }
+    int date_tick_hooks = 0;
     if (!read_kbo_localappdata_flag_file("disable_kbo_current_date_tick_capture_hook.txt")) {
-        int date_tick_hooks = install_kbo_current_date_tick_capture_hook();
-        if (date_tick_hooks <= 0
-                || read_kbo_localappdata_flag_file("enable_kbo_current_date_tick_watchpoint.txt")) {
-            start_kbo_current_date_tick_watchpoint_thread();
-        } else {
-            kbo_log_runtime_line(
-                "KBO current date tick watchpoint fallback skipped: post-advance hook installed");
-        }
+        date_tick_hooks = install_kbo_current_date_tick_capture_hook();
     } else {
         kbo_log_runtime_line("KBO current date tick capture hook disabled: disable_kbo_current_date_tick_capture_hook is true");
     }
+    if (!read_kbo_localappdata_flag_file("disable_kbo_current_date_tick_watchpoint.txt")) {
+        kbo_log_runtimef(
+            "KBO current date tick watchpoint primary requested capture_hooks=%d",
+            date_tick_hooks);
+        start_kbo_current_date_tick_watchpoint_thread();
+    } else {
+        kbo_log_runtime_line("KBO current date tick watchpoint disabled: disable_kbo_current_date_tick_watchpoint is true");
+    }
     start_kbo_foreign_injury_date_tick_thread();
+    start_kbo_foreign_injury_sql_watch_thread();
     if (kbo_no_minor_contract_patch_enabled()) {
         if (!kbo_opening_day_storyline_guard_active("no_minor_contract_patch_install", NULL, NULL)) {
             install_kbo_no_minor_contract_patch_once("runtime_install");

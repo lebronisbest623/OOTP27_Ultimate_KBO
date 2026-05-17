@@ -3,6 +3,7 @@
 
 #include "../../../core/dates/core_current_date.h"
 #include "../../../core/dates/core_text_date.h"
+#include "../../../core/dates/tick/current_date_tick_capture.h"
 #include "foreign_waiver_date.h"
 
 int kbo_days_in_month(uint32_t year, uint32_t month)
@@ -136,5 +137,5 @@ int kbo_parse_yyyymmdd(const char* date_text, uint32_t* out_date)
 
 int kbo_get_foreign_waiver_current_yyyymmdd(uint32_t* out_date)
 {
-    return kbo_get_current_yyyymmdd(out_date);
+    return kbo_current_date_tick_latest_published_date(out_date);
 }

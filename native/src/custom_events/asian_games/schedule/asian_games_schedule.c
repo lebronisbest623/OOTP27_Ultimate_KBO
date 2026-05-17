@@ -5,6 +5,7 @@
 #include "../../../bootstrap/abi/ootp_offsets.h"
 #include "../../../core/logging/core_log.h"
 #include "../../../core/dates/core_current_date.h"
+#include "../../../core/dates/tick/current_date_tick_capture.h"
 #include "../../../core/files/save_paths/core_save_paths.h"
 #include "../../../core/dates/core_text_date.h"
 #include "../../../core/core_flags/api/flags_api.h"
@@ -370,16 +371,12 @@ int kbo_schedule_asian_games_custom_events_for_date(uint32_t today, const char* 
 
 int kbo_schedule_asian_games_custom_events(const char* source)
 {
-    uint32_t year = 0u;
-    uint32_t month = 0u;
-    uint32_t day = 0u;
-    if (!kbo_current_date_is_valid(&year, &month, &day)) {
+    uint32_t today = 0u;
+    if (!kbo_current_date_tick_latest_published_date(&today)) {
         kbo_log_runtimef(
-            "KBO Asian Games schedule skipped source=%s reason=current_date_unavailable",
+            "KBO Asian Games schedule skipped source=%s reason=ssot_date_unavailable",
             source != NULL ? source : "");
         return -1;
     }
-    return kbo_schedule_asian_games_custom_events_for_date(
-        year * 10000u + month * 100u + day,
-        source);
+    return kbo_schedule_asian_games_custom_events_for_date(today, source);
 }

@@ -155,7 +155,7 @@ int kbo_custom_event_monitor_tick_for_date(
         int fa_comp_complete = 0;
         if ((uint32_t)global_fa_comp != today_yyyymmdd && processing_date == 0) {
             KBO_PROFILE_BEGIN(profile_custom_event_monitor_fa_comp);
-            kbo_process_due_fa_compensation_protected_lists(source);
+            kbo_process_due_fa_compensation_protected_lists_for_date(today_yyyymmdd, source);
             KBO_PROFILE_END(profile_custom_event_monitor_fa_comp, "custom_event.monitor.fa_comp_protected_lists");
             InterlockedExchange(&g_kbo_custom_event_global_fa_comp_yyyymmdd, (LONG)today_yyyymmdd);
             InterlockedExchange(&g_kbo_custom_event_global_fa_comp_processing_yyyymmdd, 0);
@@ -194,8 +194,7 @@ DWORD WINAPI kbo_custom_event_monitor_thread(LPVOID parameter)
     kbo_current_date_tick_consumer_init(
         &consumer,
         "custom_event_monitor",
-        KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER
-            | KBO_CURRENT_DATE_TICK_CONSUMER_OBSERVE_CURRENT_WHEN_IDLE);
+        KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER);
 
     while (kbo_runtime_threads_should_continue()) {
         if (!kbo_runtime_sleep_should_continue(KBO_CUSTOM_EVENT_MONITOR_PULSE_MS)) {
@@ -207,13 +206,9 @@ DWORD WINAPI kbo_custom_event_monitor_thread(LPVOID parameter)
 
         KboCurrentDateTickWork work = {0};
         while (kbo_current_date_tick_consumer_next(&consumer, &work)) {
-            const char* source = (work.site_rva == KBO_CURRENT_DATE_TICK_OBSERVED_CURRENT_SITE_RVA)
-                ? "custom_event_monitor_date_pulse"
-                : (work.sequence == 0u && work.site_rva == 0u
-                    ? "custom_event_monitor_save_enter"
-                : (work.gap
-                    ? "custom_event_monitor_date_gap"
-                    : "custom_event_monitor_date_tick"));
+            const char* source = work.site_rva == KBO_CURRENT_DATE_TICK_SAVE_ENTER_SITE_RVA
+                ? "custom_event_monitor_save_enter"
+                : "custom_event_monitor_date_tick";
             if (!kbo_custom_event_monitor_tick_for_date(
                     work.date,
                     &last_scheduled_yyyymmdd,

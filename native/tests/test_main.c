@@ -429,7 +429,8 @@ static void test_current_date_tick_consumer_retries_save_enter_until_date_ready(
     assert(kbo_current_date_tick_consumer_next(&consumer, &work));
     assert(work.date == 20260301u);
     assert(work.event_date == 20260301u);
-    assert(work.sequence == 0u);
+    assert(work.site_rva == KBO_CURRENT_DATE_TICK_SAVE_ENTER_SITE_RVA);
+    assert(work.sequence == 1u);
     kbo_current_date_tick_consumer_mark_processed(&consumer);
 
     g_test_current_yyyymmdd = 20260302u;
@@ -439,7 +440,7 @@ static void test_current_date_tick_consumer_retries_save_enter_until_date_ready(
     assert(work.date == 20260302u);
     assert(work.event_date == 20260302u);
     assert(work.site_rva == 0x1234u);
-    assert(work.sequence == 1u);
+    assert(work.sequence == 2u);
     kbo_current_date_tick_consumer_mark_processed(&consumer);
 
     kbo_test_reset_current_date_tick_state();
@@ -484,7 +485,7 @@ static void test_current_date_tick_consumer_preserves_hooks_before_save_path_rea
     printf("test_current_date_tick_consumer_preserves_hooks_before_save_path_ready: PASS\n");
 }
 
-static void test_current_date_tick_consumer_observed_current_catches_up_when_hook_missing(void)
+static void test_current_date_tick_consumer_requires_published_dates(void)
 {
     kbo_test_reset_current_date_tick_state();
     snprintf(g_test_current_save_path, sizeof(g_test_current_save_path), "C:\\test\\saved_games\\New Game.lg");
@@ -493,32 +494,32 @@ static void test_current_date_tick_consumer_observed_current_catches_up_when_hoo
     KboCurrentDateTickWork work = {0};
     kbo_current_date_tick_consumer_init(
         &consumer,
-        "test_observed_current",
-        KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER
-            | KBO_CURRENT_DATE_TICK_CONSUMER_GAP_CATCHUP
-            | KBO_CURRENT_DATE_TICK_CONSUMER_OBSERVE_CURRENT_WHEN_IDLE);
+        "test_published_dates_only",
+        KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER);
 
     g_test_current_yyyymmdd = 20260301u;
     assert(kbo_current_date_tick_consumer_next(&consumer, &work));
     assert(work.date == 20260301u);
     assert(work.event_date == 20260301u);
-    assert(work.sequence == 0u);
+    assert(work.site_rva == KBO_CURRENT_DATE_TICK_SAVE_ENTER_SITE_RVA);
+    assert(work.sequence == 1u);
     kbo_current_date_tick_consumer_mark_processed(&consumer);
 
     g_test_current_yyyymmdd = 20260305u;
-    for (uint32_t expected = 20260302u; expected <= 20260305u; expected++) {
-        assert(kbo_current_date_tick_consumer_next(&consumer, &work));
-        assert(work.date == expected);
-        assert(work.event_date == 20260305u);
-        assert(work.site_rva == KBO_CURRENT_DATE_TICK_OBSERVED_CURRENT_SITE_RVA);
-        assert(work.sequence == 0u);
-        assert(work.gap == (expected != 20260305u));
-        kbo_current_date_tick_consumer_mark_processed(&consumer);
-    }
+    assert(!kbo_current_date_tick_consumer_next(&consumer, &work));
+
+    assert(kbo_current_date_tick_publish(20260305u, 0x5555u));
+    assert(kbo_current_date_tick_consumer_next(&consumer, &work));
+    assert(work.date == 20260305u);
+    assert(work.event_date == 20260305u);
+    assert(work.site_rva == 0x5555u);
+    assert(work.sequence == 2u);
+    assert(work.gap == 0);
+    kbo_current_date_tick_consumer_mark_processed(&consumer);
     assert(!kbo_current_date_tick_consumer_next(&consumer, &work));
 
     kbo_test_reset_current_date_tick_state();
-    printf("test_current_date_tick_consumer_observed_current_catches_up_when_hook_missing: PASS\n");
+    printf("test_current_date_tick_consumer_requires_published_dates: PASS\n");
 }
 
 static void test_foreign_waiver_date_helpers(void)
@@ -1754,6 +1755,36 @@ static void test_foreign_injury_inactive_roster_long_term_basis(void)
         min_days,
         &evidence_days));
     assert(evidence_days == 180);
+    assert(kbo_foreign_injury_duration_text_meets_minimum(
+        "He learned from the team medical staff that he would miss the rest of the season.",
+        min_days,
+        &evidence_days));
+    assert(evidence_days == 180);
+    assert(kbo_foreign_injury_duration_text_meets_minimum(
+        "The diagnosis confirmed he would be out the rest of the year.",
+        min_days,
+        &evidence_days));
+    assert(evidence_days == 180);
+    assert(kbo_foreign_injury_duration_text_meets_minimum(
+        "The pitcher was diagnosed with a stretched elbow ligament and will miss 11 months.",
+        min_days,
+        &evidence_days));
+    assert(evidence_days == 330);
+    assert(kbo_foreign_injury_duration_text_meets_minimum(
+        "Natsuki Toda diagnosed with a ruptured finger tendon, will miss 4 months.",
+        min_days,
+        &evidence_days));
+    assert(evidence_days == 120);
+    assert(kbo_foreign_injury_duration_text_meets_minimum(
+        "SP Natsuki Toda was injured while pitching. The Diagnosis: elbow strain. He's expected to miss about 3 months.",
+        min_days,
+        &evidence_days));
+    assert(evidence_days == 90);
+    assert(kbo_foreign_injury_duration_text_meets_minimum(
+        "RP Masama Kyoyama diagnosed with a torn labrum, will miss 10 months.",
+        min_days,
+        &evidence_days));
+    assert(evidence_days == 300);
     assert(!kbo_foreign_injury_duration_text_meets_minimum(
         "He is expected to miss 2 weeks.",
         min_days,
@@ -1811,7 +1842,7 @@ static void test_foreign_injury_inactive_roster_long_term_basis(void)
     assert(kbo_foreign_injury_open_news_allowed(20260329u, 20260329u, 20260329u, 1, 0));
     assert(kbo_foreign_injury_open_news_allowed(20260329u, 20260330u, 20260329u, 1, 1));
     assert(!kbo_foreign_injury_open_news_allowed(20260329u, 20260330u, 20260329u, 1, 0));
-    assert(kbo_foreign_injury_open_news_allowed(20260329u, 20260329u, 20260328u, 1, 1));
+    assert(!kbo_foreign_injury_open_news_allowed(20260329u, 20260329u, 20260328u, 1, 1));
     assert(!kbo_foreign_injury_open_news_allowed(20260329u, 20260329u, 0u, 1, 1));
     assert(!kbo_foreign_injury_open_news_allowed(20260329u, 20260329u, 20260330u, 1, 1));
     assert(!kbo_foreign_injury_open_news_allowed(20260329u, 20260329u, 20260329u, 0, 1));
@@ -2132,7 +2163,7 @@ int main(void)
     test_date_serial();
     test_current_date_tick_consumer_retries_save_enter_until_date_ready();
     test_current_date_tick_consumer_preserves_hooks_before_save_path_ready();
-    test_current_date_tick_consumer_observed_current_catches_up_when_hook_missing();
+    test_current_date_tick_consumer_requires_published_dates();
     test_foreign_waiver_date_helpers();
     test_military_csv_parse();
     test_military_date_round_trip();

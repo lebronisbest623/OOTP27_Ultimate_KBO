@@ -6,6 +6,7 @@
 #include "../core_league_context_parts/api/league_context_lookup.h"
 #include "../dates/core_current_date.h"
 #include "../dates/core_text_date.h"
+#include "../dates/tick/current_date_tick_capture.h"
 #include "../logging/core_log.h"
 #include "../../fa_salary_snapshot/paths/salary_snapshot_paths_dates.h"
 
@@ -21,14 +22,13 @@ int kbo_opening_day_storyline_guard_active(
         *out_opening_day = 0u;
     }
 
-    uint32_t year = 0u;
-    uint32_t month = 0u;
-    uint32_t day = 0u;
-    if (!kbo_current_date_is_valid(&year, &month, &day)) {
+    uint32_t date_key = 0u;
+    if (!kbo_current_date_tick_latest_published_date(&date_key)) {
         return 0;
     }
-
-    uint32_t date_key = year * 10000u + month * 100u + day;
+    uint32_t year = date_key / 10000u;
+    uint32_t month = (date_key / 100u) % 100u;
+    uint32_t day = date_key % 100u;
     if (out_date_key != NULL) {
         *out_date_key = date_key;
     }

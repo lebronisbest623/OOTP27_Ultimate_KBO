@@ -1,4 +1,5 @@
 #include "submit_offer_probe_no_minor_demand_internal.h"
+#include "../../../core/dates/tick/current_date_tick_capture.h"
 
 static volatile LONG g_kbo_no_minor_background_scan_date = 0;
 static volatile LONG g_kbo_no_minor_background_scan_player_count = 0;
@@ -24,12 +25,12 @@ int kbo_no_minor_scan_and_floor_teamless_fa_demands(const char* source)
 
     uint32_t today = 0u;
     KBO_PROFILE_BEGIN(profile_no_minor_scan_date);
-    if (!kbo_get_current_yyyymmdd(&today) || today == 0u) {
+    if (!kbo_current_date_tick_latest_published_date(&today) || today == 0u) {
         KBO_PROFILE_END(profile_no_minor_scan_date, "no_minor.scan.current_date");
         static LONG no_date_log_count = 0;
         LONG slot = InterlockedIncrement(&no_date_log_count);
         if (slot <= 5) {
-            kbo_log_runtimef("KBO no-minor demand floor scan skipped source=%s reason=current_date_unavailable", source);
+            kbo_log_runtimef("KBO no-minor demand floor scan skipped source=%s reason=ssot_date_unavailable", source);
         }
         KBO_PROFILE_END(profile_no_minor_scan, "no_minor.scan.no_date");
         return 0;

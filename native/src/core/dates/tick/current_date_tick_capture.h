@@ -42,9 +42,7 @@ typedef struct KboCurrentDateTickConsumer {
 } KboCurrentDateTickConsumer;
 
 #define KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER 1u
-#define KBO_CURRENT_DATE_TICK_CONSUMER_GAP_CATCHUP 2u
-#define KBO_CURRENT_DATE_TICK_CONSUMER_OBSERVE_CURRENT_WHEN_IDLE 4u
-#define KBO_CURRENT_DATE_TICK_OBSERVED_CURRENT_SITE_RVA 0xffffffffu
+#define KBO_CURRENT_DATE_TICK_SAVE_ENTER_SITE_RVA 0xffffffefu
 #define KBO_CURRENT_DATE_TICK_WATCHPOINT_SITE_RVA 0xfffffff0u
 
 extern volatile LONG g_kbo_current_date_tick_event_write_cursor;
@@ -54,6 +52,7 @@ extern uint32_t g_kbo_current_date_tick_event_dates[KBO_CURRENT_DATE_TICK_EVENT_
 extern uint32_t g_kbo_current_date_tick_event_site_rvas[KBO_CURRENT_DATE_TICK_EVENT_RING_SIZE];
 
 int kbo_current_date_tick_publish(uint32_t date, uint32_t site_rva);
+int kbo_current_date_tick_latest_published_date(uint32_t* out_date);
 void kbo_current_date_tick_cursor_init(KboCurrentDateTickCursor* cursor);
 void kbo_current_date_tick_cursor_skip_to_latest(KboCurrentDateTickCursor* cursor);
 int kbo_current_date_tick_next_ex(

@@ -8,7 +8,6 @@
 #include "../save_paths/core_save_paths_internal.h"
 #include "../../dates/core_text_date.h"
 #include "../../core_flags/api/flags_api.h"
-#include "../../text/ootp_text_encoding.h"
 #include "../../../runtime_memory/runtime_memory.h"
 
 /* Core message body file persistence. */
@@ -79,18 +78,11 @@ int write_kbo_message_body_file(uint32_t message_id, const char* title, const ch
 
     DWORD written = 0;
     const char* body_text = body != NULL ? body : "";
-    char* internal_title = kbo_alloc_ootp_internal_text(title);
-    char* internal_body = kbo_alloc_ootp_internal_text(body_text);
-    const char* title_to_write = internal_title != NULL ? internal_title : title;
-    const char* body_to_write = internal_body != NULL ? internal_body : body_text;
-    int uses_internal_encoding = internal_title != NULL || internal_body != NULL;
-    int ok = write_kbo_message_body_chunk(file, title_to_write, &written)
+    int ok = write_kbo_message_body_chunk(file, title, &written)
         && write_kbo_message_body_chunk(file, "\r\n", &written)
-        && write_kbo_message_body_chunk(file, body_to_write, &written)
+        && write_kbo_message_body_chunk(file, body_text, &written)
         && write_kbo_message_body_chunk(file, "\r\n", &written);
     CloseHandle(file);
-    kbo_free_ootp_internal_text(internal_title);
-    kbo_free_ootp_internal_text(internal_body);
 
     kbo_log_runtimef(
         "league news body file write source=%s title=%s id=%u ok=%u bytes=%lu encoding=%s path=%s",
@@ -99,7 +91,7 @@ int write_kbo_message_body_file(uint32_t message_id, const char* title, const ch
         message_id,
         ok ? 1u : 0u,
         written,
-        uses_internal_encoding ? "ootp-internal" : "plain",
+        "plain",
         path);
     return ok && written > 0;
 }

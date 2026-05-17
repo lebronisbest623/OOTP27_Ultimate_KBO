@@ -131,6 +131,9 @@ void kbo_count_foreign_injury_replacements_for_team(
     int* out_closed);
 void kbo_foreign_injury_replacement_scan_captured_date(const char* source, uint32_t today);
 void kbo_foreign_injury_replacement_scan_discovery_for_date(const char* source, uint32_t today);
+void kbo_foreign_injury_replacement_scan_sql_settled_for_date(const char* source, uint32_t today);
+void kbo_foreign_injury_sql_cache_invalidate_all(const char* source);
 void start_kbo_foreign_injury_date_tick_thread(void);
+void start_kbo_foreign_injury_sql_watch_thread(void);
 
 #endif

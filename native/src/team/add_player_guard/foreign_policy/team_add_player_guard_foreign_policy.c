@@ -5,6 +5,7 @@
 #include "../../../bootstrap/abi/ootp_offsets.h"
 #include "../../../core/core_league_context_parts/api/league_context_lookup.h"
 #include "../../../core/core_flags/api/flags_api.h"
+#include "../../../core/dates/tick/current_date_tick_capture.h"
 #include "../../../core/logging/core_log.h"
 #include "../../../foreign/common/dates/foreign_waiver_date.h"
 #include "../../../foreign/common/policy/foreign_waiver_policy.h"
@@ -155,7 +156,7 @@ int kbo_team_add_foreign_policy_should_block(
     }
 
     uint32_t today = 0u;
-    if (kbo_get_current_yyyymmdd(&today) && today != 0u) {
+    if (kbo_current_date_tick_latest_published_date(&today) && today != 0u) {
         uint32_t player_id = *(uint32_t*)(player + OOTP27_PLAYER_ID_OFFSET);
         uint32_t holder_team_id = 0u;
         if (kbo_find_active_foreign_waiver_holder(player_id, today, &holder_team_id)

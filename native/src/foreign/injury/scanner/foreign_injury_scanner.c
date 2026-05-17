@@ -13,7 +13,8 @@ static int kbo_foreign_injury_replacement_scan_sql_discovery_only(
     const char* source,
     uint32_t today,
     uint32_t configured_league_id,
-    int slot_opening_allowed);
+    int slot_opening_allowed,
+    int emit_open_news);
 
 void kbo_foreign_injury_replacement_scan_captured_date(const char* source, uint32_t today)
 {
@@ -25,11 +26,17 @@ void kbo_foreign_injury_replacement_scan_discovery_for_date(const char* source, 
     kbo_foreign_injury_replacement_scan_for_date_mode(source, today, 0, 0);
 }
 
+void kbo_foreign_injury_replacement_scan_sql_settled_for_date(const char* source, uint32_t today)
+{
+    kbo_foreign_injury_replacement_scan_for_date_mode(source, today, 0, 1);
+}
+
 static int kbo_foreign_injury_replacement_scan_sql_discovery_only(
     const char* source,
     uint32_t today,
     uint32_t configured_league_id,
-    int slot_opening_allowed)
+    int slot_opening_allowed,
+    int emit_open_news)
 {
     if (!slot_opening_allowed) {
         kbo_profiler_record_us("foreign_injury.scan.sql_discovery_skipped_closed_window", 0);
@@ -117,6 +124,13 @@ static int kbo_foreign_injury_replacement_scan_sql_discovery_only(
         }
 
         opened++;
+        if (emit_open_news) {
+            kbo_emit_foreign_injury_replacement_news_on_date(
+                &created_rec,
+                evidence->days,
+                "open_roster",
+                today);
+        }
         do {
             KboLogFields audit_fields;
             kbo_log_fields_init(&audit_fields);
@@ -251,13 +265,14 @@ static void kbo_foreign_injury_replacement_scan_for_date_mode(
     int opened = 0;
     if (!slot_opening_allowed) {
         kbo_profiler_record_us("foreign_injury.scan.player_loop_skipped_closed_window", 0);
-    } else if (!process_existing_replacements && !live_injury_fields_available) {
+    } else if (!process_existing_replacements) {
         KBO_PROFILE_BEGIN(profile_foreign_injury_player_loop);
         opened = kbo_foreign_injury_replacement_scan_sql_discovery_only(
             source,
             today,
             configured_league_id,
-            slot_opening_allowed);
+            slot_opening_allowed,
+            captured_live_date);
         KBO_PROFILE_END(profile_foreign_injury_player_loop, "foreign_injury.scan.sql_date_locked_discovery");
     } else {
         KBO_PROFILE_BEGIN(profile_foreign_injury_player_loop);

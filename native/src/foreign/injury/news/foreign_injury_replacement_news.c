@@ -2,6 +2,7 @@
 
 #include "../../common/policy/foreign_player_policy.h"
 #include "../../../core/dates/core_text_date.h"
+#include "../../../core/dates/tick/current_date_tick_capture.h"
 #include "../../../core/news/templates/core_news_templates.h"
 #include "../../../team/names/team_string.h"
 
@@ -204,7 +205,7 @@ void kbo_emit_foreign_injury_replacement_news(
     const char* phase)
 {
     uint32_t event_date = 0u;
-    if (!kbo_get_current_yyyymmdd(&event_date) || event_date == 0u) {
+    if (!kbo_current_date_tick_latest_published_date(&event_date) || event_date == 0u) {
         event_date = rec != NULL ? rec->opened_on_yyyymmdd : 0u;
     }
     kbo_emit_foreign_injury_replacement_news_on_date(rec, days_left, phase, event_date);
@@ -391,7 +392,7 @@ void kbo_emit_foreign_injury_replacement_news_on_date(
         return;
     }
 
-    int created = create_kbo_native_live_news_with_body(
+    int created = create_kbo_native_live_news_with_body_live_required(
         event_date / 10000u,
         (event_date / 100u) % 100u,
         event_date % 100u,

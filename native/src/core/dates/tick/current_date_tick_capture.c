@@ -18,6 +18,7 @@ uint32_t g_kbo_current_date_tick_event_dates[KBO_CURRENT_DATE_TICK_EVENT_RING_SI
 uint32_t g_kbo_current_date_tick_event_site_rvas[KBO_CURRENT_DATE_TICK_EVENT_RING_SIZE];
 
 static int kbo_current_date_tick_log_allowed(LONG* log_count);
+static const char* kbo_current_date_tick_log_label(const char* label);
 
 static LONG kbo_current_date_tick_latest_sequence(void)
 {
@@ -27,25 +28,32 @@ static LONG kbo_current_date_tick_latest_sequence(void)
         0);
 }
 
-int kbo_current_date_tick_publish(uint32_t date, uint32_t site_rva)
+static int kbo_current_date_tick_publish_core(
+    uint32_t date,
+    uint32_t site_rva,
+    int allow_duplicate_date)
 {
     if (!kbo_yyyymmdd_valid(date)) {
         return 0;
     }
-    for (;;) {
-        LONG previous_date = InterlockedCompareExchange(
-            &g_kbo_current_date_tick_last_published_date,
-            0,
-            0);
-        if ((uint32_t)previous_date == date) {
-            return 0;
-        }
-        if (InterlockedCompareExchange(
+    if (!allow_duplicate_date) {
+        for (;;) {
+            LONG previous_date = InterlockedCompareExchange(
                 &g_kbo_current_date_tick_last_published_date,
-                (LONG)date,
-                previous_date) == previous_date) {
-            break;
+                0,
+                0);
+            if ((uint32_t)previous_date == date) {
+                return 0;
+            }
+            if (InterlockedCompareExchange(
+                    &g_kbo_current_date_tick_last_published_date,
+                    (LONG)date,
+                    previous_date) == previous_date) {
+                break;
+            }
         }
+    } else {
+        InterlockedExchange(&g_kbo_current_date_tick_last_published_date, (LONG)date);
     }
 
     LONG event_no = InterlockedExchangeAdd(
@@ -56,6 +64,57 @@ int kbo_current_date_tick_publish(uint32_t date, uint32_t site_rva)
     g_kbo_current_date_tick_event_site_rvas[index] = site_rva;
     InterlockedIncrement(&g_kbo_current_date_tick_event_published_sequence);
     return 1;
+}
+
+int kbo_current_date_tick_publish(uint32_t date, uint32_t site_rva)
+{
+    return kbo_current_date_tick_publish_core(date, site_rva, 0);
+}
+
+int kbo_current_date_tick_latest_published_date(uint32_t* out_date)
+{
+    if (out_date != NULL) {
+        *out_date = 0u;
+    }
+
+    uint32_t date = (uint32_t)InterlockedCompareExchange(
+        &g_kbo_current_date_tick_last_published_date,
+        0,
+        0);
+    if (!kbo_yyyymmdd_valid(date)) {
+        return 0;
+    }
+    if (out_date != NULL) {
+        *out_date = date;
+    }
+    return 1;
+}
+
+static int kbo_current_date_tick_publish_save_enter_current(
+    const char* save_path,
+    const char* label)
+{
+    if (save_path == NULL || save_path[0] == '\0') {
+        return 0;
+    }
+
+    uint32_t today = 0u;
+    if (!kbo_get_current_yyyymmdd(&today) || !kbo_yyyymmdd_valid(today)) {
+        return 0;
+    }
+
+    int published = kbo_current_date_tick_publish_core(
+        today,
+        KBO_CURRENT_DATE_TICK_SAVE_ENTER_SITE_RVA,
+        1);
+    if (published && kbo_current_date_tick_log_allowed(NULL)) {
+        kbo_log_runtimef(
+            "KBO current date tick save-enter published label=\"%s\" save=%s date=%u",
+            kbo_current_date_tick_log_label(label),
+            save_path,
+            today);
+    }
+    return published;
 }
 
 void kbo_current_date_tick_cursor_init(KboCurrentDateTickCursor* cursor)
@@ -295,25 +354,15 @@ static int kbo_current_date_tick_consumer_refresh_save_path(
     return 1;
 }
 
-static int kbo_current_date_tick_consumer_emit_save_enter_current(
+static int kbo_current_date_tick_consumer_publish_save_enter_current(
     KboCurrentDateTickConsumer* consumer)
 {
     if ((consumer->flags & KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER) == 0u) {
         return 0;
     }
-
-    uint32_t today = 0u;
-    if (!kbo_get_current_yyyymmdd(&today) || !kbo_yyyymmdd_valid(today)) {
-        return 0;
-    }
-
-    KboCurrentDateTickEvent event = {
-        .sequence = 0u,
-        .date = today,
-        .site_rva = 0u
-    };
-    kbo_current_date_tick_consumer_set_pending(consumer, event, today, 0u);
-    return 1;
+    return kbo_current_date_tick_publish_save_enter_current(
+        consumer->save_path,
+        kbo_current_date_tick_consumer_label(consumer));
 }
 
 static int kbo_current_date_tick_consumer_needs_save_enter_current(
@@ -339,74 +388,9 @@ static int kbo_current_date_tick_consumer_pending_work(
         .site_rva = consumer->pending_event.site_rva,
         .sequence = consumer->pending_event.sequence,
         .missed_events = kbo_current_date_tick_consumer_pending_missed_events(consumer),
-        .gap = consumer->pending_date != consumer->pending_event.date ? 1 : 0
+        .gap = 0
     };
     return 1;
-}
-
-static uint32_t kbo_current_date_tick_consumer_first_pending_date(
-    const KboCurrentDateTickConsumer* consumer,
-    uint32_t event_date)
-{
-    if ((consumer->flags & KBO_CURRENT_DATE_TICK_CONSUMER_GAP_CATCHUP) == 0u
-            || consumer->last_processed_date == 0u
-            || event_date <= consumer->last_processed_date
-            || !kbo_yyyymmdd_valid(consumer->last_processed_date)) {
-        return event_date;
-    }
-
-    uint32_t next_date = kbo_yyyymmdd_add_days(consumer->last_processed_date, 1u);
-    if (next_date != 0u && next_date <= event_date) {
-        return next_date;
-    }
-    return event_date;
-}
-
-static int kbo_current_date_tick_consumer_can_observe_current(
-    const KboCurrentDateTickConsumer* consumer)
-{
-    return consumer != NULL
-        && (consumer->flags & KBO_CURRENT_DATE_TICK_CONSUMER_OBSERVE_CURRENT_WHEN_IDLE) != 0u
-        && consumer->last_processed_date != 0u
-        && !consumer->pending_valid;
-}
-
-static int kbo_current_date_tick_consumer_observe_current(
-    KboCurrentDateTickConsumer* consumer,
-    KboCurrentDateTickWork* out_work)
-{
-    if (!kbo_current_date_tick_consumer_can_observe_current(consumer)
-            || out_work == NULL) {
-        return 0;
-    }
-
-    uint32_t today = 0u;
-    if (!kbo_get_current_yyyymmdd(&today) || !kbo_yyyymmdd_valid(today)) {
-        return 0;
-    }
-    if (today <= consumer->last_processed_date) {
-        return 0;
-    }
-
-    KboCurrentDateTickEvent event = {
-        .sequence = 0u,
-        .date = today,
-        .site_rva = KBO_CURRENT_DATE_TICK_OBSERVED_CURRENT_SITE_RVA
-    };
-    kbo_current_date_tick_consumer_set_pending(
-        consumer,
-        event,
-        kbo_current_date_tick_consumer_first_pending_date(consumer, today),
-        0u);
-
-    if (kbo_current_date_tick_log_allowed(&consumer->observed_log_count)) {
-        kbo_log_runtimef(
-            "KBO current date tick consumer observed current date label=\"%s\" last=%u current=%u",
-            kbo_current_date_tick_consumer_label(consumer),
-            consumer->last_processed_date,
-            today);
-    }
-    return kbo_current_date_tick_consumer_pending_work(consumer, out_work);
 }
 
 void kbo_current_date_tick_consumer_init(
@@ -447,9 +431,8 @@ int kbo_current_date_tick_consumer_next(
             &first_known_save)) {
         return 0;
     }
-    if ((!save_changed || !first_known_save)
-            && (save_changed || kbo_current_date_tick_consumer_needs_save_enter_current(consumer))) {
-        kbo_current_date_tick_consumer_emit_save_enter_current(consumer);
+    if (save_changed || kbo_current_date_tick_consumer_needs_save_enter_current(consumer)) {
+        kbo_current_date_tick_consumer_publish_save_enter_current(consumer);
     }
 
     if (consumer->pending_valid) {
@@ -465,14 +448,8 @@ int kbo_current_date_tick_consumer_next(
                 &consumer->overflow_log_count,
                 &event,
                 &missed_events)) {
-            if (first_known_save
-                    && kbo_current_date_tick_consumer_needs_save_enter_current(consumer)) {
-                kbo_current_date_tick_consumer_emit_save_enter_current(consumer);
-                if (consumer->pending_valid) {
-                    return kbo_current_date_tick_consumer_pending_work(consumer, out_work);
-                }
-            }
-            return kbo_current_date_tick_consumer_observe_current(consumer, out_work);
+            (void)first_known_save;
+            return 0;
         }
 
         if (!kbo_yyyymmdd_valid(event.date)
@@ -485,7 +462,7 @@ int kbo_current_date_tick_consumer_next(
         kbo_current_date_tick_consumer_set_pending(
             consumer,
             event,
-            kbo_current_date_tick_consumer_first_pending_date(consumer, event.date),
+            event.date,
             missed_events);
         if (kbo_current_date_tick_log_allowed(&consumer->hook_log_count)) {
             kbo_log_runtimef(
@@ -511,15 +488,6 @@ void kbo_current_date_tick_consumer_mark_processed(KboCurrentDateTickConsumer* c
     uint32_t processed_date = consumer->pending_date;
     if (kbo_yyyymmdd_valid(processed_date)) {
         consumer->last_processed_date = processed_date;
-    }
-
-    if (processed_date != consumer->pending_event.date
-            && processed_date < consumer->pending_event.date) {
-        uint32_t next_date = kbo_yyyymmdd_add_days(processed_date, 1u);
-        if (next_date != 0u && next_date <= consumer->pending_event.date) {
-            consumer->pending_date = next_date;
-            return;
-        }
     }
 
     if (consumer->pending_event.sequence != 0u

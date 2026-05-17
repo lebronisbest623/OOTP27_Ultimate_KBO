@@ -1,4 +1,5 @@
 #include "../internal/foreign_injury_internal.h"
+#include "../../../core/dates/tick/current_date_tick_capture.h"
 
 static int kbo_foreign_injury_record_slot_matches_replacement(
     const KboForeignInjuryReplacement* rec,
@@ -59,7 +60,7 @@ int kbo_attach_foreign_injury_replacement_after_signing(
     }
 
     uint32_t today = 0u;
-    kbo_get_current_yyyymmdd(&today);
+    kbo_current_date_tick_latest_published_date(&today);
     uint32_t league_id = kbo_get_foreign_waiver_league_id();
     if (league_id == 0u) {
         league_id = kbo_resolve_kbo_league_id();

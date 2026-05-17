@@ -304,9 +304,7 @@ static DWORD WINAPI kbo_season_phase_monitor_thread(LPVOID parameter)
     kbo_current_date_tick_consumer_init(
         &date_consumer,
         "season_phase_monitor",
-        KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER
-            | KBO_CURRENT_DATE_TICK_CONSUMER_GAP_CATCHUP
-            | KBO_CURRENT_DATE_TICK_CONSUMER_OBSERVE_CURRENT_WHEN_IDLE);
+        KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER);
 
     kbo_log_runtime_line("KBO season phase monitor started");
 

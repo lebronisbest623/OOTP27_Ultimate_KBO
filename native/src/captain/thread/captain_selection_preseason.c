@@ -1,19 +1,19 @@
 #include "../internal/captain_selection_internal.h"
 #include "../audit/captain_rule_audit.h"
+#include "../../core/dates/tick/current_date_tick_capture.h"
+
 int kbo_captain_current_yyyymmdd(uint32_t* out_date)
 {
     if (out_date != NULL) {
         *out_date = 0u;
     }
 
-    uint32_t year = 0;
-    uint32_t month = 0;
-    uint32_t day = 0;
-    if (!kbo_current_date_is_valid(&year, &month, &day)) {
+    uint32_t date = 0u;
+    if (!kbo_current_date_tick_latest_published_date(&date)) {
         return 0;
     }
     if (out_date != NULL) {
-        *out_date = year * 10000u + month * 100u + day;
+        *out_date = date;
     }
     return 1;
 }

@@ -63,17 +63,19 @@ DWORD WINAPI patch_thread(LPVOID parameter)
         kbo_log_runtime_line("KBO player tooltip rating panel ctor probe disabled: disable_kbo_player_tooltip_rating_panel_ctor_probe is true");
     }
     install_kbo_early_foreign_policy_hooks_once("presave_bootstrap");
+    int date_tick_hooks = 0;
     if (!read_kbo_localappdata_flag_file("disable_kbo_current_date_tick_capture_hook.txt")) {
-        int date_tick_hooks = install_kbo_current_date_tick_capture_hook();
-        if (date_tick_hooks <= 0
-                || read_kbo_localappdata_flag_file("enable_kbo_current_date_tick_watchpoint.txt")) {
-            start_kbo_current_date_tick_watchpoint_thread();
-        } else {
-            kbo_log_runtime_line(
-                "KBO current date tick watchpoint fallback skipped: post-advance hook installed");
-        }
+        date_tick_hooks = install_kbo_current_date_tick_capture_hook();
     } else {
         kbo_log_runtime_line("KBO current date tick capture hook disabled: disable_kbo_current_date_tick_capture_hook is true");
+    }
+    if (!read_kbo_localappdata_flag_file("disable_kbo_current_date_tick_watchpoint.txt")) {
+        kbo_log_runtimef(
+            "KBO current date tick watchpoint primary requested capture_hooks=%d",
+            date_tick_hooks);
+        start_kbo_current_date_tick_watchpoint_thread();
+    } else {
+        kbo_log_runtime_line("KBO current date tick watchpoint disabled: disable_kbo_current_date_tick_watchpoint is true");
     }
     install_kbo_early_no_minor_contract_hooks_once("presave_bootstrap");
     int foreign_ai_roster_management =
@@ -126,6 +128,7 @@ DWORD WINAPI patch_thread(LPVOID parameter)
     start_kbo_fa_salary_snapshot_thread();
     start_kbo_domestic_fa_market_investigation_thread();
     start_kbo_captain_preseason_selection_thread();
+    start_kbo_foreign_injury_sql_watch_thread();
 
     if (read_kbo_localappdata_flag_file("enable_single_division_allstar_runtime_patches.txt")) {
         kbo_log_runtime_line("KBO all-star presave bootstrap install started");
@@ -177,16 +180,44 @@ static DWORD WINAPI kbo_hot_reinject_ai_roster_management_thread(LPVOID paramete
 {
     (void)parameter;
 
-    kbo_log_runtime_line("KBO hot reinject foreign AI roster management requested");
+    kbo_log_runtime_line("KBO hot reinject runtime refresh requested");
     if (!read_kbo_localappdata_flag_file("enable_experimental_runtime_hooks.txt")) {
-        kbo_log_runtime_line("KBO hot reinject foreign AI roster management skipped: experimental runtime hooks disabled");
+        kbo_log_runtime_line("KBO hot reinject runtime refresh skipped: experimental runtime hooks disabled");
         return 0;
     }
 
     if (!verify_ootp_build()) {
-        kbo_log_runtime_line("KBO hot reinject foreign AI roster management skipped: build verification failed");
+        kbo_log_runtime_line("KBO hot reinject runtime refresh skipped: build verification failed");
         return 0;
     }
+
+    InterlockedExchange(&g_kbo_runtime_date_stable_ready, 1);
+    kbo_log_runtime_line("KBO hot reinject runtime date stable ready set");
+
+    if (!read_kbo_localappdata_flag_file("disable_kbo_current_date_tick_watchpoint.txt")) {
+        kbo_log_runtime_line("KBO hot reinject current date tick watchpoint requested");
+        start_kbo_current_date_tick_watchpoint_thread();
+    } else {
+        kbo_log_runtime_line("KBO hot reinject current date tick watchpoint disabled: disable_kbo_current_date_tick_watchpoint is true");
+    }
+
+    kbo_log_runtime_line("KBO hot reinject current-date consumers requested");
+    start_kbo_foreign_injury_date_tick_thread();
+    start_kbo_foreign_injury_sql_watch_thread();
+    start_kbo_foreign_waiver_scanner_thread();
+    if (!read_kbo_localappdata_flag_file("disable_kbo_fa_salary_opening_day_snapshot.txt")) {
+        start_kbo_fa_salary_snapshot_thread();
+    }
+    if (read_kbo_localappdata_flag_file("enable_kbo_season_phase_monitor.txt")) {
+        start_kbo_season_phase_monitor();
+    }
+    start_kbo_award_schedule_probe_thread();
+    start_kbo_military_seed_bootstrap_thread();
+    start_kbo_military_days_tick_thread();
+    start_kbo_cbt_event_scheduler_thread();
+    start_kbo_custom_event_monitor();
+    start_kbo_domestic_fa_market_investigation_thread();
+    start_kbo_captain_preseason_selection_thread();
 
     int foreign_ai_roster_management = read_kbo_localappdata_flag_file("enable_foreign_ai_roster_management.txt");
     int foreign_ai_controller = kbo_foreign_ai_controller_enabled();
@@ -210,7 +241,7 @@ static DWORD WINAPI kbo_hot_reinject_ai_roster_management_thread(LPVOID paramete
         install_kbo_ai_roster_apply_selection_trace_patch();
         start_kbo_foreign_roster_daily_audit_thread();
     }
-    kbo_log_runtime_line("KBO hot reinject foreign AI roster management finished");
+    kbo_log_runtime_line("KBO hot reinject runtime refresh finished");
     return 0;
 }
 
@@ -231,13 +262,14 @@ BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved)
         if (g_kbo_process_instance_mutex != NULL && GetLastError() == ERROR_ALREADY_EXISTS) {
             CloseHandle(g_kbo_process_instance_mutex);
             g_kbo_process_instance_mutex = NULL;
-            if (read_kbo_localappdata_flag_file("enable_foreign_ai_roster_management.txt")
+            if (!read_kbo_localappdata_flag_file("disable_kbo_current_date_tick_watchpoint.txt")
+                    || read_kbo_localappdata_flag_file("enable_foreign_ai_roster_management.txt")
                     || kbo_foreign_ai_controller_enabled()
                     || read_kbo_localappdata_flag_file("enable_kbo_hot_reinject_roster_flow_trace.txt")) {
                 kbo_start_runtime_thread(
                     kbo_hot_reinject_ai_roster_management_thread,
                     instance,
-                    "hot reinject foreign AI roster management");
+                    "hot reinject runtime refresh");
             }
             return TRUE;
         }

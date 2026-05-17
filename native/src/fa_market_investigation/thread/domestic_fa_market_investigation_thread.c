@@ -212,9 +212,7 @@ static DWORD WINAPI kbo_domestic_fa_market_investigation_thread(LPVOID parameter
     kbo_current_date_tick_consumer_init(
         &consumer,
         "domestic_fa_market_investigation",
-        KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER
-            | KBO_CURRENT_DATE_TICK_CONSUMER_GAP_CATCHUP
-            | KBO_CURRENT_DATE_TICK_CONSUMER_OBSERVE_CURRENT_WHEN_IDLE);
+        KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER);
 
     int last_enabled = 0;
     while (kbo_runtime_threads_should_continue()) {
@@ -234,9 +232,7 @@ static DWORD WINAPI kbo_domestic_fa_market_investigation_thread(LPVOID parameter
             kbo_current_date_tick_consumer_init(
                 &consumer,
                 "domestic_fa_market_investigation",
-                KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER
-                    | KBO_CURRENT_DATE_TICK_CONSUMER_GAP_CATCHUP
-                    | KBO_CURRENT_DATE_TICK_CONSUMER_OBSERVE_CURRENT_WHEN_IDLE);
+                KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER);
             last_enabled = 1;
         }
 
@@ -246,10 +242,7 @@ static DWORD WINAPI kbo_domestic_fa_market_investigation_thread(LPVOID parameter
 
         KboCurrentDateTickWork work = {0};
         while (kbo_current_date_tick_consumer_next(&consumer, &work)) {
-            const char* source = work.gap
-                ? "domestic_fa_market_investigation_date_gap"
-                : "domestic_fa_market_investigation";
-            kbo_domestic_fa_run_investigation_once(work.date, source);
+            kbo_domestic_fa_run_investigation_once(work.date, "domestic_fa_market_investigation");
             if (kbo_runtime_save_in_progress()) {
                 break;
             }

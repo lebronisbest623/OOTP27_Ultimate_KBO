@@ -10,6 +10,7 @@
 #include "../../core/core_flags/api/flags_api.h"
 #include "../../core/csv/core_csv.h"
 #include "../../core/dates/core_current_date.h"
+#include "../../core/dates/tick/current_date_tick_capture.h"
 #include "../../core/logging/core_log.h"
 #include "../../foreign/common/dates/foreign_waiver_date.h"
 #include "../../foreign/common/player_eval/foreign_waiver_player_eval.h"
@@ -187,7 +188,7 @@ int kbo_fa_declaration_repair_retained_contracts_for_season(
     }
     if (season == 0u) {
         uint32_t today = 0u;
-        if (kbo_get_current_yyyymmdd(&today) && today != 0u) {
+        if (kbo_current_date_tick_latest_published_date(&today) && today != 0u) {
             season = today / 10000u;
         }
     }

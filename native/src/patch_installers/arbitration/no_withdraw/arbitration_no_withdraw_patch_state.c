@@ -6,6 +6,7 @@
 #include "../../../bootstrap/abi/ootp_offsets.h"
 #include "../../../bootstrap/profiling/profiler.h"
 #include "../../../core/core_flags/api/flags_api.h"
+#include "../../../core/dates/tick/current_date_tick_capture.h"
 #include "../../../core/logging/core_log.h"
 #include "../../../fa_declaration/fa_declaration.h"
 #include "../../../fa_filing/fa_filing.h"
@@ -103,7 +104,7 @@ __declspec(noinline) void ootp_kbo_salary_arbitration_non_tender_wrapper(
     memset(&decision, 0, sizeof(decision));
     int fa_declaration_decision_found = 0;
     if (fa_filing_candidate) {
-        if (kbo_get_current_yyyymmdd(&today) && today != 0u) {
+        if (kbo_current_date_tick_latest_published_date(&today) && today != 0u) {
             declaration_season = today / 10000u;
         }
         fa_declaration_decision_found = declaration_season != 0u
@@ -229,7 +230,7 @@ __declspec(noinline) void ootp_kbo_salary_arbitration_non_tender_wrapper(
             uint32_t post_current_team_id = *(uint32_t*)(player + OOTP27_PLAYER_CURRENT_TEAM_ID_OFFSET);
             if (post_current_team_id == 0u) {
                 uint32_t today = 0u;
-                if (kbo_get_current_yyyymmdd(&today) && today != 0u) {
+                if (kbo_current_date_tick_latest_published_date(&today) && today != 0u) {
                     kbo_record_fa_filing_transition(
                         (uintptr_t)player_ptr,
                         player_id,

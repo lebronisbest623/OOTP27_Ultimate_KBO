@@ -37,7 +37,6 @@ static DWORD WINAPI kbo_fa_salary_snapshot_thread(LPVOID parameter)
     int cached_message_found = 0;
     DWORD cached_message_checked_ms = 0u;
     uint32_t quiet_opening_unavailable_year = 0u;
-    uint32_t last_fast_forward_log_date = 0u;
     /* Per-tick caches to avoid repeated file I/O and memory scans. */
     uintptr_t cached_league_ptr = 0u;
     uint32_t cached_league_ptr_year = 0u;
@@ -49,8 +48,7 @@ static DWORD WINAPI kbo_fa_salary_snapshot_thread(LPVOID parameter)
     kbo_current_date_tick_consumer_init(
         &date_consumer,
         "fa_salary_snapshot_thread",
-        KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER
-            | KBO_CURRENT_DATE_TICK_CONSUMER_OBSERVE_CURRENT_WHEN_IDLE);
+        KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER);
 
     while (kbo_runtime_threads_should_continue()) {
         if (!kbo_runtime_sleep_should_continue((uint32_t)kbo_runtime_tuning_policy()->fa_salary_snapshot_thread_sleep_ms)) {
@@ -80,30 +78,9 @@ static DWORD WINAPI kbo_fa_salary_snapshot_thread(LPVOID parameter)
             continue;
         }
         uint32_t date = date_work.date;
-        uint32_t observed_today = 0u;
-        int fast_forwarded_to_current = 0;
-        if (kbo_get_current_yyyymmdd(&observed_today)
-                && kbo_yyyymmdd_valid(observed_today)
-                && observed_today > date) {
-            date = observed_today;
-            fast_forwarded_to_current = 1;
-            if (last_fast_forward_log_date != date) {
-                last_fast_forward_log_date = date;
-                kbo_log_runtimef(
-                    "KBO FA salary snapshot fast-forwarded stale hook date=%u current=%u event=%u site=0x%x seq=%u",
-                    date_work.date,
-                    observed_today,
-                    date_work.event_date,
-                    date_work.site_rva,
-                    date_work.sequence);
-            }
-        }
         uint32_t year = date / 10000u;
         uint32_t month = (date / 100u) % 100u;
         kbo_current_date_tick_consumer_mark_processed(&date_consumer);
-        if (fast_forwarded_to_current) {
-            kbo_current_date_tick_consumer_skip_to_latest(&date_consumer);
-        }
 
         char save_path[MAX_PATH] = {0};
         if (!kbo_get_current_save_path(save_path, sizeof(save_path))) {
@@ -122,7 +99,6 @@ static DWORD WINAPI kbo_fa_salary_snapshot_thread(LPVOID parameter)
             cached_message_found = 0;
             cached_message_checked_ms = 0u;
             quiet_opening_unavailable_year = 0u;
-            last_fast_forward_log_date = 0u;
             cached_league_ptr = 0u;
             cached_league_ptr_year = 0u;
             cached_schedule_year = 0u;

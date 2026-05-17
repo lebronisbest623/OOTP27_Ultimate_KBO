@@ -5,6 +5,7 @@
 #include "../../../bootstrap/abi/ootp_offsets.h"
 #include "../../../core/logging/core_log.h"
 #include "../../../core/dates/core_current_date.h"
+#include "../../../core/dates/tick/current_date_tick_capture.h"
 #include "../../../core/files/save_paths/core_save_paths.h"
 #include "../../../core/dates/core_text_date.h"
 #include "../../../core/core_flags/api/flags_api.h"
@@ -50,18 +51,14 @@ int kbo_handle_asian_games_departure_event(uint32_t event_yyyymmdd, const char* 
     uint32_t action_yyyymmdd = kbo_asian_games_effective_action_date(event_yyyymmdd);
     int departed = kbo_asian_games_depart_selected_players(action_yyyymmdd, source);
     if (departed <= 0) {
-        uint32_t current_year = 0;
-        uint32_t current_month = 0;
-        uint32_t current_day = 0;
-        if (kbo_current_date_is_valid(&current_year, &current_month, &current_day)
-                && current_year > (event_yyyymmdd / 10000u)) {
+        uint32_t current_yyyymmdd = 0u;
+        if (kbo_current_date_tick_latest_published_date(&current_yyyymmdd)
+                && (current_yyyymmdd / 10000u) > (event_yyyymmdd / 10000u)) {
             kbo_log_runtimef(
-                "KBO Asian Games departure closed stale source=%s date=%u current=%04u-%02u-%02u departed=%d",
+                "KBO Asian Games departure closed stale source=%s date=%u current=%u departed=%d",
                 source != NULL ? source : "",
                 event_yyyymmdd,
-                current_year,
-                current_month,
-                current_day,
+                current_yyyymmdd,
                 departed);
             return 1;
         }
@@ -96,18 +93,14 @@ int kbo_handle_asian_games_final_event(uint32_t event_yyyymmdd, const char* sour
     int returned = kbo_asian_games_finalize_selected_players(action_yyyymmdd, source);
     int already_finalized = returned <= 0 ? kbo_asian_games_roster_already_finalized(source) : 0;
     if (returned <= 0 && !already_finalized) {
-        uint32_t current_year = 0;
-        uint32_t current_month = 0;
-        uint32_t current_day = 0;
-        if (kbo_current_date_is_valid(&current_year, &current_month, &current_day)
-                && current_year > (event_yyyymmdd / 10000u)) {
+        uint32_t current_yyyymmdd = 0u;
+        if (kbo_current_date_tick_latest_published_date(&current_yyyymmdd)
+                && (current_yyyymmdd / 10000u) > (event_yyyymmdd / 10000u)) {
             kbo_log_runtimef(
-                "KBO Asian Games final closed stale source=%s date=%u current=%04u-%02u-%02u returned=%d",
+                "KBO Asian Games final closed stale source=%s date=%u current=%u returned=%d",
                 source != NULL ? source : "",
                 event_yyyymmdd,
-                current_year,
-                current_month,
-                current_day,
+                current_yyyymmdd,
                 returned);
             return 1;
         }

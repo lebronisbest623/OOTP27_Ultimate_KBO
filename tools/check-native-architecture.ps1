@@ -330,12 +330,36 @@ function Get-TopLevelReturnDeadCode {
     $Depth = 0
     $ReturnLine = 0
     $AfterTopLevelReturn = $false
+    $PreprocDepth = 0
+    $PreprocDepthAtReturn = 0
+    $SuppressedByPreprocElse = $false
 
     for ($Index = 0; $Index -lt $Lines.Count; $Index++) {
         $Code = $Lines[$Index]
         $Trimmed = $Code.Trim()
 
-        if ($AfterTopLevelReturn -and $Trimmed -ne "" -and $Trimmed -notmatch '^\s*#') {
+        # Track preprocessor conditional depth so that #else/#elif sibling branches
+        # of a return are not mistakenly flagged as dead code.
+        if ($Trimmed -match '^#\s*(if|ifdef|ifndef)\b') {
+            $PreprocDepth++
+        }
+        elseif ($Trimmed -match '^#\s*(else|elif)\b') {
+            if ($AfterTopLevelReturn -and -not $SuppressedByPreprocElse -and $PreprocDepth -eq $PreprocDepthAtReturn) {
+                $SuppressedByPreprocElse = $true
+            }
+        }
+        elseif ($Trimmed -match '^#\s*endif\b') {
+            if ($SuppressedByPreprocElse -and $PreprocDepth -eq $PreprocDepthAtReturn) {
+                $SuppressedByPreprocElse = $false
+                $AfterTopLevelReturn = $false
+                $ReturnLine = 0
+            }
+            if ($PreprocDepth -gt 0) {
+                $PreprocDepth--
+            }
+        }
+
+        if ($AfterTopLevelReturn -and -not $SuppressedByPreprocElse -and $Trimmed -ne "" -and $Trimmed -notmatch '^\s*#') {
             if ($Depth -eq 1 -and $Trimmed -notmatch '^\}') {
                 $Findings.Add([pscustomobject]@{
                     ReturnLine = $ReturnLine
@@ -355,6 +379,7 @@ function Get-TopLevelReturnDeadCode {
         if ($Depth -eq 1 -and $Trimmed -match '^return(?:\s+[^;]+)?;\s*$') {
             $AfterTopLevelReturn = $true
             $ReturnLine = $Index + 1
+            $PreprocDepthAtReturn = $PreprocDepth
         }
 
         $OpenCount = ([regex]::Matches($Code, '\{')).Count
@@ -363,6 +388,7 @@ function Get-TopLevelReturnDeadCode {
         if ($Depth -le 0) {
             $Depth = 0
             $AfterTopLevelReturn = $false
+            $SuppressedByPreprocElse = $false
             $ReturnLine = 0
         }
     }

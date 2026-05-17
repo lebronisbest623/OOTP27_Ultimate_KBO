@@ -10,6 +10,7 @@
 #include "../../../core/core_league_context_parts/api/league_context_lookup.h"
 #include "../../../core/dates/core_current_date.h"
 #include "../../../core/dates/core_text_date.h"
+#include "../../../core/dates/tick/current_date_tick_capture.h"
 #include "../../../core/events/core_league_events.h"
 #include "../../../core/logging/core_log.h"
 #include "../../../fa_salary_snapshot/paths/salary_snapshot_paths_dates.h"
@@ -383,9 +384,9 @@ int kbo_schedule_independent_team_acquisition_custom_events_for_date(
 int kbo_schedule_independent_team_acquisition_custom_events(const char* source)
 {
     uint32_t today = 0u;
-    if (!kbo_get_current_yyyymmdd(&today) || today == 0u) {
+    if (!kbo_current_date_tick_latest_published_date(&today) || today == 0u) {
         kbo_log_runtimef(
-            "KBO independent futures acquisition schedule skipped source=%s reason=current_date_unavailable",
+            "KBO independent futures acquisition schedule skipped source=%s reason=ssot_date_unavailable",
             source != NULL ? source : "");
         return -1;
     }

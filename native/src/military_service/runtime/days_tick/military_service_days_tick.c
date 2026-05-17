@@ -403,9 +403,7 @@ DWORD WINAPI kbo_military_days_tick_thread(LPVOID parameter)
     kbo_current_date_tick_consumer_init(
         &consumer,
         "military_days_tick",
-        KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER
-            | KBO_CURRENT_DATE_TICK_CONSUMER_GAP_CATCHUP
-            | KBO_CURRENT_DATE_TICK_CONSUMER_OBSERVE_CURRENT_WHEN_IDLE);
+        KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER);
 
     while (kbo_runtime_threads_should_continue()) {
         if (!kbo_runtime_sleep_should_continue((uint32_t)kbo_runtime_tuning_policy()->military_days_tick_sleep_ms)) {

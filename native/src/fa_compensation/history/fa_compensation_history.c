@@ -8,6 +8,7 @@
 #include "../../bootstrap/profiling/profiler.h"
 #include "../../core/core_flags/api/flags_api.h"
 #include "../../core/core_league_context_parts/api/league_context_lookup.h"
+#include "../../core/dates/tick/current_date_tick_capture.h"
 #include "../../core/logging/core_log.h"
 #include "../../core/logging/rule_audit.h"
 #include "../../core/sql/history_transactions/core_sql_history_transactions.h"
@@ -99,7 +100,7 @@ int kbo_record_fa_compensation_signing(
     }
 
     uint32_t today = 0u;
-    if (!kbo_get_current_yyyymmdd(&today)) {
+    if (!kbo_current_date_tick_latest_published_date(&today)) {
         today = 0u;
     }
 

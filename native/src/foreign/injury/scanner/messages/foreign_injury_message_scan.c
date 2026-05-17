@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "../../../../core/dates/tick/current_date_tick_capture.h"
 #include "../../../../core/files/save_paths/core_save_paths.h"
 
 #define KBO_FOREIGN_INJURY_MESSAGE_EVIDENCE_CACHE_SIZE 512
@@ -323,7 +324,7 @@ int kbo_foreign_injury_recent_message_has_long_term_injury(
         return 0;
     }
     uint32_t game_date_yyyymmdd = 0u;
-    kbo_get_current_yyyymmdd(&game_date_yyyymmdd);
+    kbo_current_date_tick_latest_published_date(&game_date_yyyymmdd);
 
     DWORD file_count = 0u;
     FILETIME latest_write = {0u, 0u};

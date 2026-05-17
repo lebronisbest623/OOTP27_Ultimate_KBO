@@ -8,6 +8,7 @@
 #include "../../core/core_flags/api/flags_api.h"
 #include "../../core/csv/core_csv.h"
 #include "../../core/dates/core_text_date.h"
+#include "../../core/dates/tick/current_date_tick_capture.h"
 #include "../../core/logging/core_log.h"
 #include "../common/dates/foreign_waiver_date.h"
 #include "../common/events/foreign_waiver_events.h"
@@ -271,7 +272,7 @@ int kbo_is_foreign_waiver_negotiation_window_open(void)
     }
 
     uint32_t today = 0;
-    if (!kbo_get_current_yyyymmdd(&today)) {
+    if (!kbo_current_date_tick_latest_published_date(&today)) {
         return 0;
     }
 
@@ -336,7 +337,7 @@ int kbo_get_foreign_waiver_window_status_text(char* out, size_t out_size)
     }
 
     uint32_t today = 0;
-    if (!kbo_get_current_yyyymmdd(&today)) {
+    if (!kbo_current_date_tick_latest_published_date(&today)) {
         snprintf(out, out_size, "Foreign waiver negotiation: unavailable (failed to read game date)");
         return 1;
     }

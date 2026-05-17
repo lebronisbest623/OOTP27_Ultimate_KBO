@@ -83,6 +83,7 @@ internal static partial class KboFlags
         new("disable_kbo_player_tooltip_text_append_probe", null, RuntimeFlagLifecycle.Recovery),
         new("disable_kbo_season_phase_capture_hooks", null, RuntimeFlagLifecycle.Recovery),
         new("disable_kbo_current_date_tick_capture_hook", null, RuntimeFlagLifecycle.Recovery),
+        new("disable_kbo_current_date_tick_watchpoint", null, RuntimeFlagLifecycle.Recovery),
         new("enable_kbo_current_date_tick_early_sources", false, RuntimeFlagLifecycle.Diagnostic),
         new("enable_kbo_current_date_tick_watchpoint", false, RuntimeFlagLifecycle.Diagnostic),
         new("disable_military_ortools", null, RuntimeFlagLifecycle.Recovery),

@@ -1,4 +1,5 @@
 #include "../internal/amateur_assignment_internal.h"
+#include "../../core/dates/tick/current_date_tick_capture.h"
 
 int kbo_find_amateur_team_reputation_by_memory_team(uint32_t league_id, uint8_t* team, uint8_t* out_reputation)
 {
@@ -328,12 +329,12 @@ int kbo_update_amateur_reputation_for_league(uint32_t league_id, const char* sou
 
 void kbo_update_amateur_reputation_from_team_records(const char* source)
 {
-    uint32_t year = 0;
-    uint32_t month = 0;
-    uint32_t day = 0;
-    if (!kbo_current_date_is_valid(&year, &month, &day) || month != 1u || day != 1u) {
+    uint32_t today = 0u;
+    if (!kbo_current_date_tick_latest_published_date(&today)
+            || (today % 10000u) != 101u) {
         return;
     }
+    uint32_t year = today / 10000u;
 
     if (g_kbo_amateur_reputation_last_update_high_school_year != year) {
         int updated = kbo_update_amateur_reputation_for_league(KBO_HIGH_SCHOOL_LEAGUE_ID, source, year);

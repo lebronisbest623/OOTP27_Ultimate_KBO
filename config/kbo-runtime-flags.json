@@ -488,6 +488,11 @@
       "lifecycle": "Recovery"
     },
     {
+      "key": "disable_kbo_current_date_tick_watchpoint",
+      "defaultValue": null,
+      "lifecycle": "Recovery"
+    },
+    {
       "key": "enable_kbo_current_date_tick_early_sources",
       "defaultValue": false,
       "lifecycle": "Diagnostic"

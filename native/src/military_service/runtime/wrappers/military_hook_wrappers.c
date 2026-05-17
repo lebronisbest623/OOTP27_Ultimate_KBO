@@ -7,6 +7,7 @@
 #include "../../../bootstrap/profiling/perf_probe.h"
 #include "../../../bootstrap/profiling/profiler.h"
 #include "../../../core/dates/core_current_date.h"
+#include "../../../core/dates/tick/current_date_tick_capture.h"
 #include "../../../core/core_flags/api/flags_api.h"
 #include "../../../core/logging/core_log.h"
 #include "../../../foreign/common/events/foreign_priority_events.h"
@@ -86,7 +87,12 @@ __declspec(noinline) void ootp_kbo_military_service_entry_wrapper(
             uint32_t cur_year = 0;
             uint32_t cur_month = 0;
             uint32_t cur_day   = 0;
-            if (!kbo_current_date_is_valid(&cur_year, &cur_month, &cur_day)) {
+            uint32_t current_yyyymmdd = 0u;
+            if (kbo_current_date_tick_latest_published_date(&current_yyyymmdd)) {
+                cur_year = current_yyyymmdd / 10000u;
+                cur_month = (current_yyyymmdd / 100u) % 100u;
+                cur_day = current_yyyymmdd % 100u;
+            } else {
                 kbo_current_year_relaxed(&cur_year);
             }
             kbo_log_runtimef(

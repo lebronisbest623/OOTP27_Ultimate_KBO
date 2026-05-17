@@ -168,7 +168,7 @@ int kbo_schedule_cbt_custom_events_for_date(uint32_t today, const char* source)
     uint32_t year = today / 10000u;
     if (today == 0u) {
         if (kbo_cbt_should_log_no_date()) {
-            kbo_cbt_audit_event_schedule("skip", "current_date_unavailable", source, 0u, 0u, 0u, 0u, 0u, 0u, 0, 0, 0, 0, 0);
+            kbo_cbt_audit_event_schedule("skip", "ssot_date_unavailable", source, 0u, 0u, 0u, 0u, 0u, 0u, 0, 0, 0, 0, 0);
             kbo_log_runtimef("KBO CBT event schedule skipped source=%s reason=current_date_unavailable", source != NULL ? source : "");
         }
         return -1;
@@ -365,19 +365,15 @@ int kbo_schedule_cbt_custom_events_for_date(uint32_t today, const char* source)
 
 int kbo_schedule_cbt_custom_events(const char* source)
 {
-    uint32_t year = 0u;
-    uint32_t month = 0u;
-    uint32_t day = 0u;
-    if (!kbo_current_date_is_valid(&year, &month, &day)) {
+    uint32_t today = 0u;
+    if (!kbo_current_date_tick_latest_published_date(&today)) {
         if (kbo_cbt_should_log_no_date()) {
-            kbo_cbt_audit_event_schedule("skip", "current_date_unavailable", source, 0u, 0u, 0u, 0u, 0u, 0u, 0, 0, 0, 0, 0);
-            kbo_log_runtimef("KBO CBT event schedule skipped source=%s reason=current_date_unavailable", source != NULL ? source : "");
+            kbo_cbt_audit_event_schedule("skip", "ssot_date_unavailable", source, 0u, 0u, 0u, 0u, 0u, 0u, 0, 0, 0, 0, 0);
+            kbo_log_runtimef("KBO CBT event schedule skipped source=%s reason=ssot_date_unavailable", source != NULL ? source : "");
         }
         return -1;
     }
-    return kbo_schedule_cbt_custom_events_for_date(
-        year * 10000u + month * 100u + day,
-        source);
+    return kbo_schedule_cbt_custom_events_for_date(today, source);
 }
 
 static DWORD WINAPI kbo_cbt_event_scheduler_thread(LPVOID parameter)
@@ -390,8 +386,7 @@ static DWORD WINAPI kbo_cbt_event_scheduler_thread(LPVOID parameter)
     kbo_current_date_tick_consumer_init(
         &consumer,
         "cbt_early_event_scheduler",
-        KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER
-            | KBO_CURRENT_DATE_TICK_CONSUMER_GAP_CATCHUP);
+        KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER);
     KboCbtRules rules;
     kbo_cbt_rules_load(&rules);
     for (uint32_t attempt = 1u;

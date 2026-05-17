@@ -8,6 +8,7 @@
 #include "custom_event_marker_prune.h"
 #include "custom_event_markers.h"
 #include "../../../core/dates/core_current_date.h"
+#include "../../../core/dates/tick/current_date_tick_capture.h"
 #include "../../../core/files/save_paths/core_save_paths.h"
 #include "../../../core/logging/core_log.h"
 #include "../../../core/sync/lock.h"
@@ -33,13 +34,10 @@ void kbo_prune_rewound_custom_event_markers(const char* source)
     static uint32_t last_pruned_current_date = 0u;
     static KboLock prune_lock = KBO_LOCK_INIT;
 
-    uint32_t year = 0u;
-    uint32_t month = 0u;
-    uint32_t day = 0u;
-    if (!kbo_current_date_is_valid(&year, &month, &day)) {
+    uint32_t current_date = 0u;
+    if (!kbo_current_date_tick_latest_published_date(&current_date)) {
         return;
     }
-    uint32_t current_date = year * 10000u + month * 100u + day;
     if (current_date == 0u || current_date == last_pruned_current_date) {
         return;
     }

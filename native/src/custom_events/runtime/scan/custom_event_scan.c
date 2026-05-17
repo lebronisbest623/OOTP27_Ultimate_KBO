@@ -6,6 +6,7 @@
 #include "../../../bootstrap/abi/ootp_offsets.h"
 #include "../../../core/logging/core_log.h"
 #include "../../../core/dates/core_current_date.h"
+#include "../../../core/dates/tick/current_date_tick_capture.h"
 #include "../../../core/files/save_paths/core_save_paths.h"
 #include "../../../core/dates/core_text_date.h"
 #include "../../../core/core_flags/api/flags_api.h"
@@ -206,7 +207,7 @@ int scan_kbo_custom_events_once_for_date(uint32_t current_yyyymmdd, const char* 
 int scan_kbo_custom_events_once(const char* source)
 {
     uint32_t current_yyyymmdd = 0u;
-    if (!kbo_get_current_yyyymmdd(&current_yyyymmdd)) {
+    if (!kbo_current_date_tick_latest_published_date(&current_yyyymmdd)) {
         return -1;
     }
     return scan_kbo_custom_events_once_for_date(current_yyyymmdd, source);

@@ -1,4 +1,5 @@
 #include "../internal/intl_established_fa_postscan_internal.h"
+#include "../../../core/dates/tick/current_date_tick_capture.h"
 
 int kbo_intl_established_fa_quality_shaping_enabled(void)
 {
@@ -306,7 +307,7 @@ void kbo_intl_established_fa_postscan_schedule(
     }
 
     uint32_t today = 0u;
-    kbo_get_current_yyyymmdd(&today);
+    kbo_current_date_tick_latest_published_date(&today);
 
     LONG batch_id = InterlockedIncrement(&g_kbo_intl_established_fa_postscan.batch_id);
     g_kbo_intl_established_fa_postscan.before_count = vector_ready ? player_count : 0;

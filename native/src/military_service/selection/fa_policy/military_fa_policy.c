@@ -3,6 +3,7 @@
 #include <stdint.h>
 
 #include "../../../core/dates/core_current_date.h"
+#include "../../../core/dates/tick/current_date_tick_capture.h"
 #include "../../../foreign/common/dates/foreign_waiver_date.h"
 #include "military_fa_policy.h"
 
@@ -15,7 +16,7 @@ uint32_t kbo_military_policy_current_yyyymmdd(void)
 {
     uint32_t today = 0u;
     if (!kbo_get_foreign_waiver_current_yyyymmdd(&today)) {
-        kbo_get_current_yyyymmdd(&today);
+        kbo_current_date_tick_latest_published_date(&today);
     }
     return today;
 }

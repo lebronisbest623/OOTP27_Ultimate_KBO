@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "../../core/dates/tick/current_date_tick_capture.h"
 #include "../../core/logging/core_log.h"
 #include "../../fa_rules/fa_rules.h"
 #include "../../foreign/common/dates/foreign_waiver_date.h"
@@ -180,7 +181,7 @@ int kbo_manual_select_fa_compensation_player(
     }
 
     uint32_t today = 0u;
-    if (!kbo_get_current_yyyymmdd(&today)) {
+    if (!kbo_current_date_tick_latest_published_date(&today)) {
         today = rec->signed_on_yyyymmdd;
     }
     KboFaRules rules;
@@ -210,7 +211,7 @@ int kbo_manual_select_fa_compensation_cash_only(uint32_t fa_player_id, const cha
         return 0;
     }
     uint32_t today = 0u;
-    if (!kbo_get_current_yyyymmdd(&today)) {
+    if (!kbo_current_date_tick_latest_published_date(&today)) {
         return 0;
     }
     KboFaRules rules;

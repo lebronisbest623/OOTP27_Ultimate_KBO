@@ -30,9 +30,7 @@ DWORD WINAPI kbo_military_seed_bootstrap_thread(LPVOID parameter)
     kbo_current_date_tick_consumer_init(
         &consumer,
         "military_seed_bootstrap",
-        KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER
-            | KBO_CURRENT_DATE_TICK_CONSUMER_GAP_CATCHUP
-            | KBO_CURRENT_DATE_TICK_CONSUMER_OBSERVE_CURRENT_WHEN_IDLE);
+        KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER);
 
     for (int attempt = 1; attempt <= tuning->military_seed_bootstrap_attempts; attempt++) {
         uint32_t sleep_ms = attempt == 1

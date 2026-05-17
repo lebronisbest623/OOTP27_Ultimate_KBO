@@ -8,13 +8,12 @@
 #include "../../../bootstrap/abi/ootp_offsets.h"
 #include "../../../runtime_memory/runtime_memory.h"
 #include "../../dates/core_current_date.h"
+#include "../../dates/tick/current_date_tick_capture.h"
 
 uint32_t kbo_find_current_kbo_league_year(void)
 {
-    uint32_t year = 0;
-    uint32_t month = 0;
-    uint32_t day = 0;
-    return kbo_current_date_is_valid(&year, &month, &day) ? year : 0;
+    uint32_t today = 0u;
+    return kbo_current_date_tick_latest_published_date(&today) ? today / 10000u : 0u;
 }
 
 int kbo_league_candidate_matches_id(uintptr_t candidate, uint32_t league_id, uint32_t id_offset)

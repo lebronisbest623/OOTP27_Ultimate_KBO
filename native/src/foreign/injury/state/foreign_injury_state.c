@@ -9,6 +9,7 @@
 #include "../../../bootstrap/abi/ootp_offsets.h"
 #include "../../../core/files/atomic/core_atomic_file.h"
 #include "../../../core/dates/core_current_date.h"
+#include "../../../core/dates/tick/current_date_tick_capture.h"
 #include "../../../core/core_flags/api/flags_api.h"
 #include "../../../core/core_league_context_parts/api/league_context_lookup.h"
 #include "../../../core/news/live/core_live_news.h"
@@ -175,6 +176,9 @@ int kbo_foreign_injury_duration_text_meets_minimum(
             || kbo_foreign_injury_ascii_contains_nocase(text, "out for the season")
             || kbo_foreign_injury_ascii_contains_nocase(text, "miss the rest of the season")
             || kbo_foreign_injury_ascii_contains_nocase(text, "misses the rest of the season")
+            || kbo_foreign_injury_ascii_contains_nocase(text, "out the rest of the year")
+            || kbo_foreign_injury_ascii_contains_nocase(text, "miss the rest of the year")
+            || kbo_foreign_injury_ascii_contains_nocase(text, "misses the rest of the year")
             || kbo_foreign_injury_ascii_contains_nocase(text, "season-ending")) {
         best_days = min_days > 180 ? min_days : 180;
     }
@@ -304,7 +308,7 @@ int kbo_foreign_injury_open_news_allowed(
         && scan_date != 0u
         && (live_date == scan_date || captured_live_date)
         && opened_on != 0u
-        && opened_on <= scan_date;
+        && opened_on == scan_date;
 }
 
 static int kbo_foreign_injury_state_record_has_minimum_injury_basis(
@@ -335,7 +339,7 @@ static int kbo_foreign_injury_state_record_has_minimum_injury_basis(
     }
 
     uint32_t today = 0u;
-    kbo_get_current_yyyymmdd(&today);
+    kbo_current_date_tick_latest_published_date(&today);
     int inactive_roster_present = kbo_foreign_injury_player_on_inactive_replacement_roster(
         injured,
         rec->injured_player_id,
@@ -385,4 +389,4 @@ int kbo_foreign_injury_player_excluded_from_foreign_count_locked(uint32_t team_i
 /* Foreign injury replacement native news emission. Included from native/KBOFix.c. */
 
 LONG g_kbo_foreign_injury_date_tick_thread_started = 0;
-
+LONG g_kbo_foreign_injury_sql_watch_thread_started = 0;

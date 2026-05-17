@@ -15,6 +15,7 @@
 #include "../../core/core_flags/api/flags_api.h"
 #include "../../core/core_league_context_parts/api/league_context_lookup.h"
 #include "../../core/dates/core_text_date.h"
+#include "../../core/dates/tick/current_date_tick_capture.h"
 #include "../../core/files/save_paths/core_save_paths.h"
 #include "../../core/logging/core_log.h"
 #include "../../core/season/phase/season_phase.h"
@@ -595,7 +596,7 @@ int kbo_run_independent_team_acquisition_ai(const char* source)
         goto cleanup;
     }
 
-    if (!kbo_get_current_yyyymmdd(&today)) {
+    if (!kbo_current_date_tick_latest_published_date(&today)) {
         goto cleanup;
     }
 

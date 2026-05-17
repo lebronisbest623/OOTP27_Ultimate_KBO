@@ -6,6 +6,7 @@
 #include "repair/foreign_retention_guard_repair_helpers.h"
 #include "../../bootstrap/abi/ootp_offsets.h"
 #include "../../core/core_flags/api/flags_api.h"
+#include "../../core/dates/tick/current_date_tick_capture.h"
 #include "../../core/logging/core_log.h"
 #include "../../runtime_memory/runtime_memory.h"
 #include "../../team/assignment/org_query/team_org_assignment_query.h"
@@ -88,7 +89,7 @@ void kbo_foreign_retention_guard_repair(const char* source)
     }
 
     uint32_t today = 0u;
-    if (!kbo_get_current_yyyymmdd(&today) || today == 0u) {
+    if (!kbo_current_date_tick_latest_published_date(&today) || today == 0u) {
         return;
     }
 

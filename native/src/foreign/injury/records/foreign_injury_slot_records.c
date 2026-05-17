@@ -1,4 +1,5 @@
 #include "../internal/foreign_injury_internal.h"
+#include "../../../core/dates/tick/current_date_tick_capture.h"
 #include "../../../team/assignment/org_query/team_org_assignment_query.h"
 
 int kbo_persist_foreign_injury_replacements_locked(void)
@@ -77,7 +78,7 @@ void kbo_ensure_foreign_injury_replacements_loaded(void)
     if (should_import_seed) {
         last_empty_import_attempt_tick = now;
         uint32_t today = 0u;
-        kbo_get_current_yyyymmdd(&today);
+        kbo_current_date_tick_latest_published_date(&today);
         int imported = 0;
         char save_seed_path[MAX_PATH] = {0};
         char global_seed_path[MAX_PATH] = {0};
@@ -190,7 +191,7 @@ int kbo_foreign_injury_record_has_minimum_injury_basis_on_date(
         return 0;
     }
     if (today == 0u) {
-        kbo_get_current_yyyymmdd(&today);
+        kbo_current_date_tick_latest_published_date(&today);
     }
 
     uint32_t team_id = 0u;
@@ -257,7 +258,7 @@ int kbo_foreign_injury_record_has_minimum_injury_basis_on_date(
 int kbo_foreign_injury_record_has_minimum_injury_basis(const KboForeignInjuryReplacement* rec)
 {
     uint32_t today = 0u;
-    kbo_get_current_yyyymmdd(&today);
+    kbo_current_date_tick_latest_published_date(&today);
     return kbo_foreign_injury_record_has_minimum_injury_basis_on_date(rec, today);
 }
 

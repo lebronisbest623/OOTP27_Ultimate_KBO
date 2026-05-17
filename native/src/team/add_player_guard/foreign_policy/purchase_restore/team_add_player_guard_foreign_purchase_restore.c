@@ -3,6 +3,7 @@
 #include <stdint.h>
 
 #include "../../../../bootstrap/abi/ootp_offsets.h"
+#include "../../../../core/dates/tick/current_date_tick_capture.h"
 #include "../../../../core/logging/core_log.h"
 #include "../../../../foreign/common/dates/foreign_waiver_date.h"
 #include "../../../../foreign/common/player_eval/foreign_waiver_player_eval.h"
@@ -304,7 +305,7 @@ int kbo_team_add_restore_source_team_after_blocked_foreign_purchase(
     }
 
     uint32_t today = 0u;
-    if (kbo_get_current_yyyymmdd(&today) && today != 0u) {
+    if (kbo_current_date_tick_latest_published_date(&today) && today != 0u) {
         if (kbo_foreign_retention_guard_restore_recorded_holder_signing(
                 "blocked_foreign_purchase",
                 player,

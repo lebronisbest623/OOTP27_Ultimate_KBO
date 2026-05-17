@@ -120,9 +120,7 @@ __declspec(noinline) int ootp_kbo_fa_signing_branch_wrapper(uintptr_t player_ptr
             &injured_player_id);
         if (!allowed) {
             uint32_t today = 0u;
-            if (!kbo_get_foreign_waiver_current_yyyymmdd(&today)) {
-                kbo_get_current_yyyymmdd(&today);
-            }
+            kbo_get_foreign_waiver_current_yyyymmdd(&today);
             kbo_record_recent_custom_foreign_policy_block(player_id, team_id, today);
             static volatile LONG final_block_log_count = 0;
             LONG slot = InterlockedIncrement(&final_block_log_count);

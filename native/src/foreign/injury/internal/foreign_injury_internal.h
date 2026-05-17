@@ -56,6 +56,7 @@ extern int g_kbo_foreign_injury_replacement_count;
 extern KboLock g_kbo_foreign_injury_replacement_lock;
 extern char g_kbo_foreign_injury_replacement_loaded_path[MAX_PATH];
 extern LONG g_kbo_foreign_injury_date_tick_thread_started;
+extern LONG g_kbo_foreign_injury_sql_watch_thread_started;
 
 int kbo_foreign_injury_replacement_enabled(void);
 int kbo_foreign_injury_status_uses_slot(uint8_t status);
@@ -208,6 +209,9 @@ void kbo_emit_foreign_injury_replacement_news_on_date(
     uint32_t event_date);
 void kbo_foreign_injury_replacement_scan_captured_date(const char* source, uint32_t today);
 void kbo_foreign_injury_replacement_scan_discovery_for_date(const char* source, uint32_t today);
+void kbo_foreign_injury_replacement_scan_sql_settled_for_date(const char* source, uint32_t today);
+void kbo_foreign_injury_sql_cache_invalidate_all(const char* source);
 void start_kbo_foreign_injury_date_tick_thread(void);
+void start_kbo_foreign_injury_sql_watch_thread(void);
 
 #endif
