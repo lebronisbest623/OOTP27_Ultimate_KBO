@@ -340,18 +340,13 @@ int kbo_ai_fa_status_evaluate_retained_market_candidate(
         requester_team_id,
         today,
         &candidate);
-    if (candidate.already_in_org) {
-        candidate.reject_reason = "already_in_org";
-        if (out_candidate != NULL) { *out_candidate = candidate; }
-        return 0;
+
+    if (!candidate.already_in_org && candidate.market_free_agent) {
+        (void)kbo_ai_fa_status_retained_market_demand_ready(player, &candidate);
     }
-    if (!candidate.market_free_agent) {
-        candidate.reject_reason = "not_market_free_agent";
-        if (out_candidate != NULL) { *out_candidate = candidate; }
-        return 0;
-    }
-    if (!kbo_ai_fa_status_retained_market_demand_ready(player, &candidate)) {
-        candidate.reject_reason = "demand_not_ready";
+    const char* gate_reason = NULL;
+    if (!kbo_ai_fa_status_retained_candidate_force_gate(&candidate, &gate_reason)) {
+        candidate.reject_reason = gate_reason != NULL ? gate_reason : "not_market_forceable";
         if (out_candidate != NULL) { *out_candidate = candidate; }
         return 0;
     }

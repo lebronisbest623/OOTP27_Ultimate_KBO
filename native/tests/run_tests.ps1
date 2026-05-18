@@ -5,6 +5,8 @@ $TestSrc = Join-Path $PSScriptRoot "test_main.c"
 $TestExe = Join-Path $PSScriptRoot "tests.exe"
 $FaCompensationSelectionTestSrc = Join-Path $PSScriptRoot "test_fa_compensation_selection.c"
 $FaCompensationSelectionTestExe = Join-Path $PSScriptRoot "test_fa_compensation_selection.exe"
+$ForeignRetentionCandidateGateTestSrc = Join-Path $PSScriptRoot "test_foreign_retention_candidate_gate.c"
+$ForeignRetentionCandidateGateTestExe = Join-Path $PSScriptRoot "test_foreign_retention_candidate_gate.exe"
 $WebViewCommandRouterTestSrc = Join-Path $PSScriptRoot "test_webview_command_router.c"
 $WebViewCommandRouterTestExe = Join-Path $PSScriptRoot "test_webview_command_router.exe"
 
@@ -78,6 +80,21 @@ if ($LASTEXITCODE -ne 0) {
 & $FaCompensationSelectionTestExe
 if ($LASTEXITCODE -ne 0) {
     throw "FA compensation selection tests failed"
+}
+
+& $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
+    -I $Root `
+    -I (Join-Path $Root "src") `
+    -o $ForeignRetentionCandidateGateTestExe `
+    $ForeignRetentionCandidateGateTestSrc `
+    (Join-Path $Root "src\foreign\signability\foreign_policy\wrappers\retained_candidates\foreign_signability_retained_candidate_gate.c")
+if ($LASTEXITCODE -ne 0) {
+    throw "Foreign retention candidate gate test build failed"
+}
+
+& $ForeignRetentionCandidateGateTestExe
+if ($LASTEXITCODE -ne 0) {
+    throw "Foreign retention candidate gate tests failed"
 }
 
 & $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `

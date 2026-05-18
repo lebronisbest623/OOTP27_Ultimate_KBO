@@ -32,6 +32,9 @@ int kbo_ai_fa_status_evaluate_retained_market_candidate(
     uint32_t requester_team_id,
     uint32_t today,
     KboAiFaStatusRetainedCandidate* out_candidate);
+int kbo_ai_fa_status_retained_candidate_force_gate(
+    const KboAiFaStatusRetainedCandidate* candidate,
+    const char** out_reject_reason);
 void kbo_ai_fa_status_sort_retained_candidates(
     KboAiFaStatusRetainedCandidate* candidates,
     int count);
