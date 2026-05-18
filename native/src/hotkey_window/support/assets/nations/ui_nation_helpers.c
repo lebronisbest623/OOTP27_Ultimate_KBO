@@ -1,59 +1,23 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-#include "../../../../bootstrap/abi/ootp_offsets.h"
 #include "../paths/ui_image_sources.h"
 #include "ui_nation_helpers.h"
+#include "ui_nation_table.h"
 
 const char* kbo_hub_nation_label_for_id(uint32_t nation_id)
 {
-    switch (nation_id) {
-    case OOTP27_KBO_KOREA_NATION_ID: return "Korea";
-    case 12u:                        return "Australia";
-    case 36u:                        return "Canada";
-    case 43u:                        return "Taiwan";
-    case 49u:                        return "Cuba";
-    case 56u:                        return "Dominican Republic";
-    case 98u:                        return "Japan";
-    case 124u:                       return "Mexico";
-    case 206u:                       return "United States";
-    case 210u:                       return "Venezuela";
-    default:                         return "Unknown nation";
-    }
+    return kbo_nation_table_label(nation_id);
 }
 
 const char* kbo_hub_nation_abbrev_for_id(uint32_t nation_id)
 {
-    switch (nation_id) {
-    case OOTP27_KBO_KOREA_NATION_ID: return "KOR";
-    case 12u:                        return "AUS";
-    case 36u:                        return "CAN";
-    case 43u:                        return "TPE";
-    case 49u:                        return "CUB";
-    case 56u:                        return "DOM";
-    case 98u:                        return "JPN";
-    case 124u:                       return "MEX";
-    case 206u:                       return "USA";
-    case 210u:                       return "VEN";
-    default:                         return "---";
-    }
+    return kbo_nation_table_abbrev(nation_id);
 }
 
 const char* kbo_hub_nation_flag_file_for_id(uint32_t nation_id)
 {
-    switch (nation_id) {
-    case OOTP27_KBO_KOREA_NATION_ID: return "kor.png";
-    case 12u:                        return "aus.png";
-    case 36u:                        return "can.png";
-    case 43u:                        return "tpe.png";
-    case 49u:                        return "cub.png";
-    case 56u:                        return "dom.png";
-    case 98u:                        return "jpn.png";
-    case 124u:                       return "mex.png";
-    case 206u:                       return "usa.png";
-    case 210u:                       return "ven.png";
-    default:                         return "unknown.png";
-    }
+    return kbo_nation_table_flag_file(nation_id);
 }
 
 static void kbo_webview_append_nation_flag_image(

@@ -15,9 +15,11 @@ public sealed class DllPayloadStagerTests : IDisposable
         var logPath = Path.Combine(tempDir, "launcher.log");
         var dllPath = Path.Combine(sourceDir, "KBOFix.dll");
         Directory.CreateDirectory(Path.Combine(sourceDir, "assets", "fonts"));
+        Directory.CreateDirectory(Path.Combine(sourceDir, "tools"));
         File.WriteAllBytes(dllPath, [1, 2, 3, 4]);
         File.WriteAllBytes(Path.Combine(sourceDir, "WebView2Loader.dll"), [5, 6, 7]);
         File.WriteAllText(Path.Combine(sourceDir, "assets", "fonts", "JejuGothic-Regular.ttf"), "font");
+        File.WriteAllText(Path.Combine(sourceDir, "tools", "kbo_optimizer.py"), "tool");
 
         var staged = global::DllPayloadStager.PrepareInjectableDllCopy(dllPath, runDir, logPath);
 
@@ -26,9 +28,33 @@ public sealed class DllPayloadStagerTests : IDisposable
         File.ReadAllBytes(staged).Should().Equal([1, 2, 3, 4]);
         File.ReadAllBytes(Path.Combine(runDir, "WebView2Loader.dll")).Should().Equal([5, 6, 7]);
         File.ReadAllText(Path.Combine(runDir, "assets", "fonts", "JejuGothic-Regular.ttf")).Should().Be("font");
+        File.ReadAllText(Path.Combine(runDir, "tools", "kbo_optimizer.py")).Should().Be("tool");
         File.ReadAllText(logPath).Should().Contain("dll_copy");
         File.ReadAllText(logPath).Should().Contain("webview2_loader_copy");
         File.ReadAllText(logPath).Should().Contain("assets_copy");
+        File.ReadAllText(logPath).Should().Contain("tools_copy");
+    }
+
+    [Fact]
+    public void PrepareInjectableDllCopy_StagesOptimizerToolsFromAncestorDirectory()
+    {
+        var repoRoot = Path.Combine(tempDir, "repo");
+        var sourceDir = Path.Combine(repoRoot, "native", "bin");
+        var runDir = Path.Combine(tempDir, "run_dlls");
+        var logPath = Path.Combine(tempDir, "launcher.log");
+        var dllPath = Path.Combine(sourceDir, "KBOFix.dll");
+        Directory.CreateDirectory(sourceDir);
+        Directory.CreateDirectory(Path.Combine(repoRoot, "native", "tools"));
+        Directory.CreateDirectory(Path.Combine(repoRoot, "tools"));
+        File.WriteAllBytes(dllPath, [1]);
+        File.WriteAllText(Path.Combine(repoRoot, "native", "tools", "research_helper.py"), "not-the-optimizer");
+        File.WriteAllText(Path.Combine(repoRoot, "tools", "kbo_optimizer.py"), "ancestor-tool");
+
+        _ = global::DllPayloadStager.PrepareInjectableDllCopy(dllPath, runDir, logPath);
+
+        File.ReadAllText(Path.Combine(runDir, "tools", "kbo_optimizer.py")).Should().Be("ancestor-tool");
+        File.Exists(Path.Combine(runDir, "tools", "research_helper.py")).Should().BeFalse();
+        File.ReadAllText(logPath).Should().Contain("tools_copy");
     }
 
     [Fact]

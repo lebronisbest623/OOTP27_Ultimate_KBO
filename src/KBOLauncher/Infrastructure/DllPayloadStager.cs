@@ -45,16 +45,103 @@ internal static class DllPayloadStager
             Log(logPath, $"assets_copy source={assetSource} target={assetTarget}");
         }
 
-        var toolSource = Path.Combine(Path.GetDirectoryName(fullDllPath) ?? string.Empty, "tools");
-        if (Directory.Exists(toolSource))
+        var sourceDir = Path.GetDirectoryName(fullDllPath) ?? string.Empty;
+        var toolSource = ResolveToolDirectory(sourceDir);
+        if (toolSource is not null)
         {
             var toolTarget = Path.Combine(runDllDir, "tools");
-            CopyDirectory(toolSource, toolTarget);
-            Log(logPath, $"tools_copy source={toolSource} target={toolTarget}");
+            var copied = CopyToolPayloads(toolSource, toolTarget);
+            if (copied > 0)
+            {
+                Log(logPath, $"tools_copy source={toolSource} target={toolTarget} files={copied}");
+            }
         }
     
         Log(logPath, $"dll_copy source={fullDllPath} target={copyPath}");
         return copyPath;
+    }
+
+    private static string? ResolveToolDirectory(string primaryRoot)
+    {
+        foreach (var root in EnumerateCompanionSearchRoots(primaryRoot))
+        {
+            var candidate = Path.Combine(root, "tools");
+            if (Directory.Exists(candidate) && ContainsToolPayload(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        return null;
+    }
+
+    private static IEnumerable<string> EnumerateCompanionSearchRoots(string primaryRoot)
+    {
+        var yielded = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var root in EnumerateRootAndParents(primaryRoot))
+        {
+            if (yielded.Add(root))
+            {
+                yield return root;
+            }
+        }
+    }
+
+    private static IEnumerable<string> EnumerateRootAndParents(string root)
+    {
+        if (string.IsNullOrWhiteSpace(root))
+        {
+            yield break;
+        }
+
+        DirectoryInfo? current;
+        try
+        {
+            current = new DirectoryInfo(Path.GetFullPath(root));
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            yield break;
+        }
+
+        for (var depth = 0; current is not null && depth < 8; depth++, current = current.Parent)
+        {
+            yield return current.FullName;
+        }
+    }
+
+    private static int CopyToolPayloads(string sourceDir, string targetDir)
+    {
+        if ((File.GetAttributes(sourceDir) & FileAttributes.ReparsePoint) != 0)
+        {
+            throw new IOException($"Refusing to copy reparse point tool directory: {sourceDir}");
+        }
+
+        Directory.CreateDirectory(targetDir);
+        var copied = 0;
+        foreach (var fileName in new[] { "kbo_optimizer.exe", "kbo_optimizer.py" })
+        {
+            var sourcePath = Path.Combine(sourceDir, fileName);
+            if (!File.Exists(sourcePath))
+            {
+                continue;
+            }
+            if ((File.GetAttributes(sourcePath) & FileAttributes.ReparsePoint) != 0)
+            {
+                throw new IOException($"Refusing to copy reparse point tool file: {sourcePath}");
+            }
+
+            File.Copy(sourcePath, Path.Combine(targetDir, fileName), overwrite: true);
+            copied++;
+        }
+
+        return copied;
+    }
+
+    private static bool ContainsToolPayload(string sourceDir)
+    {
+        return File.Exists(Path.Combine(sourceDir, "kbo_optimizer.exe"))
+            || File.Exists(Path.Combine(sourceDir, "kbo_optimizer.py"));
     }
 
     private static void CopyDirectory(string sourceDir, string targetDir)

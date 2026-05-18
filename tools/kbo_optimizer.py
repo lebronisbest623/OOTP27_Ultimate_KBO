@@ -20,6 +20,10 @@ TOP_EDGE_BONUS = 2800
 BOTTOM_EDGE_BONUS = 2200
 EXTREME_MISMATCH_PENALTY = 3600
 OPTIONAL_SLOT_REPUTATION_WEIGHT = 30000
+INCOMING_REPUTATION_FLOOR_WEIGHT = 0.03
+INCOMING_REPUTATION_POWER = 3.0
+INCOMING_SLOT_DECAY = 1.15
+INCOMING_MAX_AVERAGE_MULTIPLIER = 2.65
 AMATEUR_ROLE_BALANCE_TOLERANCES = (0.10, 0.15, 0.22, 0.50)
 AMATEUR_MIN_HITTER_SHARE = 0.25
 AMATEUR_MAX_HITTER_SHARE = 0.75
@@ -163,6 +167,20 @@ def _team_reputation_percentiles(grouped):
             reputation = _to_int(row, "reputation")
             teams[team_id] = max(reputation, teams.get(team_id, reputation))
     return _rank_percentiles((reputation, team_id) for team_id, reputation in teams.items())
+
+
+def _clamp01(value):
+    return max(0.0, min(1.0, value))
+
+
+def _incoming_effective_percentile(info, total_teams):
+    stages = max(0, int(info.get("draft_penalty_stages", 0)))
+    return _clamp01(float(info.get("percentile", 0.5)) - stages / max(1, total_teams))
+
+
+def _incoming_reputation_weight(info, total_teams):
+    percentile = _incoming_effective_percentile(info, total_teams)
+    return INCOMING_REPUTATION_FLOOR_WEIGHT + math.pow(percentile, INCOMING_REPUTATION_POWER)
 
 
 def _rank_fit_weight(player_percentile, team_percentile):
@@ -425,6 +443,7 @@ def _collect_batch_team_info(grouped, team_percentiles, incoming_batch=False, de
                 "role_counts": role_counts,
                 "reputation": _to_int(row, "reputation"),
                 "percentile": team_percentiles.get(team_id, 0.5),
+                "draft_penalty_stages": _to_int(row, "draft_penalty_stages"),
             }
     return team_info
 
@@ -437,16 +456,46 @@ def _allocate_incoming_batch_team_targets(team_info, total_players):
     if total_players <= 0:
         return True
 
-    ordered = sorted(
-        team_info.items(),
-        key=lambda item: (item[1]["percentile"], item[1]["reputation"], item[0]),
-        reverse=True,
-    )
+    ordered = sorted(team_info.items(), key=lambda item: item[0])
     team_count = len(ordered)
-    base = total_players // team_count
-    extra = total_players % team_count
-    for index, (_, info) in enumerate(ordered):
-        info["target_count"] = base + (1 if index < extra else 0)
+    average = total_players / team_count
+    min_fill_total = sum(max(0, info.get("min_fill", 0)) for _, info in ordered)
+    remaining = total_players
+    if 0 < min_fill_total <= total_players:
+        for _, info in ordered:
+            info["target_count"] = max(0, info.get("min_fill", 0))
+        remaining -= min_fill_total
+
+    max_per_team = max(
+        max((info["target_count"] for _, info in ordered), default=0),
+        int(math.ceil(average * INCOMING_MAX_AVERAGE_MULTIPLIER)),
+        1,
+    )
+    weights = {
+        team_id: _incoming_reputation_weight(info, team_count)
+        for team_id, info in ordered
+    }
+    while remaining > 0:
+        candidates = []
+        for team_id, info in ordered:
+            if info["target_count"] >= max_per_team:
+                continue
+            next_slot = info["target_count"] + 1
+            score = weights[team_id] / math.pow(next_slot, INCOMING_SLOT_DECAY)
+            candidates.append((
+                score,
+                _incoming_effective_percentile(info, team_count),
+                info["reputation"],
+                -info["target_count"],
+                team_id,
+                info,
+            ))
+        if not candidates:
+            return False
+
+        _, _, _, _, _, selected = max(candidates)
+        selected["target_count"] += 1
+        remaining -= 1
     return sum(info["target_count"] for info in team_info.values()) == total_players
 
 

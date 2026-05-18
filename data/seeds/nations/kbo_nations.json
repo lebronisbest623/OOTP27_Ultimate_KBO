@@ -1,0 +1,15 @@
+{
+  "nations": [
+    { "id": 12,  "label": "Australia",         "abbrev": "AUS", "flag_file": "aus.png" },
+    { "id": 36,  "label": "Canada",             "abbrev": "CAN", "flag_file": "can.png" },
+    { "id": 43,  "label": "Taiwan",             "abbrev": "TPE", "flag_file": "tpe.png" },
+    { "id": 49,  "label": "Cuba",               "abbrev": "CUB", "flag_file": "cub.png" },
+    { "id": 56,  "label": "Dominican Republic", "abbrev": "DOM", "flag_file": "dom.png" },
+    { "id": 98,  "label": "Japan",              "abbrev": "JPN", "flag_file": "jpn.png" },
+    { "id": 124, "label": "Mexico",             "abbrev": "MEX", "flag_file": "mex.png" },
+    { "id": 145, "label": "Panama",             "abbrev": "PAN", "flag_file": "pan.png" },
+    { "id": 177, "label": "Korea",              "abbrev": "KOR", "flag_file": "kor.png" },
+    { "id": 206, "label": "United States",      "abbrev": "USA", "flag_file": "usa.png" },
+    { "id": 210, "label": "Venezuela",          "abbrev": "VEN", "flag_file": "ven.png" }
+  ]
+}

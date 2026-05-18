@@ -83,6 +83,13 @@
       ]
     },
     {
+      "id": "nations",
+      "label": "Nations",
+      "files": [
+        { "path": "kbo_nations.json", "source": "nations/kbo_nations.json", "label": "Nation display table", "kind": "policy" }
+      ]
+    },
+    {
       "id": "military_service",
       "label": "Military service",
       "files": [

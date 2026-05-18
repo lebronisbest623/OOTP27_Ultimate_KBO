@@ -5,6 +5,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "../../../bootstrap/abi/ootp_offsets.h"
 #include "../../../core/core_league_context_parts/api/league_context_lookup.h"
@@ -12,6 +13,7 @@
 #include "../../../core/dates/core_text_date.h"
 #include "../../../core/dates/tick/current_date_tick_capture.h"
 #include "../../../core/events/core_league_events.h"
+#include "../../../core/files/save_paths/core_save_paths.h"
 #include "../../../core/logging/core_log.h"
 #include "../../../foreign/common/dates/foreign_waiver_date.h"
 #include "../../../foreign/common/policy/foreign_waiver_policy.h"
@@ -38,6 +40,7 @@ typedef struct KboIndependentAcquisitionMemoryStartCache {
     uint32_t season;
     uint32_t start_date;
     uintptr_t league_ptr;
+    char save_path[MAX_PATH];
 } KboIndependentAcquisitionMemoryStartCache;
 
 static KboIndependentAcquisitionMemoryStartCache g_kbo_independent_acquisition_memory_start_cache = {0};
@@ -107,6 +110,24 @@ static uint32_t kbo_independent_team_acquisition_add_months(
     return result;
 }
 
+static int kbo_independent_team_acquisition_start_date_plausible(
+    uint32_t yyyymmdd,
+    uint32_t expected_year)
+{
+    uint32_t year = yyyymmdd / 10000u;
+    uint32_t month = (yyyymmdd / 100u) % 100u;
+    uint32_t day = yyyymmdd % 100u;
+    if (year != expected_year
+            || month < 2u
+            || month > 5u
+            || day < 1u
+            || day > 31u
+            || kbo_date_serial(year, month, day) == 0u) {
+        return 0;
+    }
+    return 1;
+}
+
 static int kbo_independent_team_acquisition_read_start_date_from_ptr(
     uintptr_t league_ptr,
     uint32_t expected_year,
@@ -139,7 +160,12 @@ static int kbo_independent_team_acquisition_read_start_date_from_ptr(
         return 0;
     }
 
-    *out_start_date = year * 10000u + month * 100u + day;
+    uint32_t start_date = year * 10000u + month * 100u + day;
+    if (!kbo_independent_team_acquisition_start_date_plausible(start_date, expected_year)) {
+        return 0;
+    }
+
+    *out_start_date = start_date;
     return 1;
 }
 
@@ -204,15 +230,23 @@ static int kbo_independent_team_acquisition_store_memory_start_cache(
     uint32_t start_date,
     uintptr_t league_ptr)
 {
+    char save_path[MAX_PATH] = {0};
     if (league_id == 0u || season < 1982u || season > 2200u
             || start_date / 10000u != season
-            || league_ptr == 0u) {
+            || league_ptr == 0u
+            || !kbo_get_current_save_path(save_path, sizeof(save_path))
+            || save_path[0] == '\0') {
         return 0;
     }
     g_kbo_independent_acquisition_memory_start_cache.league_id = league_id;
     g_kbo_independent_acquisition_memory_start_cache.season = season;
     g_kbo_independent_acquisition_memory_start_cache.start_date = start_date;
     g_kbo_independent_acquisition_memory_start_cache.league_ptr = league_ptr;
+    snprintf(
+        g_kbo_independent_acquisition_memory_start_cache.save_path,
+        sizeof(g_kbo_independent_acquisition_memory_start_cache.save_path),
+        "%s",
+        save_path);
     return 1;
 }
 
@@ -222,10 +256,14 @@ static int kbo_independent_team_acquisition_try_cached_memory_start(
     uint32_t* out_start_date)
 {
     KboIndependentAcquisitionMemoryStartCache cache = g_kbo_independent_acquisition_memory_start_cache;
+    char save_path[MAX_PATH] = {0};
     if (cache.league_id != league_id
             || cache.season != expected_year
             || cache.start_date / 10000u != expected_year
-            || cache.league_ptr == 0u) {
+            || cache.league_ptr == 0u
+            || cache.save_path[0] == '\0'
+            || !kbo_get_current_save_path(save_path, sizeof(save_path))
+            || strcmp(cache.save_path, save_path) != 0) {
         return 0;
     }
 
@@ -234,11 +272,27 @@ static int kbo_independent_team_acquisition_try_cached_memory_start(
             cache.league_ptr,
             expected_year,
             &current_start)) {
-        return 0;
+        if (out_start_date != NULL) {
+            *out_start_date = cache.start_date;
+        }
+        return 1;
     }
     if (current_start != cache.start_date) {
-        g_kbo_independent_acquisition_memory_start_cache = (KboIndependentAcquisitionMemoryStartCache){0};
-        return 0;
+        static uint32_t last_drift_logged_year = 0u;
+        if (last_drift_logged_year != expected_year) {
+            last_drift_logged_year = expected_year;
+            kbo_log_runtimef(
+                "KBO independent futures acquisition memory start drift ignored league_id=%u season=%u cached=%u current=%u ptr=%p",
+                league_id,
+                expected_year,
+                cache.start_date,
+                current_start,
+                (void*)cache.league_ptr);
+        }
+        if (out_start_date != NULL) {
+            *out_start_date = cache.start_date;
+        }
+        return 1;
     }
 
     if (out_start_date != NULL) {
@@ -671,6 +725,19 @@ int kbo_schedule_independent_team_acquisition_custom_events_for_date(
         return -1;
     }
     uint32_t schedule_year = today / 10000u;
+    uint32_t existing_open_date = kbo_independent_team_acquisition_window_open_date_for_date(today);
+    if (existing_open_date != 0u && today >= existing_open_date) {
+        static uint32_t last_logged_existing_window_date = 0u;
+        if (last_logged_existing_window_date != today) {
+            last_logged_existing_window_date = today;
+            kbo_log_runtimef(
+                "KBO independent futures acquisition schedule skipped source=%s reason=window_already_open today=%u open=%u",
+                source != NULL ? source : "",
+                today,
+                existing_open_date);
+        }
+        return 0;
+    }
     if (g_kbo_independent_acquisition_schedule_ready_year == schedule_year
             && g_kbo_independent_acquisition_schedule_ready_event_league_id == event_league_id
             && g_kbo_independent_acquisition_schedule_ready_first_open_date != 0u

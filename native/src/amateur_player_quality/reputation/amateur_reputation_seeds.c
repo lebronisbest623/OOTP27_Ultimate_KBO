@@ -173,6 +173,28 @@ int kbo_amateur_reputation_history_has_year(uint32_t league_id, uint32_t year)
     return found;
 }
 
+static int kbo_amateur_reputation_cached_value(uint32_t league_id, uint32_t team_id, uint8_t* out_reputation)
+{
+    if (out_reputation != NULL) {
+        *out_reputation = 0u;
+    }
+    if (league_id == 0u || team_id == 0u) {
+        return 0;
+    }
+
+    for (int i = 0; i < g_kbo_amateur_reputation_seed_count; i++) {
+        if (g_kbo_amateur_reputation_seeds[i].league_id == league_id
+                && g_kbo_amateur_reputation_seeds[i].team_id == team_id) {
+            if (out_reputation != NULL) {
+                *out_reputation = g_kbo_amateur_reputation_seeds[i].reputation;
+            }
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
 int kbo_apply_amateur_reputation_history_to_cache(void)
 {
     char path[MAX_PATH] = {0};
@@ -186,10 +208,11 @@ int kbo_apply_amateur_reputation_history_to_cache(void)
     }
 
     int applied = 0;
+    int repaired = 0;
     while (kbo_csv_reader_next_row(reader)) {
-        char fields[7][128];
-        int field_count = kbo_csv_reader_read_trimmed_fields(reader, (char*)fields, sizeof(fields[0]), 7);
-        if (field_count <= 6
+        char fields[6][128];
+        int field_count = kbo_csv_reader_read_trimmed_fields(reader, (char*)fields, sizeof(fields[0]), 6);
+        if (field_count <= 5
                 || fields[0][0] == '\0'
                 || fields[0][0] == '#'
                 || _stricmp(fields[0], "year") == 0) {
@@ -198,7 +221,23 @@ int kbo_apply_amateur_reputation_history_to_cache(void)
 
         uint32_t league_id = kbo_csv_parse_u32_text(fields[1], 10);
         uint32_t team_id = kbo_csv_parse_u32_text(fields[2], 10);
-        uint32_t new_reputation = kbo_csv_parse_u32_text(fields[6], 10);
+        uint32_t old_reputation = kbo_csv_parse_u32_text(fields[3], 10);
+        int32_t delta = (int32_t)strtol(fields[4], NULL, 10);
+        uint32_t recorded_new_reputation = kbo_csv_parse_u32_text(fields[5], 10);
+        uint32_t new_reputation = recorded_new_reputation;
+        uint8_t current_reputation = 0u;
+        if (old_reputation != 0u
+                && kbo_amateur_reputation_cached_value(league_id, team_id, &current_reputation)
+                && (uint32_t)current_reputation != old_reputation) {
+            new_reputation = (uint32_t)kbo_amateur_reputation_clamp_for_league(
+                league_id,
+                (int32_t)current_reputation + delta);
+            repaired++;
+        } else {
+            new_reputation = (uint32_t)kbo_amateur_reputation_clamp_for_league(
+                league_id,
+                (int32_t)recorded_new_reputation);
+        }
         if (league_id != 0u && team_id != 0u && new_reputation != 0u
                 && kbo_amateur_reputation_add_seed(league_id, team_id, "", "", "", new_reputation)) {
             applied++;
@@ -206,7 +245,7 @@ int kbo_apply_amateur_reputation_history_to_cache(void)
     }
 
     kbo_csv_reader_close(reader);
-    kbo_log_runtimef("amateur reputation history replayed rows=%d path=%s", applied, path);
+    kbo_log_runtimef("amateur reputation history replayed rows=%d repaired=%d path=%s", applied, repaired, path);
     return applied;
 }
 
