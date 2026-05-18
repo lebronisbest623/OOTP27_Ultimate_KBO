@@ -285,13 +285,12 @@ static int kbo_independent_acquisition_ui_assignment_snapshot_matches_team(
     const KboIndependentAcquisitionUiPlayerAssignmentSnapshot* snapshot,
     const KboIndependentAcquisitionUiTeamMatch* match)
 {
-    if (snapshot == NULL || match == NULL || match->org_team_id == 0u) {
+    if (snapshot == NULL || match == NULL || match->team_id == 0u) {
         return 0;
     }
     for (int i = 0; i < snapshot->count; i++) {
         if (snapshot->team_ids[i] == match->team_id
-                || snapshot->team_ids[i] == match->org_team_id
-                || snapshot->org_team_ids[i] == match->org_team_id) {
+                || snapshot->org_team_ids[i] == match->team_id) {
             return 1;
         }
     }

@@ -60,6 +60,9 @@ static const int32_t KBO_ECONOMIC_ASIAN_QUALITY_CAP_FALLBACKS[5] = {
     72000, 70000, 71000, 72000, 65000
 };
 
+#define KBO_ECONOMIC_INDEPENDENT_ACQUISITION_FOREIGN_CASH_COST_FALLBACK 100000
+#define KBO_ECONOMIC_INDEPENDENT_ACQUISITION_DOMESTIC_CASH_COST_FALLBACK 30000
+
 static int32_t kbo_economic_default_int(const char* key, int32_t fallback)
 {
     int value = (int)fallback;
@@ -67,6 +70,12 @@ static int32_t kbo_economic_default_int(const char* key, int32_t fallback)
         return (int32_t)value;
     }
     return fallback;
+}
+
+static int32_t kbo_economic_default_positive_int(const char* key, int32_t fallback)
+{
+    int32_t value = kbo_economic_default_int(key, fallback);
+    return value > 0 ? value : fallback;
 }
 
 static int32_t kbo_economic_default_indexed(
@@ -146,10 +155,14 @@ int kbo_economic_default_asian_games_no_gold_odds_denominator(void)
 
 int32_t kbo_economic_default_independent_acquisition_foreign_cash_cost(void)
 {
-    return kbo_economic_default_int("independent_acquisition_foreign_cash_cost", 0);
+    return kbo_economic_default_positive_int(
+        "independent_acquisition_foreign_cash_cost",
+        KBO_ECONOMIC_INDEPENDENT_ACQUISITION_FOREIGN_CASH_COST_FALLBACK);
 }
 
 int32_t kbo_economic_default_independent_acquisition_domestic_cash_cost(void)
 {
-    return kbo_economic_default_int("independent_acquisition_domestic_cash_cost", 0);
+    return kbo_economic_default_positive_int(
+        "independent_acquisition_domestic_cash_cost",
+        KBO_ECONOMIC_INDEPENDENT_ACQUISITION_DOMESTIC_CASH_COST_FALLBACK);
 }
