@@ -49,7 +49,8 @@ __declspec(noinline) uint8_t ootp_kbo_team_add_player_guard_wrapper(
 
     int team_readable = team_ptr != 0
         && memory_range_readable((void*)team_ptr, OOTP27_KBO_TEAM_READABLE_BYTES);
-    int player_plausible = kbo_player_pointer_plausible(player_ptr);
+    int original_args_readable = kbo_team_add_original_args_readable(team_ptr, player_ptr);
+    int player_plausible = original_args_readable;
     uint8_t* team = team_readable ? (uint8_t*)team_ptr : NULL;
     uint8_t* player = player_plausible ? (uint8_t*)player_ptr : NULL;
     uint32_t team_id = team_readable
@@ -58,7 +59,7 @@ __declspec(noinline) uint8_t ootp_kbo_team_add_player_guard_wrapper(
     int is_military_team = team_id != 0u && kbo_team_id_is_military_service_team(team_id);
     int amateur_generation_call = kbo_amateur_generation_team_add_caller(caller_rva);
 
-    if (!kbo_team_add_original_args_readable(team_ptr, player_ptr)) {
+    if (!original_args_readable) {
         kbo_team_add_log_skipped_bad_original_args(
             caller_rva,
             "entry",

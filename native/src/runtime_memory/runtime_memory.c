@@ -8,6 +8,29 @@
 #include "../core/logging/core_log.h"
 #include "../core/runtime_tuning/runtime_tuning_policy.h"
 #include "runtime_memory.h"
+
+#if defined(_MSC_VER)
+#define KBO_RUNTIME_MEMORY_THREAD_LOCAL __declspec(thread)
+#elif defined(__GNUC__)
+#define KBO_RUNTIME_MEMORY_THREAD_LOCAL __thread
+#else
+#define KBO_RUNTIME_MEMORY_THREAD_LOCAL
+#endif
+
+typedef struct KboReadableRegionCacheEntry {
+    uintptr_t base;
+    uintptr_t end;
+    DWORD tick;
+} KboReadableRegionCacheEntry;
+
+enum {
+    KBO_READABLE_REGION_CACHE_SLOTS = 32,
+    KBO_READABLE_REGION_CACHE_TTL_MS = 100u
+};
+
+static KBO_RUNTIME_MEMORY_THREAD_LOCAL KboReadableRegionCacheEntry
+    g_kbo_readable_region_cache[KBO_READABLE_REGION_CACHE_SLOTS];
+
 static int protect_allows_read(DWORD protect)
 {
     if ((protect & PAGE_GUARD) != 0 || (protect & PAGE_NOACCESS) != 0) {
@@ -22,6 +45,35 @@ static int protect_allows_read(DWORD protect)
         || protect == PAGE_EXECUTE_WRITECOPY;
 }
 
+static int readable_region_cache_hit(uintptr_t start, uintptr_t end, DWORD now)
+{
+    for (int i = 0; i < KBO_READABLE_REGION_CACHE_SLOTS; i++) {
+        KboReadableRegionCacheEntry* entry = &g_kbo_readable_region_cache[i];
+        if (entry->base == 0u || entry->end <= entry->base || entry->tick == 0u) {
+            continue;
+        }
+        if (now - entry->tick > KBO_READABLE_REGION_CACHE_TTL_MS) {
+            continue;
+        }
+        if (start >= entry->base && end <= entry->end) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static void readable_region_cache_store(uintptr_t region_base, uintptr_t region_end, DWORD now)
+{
+    if (region_base < 0x10000u || region_end <= region_base) {
+        return;
+    }
+
+    uintptr_t slot = (region_base >> 12) & (KBO_READABLE_REGION_CACHE_SLOTS - 1u);
+    g_kbo_readable_region_cache[slot].base = region_base;
+    g_kbo_readable_region_cache[slot].end = region_end;
+    g_kbo_readable_region_cache[slot].tick = now;
+}
+
 int memory_range_readable(const void* address, SIZE_T size)
 {
     if (address == NULL || size == 0) {
@@ -31,6 +83,16 @@ int memory_range_readable(const void* address, SIZE_T size)
     if (start < 0x10000u) {
         return 0;
     }
+    uintptr_t end = start + size;
+    if (end <= start) {
+        return 0;
+    }
+
+    DWORD now = GetTickCount();
+    if (readable_region_cache_hit(start, end, now)) {
+        return 1;
+    }
+
     MEMORY_BASIC_INFORMATION mbi;
     if (VirtualQuery(address, &mbi, sizeof(mbi)) == 0) {
         return 0;
@@ -38,9 +100,13 @@ int memory_range_readable(const void* address, SIZE_T size)
     if (mbi.State != MEM_COMMIT || !protect_allows_read(mbi.Protect)) {
         return 0;
     }
-    uintptr_t end = start + size;
-    uintptr_t region_end = (uintptr_t)mbi.BaseAddress + mbi.RegionSize;
-    return end > start && end <= region_end;
+    uintptr_t region_base = (uintptr_t)mbi.BaseAddress;
+    uintptr_t region_end = region_base + mbi.RegionSize;
+    if (region_end <= region_base || end > region_end) {
+        return 0;
+    }
+    readable_region_cache_store(region_base, region_end, now);
+    return 1;
 }
 
 /*

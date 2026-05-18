@@ -96,6 +96,7 @@ static KboForeignInjurySqliteFileApi g_kbo_foreign_injury_sqlite_file_api = {0};
 
 #define KBO_SQLITE_OPEN_READONLY 0x00000001
 #define KBO_FOREIGN_INJURY_SQL_SNAPSHOT_LOG_LIMIT 80
+#define KBO_FOREIGN_INJURY_SQL_QUERY_MAX 8192u
 
 static void kbo_foreign_injury_sql_cache_lock(void)
 {
@@ -634,12 +635,47 @@ static void kbo_foreign_injury_sql_build_query(
 
     char player_href[64] = {0};
     snprintf(player_href, sizeof(player_href), "%%/player_%u.html%%", player_id);
+    const char* news_filter =
+        "(%s LIKE '%%injur%%' OR %s LIKE '%%diagnos%%' OR %s LIKE '%%out of action%%' OR %s LIKE '%%miss%%' "
+        "OR %s LIKE '%%sidelined%%' OR %s LIKE '%%doctor%%' OR %s LIKE '%%medical%%' "
+        "OR %s LIKE '%%disabled list%%' OR %s LIKE '%%injured list%%')";
+    char league_news_filter[768] = {0};
+    char team_news_filter[768] = {0};
+    snprintf(
+        league_news_filter,
+        sizeof(league_news_filter),
+        news_filter,
+        "news_text",
+        "news_text",
+        "news_text",
+        "news_text",
+        "news_text",
+        "news_text",
+        "news_text",
+        "news_text",
+        "news_text");
+    snprintf(
+        team_news_filter,
+        sizeof(team_news_filter),
+        news_filter,
+        "news_text",
+        "news_text",
+        "news_text",
+        "news_text",
+        "news_text",
+        "news_text",
+        "news_text",
+        "news_text",
+        "news_text");
+
     snprintf(
         out,
         out_size,
         "SELECT history_text, history_date FROM player_history WHERE player_id=%u AND (%u=0 OR history_date <= '%08u') "
         "UNION ALL SELECT injury_text, injury_date FROM league_injuries WHERE injury_text LIKE '%s' AND (%u=0 OR injury_date <= '%08u') "
-        "UNION ALL SELECT injury_text, injury_date FROM team_injuries WHERE injury_text LIKE '%s' AND (%u=0 OR injury_date <= '%08u');",
+        "UNION ALL SELECT injury_text, injury_date FROM team_injuries WHERE injury_text LIKE '%s' AND (%u=0 OR injury_date <= '%08u') "
+        "UNION ALL SELECT news_text, news_date FROM league_news WHERE news_text LIKE '%s' AND (%u=0 OR news_date <= '%08u') AND %s "
+        "UNION ALL SELECT news_text, news_date FROM team_news WHERE news_text LIKE '%s' AND (%u=0 OR news_date <= '%08u') AND %s;",
         player_id,
         max_date_yyyymmdd,
         max_date_yyyymmdd,
@@ -648,7 +684,15 @@ static void kbo_foreign_injury_sql_build_query(
         max_date_yyyymmdd,
         player_href,
         max_date_yyyymmdd,
-        max_date_yyyymmdd);
+        max_date_yyyymmdd,
+        player_href,
+        max_date_yyyymmdd,
+        max_date_yyyymmdd,
+        league_news_filter,
+        player_href,
+        max_date_yyyymmdd,
+        max_date_yyyymmdd,
+        team_news_filter);
 }
 
 static int kbo_foreign_injury_scan_sql_database(
@@ -827,26 +871,51 @@ static void kbo_foreign_injury_sql_build_daily_query(
         return;
     }
     out[0] = '\0';
-    snprintf(
-        out,
-        out_size,
-        "SELECT player_id, history_text, history_date FROM player_history "
-        "WHERE history_date <= '%08u' AND history_text LIKE '[I]Injured%%' "
-        "UNION ALL SELECT CAST(substr(injury_text, instr(injury_text, 'player_') + 7, "
-        "instr(substr(injury_text, instr(injury_text, 'player_') + 7), '.html') - 1) AS INTEGER), "
-        "injury_text, injury_date FROM league_injuries "
-        "WHERE injury_date <= '%08u' AND injury_text LIKE '%%player_%%.html%%' "
-        "UNION ALL SELECT CAST(substr(injury_text, instr(injury_text, 'player_') + 7, "
-        "instr(substr(injury_text, instr(injury_text, 'player_') + 7), '.html') - 1) AS INTEGER), "
-        "injury_text, injury_date FROM team_injuries "
-        "WHERE injury_date <= '%08u' AND injury_text LIKE '%%player_%%.html%%';",
-        game_date_yyyymmdd,
-        game_date_yyyymmdd,
-        game_date_yyyymmdd);
+    int written = snprintf(
+            out,
+            out_size,
+            "SELECT player_id, history_text, history_date FROM player_history "
+            "WHERE history_date <= '%08u' AND history_text LIKE '[I]Injured%%' "
+            "UNION ALL SELECT CAST(substr(injury_text, instr(injury_text, 'player_') + 7, "
+            "instr(substr(injury_text, instr(injury_text, 'player_') + 7), '.html') - 1) AS INTEGER), "
+            "injury_text, injury_date FROM league_injuries "
+            "WHERE injury_date <= '%08u' AND injury_text LIKE '%%player_%%.html%%' "
+            "UNION ALL SELECT CAST(substr(injury_text, instr(injury_text, 'player_') + 7, "
+            "instr(substr(injury_text, instr(injury_text, 'player_') + 7), '.html') - 1) AS INTEGER), "
+            "injury_text, injury_date FROM team_injuries "
+            "WHERE injury_date <= '%08u' AND injury_text LIKE '%%player_%%.html%%' "
+            "UNION ALL SELECT CAST(substr(news_text, instr(news_text, 'player_') + 7, "
+            "instr(substr(news_text, instr(news_text, 'player_') + 7), '.html') - 1) AS INTEGER), "
+            "news_text, news_date FROM league_news "
+            "WHERE news_date <= '%08u' AND news_text LIKE '%%player_%%.html%%' "
+            "AND (news_text LIKE '%%injur%%' OR news_text LIKE '%%diagnos%%' OR news_text LIKE '%%out of action%%' OR news_text LIKE '%%miss%%' "
+            "OR news_text LIKE '%%sidelined%%' OR news_text LIKE '%%doctor%%' OR news_text LIKE '%%medical%%' "
+            "OR news_text LIKE '%%disabled list%%' OR news_text LIKE '%%injured list%%') "
+            "UNION ALL SELECT CAST(substr(news_text, instr(news_text, 'player_') + 7, "
+            "instr(substr(news_text, instr(news_text, 'player_') + 7), '.html') - 1) AS INTEGER), "
+            "news_text, news_date FROM team_news "
+            "WHERE news_date <= '%08u' AND news_text LIKE '%%player_%%.html%%' "
+            "AND (news_text LIKE '%%injur%%' OR news_text LIKE '%%diagnos%%' OR news_text LIKE '%%out of action%%' OR news_text LIKE '%%miss%%' "
+            "OR news_text LIKE '%%sidelined%%' OR news_text LIKE '%%doctor%%' OR news_text LIKE '%%medical%%' "
+            "OR news_text LIKE '%%disabled list%%' OR news_text LIKE '%%injured list%%')",
+            game_date_yyyymmdd,
+            game_date_yyyymmdd,
+            game_date_yyyymmdd,
+            game_date_yyyymmdd,
+            game_date_yyyymmdd);
+    if (written < 0 || (size_t)written >= out_size) {
+        return;
+    }
+    size_t len = strlen(out);
+    if (len + 1u < out_size) {
+        out[len] = ';';
+        out[len + 1u] = '\0';
+    }
 }
 
 static void kbo_foreign_injury_sql_build_discovery_query(
     uint32_t game_date_yyyymmdd,
+    int allow_backdated,
     char* out,
     size_t out_size)
 {
@@ -854,22 +923,52 @@ static void kbo_foreign_injury_sql_build_discovery_query(
         return;
     }
     out[0] = '\0';
-    snprintf(
-        out,
-        out_size,
-        "SELECT player_id, history_text, history_date FROM player_history "
-        "WHERE history_date = '%08u' AND history_text LIKE '[I]Injured%%' "
-        "UNION ALL SELECT CAST(substr(injury_text, instr(injury_text, 'player_') + 7, "
-        "instr(substr(injury_text, instr(injury_text, 'player_') + 7), '.html') - 1) AS INTEGER), "
-        "injury_text, injury_date FROM league_injuries "
-        "WHERE injury_date = '%08u' AND injury_text LIKE '%%player_%%.html%%' "
-        "UNION ALL SELECT CAST(substr(injury_text, instr(injury_text, 'player_') + 7, "
-        "instr(substr(injury_text, instr(injury_text, 'player_') + 7), '.html') - 1) AS INTEGER), "
-        "injury_text, injury_date FROM team_injuries "
-        "WHERE injury_date = '%08u' AND injury_text LIKE '%%player_%%.html%%';",
-        game_date_yyyymmdd,
-        game_date_yyyymmdd,
-        game_date_yyyymmdd);
+    const char* op = allow_backdated ? "<=" : "=";
+    int written = snprintf(
+            out,
+            out_size,
+            "SELECT player_id, history_text, history_date FROM player_history "
+            "WHERE history_date %s '%08u' AND history_text LIKE '[I]Injured%%' "
+            "UNION ALL SELECT CAST(substr(injury_text, instr(injury_text, 'player_') + 7, "
+            "instr(substr(injury_text, instr(injury_text, 'player_') + 7), '.html') - 1) AS INTEGER), "
+            "injury_text, injury_date FROM league_injuries "
+            "WHERE injury_date %s '%08u' AND injury_text LIKE '%%player_%%.html%%' "
+            "UNION ALL SELECT CAST(substr(injury_text, instr(injury_text, 'player_') + 7, "
+            "instr(substr(injury_text, instr(injury_text, 'player_') + 7), '.html') - 1) AS INTEGER), "
+            "injury_text, injury_date FROM team_injuries "
+            "WHERE injury_date %s '%08u' AND injury_text LIKE '%%player_%%.html%%' "
+            "UNION ALL SELECT CAST(substr(news_text, instr(news_text, 'player_') + 7, "
+            "instr(substr(news_text, instr(news_text, 'player_') + 7), '.html') - 1) AS INTEGER), "
+            "news_text, news_date FROM league_news "
+            "WHERE news_date %s '%08u' AND news_text LIKE '%%player_%%.html%%' "
+            "AND (news_text LIKE '%%injur%%' OR news_text LIKE '%%diagnos%%' OR news_text LIKE '%%out of action%%' OR news_text LIKE '%%miss%%' "
+            "OR news_text LIKE '%%sidelined%%' OR news_text LIKE '%%doctor%%' OR news_text LIKE '%%medical%%' "
+            "OR news_text LIKE '%%disabled list%%' OR news_text LIKE '%%injured list%%') "
+            "UNION ALL SELECT CAST(substr(news_text, instr(news_text, 'player_') + 7, "
+            "instr(substr(news_text, instr(news_text, 'player_') + 7), '.html') - 1) AS INTEGER), "
+            "news_text, news_date FROM team_news "
+            "WHERE news_date %s '%08u' AND news_text LIKE '%%player_%%.html%%' "
+            "AND (news_text LIKE '%%injur%%' OR news_text LIKE '%%diagnos%%' OR news_text LIKE '%%out of action%%' OR news_text LIKE '%%miss%%' "
+            "OR news_text LIKE '%%sidelined%%' OR news_text LIKE '%%doctor%%' OR news_text LIKE '%%medical%%' "
+            "OR news_text LIKE '%%disabled list%%' OR news_text LIKE '%%injured list%%')",
+            op,
+            game_date_yyyymmdd,
+            op,
+            game_date_yyyymmdd,
+            op,
+            game_date_yyyymmdd,
+            op,
+            game_date_yyyymmdd,
+            op,
+            game_date_yyyymmdd);
+    if (written < 0 || (size_t)written >= out_size) {
+        return;
+    }
+    size_t len = strlen(out);
+    if (len + 1u < out_size) {
+        out[len] = ';';
+        out[len + 1u] = '\0';
+    }
 }
 
 static int kbo_foreign_injury_scan_text_data_sqlite_discovery(
@@ -971,8 +1070,10 @@ static void kbo_foreign_injury_sql_ensure_daily_scan(
         return;
     }
 
-    char sql[1600] = {0};
-    kbo_foreign_injury_sql_build_daily_query(game_date_yyyymmdd, sql, sizeof(sql));
+    char sql_live[KBO_FOREIGN_INJURY_SQL_QUERY_MAX] = {0};
+    char sql_file[KBO_FOREIGN_INJURY_SQL_QUERY_MAX] = {0};
+    kbo_foreign_injury_sql_build_daily_query(game_date_yyyymmdd, sql_live, sizeof(sql_live));
+    kbo_foreign_injury_sql_build_daily_query(game_date_yyyymmdd, sql_file, sizeof(sql_file));
     KboForeignInjurySqlDailyScan scan;
     memset(&scan, 0, sizeof(scan));
     scan.database = cache_database;
@@ -982,14 +1083,14 @@ static void kbo_foreign_injury_sql_ensure_daily_scan(
     if (database != 0u && sqlite_exec != NULL) {
         result = sqlite_exec(
             (void*)database,
-            sql,
+            sql_live,
             (void*)&kbo_foreign_injury_sql_daily_scan_callback,
             &scan,
             NULL);
     }
     KboForeignInjurySqlDailyScan file_scan;
     int file_result = kbo_foreign_injury_scan_text_data_sqlite_daily(
-        sql,
+        sql_file,
         cache_database,
         min_days,
         game_date_yyyymmdd,
@@ -1018,9 +1119,10 @@ static void kbo_foreign_injury_sql_ensure_daily_scan(
     }
 }
 
-int kbo_foreign_injury_collect_sql_long_term_injuries_on_date(
+int kbo_foreign_injury_collect_sql_long_term_injuries_on_date_mode(
     uint32_t game_date_yyyymmdd,
     int min_days,
+    int allow_backdated,
     KboForeignInjurySqlDiscoveryRow* out_rows,
     int max_rows,
     int* out_count,
@@ -1039,8 +1141,18 @@ int kbo_foreign_injury_collect_sql_long_term_injuries_on_date(
         return -1;
     }
 
-    char sql[1600] = {0};
-    kbo_foreign_injury_sql_build_discovery_query(game_date_yyyymmdd, sql, sizeof(sql));
+    char sql_live[KBO_FOREIGN_INJURY_SQL_QUERY_MAX] = {0};
+    char sql_file[KBO_FOREIGN_INJURY_SQL_QUERY_MAX] = {0};
+    kbo_foreign_injury_sql_build_discovery_query(
+        game_date_yyyymmdd,
+        allow_backdated,
+        sql_live,
+        sizeof(sql_live));
+    kbo_foreign_injury_sql_build_discovery_query(
+        game_date_yyyymmdd,
+        allow_backdated,
+        sql_file,
+        sizeof(sql_file));
 
     uintptr_t database = 0u;
     KboSqlite3ExecFn sqlite_exec = NULL;
@@ -1065,7 +1177,7 @@ int kbo_foreign_injury_collect_sql_long_term_injuries_on_date(
     if (database != 0u && sqlite_exec != NULL) {
         result = sqlite_exec(
             (void*)database,
-            sql,
+            sql_live,
             (void*)&kbo_foreign_injury_sql_discovery_scan_callback,
             &scan,
             NULL);
@@ -1075,24 +1187,46 @@ int kbo_foreign_injury_collect_sql_long_term_injuries_on_date(
     memset(file_rows, 0, sizeof(file_rows));
     KboForeignInjurySqlDiscoveryScan file_scan;
     int file_result = kbo_foreign_injury_scan_text_data_sqlite_discovery(
-        sql,
+        sql_file,
         min_days,
         game_date_yyyymmdd,
         file_rows,
         max_rows < KBO_FOREIGN_INJURY_SQL_DISCOVERY_MAX ? max_rows : KBO_FOREIGN_INJURY_SQL_DISCOVERY_MAX,
         &file_scan);
-    if (file_result == 0
-            && (result != 0
-                || file_scan.rows_seen >= scan.rows_seen
-                || file_scan.found_count > scan.found_count)) {
-        int copy_count = file_scan.found_count;
-        if (copy_count > max_rows) {
-            copy_count = max_rows;
+    if (file_result == 0) {
+        if (result != 0 && scan.found_count <= 0) {
+            int copy_count = file_scan.found_count;
+            if (copy_count > max_rows) {
+                copy_count = max_rows;
+            }
+            memcpy(out_rows, file_rows, (size_t)copy_count * sizeof(out_rows[0]));
+            scan = file_scan;
+            scan.found_count = copy_count;
+            result = file_result;
+        } else {
+            for (int i = 0; i < file_scan.found_count && scan.found_count < max_rows; i++) {
+                int duplicate = 0;
+                for (int j = 0; j < scan.found_count; j++) {
+                    if (out_rows[j].player_id == file_rows[i].player_id) {
+                        duplicate = 1;
+                        if (file_rows[i].days > out_rows[j].days) {
+                            out_rows[j].days = file_rows[i].days;
+                            out_rows[j].evidence_date = file_rows[i].evidence_date;
+                        }
+                        break;
+                    }
+                }
+                if (!duplicate) {
+                    out_rows[scan.found_count++] = file_rows[i];
+                }
+            }
+            if (file_scan.rows_seen > scan.rows_seen) {
+                scan.rows_seen = file_scan.rows_seen;
+            }
+            if (result != 0) {
+                result = file_result;
+            }
         }
-        memcpy(out_rows, file_rows, (size_t)copy_count * sizeof(out_rows[0]));
-        scan = file_scan;
-        scan.found_count = copy_count;
-        result = file_result;
     }
 
     if (out_count != NULL) {
@@ -1103,14 +1237,33 @@ int kbo_foreign_injury_collect_sql_long_term_injuries_on_date(
     }
     if (scan.rows_seen > 0 || scan.found_count > 0) {
         kbo_log_runtimef(
-            "foreign injury replacement: sql discovery injury scan date=%u min_days=%d rows=%d found=%d exec=%d",
+            "foreign injury replacement: sql discovery injury scan date=%u min_days=%d rows=%d found=%d exec=%d allow_backdated=%d",
             game_date_yyyymmdd,
             min_days,
             scan.rows_seen,
             scan.found_count,
-            result);
+            result,
+            allow_backdated);
     }
     return result;
+}
+
+int kbo_foreign_injury_collect_sql_long_term_injuries_on_date(
+    uint32_t game_date_yyyymmdd,
+    int min_days,
+    KboForeignInjurySqlDiscoveryRow* out_rows,
+    int max_rows,
+    int* out_count,
+    int* out_rows_seen)
+{
+    return kbo_foreign_injury_collect_sql_long_term_injuries_on_date_mode(
+        game_date_yyyymmdd,
+        min_days,
+        0,
+        out_rows,
+        max_rows,
+        out_count,
+        out_rows_seen);
 }
 
 int kbo_foreign_injury_recent_sql_has_long_term_injury_date(
@@ -1192,6 +1345,17 @@ int kbo_foreign_injury_recent_sql_has_long_term_injury_date_on_date_mode(
         }
         return 1;
     }
+    if (!allow_backdated) {
+        kbo_foreign_injury_sql_cache_lock();
+        int daily_scanned = kbo_foreign_injury_sql_daily_scanned_locked(
+            cache_database,
+            game_date_yyyymmdd,
+            min_days);
+        kbo_foreign_injury_sql_cache_unlock();
+        if (daily_scanned) {
+            return 0;
+        }
+    }
 
     int cached_days = 0;
     uint32_t cached_date = 0u;
@@ -1223,8 +1387,18 @@ int kbo_foreign_injury_recent_sql_has_long_term_injury_date_on_date_mode(
         }
     }
 
-    char sql[1600] = {0};
-    kbo_foreign_injury_sql_build_query(player_id, game_date_yyyymmdd, sql, sizeof(sql));
+    char sql_live[KBO_FOREIGN_INJURY_SQL_QUERY_MAX] = {0};
+    char sql_file[KBO_FOREIGN_INJURY_SQL_QUERY_MAX] = {0};
+    kbo_foreign_injury_sql_build_query(
+        player_id,
+        game_date_yyyymmdd,
+        sql_live,
+        sizeof(sql_live));
+    kbo_foreign_injury_sql_build_query(
+        player_id,
+        game_date_yyyymmdd,
+        sql_file,
+        sizeof(sql_file));
 
     KboForeignInjurySqlScan scan;
     memset(&scan, 0, sizeof(scan));
@@ -1232,13 +1406,13 @@ int kbo_foreign_injury_recent_sql_has_long_term_injury_date_on_date_mode(
     int result = kbo_foreign_injury_scan_sql_database(
         (void*)database,
         sqlite_exec,
-        sql,
+        sql_live,
         min_days,
         &scan);
 
     if ((result != 0 || !scan.found)) {
         KboForeignInjurySqlScan file_scan;
-        int file_result = kbo_foreign_injury_scan_text_data_sqlite(sql, min_days, &file_scan);
+        int file_result = kbo_foreign_injury_scan_text_data_sqlite(sql_file, min_days, &file_scan);
         if (file_result == 0 && file_scan.found) {
             scan = file_scan;
             result = file_result;

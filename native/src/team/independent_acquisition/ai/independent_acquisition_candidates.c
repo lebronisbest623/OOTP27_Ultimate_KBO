@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "../../../bootstrap/abi/ootp_offsets.h"
+#include "../../../bootstrap/profiling/profiler.h"
 #include "../../../core/core_flags/api/flags_api.h"
 #include "../../../foreign/common/player_eval/foreign_waiver_player_eval.h"
 #include "../../../foreign/common/policy/foreign_waiver_policy.h"
@@ -223,6 +224,121 @@ int64_t kbo_independent_acquisition_score_candidate_for_buyer(
         0);
 }
 
+static const KboIndependentFuturesTeamLeague*
+kbo_independent_acquisition_seller_for_player(
+    uint8_t* player,
+    const KboIndependentFuturesTeamLeague* sellers,
+    int seller_count)
+{
+    if (player == NULL || sellers == NULL || seller_count <= 0) {
+        return NULL;
+    }
+
+    for (int s = 0; s < seller_count; s++) {
+        if (sellers[s].team_id != 0u
+                && kbo_player_current_assignment_matches_team_or_affiliate(
+                    player,
+                    sellers[s].team_id)) {
+            return &sellers[s];
+        }
+    }
+    return NULL;
+}
+
+int kbo_independent_acquisition_build_candidate_pool(
+    const uintptr_t* player_snapshot,
+    int32_t player_count,
+    const KboIndependentFuturesTeamLeague* sellers,
+    int seller_count,
+    KboIndependentAcquisitionCandidatePool* out_pool)
+{
+    if (out_pool != NULL) {
+        memset(out_pool, 0, sizeof(*out_pool));
+    }
+    if (player_snapshot == NULL
+            || player_count <= 0
+            || sellers == NULL
+            || seller_count <= 0
+            || out_pool == NULL) {
+        return 0;
+    }
+
+    KBO_PROFILE_BEGIN(profile_independent_candidate_pool_build);
+
+    SIZE_T bytes = (SIZE_T)player_count * sizeof(KboIndependentAcquisitionCandidatePoolEntry);
+    KboIndependentAcquisitionCandidatePoolEntry* entries =
+        (KboIndependentAcquisitionCandidatePoolEntry*)HeapAlloc(
+            GetProcessHeap(),
+            HEAP_ZERO_MEMORY,
+            bytes);
+    if (entries == NULL) {
+        KBO_PROFILE_END(profile_independent_candidate_pool_build, "independent_acquisition.candidate_pool.alloc_failed");
+        return 0;
+    }
+
+    int count = 0;
+    for (int32_t i = 0; i < player_count; i++) {
+        uintptr_t player_ptr = player_snapshot[i];
+        if (!kbo_player_pointer_plausible(player_ptr)
+                || !memory_range_readable((void*)player_ptr, OOTP27_PLAYER_SCAN_BYTES)) {
+            continue;
+        }
+        uint8_t* player = (uint8_t*)player_ptr;
+        if (!kbo_independent_acquisition_player_status_ok(player)) {
+            continue;
+        }
+
+        const KboIndependentFuturesTeamLeague* seller =
+            kbo_independent_acquisition_seller_for_player(player, sellers, seller_count);
+        if (seller == NULL) {
+            continue;
+        }
+
+        uint32_t player_id = *(uint32_t*)(player + OOTP27_PLAYER_ID_OFFSET);
+        if (player_id == 0u) {
+            continue;
+        }
+
+        int foreign = kbo_player_is_foreign_for_kbo_rights(player);
+        KboIndependentAcquisitionCandidatePoolEntry* entry = &entries[count++];
+        entry->player_ptr = player_ptr;
+        entry->player_id = player_id;
+        entry->seller_team_id = seller->team_id;
+        entry->seller_league_id = seller->league_id;
+        entry->nation_id = *(uint32_t*)(player + OOTP27_PLAYER_NATION_ID_OFFSET);
+        entry->pitcher = *(uint8_t*)(player + OOTP27_PLAYER_POSITION_GROUP_OFFSET) == 1u ? 1u : 0u;
+        entry->foreign = foreign ? 1u : 0u;
+        entry->asian_quota = foreign && kbo_player_is_asian_quota_candidate(player) ? 1u : 0u;
+        entry->cash_cost = foreign
+            ? kbo_get_independent_acquisition_foreign_cash_cost()
+            : kbo_get_independent_acquisition_domestic_cash_cost();
+        entry->value_score = kbo_foreign_waiver_value_score(player);
+    }
+
+    if (count <= 0) {
+        HeapFree(GetProcessHeap(), 0, entries);
+        KBO_PROFILE_END(profile_independent_candidate_pool_build, "independent_acquisition.candidate_pool.empty");
+        return 0;
+    }
+
+    out_pool->entries = entries;
+    out_pool->count = count;
+    KBO_PROFILE_END(profile_independent_candidate_pool_build, "independent_acquisition.candidate_pool.build");
+    return count;
+}
+
+void kbo_independent_acquisition_free_candidate_pool(
+    KboIndependentAcquisitionCandidatePool* pool)
+{
+    if (pool == NULL) {
+        return;
+    }
+    if (pool->entries != NULL) {
+        HeapFree(GetProcessHeap(), 0, pool->entries);
+    }
+    memset(pool, 0, sizeof(*pool));
+}
+
 uintptr_t kbo_independent_acquisition_find_player_snapshot(
     const uintptr_t* player_snapshot,
     int32_t player_count,
@@ -245,11 +361,8 @@ uintptr_t kbo_independent_acquisition_find_player_snapshot(
     return 0u;
 }
 
-int kbo_independent_acquisition_choose_candidate_for_buyer(
-    const uintptr_t* player_snapshot,
-    int32_t player_count,
-    const KboIndependentFuturesTeamLeague* sellers,
-    int seller_count,
+int kbo_independent_acquisition_choose_candidate_from_pool(
+    const KboIndependentAcquisitionCandidatePool* pool,
     const KboIndependentAcquisitionQueuedRequest* market_requests,
     int market_request_count,
     const KboIndependentAcquisitionBuyerState* buyer,
@@ -259,43 +372,32 @@ int kbo_independent_acquisition_choose_candidate_for_buyer(
         memset(out_candidate, 0, sizeof(*out_candidate));
         out_candidate->request_score = INT64_MIN;
     }
-    if (player_snapshot == NULL
-            || player_count <= 0
-            || sellers == NULL
-            || seller_count <= 0
+    if (pool == NULL
+            || pool->entries == NULL
+            || pool->count <= 0
             || buyer == NULL
             || buyer->team_id == 0u
             || out_candidate == NULL) {
         return 0;
     }
 
+    KBO_PROFILE_BEGIN(profile_independent_candidate_select);
+
     KboIndependentAcquisitionCandidate best = {0};
     best.request_score = INT64_MIN;
-    for (int32_t i = 0; i < player_count; i++) {
-        uintptr_t player_ptr = player_snapshot[i];
+    for (int i = 0; i < pool->count; i++) {
+        const KboIndependentAcquisitionCandidatePoolEntry* entry = &pool->entries[i];
+        uintptr_t player_ptr = entry->player_ptr;
         if (!kbo_player_pointer_plausible(player_ptr)
                 || !memory_range_readable((void*)player_ptr, OOTP27_PLAYER_SCAN_BYTES)) {
             continue;
         }
         uint8_t* player = (uint8_t*)player_ptr;
-        if (!kbo_independent_acquisition_player_status_ok(player)
-                || kbo_player_current_assignment_matches_team_or_affiliate(player, buyer->team_id)) {
+        if (kbo_player_current_assignment_matches_team_or_affiliate(player, buyer->team_id)) {
             continue;
         }
 
-        const KboIndependentFuturesTeamLeague* seller = NULL;
-        for (int s = 0; s < seller_count; s++) {
-            if (sellers[s].team_id != 0u
-                    && kbo_player_current_assignment_matches_team_or_affiliate(player, sellers[s].team_id)) {
-                seller = &sellers[s];
-                break;
-            }
-        }
-        if (seller == NULL) {
-            continue;
-        }
-
-        uint32_t player_id = *(uint32_t*)(player + OOTP27_PLAYER_ID_OFFSET);
+        uint32_t player_id = entry->player_id;
         if (player_id == 0u) {
             continue;
         }
@@ -304,7 +406,7 @@ int kbo_independent_acquisition_choose_candidate_for_buyer(
             for (int r = 0; r < market_request_count; r++) {
                 if (market_requests[r].buyer_team_id == buyer->team_id
                         && market_requests[r].player_id == player_id
-                        && market_requests[r].seller_team_id == seller->team_id) {
+                        && market_requests[r].seller_team_id == entry->seller_team_id) {
                     buyer_already_requested = 1;
                     break;
                 }
@@ -313,7 +415,7 @@ int kbo_independent_acquisition_choose_candidate_for_buyer(
         if (buyer_already_requested) {
             continue;
         }
-        int32_t cash_cost = kbo_independent_acquisition_cash_cost_for_player(player);
+        int32_t cash_cost = entry->cash_cost;
         if (cash_cost <= 0 || buyer->cash_available < cash_cost) {
             continue;
         }
@@ -323,7 +425,7 @@ int kbo_independent_acquisition_choose_candidate_for_buyer(
         uint32_t effective_limit = KBO_CUSTOM_FOREIGN_BASE_EFFECTIVE_LIMIT;
         uint8_t slot_type = 0u;
         uint32_t injured_player_id = 0u;
-        if (kbo_player_is_foreign_for_kbo_rights(player)) {
+        if (entry->foreign) {
             int allowed = kbo_custom_foreign_policy_team_allows_candidate(
                 buyer->team_id,
                 player,
@@ -341,7 +443,7 @@ int kbo_independent_acquisition_choose_candidate_for_buyer(
         if (market_requests != NULL && market_request_count > 0) {
             for (int r = 0; r < market_request_count; r++) {
                 if (market_requests[r].player_id == player_id
-                        && market_requests[r].seller_team_id == seller->team_id) {
+                        && market_requests[r].seller_team_id == entry->seller_team_id) {
                     market_interest_count++;
                 }
             }
@@ -359,12 +461,12 @@ int kbo_independent_acquisition_choose_candidate_for_buyer(
 
         best.player_ptr = player_ptr;
         best.player_id = player_id;
-        best.seller_team_id = seller->team_id;
-        best.seller_league_id = seller->league_id;
-        best.nation_id = *(uint32_t*)(player + OOTP27_PLAYER_NATION_ID_OFFSET);
-        best.pitcher = *(uint8_t*)(player + OOTP27_PLAYER_POSITION_GROUP_OFFSET) == 1u ? 1u : 0u;
-        best.asian_quota = kbo_player_is_asian_quota_candidate(player) ? 1u : 0u;
-        best.value_score = kbo_foreign_waiver_value_score(player);
+        best.seller_team_id = entry->seller_team_id;
+        best.seller_league_id = entry->seller_league_id;
+        best.nation_id = entry->nation_id;
+        best.pitcher = entry->pitcher;
+        best.asian_quota = entry->asian_quota;
+        best.value_score = entry->value_score;
         best.request_score = request_score;
         best.effective_before = effective_before;
         best.effective_after = effective_after;
@@ -374,8 +476,45 @@ int kbo_independent_acquisition_choose_candidate_for_buyer(
     }
 
     if (best.player_id == 0u || best.request_score == INT64_MIN) {
+        KBO_PROFILE_END(profile_independent_candidate_select, "independent_acquisition.candidate_pool.no_match");
         return 0;
     }
     *out_candidate = best;
+    KBO_PROFILE_END(profile_independent_candidate_select, "independent_acquisition.candidate_pool.select");
     return 1;
+}
+
+int kbo_independent_acquisition_choose_candidate_for_buyer(
+    const uintptr_t* player_snapshot,
+    int32_t player_count,
+    const KboIndependentFuturesTeamLeague* sellers,
+    int seller_count,
+    const KboIndependentAcquisitionQueuedRequest* market_requests,
+    int market_request_count,
+    const KboIndependentAcquisitionBuyerState* buyer,
+    KboIndependentAcquisitionCandidate* out_candidate)
+{
+    KboIndependentAcquisitionCandidatePool pool;
+    memset(&pool, 0, sizeof(pool));
+    int built = kbo_independent_acquisition_build_candidate_pool(
+        player_snapshot,
+        player_count,
+        sellers,
+        seller_count,
+        &pool);
+    if (built <= 0) {
+        if (out_candidate != NULL) {
+            memset(out_candidate, 0, sizeof(*out_candidate));
+            out_candidate->request_score = INT64_MIN;
+        }
+        return 0;
+    }
+    int result = kbo_independent_acquisition_choose_candidate_from_pool(
+        &pool,
+        market_requests,
+        market_request_count,
+        buyer,
+        out_candidate);
+    kbo_independent_acquisition_free_candidate_pool(&pool);
+    return result;
 }

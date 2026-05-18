@@ -48,6 +48,7 @@ extern KboLock g_kbo_custom_foreign_pending_offer_lock;
 extern int g_kbo_custom_foreign_pending_offer_count;
 extern volatile LONG g_kbo_custom_foreign_pending_offer_generation;
 
+LONG kbo_custom_foreign_pending_offer_generation_for_team(uint32_t team_id);
 void kbo_custom_foreign_pending_offer_lock(void);
 void kbo_custom_foreign_pending_offer_unlock(void);
 int kbo_custom_foreign_pending_offer_is_stale(uint32_t offer_date, uint32_t today);

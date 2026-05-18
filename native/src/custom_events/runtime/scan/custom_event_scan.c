@@ -21,6 +21,19 @@
 
 static volatile LONG64 g_kbo_custom_event_scan_deferred_log_ms = 0;
 
+typedef struct KboCustomEventIdleScanCache {
+    uintptr_t event_manager;
+    uintptr_t event_vector;
+    int32_t event_count;
+    uint32_t league_id;
+    uint32_t cached_at_yyyymmdd;
+    uint32_t next_due_yyyymmdd;
+    DWORD tick;
+    uint8_t valid;
+} KboCustomEventIdleScanCache;
+
+static KboCustomEventIdleScanCache g_kbo_custom_event_idle_scan_cache = {0};
+
 static int kbo_custom_event_scan_should_log_deferred(void)
 {
     ULONGLONG now = GetTickCount64();
@@ -55,8 +68,28 @@ int scan_kbo_custom_events_once_for_date(uint32_t current_yyyymmdd, const char* 
         return -1;
     }
 
+    uint32_t configured_league_id = kbo_get_foreign_waiver_league_id();
+    if (configured_league_id == 0u) {
+        configured_league_id = kbo_resolve_kbo_league_id();
+    }
+
+    KboCustomEventIdleScanCache cached = g_kbo_custom_event_idle_scan_cache;
+    DWORD now = GetTickCount();
+    if (cached.valid
+            && cached.event_manager == event_manager
+            && cached.event_vector == event_vector
+            && cached.event_count == event_count
+            && cached.league_id == configured_league_id
+            && cached.tick != 0u
+            && now - cached.tick <= 1000u
+            && current_yyyymmdd >= cached.cached_at_yyyymmdd
+            && (cached.next_due_yyyymmdd == 0u || current_yyyymmdd < cached.next_due_yyyymmdd)) {
+        return 0;
+    }
+
     int triggered = 0;
     int deferred = 0;
+    uint32_t next_due_yyyymmdd = 0u;
     for (int32_t i = 0; i < event_count; i++) {
         uintptr_t event_ptr = *(uintptr_t*)(event_vector + ((uintptr_t)i * sizeof(uintptr_t)));
         if (event_ptr == 0 || !memory_range_readable((void*)event_ptr, 0x48)) {
@@ -71,24 +104,19 @@ int scan_kbo_custom_events_once_for_date(uint32_t current_yyyymmdd, const char* 
         if (*(uint16_t*)(event + OOTP27_LEAGUE_EVENT_TYPE_OFFSET) != (uint16_t)OOTP27_EVENT_TYPE_CUSTOM_EVENT) {
             continue;
         }
+        if (configured_league_id != 0u && event_league_id != configured_league_id) {
+            continue;
+        }
 
         char name[160] = {0};
         if (!copy_ootp_string_object_raw_text(event, OOTP27_LEAGUE_EVENT_NAME_STRING_OFFSET, name, sizeof(name))) {
-            continue;
-        }
-        if (!kbo_custom_event_name_matches_local(name)) {
             continue;
         }
         KboCustomEventKind kind = kbo_custom_event_kind_from_name(name);
         if (kind == KBO_CUSTOM_EVENT_KIND_UNKNOWN) {
             continue;
         }
-
-        uint32_t configured_league_id = kbo_get_foreign_waiver_league_id();
-        if (configured_league_id == 0u) {
-            configured_league_id = kbo_resolve_kbo_league_id();
-        }
-        if (event_league_id != configured_league_id) {
+        if (configured_league_id == 0u && event_league_id != 0u) {
             continue;
         }
 
@@ -108,6 +136,9 @@ int scan_kbo_custom_events_once_for_date(uint32_t current_yyyymmdd, const char* 
         }
 
         uint32_t event_yyyymmdd = event_year * 10000u + event_month * 100u + event_day;
+        if (!due && (next_due_yyyymmdd == 0u || event_yyyymmdd < next_due_yyyymmdd)) {
+            next_due_yyyymmdd = event_yyyymmdd;
+        }
         if (!due || event_over != 0 || kbo_custom_event_already_processed(event_ptr)) {
             continue;
         }
@@ -200,6 +231,18 @@ int scan_kbo_custom_events_once_for_date(uint32_t current_yyyymmdd, const char* 
             event_count,
             (void*)event_manager,
             (void*)event_vector);
+    }
+    if (triggered == 0 && deferred == 0) {
+        g_kbo_custom_event_idle_scan_cache = (KboCustomEventIdleScanCache){
+            .event_manager = event_manager,
+            .event_vector = event_vector,
+            .event_count = event_count,
+            .league_id = configured_league_id,
+            .cached_at_yyyymmdd = current_yyyymmdd,
+            .next_due_yyyymmdd = next_due_yyyymmdd,
+            .tick = now,
+            .valid = 1u,
+        };
     }
     return triggered;
 }

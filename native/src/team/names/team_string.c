@@ -11,21 +11,55 @@
 #include "../../runtime_memory/runtime_memory.h"
 /* String helpers (from league_team_rules) */
 
+static int kbo_memory_protect_allows_read(DWORD protect)
+{
+    if ((protect & PAGE_GUARD) != 0 || (protect & PAGE_NOACCESS) != 0) {
+        return 0;
+    }
+    protect &= 0xffu;
+    return protect == PAGE_READONLY
+        || protect == PAGE_READWRITE
+        || protect == PAGE_WRITECOPY
+        || protect == PAGE_EXECUTE_READ
+        || protect == PAGE_EXECUTE_READWRITE
+        || protect == PAGE_EXECUTE_WRITECOPY;
+}
+
+static size_t kbo_readable_prefix_bytes(const char* source, size_t max_bytes)
+{
+    if (source == NULL || max_bytes == 0u) {
+        return 0u;
+    }
+
+    MEMORY_BASIC_INFORMATION mbi;
+    if (VirtualQuery(source, &mbi, sizeof(mbi)) == 0
+            || mbi.State != MEM_COMMIT
+            || !kbo_memory_protect_allows_read(mbi.Protect)) {
+        return 0u;
+    }
+
+    uintptr_t start = (uintptr_t)source;
+    uintptr_t region_end = (uintptr_t)mbi.BaseAddress + mbi.RegionSize;
+    if (region_end <= start) {
+        return 0u;
+    }
+    size_t available = (size_t)(region_end - start);
+    return available < max_bytes ? available : max_bytes;
+}
+
 int copy_limited_ascii_string(const char* source, char* out, size_t out_size)
 {
     if (out == NULL || out_size == 0) {
         return 0;
     }
     out[0] = '\0';
-    if (source == NULL || !memory_range_readable(source, 1)) {
+    size_t readable = kbo_readable_prefix_bytes(source, 512u);
+    if (readable == 0u) {
         return 0;
     }
 
     size_t len = 0;
-    for (; len + 1 < out_size && len < 512; len++) {
-        if (!memory_range_readable(source + len, 1)) {
-            break;
-        }
+    for (; len + 1 < out_size && len < readable; len++) {
         unsigned char c = (unsigned char)source[len];
         if (c == '\0') {
             break;
@@ -46,15 +80,13 @@ int copy_limited_ootp_internal_string(const char* source, char* out, size_t out_
         return 0;
     }
     out[0] = '\0';
-    if (source == NULL || !memory_range_readable(source, 1)) {
+    size_t readable = kbo_readable_prefix_bytes(source, 512u);
+    if (readable == 0u) {
         return 0;
     }
 
     size_t len = 0;
-    for (; len + 1 < out_size && len < 512; len++) {
-        if (!memory_range_readable(source + len, 1)) {
-            break;
-        }
+    for (; len + 1 < out_size && len < readable; len++) {
         unsigned char c = (unsigned char)source[len];
         if (c == '\0') {
             break;
@@ -129,16 +161,14 @@ int copy_limited_ootp_display_string(const char* source, char* out, size_t out_s
         return 0;
     }
     out[0] = '\0';
-    if (source == NULL || !memory_range_readable(source, 1)) {
+    size_t readable = kbo_readable_prefix_bytes(source, 512u);
+    if (readable == 0u) {
         return 0;
     }
 
     size_t pos = 0u;
     int unicode_mode = 0;
-    for (size_t i = 0u; i < 512u && pos + 1u < out_size; ) {
-        if (!memory_range_readable(source + i, 1)) {
-            break;
-        }
+    for (size_t i = 0u; i < readable && pos + 1u < out_size; ) {
         unsigned char c = (unsigned char)source[i];
         if (c == '\0') {
             break;
@@ -149,7 +179,7 @@ int copy_limited_ootp_display_string(const char* source, char* out, size_t out_s
             continue;
         }
         if (unicode_mode && c == ',') {
-            if (!memory_range_readable(source + i, 5)) {
+            if (i + 5u > readable) {
                 break;
             }
             int h0 = kbo_ootp_hex_value((unsigned char)source[i + 1u]);

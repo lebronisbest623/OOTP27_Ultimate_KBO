@@ -18,8 +18,10 @@ int kbo_fast_block_fa_candidate_before_original(
         return 0;
     }
 
-    if (player_ptr == 0 || !kbo_player_pointer_plausible(player_ptr)
-            || !memory_range_readable((void*)(player_ptr + OOTP27_PLAYER_ID_OFFSET), sizeof(uint32_t))) {
+    if (player_ptr == 0
+            || !memory_range_readable(
+                (void*)player_ptr,
+                OOTP27_PLAYER_ID_OFFSET + sizeof(uint32_t))) {
         KBO_PROFILE_END(profile_fa_fast_block, "foreign_policy.fast_block.bad_player");
         return 0;
     }
@@ -39,6 +41,11 @@ int kbo_fast_block_fa_candidate_before_original(
     int candidate_is_foreign = nation_id != 0u && nation_id != OOTP27_KBO_KOREA_NATION_ID;
     if (!candidate_is_foreign) {
         KBO_PROFILE_END(profile_fa_fast_block, "foreign_policy.fast_block.allowed");
+        return 0;
+    }
+
+    if (!kbo_player_pointer_plausible(player_ptr)) {
+        KBO_PROFILE_END(profile_fa_fast_block, "foreign_policy.fast_block.bad_player");
         return 0;
     }
 

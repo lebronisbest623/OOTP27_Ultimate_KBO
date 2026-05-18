@@ -16,6 +16,20 @@
 #include "../../../team/names/team_string.h"
 #include "../names/custom_event_names.h"
 
+typedef struct KboLatestOffseasonStartsCache {
+    uintptr_t event_manager;
+    uintptr_t event_vector;
+    int32_t event_count;
+    uint32_t league_id;
+    uint32_t cached_at_yyyymmdd;
+    uint32_t latest_offseason_start;
+    uint32_t next_offseason_start;
+    DWORD tick;
+    uint8_t valid;
+} KboLatestOffseasonStartsCache;
+
+static KboLatestOffseasonStartsCache g_kbo_latest_offseason_starts_cache = {0};
+
 uint32_t kbo_get_latest_offseason_starts_event(uint32_t today_yyyymmdd)
 {
     if (today_yyyymmdd == 0u) {
@@ -39,7 +53,22 @@ uint32_t kbo_get_latest_offseason_starts_event(uint32_t today_yyyymmdd)
         return 0u;
     }
 
+    KboLatestOffseasonStartsCache cached = g_kbo_latest_offseason_starts_cache;
+    DWORD now = GetTickCount();
+    if (cached.valid
+            && cached.event_manager == event_manager
+            && cached.event_vector == event_vector
+            && cached.event_count == event_count
+            && cached.league_id == league_id
+            && cached.tick != 0u
+            && now - cached.tick <= 1000u
+            && today_yyyymmdd >= cached.cached_at_yyyymmdd
+            && (cached.next_offseason_start == 0u || today_yyyymmdd < cached.next_offseason_start)) {
+        return cached.latest_offseason_start;
+    }
+
     uint32_t latest_offseason_start = 0u;
+    uint32_t next_offseason_start = 0u;
     for (int32_t i = 0; i < event_count; i++) {
         uintptr_t event_ptr = *(uintptr_t*)(event_vector + ((uintptr_t)i * sizeof(uintptr_t)));
         if (event_ptr == 0 || !memory_range_readable((void*)event_ptr, 0x48)) {
@@ -62,20 +91,34 @@ uint32_t kbo_get_latest_offseason_starts_event(uint32_t today_yyyymmdd)
         }
 
         uint32_t event_yyyymmdd = event_year * 10000u + event_month * 100u + event_day;
-        if (event_yyyymmdd > today_yyyymmdd) {
-            continue;
-        }
 
         char name[160] = {0};
         if (!copy_ootp_string_object_raw_text(event, OOTP27_LEAGUE_EVENT_NAME_STRING_OFFSET, name, sizeof(name))) {
             continue;
         }
 
-        if (_stricmp(name, "Offseason starts") == 0 && event_yyyymmdd > latest_offseason_start) {
-            latest_offseason_start = event_yyyymmdd;
+        if (_stricmp(name, "Offseason starts") == 0) {
+            if (event_yyyymmdd <= today_yyyymmdd) {
+                if (event_yyyymmdd > latest_offseason_start) {
+                    latest_offseason_start = event_yyyymmdd;
+                }
+            } else if (next_offseason_start == 0u || event_yyyymmdd < next_offseason_start) {
+                next_offseason_start = event_yyyymmdd;
+            }
         }
     }
 
+    g_kbo_latest_offseason_starts_cache = (KboLatestOffseasonStartsCache){
+        .event_manager = event_manager,
+        .event_vector = event_vector,
+        .event_count = event_count,
+        .league_id = league_id,
+        .cached_at_yyyymmdd = today_yyyymmdd,
+        .latest_offseason_start = latest_offseason_start,
+        .next_offseason_start = next_offseason_start,
+        .tick = now,
+        .valid = 1u,
+    };
     return latest_offseason_start;
 }
 

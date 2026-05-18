@@ -107,13 +107,16 @@ int kbo_team_add_foreign_policy_should_block(
             || team_id == 0u
             || team_ptr == 0
             || !memory_range_readable((void*)team_ptr, OOTP27_KBO_TEAM_READABLE_BYTES)
-            || !kbo_player_pointer_plausible(player_ptr)) {
+            || player_ptr == 0
+            || !memory_range_readable(
+                (void*)player_ptr,
+                OOTP27_PLAYER_NATION_ID_OFFSET + sizeof(uint32_t))) {
         return 0;
     }
 
     uint8_t* player = (uint8_t*)player_ptr;
-    if (!memory_range_readable(player, OOTP27_PLAYER_SCAN_BYTES)
-            || !kbo_player_is_foreign_for_kbo_rights(player)) {
+    if (!kbo_player_is_foreign_for_kbo_rights(player)
+            || !memory_range_readable(player, OOTP27_PLAYER_SCAN_BYTES)) {
         return 0;
     }
 

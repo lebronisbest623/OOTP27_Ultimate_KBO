@@ -49,6 +49,24 @@ typedef struct KboIndependentAcquisitionCandidate {
     uint32_t injured_player_id;
 } KboIndependentAcquisitionCandidate;
 
+typedef struct KboIndependentAcquisitionCandidatePoolEntry {
+    uintptr_t player_ptr;
+    uint32_t player_id;
+    uint32_t seller_team_id;
+    uint32_t seller_league_id;
+    uint32_t nation_id;
+    uint8_t pitcher;
+    uint8_t foreign;
+    uint8_t asian_quota;
+    int32_t cash_cost;
+    int32_t value_score;
+} KboIndependentAcquisitionCandidatePoolEntry;
+
+typedef struct KboIndependentAcquisitionCandidatePool {
+    KboIndependentAcquisitionCandidatePoolEntry* entries;
+    int count;
+} KboIndependentAcquisitionCandidatePool;
+
 typedef struct KboIndependentAcquisitionQueuedRequest {
     uint32_t date;
     uint32_t season;
@@ -77,10 +95,24 @@ int64_t kbo_independent_acquisition_score_candidate_for_buyer(
     uint8_t* player,
     uint32_t effective_before,
     uint32_t effective_limit);
+int kbo_independent_acquisition_build_candidate_pool(
+    const uintptr_t* player_snapshot,
+    int32_t player_count,
+    const KboIndependentFuturesTeamLeague* sellers,
+    int seller_count,
+    KboIndependentAcquisitionCandidatePool* out_pool);
+void kbo_independent_acquisition_free_candidate_pool(
+    KboIndependentAcquisitionCandidatePool* pool);
 uintptr_t kbo_independent_acquisition_find_player_snapshot(
     const uintptr_t* player_snapshot,
     int32_t player_count,
     uint32_t player_id);
+int kbo_independent_acquisition_choose_candidate_from_pool(
+    const KboIndependentAcquisitionCandidatePool* pool,
+    const KboIndependentAcquisitionQueuedRequest* market_requests,
+    int market_request_count,
+    const KboIndependentAcquisitionBuyerState* buyer,
+    KboIndependentAcquisitionCandidate* out_candidate);
 int kbo_independent_acquisition_choose_candidate_for_buyer(
     const uintptr_t* player_snapshot,
     int32_t player_count,

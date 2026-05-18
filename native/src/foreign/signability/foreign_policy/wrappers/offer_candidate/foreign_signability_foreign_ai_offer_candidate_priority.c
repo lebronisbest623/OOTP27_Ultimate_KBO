@@ -137,12 +137,17 @@ __declspec(noinline) uintptr_t ootp_kbo_foreign_ai_offer_candidate_priority_wrap
     KBO_HOOK_PROFILE_BEGIN(profile_hook);
     if (candidate_player_ptr == 0
             || !kbo_foreign_ai_offer_candidate_priority_enabled()
-            || !memory_range_readable((void*)candidate_player_ptr, OOTP27_PLAYER_SCAN_BYTES)) {
+            || !memory_range_readable(
+                (void*)candidate_player_ptr,
+                OOTP27_PLAYER_NATION_ID_OFFSET + sizeof(uint32_t))) {
         KBO_HOOK_PROFILE_RETURN(profile_hook, "foreign.ai_offer_candidate_priority", candidate_player_ptr);
     }
 
     uint8_t* candidate = (uint8_t*)candidate_player_ptr;
     if (!kbo_player_is_foreign_for_kbo_rights(candidate)) {
+        KBO_HOOK_PROFILE_RETURN(profile_hook, "foreign.ai_offer_candidate_priority", candidate_player_ptr);
+    }
+    if (!memory_range_readable((void*)candidate_player_ptr, OOTP27_PLAYER_SCAN_BYTES)) {
         KBO_HOOK_PROFILE_RETURN(profile_hook, "foreign.ai_offer_candidate_priority", candidate_player_ptr);
     }
 

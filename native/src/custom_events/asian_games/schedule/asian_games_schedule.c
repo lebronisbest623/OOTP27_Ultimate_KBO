@@ -117,12 +117,12 @@ int kbo_schedule_asian_games_custom_events_for_date(uint32_t today, const char* 
         if (!kbo_asian_games_schedule_seed_source_available()) {
             if (kbo_asian_games_schedule_should_log_seed_deferred()) {
                 kbo_log_runtimef(
-                    "KBO Asian Games schedule deferred source=%s reason=schedule_seed_source_unavailable year=%u today=%u",
+                    "KBO Asian Games schedule skipped source=%s reason=schedule_seed_source_unavailable year=%u today=%u",
                     source != NULL ? source : "",
                     year,
                     today);
             }
-            return -1;
+            return 0;
         }
         return 0;
     }
@@ -130,6 +130,11 @@ int kbo_schedule_asian_games_custom_events_for_date(uint32_t today, const char* 
         return 0;
     }
     int year_was_marked_scheduled = g_kbo_asian_games_last_scheduled_year == year;
+    if (year_was_marked_scheduled
+            && schedule.selection_date != 0u
+            && today < schedule.selection_date) {
+        return 0;
+    }
 
     uint32_t league_id = kbo_get_foreign_waiver_league_id();
     if (league_id == 0u) {

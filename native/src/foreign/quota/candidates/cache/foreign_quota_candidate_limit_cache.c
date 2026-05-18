@@ -240,7 +240,7 @@ int kbo_custom_foreign_candidate_cache_hit(
     int* out_allowed)
 {
     DWORD now = GetTickCount();
-    LONG pending_generation = InterlockedCompareExchange(&g_kbo_custom_foreign_pending_offer_generation, 0, 0);
+    LONG pending_generation = kbo_custom_foreign_pending_offer_generation_for_team(team_id);
     LONG waiver_rights_generation = InterlockedCompareExchange(&g_kbo_foreign_waiver_rights_generation, 0, 0);
     uint32_t org_count_generation = kbo_foreign_org_count_cache_generation_for_team(team_id);
     int replacement_count = g_kbo_foreign_injury_replacement_count;

@@ -46,8 +46,22 @@ int kbo_ai_fa_status_retention_recently_attempted(
 
 int kbo_ai_fa_status_retention_priority_enabled(void)
 {
-    return read_kbo_localappdata_flag_file("enable_foreign_ai_roster_management.txt")
+    enum { KBO_RETENTION_PRIORITY_FLAG_CACHE_MS = 500u };
+    static volatile LONG s_cached_tick = 0;
+    static volatile LONG s_cached_enabled = 0;
+
+    DWORD now = GetTickCount();
+    LONG cached_tick = InterlockedCompareExchange(&s_cached_tick, 0, 0);
+    if (cached_tick != 0
+            && (DWORD)(now - (DWORD)cached_tick) <= KBO_RETENTION_PRIORITY_FLAG_CACHE_MS) {
+        return InterlockedCompareExchange(&s_cached_enabled, 0, 0) != 0;
+    }
+
+    int enabled = read_kbo_localappdata_flag_file("enable_foreign_ai_roster_management.txt")
         || kbo_foreign_ai_controller_enabled();
+    InterlockedExchange(&s_cached_enabled, enabled ? 1 : 0);
+    InterlockedExchange(&s_cached_tick, (LONG)now);
+    return enabled;
 }
 
 static uint32_t kbo_ai_fa_status_player_u32(uint8_t* player, uint32_t offset)

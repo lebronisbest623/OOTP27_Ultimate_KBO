@@ -1,5 +1,9 @@
 #include "../foreign_injury_scanner_internal.h"
 
+#include <stdio.h>
+#include <string.h>
+
+#include "../../../../core/files/save_paths/core_save_paths.h"
 #include "../../../../core/dates/tick/current_date_tick_capture.h"
 
 #define KBO_FOREIGN_INJURY_DATE_TICK_PULSE_MS 50u
@@ -13,7 +17,9 @@
 typedef struct KboForeignInjurySqlSettleDate {
     uint32_t date;
     DWORD due_tick;
+    ULONGLONG last_text_data_write_time;
     uint8_t attempts;
+    uint8_t has_text_data_write_time;
     uint8_t valid;
 } KboForeignInjurySqlSettleDate;
 
@@ -23,6 +29,79 @@ static KboForeignInjurySqlSettleDate
 static int kbo_foreign_injury_sql_settle_due(DWORD now, DWORD due_tick)
 {
     return (int32_t)(now - due_tick) >= 0;
+}
+
+static ULONGLONG kbo_foreign_injury_sql_settle_filetime_value(FILETIME filetime)
+{
+    return ((ULONGLONG)filetime.dwHighDateTime << 32) | (ULONGLONG)filetime.dwLowDateTime;
+}
+
+static int kbo_foreign_injury_sql_settle_path_write_time(const char* path, ULONGLONG* out_value)
+{
+    if (out_value != NULL) {
+        *out_value = 0ull;
+    }
+    if (path == NULL || path[0] == '\0' || out_value == NULL) {
+        return 0;
+    }
+
+    WIN32_FILE_ATTRIBUTE_DATA attrs;
+    memset(&attrs, 0, sizeof(attrs));
+    if (!GetFileAttributesExA(path, GetFileExInfoStandard, &attrs)
+            || (attrs.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0u) {
+        return 0;
+    }
+
+    *out_value = kbo_foreign_injury_sql_settle_filetime_value(attrs.ftLastWriteTime);
+    return *out_value != 0ull;
+}
+
+static int kbo_foreign_injury_sql_settle_text_data_write_fingerprint(ULONGLONG* out_value)
+{
+    if (out_value != NULL) {
+        *out_value = 0ull;
+    }
+    if (out_value == NULL) {
+        return 0;
+    }
+
+    char save_path[MAX_PATH] = {0};
+    if (!kbo_get_current_save_path(save_path, sizeof(save_path))) {
+        return 0;
+    }
+
+    char db_path[MAX_PATH] = {0};
+    int written = snprintf(db_path, sizeof(db_path), "%s\\temp\\text_data.sqlite3", save_path);
+    if (written <= 0 || (size_t)written >= sizeof(db_path)) {
+        return 0;
+    }
+
+    ULONGLONG latest = 0ull;
+    ULONGLONG value = 0ull;
+    if (kbo_foreign_injury_sql_settle_path_write_time(db_path, &value) && value > latest) {
+        latest = value;
+    }
+
+    char sidecar_path[MAX_PATH] = {0};
+    written = snprintf(sidecar_path, sizeof(sidecar_path), "%s-wal", db_path);
+    if (written > 0 && (size_t)written < sizeof(sidecar_path)
+            && kbo_foreign_injury_sql_settle_path_write_time(sidecar_path, &value)
+            && value > latest) {
+        latest = value;
+    }
+
+    written = snprintf(sidecar_path, sizeof(sidecar_path), "%s-shm", db_path);
+    if (written > 0 && (size_t)written < sizeof(sidecar_path)
+            && kbo_foreign_injury_sql_settle_path_write_time(sidecar_path, &value)
+            && value > latest) {
+        latest = value;
+    }
+
+    if (latest == 0ull) {
+        return 0;
+    }
+    *out_value = latest;
+    return 1;
 }
 
 static void kbo_foreign_injury_schedule_sql_settle_date(uint32_t date)
@@ -48,7 +127,9 @@ static void kbo_foreign_injury_schedule_sql_settle_date(uint32_t date)
     g_kbo_foreign_injury_sql_settle_dates[slot].date = date;
     g_kbo_foreign_injury_sql_settle_dates[slot].due_tick =
         GetTickCount() + KBO_FOREIGN_INJURY_SQL_SETTLE_FIRST_DELAY_MS;
+    g_kbo_foreign_injury_sql_settle_dates[slot].last_text_data_write_time = 0ull;
     g_kbo_foreign_injury_sql_settle_dates[slot].attempts = 0u;
+    g_kbo_foreign_injury_sql_settle_dates[slot].has_text_data_write_time = 0u;
     g_kbo_foreign_injury_sql_settle_dates[slot].valid = 1u;
 }
 
@@ -62,10 +143,26 @@ static void kbo_foreign_injury_process_sql_settle_dates(void)
         }
 
         uint32_t date = entry->date;
+        ULONGLONG text_data_write_time = 0ull;
+        int have_text_data_write_time =
+            kbo_foreign_injury_sql_settle_text_data_write_fingerprint(&text_data_write_time);
+        if (entry->attempts > 0u
+                && have_text_data_write_time
+                && entry->has_text_data_write_time
+                && text_data_write_time == entry->last_text_data_write_time) {
+            kbo_profiler_record_us("foreign_injury.sql_settle.unchanged_text_data_skipped", 0);
+            entry->valid = 0u;
+            continue;
+        }
+
         kbo_foreign_injury_sql_cache_invalidate_all("foreign_injury_current_date_tick_sql_settle");
         kbo_foreign_injury_replacement_scan_sql_settled_for_date(
             "foreign_injury_current_date_tick_sql_settle",
             date);
+        if (have_text_data_write_time) {
+            entry->last_text_data_write_time = text_data_write_time;
+            entry->has_text_data_write_time = 1u;
+        }
 
         entry->attempts++;
         if (entry->attempts >= KBO_FOREIGN_INJURY_SQL_SETTLE_ATTEMPTS) {

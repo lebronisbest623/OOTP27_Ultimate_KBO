@@ -219,7 +219,7 @@ static void kbo_foreign_injury_sql_watch_process_change(
             today,
             attempt + 1u,
             state->db_path);
-        kbo_foreign_injury_replacement_scan_captured_date(
+        kbo_foreign_injury_replacement_scan_sql_settled_for_date(
             "foreign_injury_text_data_sql_watch",
             today);
     }

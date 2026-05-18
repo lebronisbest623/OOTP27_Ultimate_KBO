@@ -35,7 +35,8 @@ typedef struct KboCustomForeignPendingOffer {
 enum {
     KBO_CUSTOM_FOREIGN_PENDING_OFFER_MAX = 1024,
     KBO_CUSTOM_FOREIGN_PENDING_SUMMARY_CACHE_SIZE = 128,
-    KBO_CUSTOM_FOREIGN_PENDING_SUMMARY_PLAYER_MAX = 128
+    KBO_CUSTOM_FOREIGN_PENDING_SUMMARY_PLAYER_MAX = 128,
+    KBO_CUSTOM_FOREIGN_PENDING_TEAM_GENERATION_CACHE_SIZE = 1024
 };
 
 typedef struct KboCustomForeignPendingOfferSummaryCacheEntry {
@@ -56,6 +57,10 @@ int g_kbo_custom_foreign_pending_offer_count = 0;
 volatile LONG g_kbo_custom_foreign_pending_offer_generation = 0;
 static DWORD g_kbo_custom_foreign_pending_offer_last_prune_tick = 0u;
 static uint32_t g_kbo_custom_foreign_pending_offer_last_prune_date = 0u;
+static uint32_t
+    g_kbo_custom_foreign_pending_team_generation_ids[KBO_CUSTOM_FOREIGN_PENDING_TEAM_GENERATION_CACHE_SIZE];
+static LONG
+    g_kbo_custom_foreign_pending_team_generations[KBO_CUSTOM_FOREIGN_PENDING_TEAM_GENERATION_CACHE_SIZE];
 static KboCustomForeignPendingOfferSummaryCacheEntry
     g_kbo_custom_foreign_pending_summary_cache[KBO_CUSTOM_FOREIGN_PENDING_SUMMARY_CACHE_SIZE];
 static KboLock g_kbo_custom_foreign_pending_summary_cache_lock = KBO_LOCK_INIT;
@@ -88,6 +93,49 @@ static uint32_t kbo_custom_foreign_pending_summary_cache_slot(uint32_t team_id, 
     return h & (KBO_CUSTOM_FOREIGN_PENDING_SUMMARY_CACHE_SIZE - 1u);
 }
 
+static uint32_t kbo_custom_foreign_pending_team_generation_slot(uint32_t team_id)
+{
+    uint32_t h = team_id * 2654435761u;
+    h ^= h >> 16;
+    return h & (KBO_CUSTOM_FOREIGN_PENDING_TEAM_GENERATION_CACHE_SIZE - 1u);
+}
+
+static void kbo_custom_foreign_pending_offer_bump_team_generation(uint32_t team_id)
+{
+    if (team_id == 0u) {
+        InterlockedIncrement(&g_kbo_custom_foreign_pending_offer_generation);
+        return;
+    }
+    uint32_t slot = kbo_custom_foreign_pending_team_generation_slot(team_id);
+    if (g_kbo_custom_foreign_pending_team_generation_ids[slot] != 0u
+            && g_kbo_custom_foreign_pending_team_generation_ids[slot] != team_id) {
+        InterlockedIncrement(&g_kbo_custom_foreign_pending_offer_generation);
+    }
+    g_kbo_custom_foreign_pending_team_generation_ids[slot] = team_id;
+    InterlockedIncrement(&g_kbo_custom_foreign_pending_team_generations[slot]);
+}
+
+LONG kbo_custom_foreign_pending_offer_generation_for_team(uint32_t team_id)
+{
+    LONG global_generation = InterlockedCompareExchange(
+        &g_kbo_custom_foreign_pending_offer_generation,
+        0,
+        0);
+    if (team_id == 0u) {
+        return global_generation;
+    }
+
+    uint32_t slot = kbo_custom_foreign_pending_team_generation_slot(team_id);
+    if (g_kbo_custom_foreign_pending_team_generation_ids[slot] != team_id) {
+        return global_generation;
+    }
+    LONG team_generation = InterlockedCompareExchange(
+        &g_kbo_custom_foreign_pending_team_generations[slot],
+        0,
+        0);
+    return global_generation ^ (LONG)((uint32_t)team_generation * 2246822519u);
+}
+
 static int kbo_custom_foreign_pending_summary_has_player(
     const KboCustomForeignPendingOfferSummaryCacheEntry* entry,
     uint32_t candidate_id)
@@ -111,7 +159,7 @@ static int kbo_custom_foreign_pending_summary_cache_get(
     uint32_t* out_non_asian_pending,
     int* out_candidate_pending)
 {
-    LONG generation = InterlockedCompareExchange(&g_kbo_custom_foreign_pending_offer_generation, 0, 0);
+    LONG generation = kbo_custom_foreign_pending_offer_generation_for_team(team_id);
     uint32_t slot = kbo_custom_foreign_pending_summary_cache_slot(team_id, today);
     kbo_custom_foreign_pending_summary_cache_lock();
     KboCustomForeignPendingOfferSummaryCacheEntry cached =
@@ -174,18 +222,39 @@ static void kbo_custom_foreign_prune_pending_offers_locked(uint32_t today)
 {
     int old_count = g_kbo_custom_foreign_pending_offer_count;
     int write_index = 0;
+    uint32_t changed_team_ids[32] = {0u};
+    int changed_team_count = 0;
     for (int i = 0; i < g_kbo_custom_foreign_pending_offer_count; i++) {
         KboCustomForeignPendingOffer rec = g_kbo_custom_foreign_pending_offers[i];
         if (rec.team_id == 0u || rec.player_id == 0u
                 || kbo_custom_foreign_pending_offer_is_stale(rec.date_yyyymmdd, today)
                 || kbo_custom_foreign_pending_offer_player_now_in_org(rec.team_id, rec.player_id)) {
+            if (rec.team_id != 0u && changed_team_count < (int)(sizeof(changed_team_ids) / sizeof(changed_team_ids[0]))) {
+                int known = 0;
+                for (int j = 0; j < changed_team_count; j++) {
+                    if (changed_team_ids[j] == rec.team_id) {
+                        known = 1;
+                        break;
+                    }
+                }
+                if (!known) {
+                    changed_team_ids[changed_team_count++] = rec.team_id;
+                }
+            }
             continue;
         }
         g_kbo_custom_foreign_pending_offers[write_index++] = rec;
     }
     g_kbo_custom_foreign_pending_offer_count = write_index;
     if (write_index != old_count) {
-        InterlockedIncrement(&g_kbo_custom_foreign_pending_offer_generation);
+        if (changed_team_count == 0
+                || changed_team_count >= (int)(sizeof(changed_team_ids) / sizeof(changed_team_ids[0]))) {
+            InterlockedIncrement(&g_kbo_custom_foreign_pending_offer_generation);
+        } else {
+            for (int i = 0; i < changed_team_count; i++) {
+                kbo_custom_foreign_pending_offer_bump_team_generation(changed_team_ids[i]);
+            }
+        }
     }
     g_kbo_custom_foreign_pending_offer_last_prune_tick = GetTickCount();
     g_kbo_custom_foreign_pending_offer_last_prune_date = today;
@@ -233,7 +302,7 @@ void kbo_custom_foreign_count_pending_offers(
     memset(&summary, 0, sizeof(summary));
     summary.team_id = team_id;
     summary.today = today;
-    summary.generation = InterlockedCompareExchange(&g_kbo_custom_foreign_pending_offer_generation, 0, 0);
+    summary.generation = kbo_custom_foreign_pending_offer_generation_for_team(team_id);
     for (int i = 0; i < g_kbo_custom_foreign_pending_offer_count; i++) {
         KboCustomForeignPendingOffer rec = g_kbo_custom_foreign_pending_offers[i];
         if (rec.team_id != team_id) {
@@ -290,7 +359,7 @@ void kbo_record_custom_foreign_pending_offer(uint32_t team_id, uint8_t* candidat
             rec->date_yyyymmdd = today;
             rec->asian_quota_candidate = asian;
             g_kbo_custom_foreign_pending_offer_last_prune_tick = 0u;
-            InterlockedIncrement(&g_kbo_custom_foreign_pending_offer_generation);
+            kbo_custom_foreign_pending_offer_bump_team_generation(team_id);
             kbo_custom_foreign_pending_offer_unlock();
             return;
         }
@@ -306,7 +375,7 @@ void kbo_record_custom_foreign_pending_offer(uint32_t team_id, uint8_t* candidat
             .asian_quota_candidate = asian
         };
         g_kbo_custom_foreign_pending_offer_last_prune_tick = 0u;
-        InterlockedIncrement(&g_kbo_custom_foreign_pending_offer_generation);
+        kbo_custom_foreign_pending_offer_bump_team_generation(team_id);
     }
 
     kbo_custom_foreign_pending_offer_unlock();
@@ -343,7 +412,7 @@ void kbo_cancel_custom_foreign_pending_offer(uint32_t team_id, uint32_t player_i
     g_kbo_custom_foreign_pending_offer_count = write_index;
     if (removed > 0) {
         g_kbo_custom_foreign_pending_offer_last_prune_tick = 0u;
-        InterlockedIncrement(&g_kbo_custom_foreign_pending_offer_generation);
+        kbo_custom_foreign_pending_offer_bump_team_generation(team_id);
     }
     kbo_custom_foreign_pending_offer_unlock();
 

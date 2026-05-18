@@ -33,7 +33,11 @@ static int kbo_team_id_matches_org_or_affiliate(uint32_t team_id, uint32_t org_t
 
 int kbo_player_current_assignment_matches_team_or_affiliate(uint8_t* player, uint32_t team_id)
 {
-    if (player == NULL || team_id == 0u || !memory_range_readable(player, OOTP27_PLAYER_SCAN_BYTES)) {
+    if (player == NULL
+            || team_id == 0u
+            || !memory_range_readable(
+                player,
+                OOTP27_PLAYER_LOAN_TEAM_ID_OFFSET + sizeof(uint32_t))) {
         return 0;
     }
 

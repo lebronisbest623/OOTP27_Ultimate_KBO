@@ -286,7 +286,7 @@ int kbo_custom_foreign_policy_team_allows_candidate(
             active_team_id,
             original_team_id,
             kbo_foreign_org_count_cache_generation_for_team(team_id),
-            InterlockedCompareExchange(&g_kbo_custom_foreign_pending_offer_generation, 0, 0),
+            kbo_custom_foreign_pending_offer_generation_for_team(team_id),
             effective_before,
             effective_after,
             effective_limit,

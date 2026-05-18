@@ -25,6 +25,11 @@ void kbo_log_foreign_team_add_trace(
     uint32_t before_active_team_id,
     uint32_t before_original_team_id)
 {
+    static volatile LONG trace_log_count = 0;
+    if (InterlockedCompareExchange(&trace_log_count, 0, 0) > 800) {
+        return;
+    }
+
     if (team_ptr == 0
             || player_ptr == 0
             || !memory_range_readable((void*)team_ptr, OOTP27_KBO_TEAM_READABLE_BYTES)
@@ -39,7 +44,6 @@ void kbo_log_foreign_team_add_trace(
         return;
     }
 
-    static volatile LONG trace_log_count = 0;
     LONG slot = InterlockedIncrement(&trace_log_count);
     if (slot > 800) {
         if (slot == 801) {

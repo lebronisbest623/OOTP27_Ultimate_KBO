@@ -127,10 +127,6 @@ int kbo_foreign_injury_player_on_inactive_replacement_roster(
     uint32_t player_id,
     uint32_t top_team_id,
     uint32_t today_yyyymmdd);
-int kbo_foreign_injury_recent_message_has_long_term_injury(
-    uint32_t player_id,
-    int min_days,
-    int* out_days);
 int kbo_foreign_injury_recent_sql_has_long_term_injury_date(
     uint32_t player_id,
     int min_days,

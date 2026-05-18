@@ -27,6 +27,10 @@
 #include "../../runtime/state/custom_event_state.h"
 #include "../../../team/independent_acquisition/window/independent_acquisition_window.h"
 
+static uint32_t g_kbo_independent_acquisition_schedule_ready_year = 0u;
+static uint32_t g_kbo_independent_acquisition_schedule_ready_event_league_id = 0u;
+static uint32_t g_kbo_independent_acquisition_schedule_ready_first_open_date = 0u;
+
 static uint32_t kbo_independent_team_acquisition_add_months(
     uint32_t yyyymmdd,
     uint32_t months)
@@ -218,11 +222,11 @@ int kbo_schedule_independent_team_acquisition_custom_events_for_date(
             if (last_logged_seed_missing_date != today) {
                 last_logged_seed_missing_date = today;
                 kbo_log_runtimef(
-                    "KBO independent futures acquisition schedule deferred source=%s reason=team_classification_seed_unavailable today=%u",
+                    "KBO independent futures acquisition schedule skipped source=%s reason=team_classification_seed_unavailable today=%u",
                     source != NULL ? source : "",
                     today);
             }
-            return -1;
+            return 0;
         }
         return 0;
     }
@@ -231,13 +235,13 @@ int kbo_schedule_independent_team_acquisition_custom_events_for_date(
         if (last_logged_unresolved_date != today) {
             last_logged_unresolved_date = today;
             kbo_log_runtimef(
-                "KBO independent futures acquisition schedule deferred source=%s reason=seeded_team_unresolved today=%u seed_rows=%d unresolved=%d",
+                "KBO independent futures acquisition schedule skipped source=%s reason=seeded_team_unresolved today=%u seed_rows=%d unresolved=%d",
                 source != NULL ? source : "",
                 today,
                 seed_rows,
                 unresolved_rows);
         }
-        return -1;
+        return 0;
     }
 
     uint32_t event_league_id = kbo_get_foreign_waiver_league_id();
@@ -252,6 +256,13 @@ int kbo_schedule_independent_team_acquisition_custom_events_for_date(
             seed_rows,
             league_count);
         return -1;
+    }
+    uint32_t schedule_year = today / 10000u;
+    if (g_kbo_independent_acquisition_schedule_ready_year == schedule_year
+            && g_kbo_independent_acquisition_schedule_ready_event_league_id == event_league_id
+            && g_kbo_independent_acquisition_schedule_ready_first_open_date != 0u
+            && today < g_kbo_independent_acquisition_schedule_ready_first_open_date) {
+        return 0;
     }
 
     char title[160] = {0};
@@ -276,6 +287,8 @@ int kbo_schedule_independent_team_acquisition_custom_events_for_date(
     int direct_deferred = 0;
     int ready = 0;
     int failed = 0;
+    int hard_failed = 0;
+    uint32_t first_open_date = 0u;
     for (int i = 0; i < league_count; i++) {
         uint32_t anchor_league_id = leagues[i].league_id;
         uint32_t season_start = 0u;
@@ -288,7 +301,7 @@ int kbo_schedule_independent_team_acquisition_custom_events_for_date(
                 &start_source)) {
             failed++;
             kbo_log_runtimef(
-                "KBO independent futures acquisition schedule deferred source=%s reason=season_start_unavailable today=%u event_league_id=%u anchor_league_id=%u team=%u csv=%s",
+                "KBO independent futures acquisition schedule waiting source=%s reason=season_start_unavailable today=%u event_league_id=%u anchor_league_id=%u team=%u csv=%s",
                 source != NULL ? source : "",
                 today,
                 event_league_id,
@@ -309,7 +322,11 @@ int kbo_schedule_independent_team_acquisition_custom_events_for_date(
                 anchor_league_id,
                 season_start,
                 offset_months);
+            hard_failed = 1;
             continue;
+        }
+        if (first_open_date == 0u || open_date < first_open_date) {
+            first_open_date = open_date;
         }
 
         int direct_result = kbo_process_due_independent_team_acquisition_open_event(
@@ -348,6 +365,7 @@ int kbo_schedule_independent_team_acquisition_custom_events_for_date(
                 open_date,
                 KBO_CUSTOM_EVENT_KIND_INDEPENDENT_TEAM_ACQUISITION_OPEN);
         if (!exists) {
+            hard_failed = 1;
             failed++;
         } else {
             ready++;
@@ -373,10 +391,15 @@ int kbo_schedule_independent_team_acquisition_custom_events_for_date(
     }
 
     if (ready <= 0 && failed > 0) {
-        return -1;
+        return hard_failed ? -1 : 0;
     }
     if (direct_deferred) {
         return -1;
+    }
+    if (ready > 0 && failed == 0 && first_open_date != 0u) {
+        g_kbo_independent_acquisition_schedule_ready_year = schedule_year;
+        g_kbo_independent_acquisition_schedule_ready_event_league_id = event_league_id;
+        g_kbo_independent_acquisition_schedule_ready_first_open_date = first_open_date;
     }
     return created || direct_processed;
 }

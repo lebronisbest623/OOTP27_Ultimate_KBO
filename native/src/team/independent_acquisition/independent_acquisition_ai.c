@@ -38,6 +38,15 @@ static char g_kbo_independent_acquisition_ai_cursor_save_path[MAX_PATH] = {0};
 #define KBO_INDEPENDENT_ACQUISITION_AI_CURSOR_FILE "independent_acquisition_ai_cursor.txt"
 #define KBO_INDEPENDENT_ACQUISITION_AI_MAX_CATCHUP_DAYS 220
 
+typedef struct KboIndependentAcquisitionSellerAvailability {
+    int seed_rows;
+    int unresolved_rows;
+    int seller_count;
+    int available_seller_count;
+    int capped_sellers;
+    int32_t seller_transfer_limit;
+} KboIndependentAcquisitionSellerAvailability;
+
 static int kbo_independent_acquisition_window_active_silent(uint32_t today)
 {
     return kbo_independent_team_acquisition_window_active(today, NULL, NULL);
@@ -187,6 +196,53 @@ static void kbo_independent_acquisition_mark_processed_date(uint32_t today, cons
     }
 }
 
+static KboIndependentAcquisitionSellerAvailability
+kbo_independent_acquisition_collect_available_sellers_for_date(
+    uint32_t today,
+    KboIndependentFuturesTeamLeague* out_available_sellers,
+    int max_available_sellers)
+{
+    KboIndependentAcquisitionSellerAvailability availability;
+    memset(&availability, 0, sizeof(availability));
+    availability.seller_transfer_limit =
+        kbo_foreign_player_policy()->independent_acquisition_seller_transfer_limit;
+
+    KboIndependentFuturesTeamLeague sellers[KBO_INDEPENDENT_ACQUISITION_MAX_SELLERS];
+    memset(sellers, 0, sizeof(sellers));
+    availability.seller_count = kbo_collect_independent_futures_team_leagues(
+        sellers,
+        KBO_INDEPENDENT_ACQUISITION_MAX_SELLERS,
+        &availability.seed_rows,
+        &availability.unresolved_rows);
+    if (availability.seller_count <= 0) {
+        return availability;
+    }
+
+    uint32_t season = kbo_independent_acquisition_effective_season(today);
+    for (int i = 0; i < availability.seller_count; i++) {
+        int transfers = kbo_independent_acquisition_transferred_count(season, sellers[i].team_id);
+        if (transfers >= availability.seller_transfer_limit) {
+            availability.capped_sellers++;
+            continue;
+        }
+        if (out_available_sellers != NULL
+                && availability.available_seller_count < max_available_sellers) {
+            out_available_sellers[availability.available_seller_count] = sellers[i];
+        }
+        availability.available_seller_count++;
+    }
+
+    return availability;
+}
+
+static int kbo_independent_acquisition_has_pending_requests(uint32_t today)
+{
+    uint32_t season = kbo_independent_acquisition_effective_season(today);
+    KboIndependentAcquisitionQueuedRequest pending;
+    memset(&pending, 0, sizeof(pending));
+    return kbo_independent_acquisition_load_requests(season, &pending, 1) > 0;
+}
+
 static int kbo_run_independent_team_acquisition_ai_with_snapshot_for_date(
     uint32_t today,
     const uintptr_t* snapshot,
@@ -198,6 +254,9 @@ static int kbo_run_independent_team_acquisition_ai_with_snapshot_for_date(
     int abort_for_save = 0;
     int claimed_today = 0;
     int completed_daily_run = 0;
+    int candidate_pool_attempted = 0;
+    KboIndependentAcquisitionCandidatePool candidate_pool;
+    memset(&candidate_pool, 0, sizeof(candidate_pool));
 
     if (out_abort_for_save != NULL) {
         *out_abort_for_save = 0;
@@ -216,45 +275,27 @@ static int kbo_run_independent_team_acquisition_ai_with_snapshot_for_date(
         goto cleanup;
     }
 
-    KboIndependentFuturesTeamLeague sellers[KBO_INDEPENDENT_ACQUISITION_MAX_SELLERS];
-    int seed_rows = 0;
-    int unresolved_rows = 0;
-    int seller_count = kbo_collect_independent_futures_team_leagues(
-        sellers,
-        KBO_INDEPENDENT_ACQUISITION_MAX_SELLERS,
-        &seed_rows,
-        &unresolved_rows);
+    KboIndependentFuturesTeamLeague available_sellers[KBO_INDEPENDENT_ACQUISITION_MAX_SELLERS];
+    memset(available_sellers, 0, sizeof(available_sellers));
+    KboIndependentAcquisitionSellerAvailability availability =
+        kbo_independent_acquisition_collect_available_sellers_for_date(
+            today,
+            available_sellers,
+            KBO_INDEPENDENT_ACQUISITION_MAX_SELLERS);
+    int seller_count = availability.seller_count;
+    int available_seller_count = availability.available_seller_count;
+    int capped_sellers = availability.capped_sellers;
+    int32_t seller_transfer_limit = availability.seller_transfer_limit;
     if (seller_count <= 0) {
         kbo_log_runtimef(
             "independent acquisition AI skipped source=%s reason=no_resolved_seller today=%u seed_rows=%d unresolved=%d",
             source != NULL ? source : "",
             today,
-            seed_rows,
-            unresolved_rows);
+            availability.seed_rows,
+            availability.unresolved_rows);
         goto cleanup;
     }
 
-    int32_t seller_transfer_limit =
-        kbo_foreign_player_policy()->independent_acquisition_seller_transfer_limit;
-    KboIndependentFuturesTeamLeague available_sellers[KBO_INDEPENDENT_ACQUISITION_MAX_SELLERS];
-    memset(available_sellers, 0, sizeof(available_sellers));
-    int available_seller_count = 0;
-    int capped_sellers = 0;
-    for (int i = 0; i < seller_count; i++) {
-        if ((i & 3) == 0
-                && kbo_independent_acquisition_abort_if_save(source, "seller_limit_scan", today)) {
-            abort_for_save = 1;
-            goto cleanup;
-        }
-        int transfers = kbo_independent_acquisition_transferred_count(season, sellers[i].team_id);
-        if (transfers >= seller_transfer_limit) {
-            capped_sellers++;
-            continue;
-        }
-        if (available_seller_count < KBO_INDEPENDENT_ACQUISITION_MAX_SELLERS) {
-            available_sellers[available_seller_count++] = sellers[i];
-        }
-    }
     if (capped_sellers > 0) {
         kbo_log_runtimef(
             "independent acquisition AI seller transfer limit source=%s today=%u limit=%d sellers=%d available=%d capped=%d",
@@ -264,6 +305,37 @@ static int kbo_run_independent_team_acquisition_ai_with_snapshot_for_date(
             seller_count,
             available_seller_count,
             capped_sellers);
+    }
+    if (available_seller_count <= 0) {
+        if (kbo_independent_acquisition_abort_if_save(source, "before_daily_claim", today)) {
+            abort_for_save = 1;
+            goto cleanup;
+        }
+        if (!kbo_independent_acquisition_claim_daily_run(today)) {
+            goto cleanup;
+        }
+        claimed_today = 1;
+        kbo_log_runtimef(
+            "independent acquisition AI summary source=%s today=%u requested=0 shortlist_requests=0 refreshed_pending=0 buyers=0 skipped_human=0 sellers=%d available_sellers=0 capped_sellers=%d seller_transfer_limit=%d buyer_pending_limit=%d player_count=%d team_scanned=0 team_unreadable=0",
+            source != NULL ? source : "",
+            today,
+            seller_count,
+            capped_sellers,
+            seller_transfer_limit,
+            KBO_INDEPENDENT_ACQUISITION_BUYER_PENDING_LIMIT,
+            player_count);
+        if (kbo_independent_acquisition_abort_if_save(source, "before_seller_ai", today)) {
+            abort_for_save = 1;
+            goto cleanup;
+        }
+        int transferred = kbo_run_independent_team_acquisition_seller_ai(
+            today,
+            snapshot,
+            player_count,
+            source);
+        result += transferred;
+        completed_daily_run = 1;
+        goto cleanup;
     }
     if (kbo_independent_acquisition_abort_if_save(source, "before_buyer_scan", today)) {
         abort_for_save = 1;
@@ -337,12 +409,21 @@ static int kbo_run_independent_team_acquisition_ai_with_snapshot_for_date(
         while (window_active
                 && available_seller_count > 0
                 && buyer_pending_count < KBO_INDEPENDENT_ACQUISITION_BUYER_PENDING_LIMIT) {
-            KboIndependentAcquisitionCandidate candidate;
-            if (!kbo_independent_acquisition_choose_candidate_for_buyer(
+            if (!candidate_pool_attempted) {
+                candidate_pool_attempted = 1;
+                kbo_independent_acquisition_build_candidate_pool(
                     snapshot,
                     player_count,
                     available_sellers,
                     available_seller_count,
+                    &candidate_pool);
+            }
+            if (candidate_pool.count <= 0) {
+                break;
+            }
+            KboIndependentAcquisitionCandidate candidate;
+            if (!kbo_independent_acquisition_choose_candidate_from_pool(
+                    &candidate_pool,
                     pending_requests,
                     pending_request_count,
                     &buyer,
@@ -450,6 +531,7 @@ static int kbo_run_independent_team_acquisition_ai_with_snapshot_for_date(
     completed_daily_run = 1;
 
 cleanup:
+    kbo_independent_acquisition_free_candidate_pool(&candidate_pool);
     if (abort_for_save && claimed_today && !completed_daily_run) {
         kbo_independent_acquisition_release_daily_run(today);
     }
@@ -501,6 +583,43 @@ int kbo_run_independent_team_acquisition_ai_for_date(uint32_t today, const char*
     if (previous_processed_date >= today) {
         goto cleanup;
     }
+    if (!kbo_independent_acquisition_window_active_silent(today)) {
+        kbo_independent_acquisition_window_active(today);
+        kbo_independent_acquisition_mark_processed_date(today, source);
+        goto cleanup;
+    }
+    KboIndependentAcquisitionSellerAvailability availability =
+        kbo_independent_acquisition_collect_available_sellers_for_date(today, NULL, 0);
+    if ((availability.seller_count <= 0 || availability.available_seller_count <= 0)
+            && !kbo_independent_acquisition_has_pending_requests(today)) {
+        if (availability.seller_count <= 0) {
+            kbo_log_runtimef(
+                "independent acquisition AI skipped source=%s reason=no_resolved_seller today=%u seed_rows=%d unresolved=%d",
+                source != NULL ? source : "",
+                today,
+                availability.seed_rows,
+                availability.unresolved_rows);
+        } else {
+            if (availability.capped_sellers > 0) {
+                kbo_log_runtimef(
+                    "independent acquisition AI seller transfer limit source=%s today=%u limit=%d sellers=%d available=0 capped=%d",
+                    source != NULL ? source : "",
+                    today,
+                    availability.seller_transfer_limit,
+                    availability.seller_count,
+                    availability.capped_sellers);
+            }
+            kbo_log_runtimef(
+                "independent acquisition AI skipped source=%s reason=no_available_seller today=%u sellers=%d capped_sellers=%d seller_transfer_limit=%d pending_requests=0",
+                source != NULL ? source : "",
+                today,
+                availability.seller_count,
+                availability.capped_sellers,
+                availability.seller_transfer_limit);
+        }
+        kbo_independent_acquisition_mark_processed_date(today, source);
+        goto cleanup;
+    }
 
     if (kbo_independent_acquisition_abort_if_save(source, "before_player_snapshot", today)) {
         abort_for_save = 1;
@@ -538,16 +657,12 @@ int kbo_run_independent_team_acquisition_ai_for_date(uint32_t today, const char*
         goto cleanup;
     }
 
-    if (kbo_independent_acquisition_window_active_silent(today)) {
-        result += kbo_run_independent_team_acquisition_ai_with_snapshot_for_date(
-            today,
-            snapshot,
-            player_count,
-            source,
-            &abort_for_save);
-    } else {
-        kbo_independent_acquisition_window_active(today);
-    }
+    result += kbo_run_independent_team_acquisition_ai_with_snapshot_for_date(
+        today,
+        snapshot,
+        player_count,
+        source,
+        &abort_for_save);
     if (!abort_for_save) {
         kbo_independent_acquisition_mark_processed_date(today, source);
     }

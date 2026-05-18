@@ -29,6 +29,11 @@
 
 static volatile LONG g_kbo_cbt_event_scheduler_started = 0;
 static volatile LONG64 g_kbo_cbt_last_no_date_log_ms = 0;
+static uint32_t g_kbo_cbt_schedule_ready_season = 0u;
+static uint32_t g_kbo_cbt_schedule_ready_league_id = 0u;
+static uint32_t g_kbo_cbt_schedule_ready_opening_day = 0u;
+static uint32_t g_kbo_cbt_schedule_ready_deadline = 0u;
+static uint32_t g_kbo_cbt_schedule_ready_announcement = 0u;
 
 static int kbo_cbt_should_log_no_date(void)
 {
@@ -250,7 +255,7 @@ int kbo_schedule_cbt_custom_events_for_date(uint32_t today, const char* source)
                 today);
             kbo_cbt_audit_event_schedule("skip", "opening_day_unavailable", source, year, today, 0u, 0u, 0u, 0u, 0, 0, 0, 0, 0);
         }
-        return -1;
+        return 0;
     }
 
     uint32_t deadline = kbo_add_days_yyyymmdd(opening_day, rules.exception_deadline_days_after_opening);
@@ -265,6 +270,17 @@ int kbo_schedule_cbt_custom_events_for_date(uint32_t today, const char* source)
         kbo_cbt_audit_event_schedule("skip", "league_id_unavailable", source, year, today, 0u, opening_day, deadline, announcement, 0, 0, 0, 0, 0);
         kbo_log_runtimef("KBO CBT event schedule skipped source=%s reason=league_id_unavailable season=%u", source != NULL ? source : "", year);
         return -1;
+    }
+
+    uint32_t first_due = deadline < announcement ? deadline : announcement;
+    if (g_kbo_cbt_schedule_ready_season == year
+            && g_kbo_cbt_schedule_ready_league_id == league_id
+            && g_kbo_cbt_schedule_ready_opening_day == opening_day
+            && g_kbo_cbt_schedule_ready_deadline == deadline
+            && g_kbo_cbt_schedule_ready_announcement == announcement
+            && first_due != 0u
+            && today < first_due) {
+        return 0;
     }
 
     int deadline_past = deadline < today;
@@ -413,10 +429,18 @@ int kbo_schedule_cbt_custom_events_for_date(uint32_t today, const char* source)
         pruned_deadline,
         pruned_announcement,
         deadline_exists && announcement_exists);
+    int ready = deadline_exists && announcement_exists;
+    if (ready && !direct_deferred) {
+        g_kbo_cbt_schedule_ready_season = year;
+        g_kbo_cbt_schedule_ready_league_id = league_id;
+        g_kbo_cbt_schedule_ready_opening_day = opening_day;
+        g_kbo_cbt_schedule_ready_deadline = deadline;
+        g_kbo_cbt_schedule_ready_announcement = announcement;
+    }
     if (direct_deferred) {
         return -1;
     }
-    return (deadline_exists && announcement_exists)
+    return ready
         ? (created_deadline || created_announcement || direct_processed)
         : -1;
 }

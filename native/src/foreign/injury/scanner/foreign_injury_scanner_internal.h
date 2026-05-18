@@ -39,10 +39,6 @@ int kbo_foreign_injury_player_on_inactive_replacement_roster(
     uint32_t player_id,
     uint32_t top_team_id,
     uint32_t today_yyyymmdd);
-int kbo_foreign_injury_recent_message_has_long_term_injury(
-    uint32_t player_id,
-    int min_days,
-    int* out_days);
 int kbo_foreign_injury_recent_sql_has_long_term_injury(
     uint32_t player_id,
     int min_days,
@@ -68,6 +64,14 @@ int kbo_foreign_injury_recent_sql_has_long_term_injury_date_on_date_mode(
 int kbo_foreign_injury_collect_sql_long_term_injuries_on_date(
     uint32_t game_date_yyyymmdd,
     int min_days,
+    KboForeignInjurySqlDiscoveryRow* out_rows,
+    int max_rows,
+    int* out_count,
+    int* out_rows_seen);
+int kbo_foreign_injury_collect_sql_long_term_injuries_on_date_mode(
+    uint32_t game_date_yyyymmdd,
+    int min_days,
+    int allow_backdated,
     KboForeignInjurySqlDiscoveryRow* out_rows,
     int max_rows,
     int* out_count,

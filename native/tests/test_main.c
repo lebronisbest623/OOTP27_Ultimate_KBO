@@ -1909,6 +1909,11 @@ static void test_foreign_injury_inactive_roster_long_term_basis(void)
         min_days,
         &evidence_days));
     assert(evidence_days == 300);
+    assert(kbo_foreign_injury_duration_text_meets_minimum(
+        "The latest news from the Lotte Giants clubhouse is this: starting pitcher Elvin Rodriguez is expected to be out of action for another 10 months.",
+        min_days,
+        &evidence_days));
+    assert(evidence_days == 300);
     assert(!kbo_foreign_injury_duration_text_meets_minimum(
         "He is expected to miss 2 weeks.",
         min_days,

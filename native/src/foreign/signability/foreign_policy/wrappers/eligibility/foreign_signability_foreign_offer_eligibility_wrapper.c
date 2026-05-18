@@ -57,8 +57,9 @@ static int kbo_foreign_reserve_high_value_offer_visible_to_ai(
 static int kbo_offer_eligibility_player_is_foreign(uintptr_t player_ptr)
 {
     if (player_ptr == 0
-            || !kbo_player_pointer_plausible(player_ptr)
-            || !memory_range_readable((void*)player_ptr, OOTP27_PLAYER_SCAN_BYTES)) {
+            || !memory_range_readable(
+                (void*)player_ptr,
+                OOTP27_PLAYER_NATION_ID_OFFSET + sizeof(uint32_t))) {
         return 0;
     }
 
