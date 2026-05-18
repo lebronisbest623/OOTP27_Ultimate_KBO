@@ -44,7 +44,9 @@ def _solve_asian_games_model(rows, hard_required_orgs, hard_role_minimums):
         if to_int(row, "age") > 24:
             wildcard_vars.append(var)
 
-    if wildcard_vars:
+    if len(wildcard_vars) >= ASIAN_GAMES_MAX_WILDCARDS and roster_size >= ASIAN_GAMES_MAX_WILDCARDS:
+        model.Add(sum(wildcard_vars) == ASIAN_GAMES_MAX_WILDCARDS)
+    elif wildcard_vars:
         model.Add(sum(wildcard_vars) <= ASIAN_GAMES_MAX_WILDCARDS)
 
     for org_id, org_vars in by_org.items():

@@ -19,8 +19,12 @@ def optimize_mode(mode, request_path, result_path):
     raise ValueError(f"unknown optimizer mode: {mode}")
 
 def serve():
-    for line in sys.stdin:
-        parts = line.rstrip("\n").split("\t")
+    for raw_line in sys.stdin.buffer:
+        try:
+            line = raw_line.decode("utf-8-sig")
+        except UnicodeDecodeError:
+            line = raw_line.decode(sys.stdin.encoding or "utf-8")
+        parts = line.rstrip("\r\n").split("\t")
         if len(parts) == 2:
             mode = "amateur_assignment"
             request_path, result_path = parts

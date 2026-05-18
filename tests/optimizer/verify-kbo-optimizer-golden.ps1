@@ -62,6 +62,7 @@ try {
         @{ Mode = "amateur_assignment"; Fixture = "amateur_assignment.csv"; Golden = "amateur_assignment.csv"; CheckDefaultCli = $true },
         @{ Mode = "amateur_assignment"; Fixture = "amateur_assignment_batch.csv"; Golden = "amateur_assignment_batch.csv"; CheckDefaultCli = $true },
         @{ Mode = "asian_games_roster"; Fixture = "asian_games_roster.csv"; Golden = "asian_games_roster.csv"; CheckDefaultCli = $false },
+        @{ Mode = "asian_games_roster"; Fixture = "asian_games_roster_wildcards.csv"; Golden = "asian_games_roster_wildcards.csv"; CheckDefaultCli = $false },
         @{ Mode = "military_selection"; Fixture = "military_selection.csv"; Golden = "military_selection.csv"; CheckDefaultCli = $false },
         @{ Mode = "fa_compensation"; Fixture = "fa_compensation.csv"; Golden = "fa_compensation.csv"; CheckDefaultCli = $false }
     )
