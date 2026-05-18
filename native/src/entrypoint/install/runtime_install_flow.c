@@ -340,7 +340,7 @@ void install_kbo_full_runtime_after_roster_marker(HINSTANCE instance)
             date_tick_hooks);
         start_kbo_current_date_tick_watchpoint_thread();
     } else {
-        kbo_log_runtime_line("KBO current date tick watchpoint disabled: enable_kbo_current_date_tick_watchpoint is false or disable flag is true");
+        kbo_log_runtime_line("KBO current date tick watchpoint disabled: disable_kbo_current_date_tick_watchpoint is true");
     }
     start_kbo_foreign_injury_date_tick_thread();
     if (kbo_no_minor_contract_patch_enabled()) {

@@ -87,7 +87,7 @@ internal static partial class KboFlags
         new("disable_kbo_current_date_tick_capture_hook", null, RuntimeFlagLifecycle.Recovery),
         new("disable_kbo_current_date_tick_watchpoint", null, RuntimeFlagLifecycle.Recovery),
         new("enable_kbo_current_date_tick_early_sources", false, RuntimeFlagLifecycle.Diagnostic),
-        new("enable_kbo_current_date_tick_watchpoint", false, RuntimeFlagLifecycle.Diagnostic),
+        new("enable_kbo_current_date_tick_watchpoint", true, RuntimeFlagLifecycle.Diagnostic),
         new("disable_military_ortools", null, RuntimeFlagLifecycle.Recovery),
         new("enable_ai_roster_foreign_apply_rescue_move", null, RuntimeFlagLifecycle.Recovery),
         new("enable_ai_roster_foreign_apply_rescue_team_add", null, RuntimeFlagLifecycle.Recovery),

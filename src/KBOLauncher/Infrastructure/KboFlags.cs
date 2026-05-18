@@ -5,6 +5,11 @@ using static LauncherPaths;
 internal static partial class KboFlags
 {
     private static readonly object ConfigWriteLock = new();
+    private static readonly string[] PinnedEnabledRuntimeFlags =
+    [
+        "enable_experimental_runtime_hooks",
+        "enable_kbo_current_date_tick_watchpoint",
+    ];
 
     public static void WriteKboFlag(string fileName, string label, bool enabled)
     {
@@ -49,6 +54,10 @@ internal static partial class KboFlags
                 changed |= EnsureMissingFlag(raw, flag.Key, flag.DefaultValue.Value);
             }
         }
+        foreach (var key in PinnedEnabledRuntimeFlags)
+        {
+            changed |= EnsureFlagValue(raw, key, true);
+        }
         changed |= EnsureMissingFlag(raw, "enable_intl_established_fa_quality_probe_patch", true);
 
         if (!changed)
@@ -66,6 +75,21 @@ internal static partial class KboFlags
     {
         key = NormalizeKboFlagKey(key);
         if (flags.ContainsKey(key))
+        {
+            return false;
+        }
+
+        flags[key] = JsonValue.Create(value);
+        return true;
+    }
+
+    private static bool EnsureFlagValue(SortedDictionary<string, JsonNode?> flags, string key, bool value)
+    {
+        key = NormalizeKboFlagKey(key);
+        if (flags.TryGetValue(key, out var existing)
+                && existing is JsonValue existingValue
+                && existingValue.TryGetValue<bool>(out var existingBool)
+                && existingBool == value)
         {
             return false;
         }

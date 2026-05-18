@@ -21,7 +21,6 @@ const KboModRuntimeFlagSetting KBO_MOD_RUNTIME_FLAG_SETTINGS[] = {
     { "disable_kbo_runtime_roster_marker_guard", "Runtime roster marker guard", 0, 1, NULL, KBO_MOD_FLAG_RECOVERY },
     { "disable_kbo_salary_arbitration_no_withdraw_patch", "Salary arbitration no-withdraw", 0, 1, NULL, KBO_MOD_FLAG_RECOVERY },
     { "enable_amateur_assignment_verbose_log", "Amateur assignment verbose log", 1, 0, NULL, KBO_MOD_FLAG_DIAGNOSTIC },
-    { "enable_experimental_runtime_hooks", "Runtime patch engine", 1, 1, NULL, KBO_MOD_FLAG_RECOVERY },
     { "enable_foreign_waiver_ai", "Foreign waiver AI", 1, 1, NULL, KBO_MOD_FLAG_USER },
     { "enable_foreign_waiver_background_scanner", "Foreign waiver background scanner", 1, 1, NULL, KBO_MOD_FLAG_RECOVERY },
     { "enable_foreign_ai_roster_management", "Enhanced foreign AI (Experimental)", 1, 1, NULL, KBO_MOD_FLAG_USER },

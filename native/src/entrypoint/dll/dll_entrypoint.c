@@ -18,8 +18,7 @@ DWORD WINAPI patch_thread(LPVOID parameter)
     kbo_log_runtime_line("KBOFix build includes scoped all-star single-division prep/roster/team setup gates");
 
     if (!read_kbo_localappdata_flag_file("enable_experimental_runtime_hooks.txt")) {
-        kbo_log_runtime_line("KBOFix: experimental runtime hooks disabled; safe startup mode active");
-        return 0;
+        kbo_log_runtime_line("KBOFix: legacy enable_experimental_runtime_hooks=false ignored; use enable_kbo_diagnostic_minimal_runtime for no-patch diagnostics");
     }
 
     int diagnostic_minimal_runtime = read_kbo_localappdata_flag_file("enable_kbo_diagnostic_minimal_runtime.txt");
@@ -81,7 +80,7 @@ DWORD WINAPI patch_thread(LPVOID parameter)
             date_tick_hooks);
         start_kbo_current_date_tick_watchpoint_thread();
     } else {
-        kbo_log_runtime_line("KBO current date tick watchpoint disabled: enable_kbo_current_date_tick_watchpoint is false or disable flag is true");
+        kbo_log_runtime_line("KBO current date tick watchpoint disabled: disable_kbo_current_date_tick_watchpoint is true");
     }
     install_kbo_early_no_minor_contract_hooks_once("presave_bootstrap");
     int foreign_ai_roster_management =
@@ -187,7 +186,10 @@ static DWORD WINAPI kbo_hot_reinject_ai_roster_management_thread(LPVOID paramete
 
     kbo_log_runtime_line("KBO hot reinject runtime refresh requested");
     if (!read_kbo_localappdata_flag_file("enable_experimental_runtime_hooks.txt")) {
-        kbo_log_runtime_line("KBO hot reinject runtime refresh skipped: experimental runtime hooks disabled");
+        kbo_log_runtime_line("KBO hot reinject: legacy enable_experimental_runtime_hooks=false ignored; continuing runtime refresh");
+    }
+    if (read_kbo_localappdata_flag_file("enable_kbo_diagnostic_minimal_runtime.txt")) {
+        kbo_log_runtime_line("KBO hot reinject runtime refresh skipped: diagnostic minimal runtime is enabled");
         return 0;
     }
 
@@ -209,7 +211,7 @@ static DWORD WINAPI kbo_hot_reinject_ai_roster_management_thread(LPVOID paramete
         kbo_log_runtime_line("KBO hot reinject current date tick watchpoint requested");
         start_kbo_current_date_tick_watchpoint_thread();
     } else {
-        kbo_log_runtime_line("KBO hot reinject current date tick watchpoint disabled: enable_kbo_current_date_tick_watchpoint is false or disable flag is true");
+        kbo_log_runtime_line("KBO hot reinject current date tick watchpoint disabled: disable_kbo_current_date_tick_watchpoint is true");
     }
 
     kbo_log_runtime_line("KBO hot reinject current-date consumers requested");
@@ -272,15 +274,11 @@ BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved)
         if (g_kbo_process_instance_mutex != NULL && GetLastError() == ERROR_ALREADY_EXISTS) {
             CloseHandle(g_kbo_process_instance_mutex);
             g_kbo_process_instance_mutex = NULL;
-            if (kbo_current_date_tick_watchpoint_enabled()
-                    || read_kbo_localappdata_flag_file("enable_foreign_ai_roster_management.txt")
-                    || kbo_foreign_ai_controller_enabled()
-                    || read_kbo_localappdata_flag_file("enable_kbo_hot_reinject_roster_flow_trace.txt")) {
-                kbo_start_runtime_thread(
-                    kbo_hot_reinject_ai_roster_management_thread,
-                    instance,
-                    "hot reinject runtime refresh");
-            }
+            kbo_log_runtime_line("KBO duplicate DLL attach detected; hot reinject runtime refresh requested");
+            kbo_start_runtime_thread(
+                kbo_hot_reinject_ai_roster_management_thread,
+                instance,
+                "hot reinject runtime refresh");
             return TRUE;
         }
 

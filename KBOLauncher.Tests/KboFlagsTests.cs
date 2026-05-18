@@ -177,6 +177,7 @@ public sealed class KboFlagsTests : IDisposable
         flags["enable_kbo_offer_eligibility_patch"].Should().BeTrue();
         flags["enable_kbo_callup_foreign_limit_patch"].Should().BeTrue();
         flags["enable_intl_established_fa_quality_probe_patch"].Should().BeTrue();
+        flags["enable_kbo_current_date_tick_watchpoint"].Should().BeTrue();
         flags["enable_kbo_season_phase_monitor"].Should().BeFalse();
         flags["disable_kbo_fa_salary_opening_day_snapshot"].Should().BeFalse();
         flags["disable_kbo_no_minor_contract_patch"].Should().BeFalse();
@@ -184,20 +185,22 @@ public sealed class KboFlagsTests : IDisposable
     }
 
     [Fact]
-    public void EnsureDefaultKboRuntimeFlags_DoesNotOverwriteExistingOptOuts()
+    public void EnsureDefaultKboRuntimeFlags_PreservesOrdinaryOptOutsButRepairsPinnedFlags()
     {
         Directory.CreateDirectory(tempDir);
         File.WriteAllText(ConfigPath, """
         {
           "enable_kbo_foreign_trade_check_patch": false,
-          "enable_experimental_runtime_hooks": false
+          "enable_experimental_runtime_hooks": false,
+          "enable_kbo_current_date_tick_watchpoint": false
         }
         """);
 
         global::KboFlags.EnsureDefaultKboRuntimeFlags(ConfigPath);
 
         global::KboFlags.ReadKboFlag(ConfigPath, "enable_kbo_foreign_trade_check_patch.txt").Should().BeFalse();
-        global::KboFlags.ReadKboFlag(ConfigPath, "enable_experimental_runtime_hooks.txt").Should().BeFalse();
+        global::KboFlags.ReadKboFlag(ConfigPath, "enable_experimental_runtime_hooks.txt").Should().BeTrue();
+        global::KboFlags.ReadKboFlag(ConfigPath, "enable_kbo_current_date_tick_watchpoint.txt").Should().BeTrue();
     }
 
     [Fact]

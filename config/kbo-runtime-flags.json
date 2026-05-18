@@ -195,12 +195,7 @@
     {
       "key": "enable_experimental_runtime_hooks",
       "defaultValue": true,
-      "lifecycle": "Recovery",
-      "ui": {
-        "label": "Runtime patch engine",
-        "enabledValue": 1,
-        "defaultEnabled": true
-      }
+      "lifecycle": "Recovery"
     },
     {
       "key": "enable_foreign_waiver_ai",
@@ -514,7 +509,7 @@
     },
     {
       "key": "enable_kbo_current_date_tick_watchpoint",
-      "defaultValue": false,
+      "defaultValue": true,
       "lifecycle": "Diagnostic"
     },
     {
