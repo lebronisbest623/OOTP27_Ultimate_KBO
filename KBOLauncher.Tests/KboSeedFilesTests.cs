@@ -85,6 +85,24 @@ public sealed class KboSeedFilesTests : IDisposable
     }
 
     [Fact]
+    public void EnsureBundledKboDataFile_CopiesSameLengthContentChangeEvenWhenLocalIsNewer()
+    {
+        var localDir = Path.Combine(tempDir, "local");
+        var candidate = Path.Combine(tempDir, "candidate", "kbo_nations.json");
+        var localPath = Path.Combine(localDir, "kbo_nations.json");
+        Directory.CreateDirectory(Path.GetDirectoryName(candidate)!);
+        Directory.CreateDirectory(localDir);
+        File.WriteAllText(candidate, """{"nations":[{"id":177}]}""");
+        File.WriteAllText(localPath, """{"nations":[{"id":176}]}""");
+        File.SetLastWriteTimeUtc(candidate, new DateTime(2026, 5, 1, 0, 0, 0, DateTimeKind.Utc));
+        File.SetLastWriteTimeUtc(localPath, new DateTime(2026, 5, 2, 0, 0, 0, DateTimeKind.Utc));
+
+        global::KboSeedFiles.EnsureBundledKboDataFile(localDir, "kbo_nations.json", "Nation display table", [candidate]);
+
+        File.ReadAllText(localPath).Should().Be("""{"nations":[{"id":177}]}""");
+    }
+
+    [Fact]
     public void EnsureBundledKboDataFile_CopiesNestedRelativePath()
     {
         var localDir = Path.Combine(tempDir, "local");

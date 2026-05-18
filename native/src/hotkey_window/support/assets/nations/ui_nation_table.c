@@ -30,8 +30,8 @@ static int nation_subtree_end(const jsmntok_t* tokens, int parsed, int index)
         return index + 1;
     }
     int cursor = index + 1;
-    int pairs = tokens[index].type == JSMN_OBJECT ? tokens[index].size * 2 : tokens[index].size;
-    for (int i = 0; i < pairs && cursor < parsed; i++) {
+    int children = tokens[index].size;
+    for (int i = 0; i < children && cursor < parsed; i++) {
         cursor = nation_subtree_end(tokens, parsed, cursor);
     }
     return cursor;

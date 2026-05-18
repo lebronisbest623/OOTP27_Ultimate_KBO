@@ -259,9 +259,7 @@ internal static partial class KboSeedFiles
     
             try
             {
-                var shouldCopy = !File.Exists(localPath)
-                    || File.GetLastWriteTimeUtc(candidate) > File.GetLastWriteTimeUtc(localPath)
-                    || new FileInfo(candidate).Length != new FileInfo(localPath).Length;
+                var shouldCopy = ShouldCopyBundledKboDataFile(candidate, localPath);
                 if (shouldCopy)
                 {
                     File.Copy(candidate, localPath, overwrite: true);
@@ -277,6 +275,23 @@ internal static partial class KboSeedFiles
         }
 
         AnsiConsole.MarkupLineInterpolated($"[yellow]{label}: bundled seed not found for {fileName}[/]");
+    }
+
+    private static bool ShouldCopyBundledKboDataFile(string candidate, string localPath)
+    {
+        if (!File.Exists(localPath))
+        {
+            return true;
+        }
+
+        var candidateInfo = new FileInfo(candidate);
+        var localInfo = new FileInfo(localPath);
+        if (candidateInfo.Length != localInfo.Length)
+        {
+            return true;
+        }
+
+        return !File.ReadAllBytes(candidate).AsSpan().SequenceEqual(File.ReadAllBytes(localPath));
     }
 
     private static IReadOnlyList<string> ResolveBundledKboDataFileCandidates(string relativePath)

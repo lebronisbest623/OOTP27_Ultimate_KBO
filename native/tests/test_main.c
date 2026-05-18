@@ -85,6 +85,7 @@ int kbo_get_current_save_path(char* out, size_t out_size)
 #include "../src/amateur_player_quality/api/amateur_player_quality.h"
 #include "../src/amateur_player_quality/assignment/policy/amateur_assignment_policy_values.h"
 #include "../src/team/independent_acquisition/ai/independent_acquisition_score.h"
+#include "../src/hotkey_window/support/assets/nations/ui_nation_table.h"
 
 int kbo_amateur_player_is_hitter(uint8_t* player);
 uint32_t kbo_amateur_player_assignment_league_id(uint8_t* player);
@@ -1688,6 +1689,53 @@ static void test_military_native_loan_clear(void)
 
 static char g_rule_audit_test_dir[MAX_PATH] = {0};
 
+static void test_nation_table_parses_all_seed_rows(void)
+{
+    char temp_dir[MAX_PATH] = {0};
+    DWORD temp_len = GetTempPathA(sizeof(temp_dir), temp_dir);
+    assert(temp_len > 0 && temp_len < sizeof(temp_dir));
+    char suffix[64] = {0};
+    snprintf(suffix, sizeof(suffix), "kbo_nation_table_test_%lu", (unsigned long)GetCurrentProcessId());
+    size_t temp_dir_len = strlen(temp_dir);
+    size_t suffix_len = strlen(suffix);
+    assert(temp_dir_len + suffix_len + 1u < sizeof(g_rule_audit_test_dir));
+    memcpy(g_rule_audit_test_dir, temp_dir, temp_dir_len);
+    memcpy(g_rule_audit_test_dir + temp_dir_len, suffix, suffix_len + 1u);
+    CreateDirectoryA(g_rule_audit_test_dir, NULL);
+
+    char path[MAX_PATH] = {0};
+    const char nations_file_name[] = "\\kbo_nations.json";
+    size_t nation_dir_len = strlen(g_rule_audit_test_dir);
+    assert(nation_dir_len + sizeof(nations_file_name) <= sizeof(path));
+    memcpy(path, g_rule_audit_test_dir, nation_dir_len);
+    memcpy(path + nation_dir_len, nations_file_name, sizeof(nations_file_name));
+    const char json[] =
+        "{\n"
+        "  \"nations\": [\n"
+        "    { \"id\": 12,  \"label\": \"Australia\", \"abbrev\": \"AUS\", \"flag_file\": \"aus.png\" },\n"
+        "    { \"id\": 36,  \"label\": \"Canada\", \"abbrev\": \"CAN\", \"flag_file\": \"can.png\" },\n"
+        "    { \"id\": 206, \"label\": \"United States\", \"abbrev\": \"USA\", \"flag_file\": \"usa.png\" }\n"
+        "  ]\n"
+        "}\n";
+    HANDLE file = CreateFileA(path, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    assert(file != INVALID_HANDLE_VALUE);
+    DWORD written = 0;
+    assert(WriteFile(file, json, (DWORD)strlen(json), &written, NULL));
+    CloseHandle(file);
+    assert(written == (DWORD)strlen(json));
+
+    assert(strcmp(kbo_nation_table_label(12u), "Australia") == 0);
+    assert(strcmp(kbo_nation_table_abbrev(12u), "AUS") == 0);
+    assert(strcmp(kbo_nation_table_label(36u), "Canada") == 0);
+    assert(strcmp(kbo_nation_table_abbrev(206u), "USA") == 0);
+    assert(strcmp(kbo_nation_table_flag_file(206u), "usa.png") == 0);
+
+    DeleteFileA(path);
+    RemoveDirectoryA(g_rule_audit_test_dir);
+    g_rule_audit_test_dir[0] = '\0';
+    printf("test_nation_table_parses_all_seed_rows: PASS\n");
+}
+
 static void test_rule_audit_ndjson_sink(void)
 {
     char temp_dir[MAX_PATH] = {0};
@@ -2448,6 +2496,7 @@ int main(void)
     test_salary_snapshot_csv_parse();
     test_core_atomic_file_round_trip();
     test_rule_audit_ndjson_sink();
+    test_nation_table_parses_all_seed_rows();
     test_military_native_loan_on_loan_predicate();
     test_military_native_loan_clear();
     test_team_roster_arrays_contains_player();

@@ -191,6 +191,7 @@ if ($LASTEXITCODE -ne 0) {
     (Join-Path $Root "src\core\logging\event\log_event.c") `
     (Join-Path $Root "src\core\logging\rule_audit.c") `
     (Join-Path $Root "src\core\policy\core_policy.c") `
+    (Join-Path $Root "src\hotkey_window\support\assets\nations\ui_nation_table.c") `
     (Join-Path $Root "src\military_service\players\loans\military_native_loan.c") `
     (Join-Path $Root "src\team\assignment\roster_arrays\team_roster_arrays.c") `
     (Join-Path $Root "src\foreign\common\policy\foreign_player_policy.c") `
