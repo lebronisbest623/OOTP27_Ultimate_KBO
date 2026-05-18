@@ -13,6 +13,7 @@
 #include "../../../../common/policy/foreign_player_policy.h"
 #include "../../../../controller/foreign_ai_controller.h"
 #include "../../../../quota/candidates/foreign_quota_retention_opportunity_probe.h"
+#include "../../../../quota/candidates/retention_score/foreign_quota_retention_score_gate.h"
 #include "../../../../rights/query/foreign_waiver_rights_query.h"
 
 static int kbo_foreign_ai_offer_candidate_priority_enabled(void)
@@ -193,12 +194,14 @@ __declspec(noinline) uintptr_t ootp_kbo_foreign_ai_offer_candidate_priority_wrap
 
     int32_t candidate_score = kbo_foreign_waiver_value_score(candidate);
     int32_t margin = kbo_retention_opportunity_score_margin_for_best(opportunity.best_score);
-    if (candidate_retained_by_team && candidate_score >= opportunity.best_score) {
+    if (candidate_retained_by_team
+            && kbo_retention_candidate_score_clears_best(candidate_score, opportunity.best_score)) {
         KBO_HOOK_PROFILE_RETURN(profile_hook, "foreign.ai_offer_candidate_priority", candidate_player_ptr);
     }
-    if (!candidate_retained_by_team && candidate_score >= opportunity.best_score + margin) {
+    if (!candidate_retained_by_team
+            && kbo_retention_candidate_score_clears_best(candidate_score, opportunity.best_score)) {
         kbo_offer_candidate_priority_log(
-            "candidate_clears_retained_margin",
+            "candidate_clears_retained_score",
             team_id,
             today,
             candidate_id,

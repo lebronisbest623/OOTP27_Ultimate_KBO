@@ -334,13 +334,13 @@ void install_kbo_full_runtime_after_roster_marker(HINSTANCE instance)
     } else {
         kbo_log_runtime_line("KBO current date tick capture hook disabled: disable_kbo_current_date_tick_capture_hook is true");
     }
-    if (!read_kbo_localappdata_flag_file("disable_kbo_current_date_tick_watchpoint.txt")) {
+    if (kbo_current_date_tick_watchpoint_enabled()) {
         kbo_log_runtimef(
             "KBO current date tick watchpoint primary requested capture_hooks=%d",
             date_tick_hooks);
         start_kbo_current_date_tick_watchpoint_thread();
     } else {
-        kbo_log_runtime_line("KBO current date tick watchpoint disabled: disable_kbo_current_date_tick_watchpoint is true");
+        kbo_log_runtime_line("KBO current date tick watchpoint disabled: enable_kbo_current_date_tick_watchpoint is false or disable flag is true");
     }
     start_kbo_foreign_injury_date_tick_thread();
     if (kbo_no_minor_contract_patch_enabled()) {

@@ -19,6 +19,12 @@ static volatile uintptr_t g_kbo_current_date_tick_watchpoint_last_rip = 0u;
 static volatile LONG g_kbo_current_date_tick_watchpoint_last_date = 0;
 static PVOID g_kbo_current_date_tick_watchpoint_handler = NULL;
 
+int kbo_current_date_tick_watchpoint_enabled(void)
+{
+    return read_kbo_localappdata_flag_file("enable_kbo_current_date_tick_watchpoint.txt")
+        && !read_kbo_localappdata_flag_file("disable_kbo_current_date_tick_watchpoint.txt");
+}
+
 static uintptr_t kbo_current_date_tick_watchpoint_live_field_address(void)
 {
     uintptr_t global = get_ootp_cached_global_database();
@@ -64,12 +70,16 @@ static LONG CALLBACK kbo_current_date_tick_watchpoint_exception_handler(
     }
 
     CONTEXT* context = exception_info->ContextRecord;
-    if ((context->Dr6 & 0x1u) == 0u) {
+    uintptr_t field = g_kbo_current_date_tick_watchpoint_address;
+    if (field == 0u
+            || (uintptr_t)context->Dr0 != field
+            || (context->Dr7 & 0x1u) == 0u
+            || (context->Dr6 & 0xFu) == 0u) {
         return EXCEPTION_CONTINUE_SEARCH;
     }
 
     context->Dr6 = 0u;
-    uintptr_t field = g_kbo_current_date_tick_watchpoint_address;
+    context->EFlags &= ~0x100u;
     uint32_t date = kbo_current_date_tick_watchpoint_read_date(field);
     uint32_t previous_date = 0u;
     int had_previous_date = kbo_current_date_tick_latest_published_date(&previous_date);
@@ -242,6 +252,11 @@ static DWORD WINAPI kbo_current_date_tick_watchpoint_thread(LPVOID parameter)
 
 void start_kbo_current_date_tick_watchpoint_thread(void)
 {
+    if (!kbo_current_date_tick_watchpoint_enabled()) {
+        kbo_log_runtime_line("KBO current date tick watchpoint skipped: enable_kbo_current_date_tick_watchpoint is false");
+        return;
+    }
+
     if (InterlockedCompareExchange(
             &g_kbo_current_date_tick_watchpoint_started,
             1,

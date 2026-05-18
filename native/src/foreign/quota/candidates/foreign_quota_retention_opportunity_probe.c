@@ -1,4 +1,5 @@
 #include "foreign_quota_retention_opportunity_probe.h"
+#include "retention_score/foreign_quota_retention_score_gate.h"
 
 #include "../internal/foreign_quota_internal.h"
 #include "../../controller/foreign_ai_controller.h"
@@ -296,8 +297,8 @@ int kbo_retention_opportunity_probe_should_block(
         reason = "no_retained_candidate";
     } else if (reserved_after <= effective_limit) {
         reason = "slot_available_after_reserve";
-    } else if (candidate_score >= opportunity.best_score + margin) {
-        reason = "candidate_clears_retained_margin";
+    } else if (kbo_retention_candidate_score_clears_best(candidate_score, opportunity.best_score)) {
+        reason = "candidate_clears_retained_score";
     } else {
         reason = "retained_opportunity_cost";
         would_block = 1;

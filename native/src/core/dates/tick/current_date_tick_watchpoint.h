@@ -1,6 +1,7 @@
 #ifndef KBOFIX_SRC_CORE_DATES_TICK_CURRENT_DATE_TICK_WATCHPOINT_H_
 #define KBOFIX_SRC_CORE_DATES_TICK_CURRENT_DATE_TICK_WATCHPOINT_H_
 
+int kbo_current_date_tick_watchpoint_enabled(void);
 void start_kbo_current_date_tick_watchpoint_thread(void);
 
 #endif

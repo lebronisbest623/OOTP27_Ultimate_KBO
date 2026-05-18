@@ -7,6 +7,8 @@ $FaCompensationSelectionTestSrc = Join-Path $PSScriptRoot "test_fa_compensation_
 $FaCompensationSelectionTestExe = Join-Path $PSScriptRoot "test_fa_compensation_selection.exe"
 $ForeignRetentionCandidateGateTestSrc = Join-Path $PSScriptRoot "test_foreign_retention_candidate_gate.c"
 $ForeignRetentionCandidateGateTestExe = Join-Path $PSScriptRoot "test_foreign_retention_candidate_gate.exe"
+$ForeignRetentionScoreGateTestSrc = Join-Path $PSScriptRoot "test_foreign_retention_score_gate.c"
+$ForeignRetentionScoreGateTestExe = Join-Path $PSScriptRoot "test_foreign_retention_score_gate.exe"
 $WebViewCommandRouterTestSrc = Join-Path $PSScriptRoot "test_webview_command_router.c"
 $WebViewCommandRouterTestExe = Join-Path $PSScriptRoot "test_webview_command_router.exe"
 
@@ -95,6 +97,21 @@ if ($LASTEXITCODE -ne 0) {
 & $ForeignRetentionCandidateGateTestExe
 if ($LASTEXITCODE -ne 0) {
     throw "Foreign retention candidate gate tests failed"
+}
+
+& $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
+    -I $Root `
+    -I (Join-Path $Root "src") `
+    -o $ForeignRetentionScoreGateTestExe `
+    $ForeignRetentionScoreGateTestSrc `
+    (Join-Path $Root "src\foreign\quota\candidates\retention_score\foreign_quota_retention_score_gate.c")
+if ($LASTEXITCODE -ne 0) {
+    throw "Foreign retention score gate test build failed"
+}
+
+& $ForeignRetentionScoreGateTestExe
+if ($LASTEXITCODE -ne 0) {
+    throw "Foreign retention score gate tests failed"
 }
 
 & $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `

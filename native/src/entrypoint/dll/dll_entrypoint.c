@@ -75,13 +75,13 @@ DWORD WINAPI patch_thread(LPVOID parameter)
     } else {
         kbo_log_runtime_line("KBO current date tick capture hook disabled: disable_kbo_current_date_tick_capture_hook is true");
     }
-    if (!read_kbo_localappdata_flag_file("disable_kbo_current_date_tick_watchpoint.txt")) {
+    if (kbo_current_date_tick_watchpoint_enabled()) {
         kbo_log_runtimef(
             "KBO current date tick watchpoint primary requested capture_hooks=%d",
             date_tick_hooks);
         start_kbo_current_date_tick_watchpoint_thread();
     } else {
-        kbo_log_runtime_line("KBO current date tick watchpoint disabled: disable_kbo_current_date_tick_watchpoint is true");
+        kbo_log_runtime_line("KBO current date tick watchpoint disabled: enable_kbo_current_date_tick_watchpoint is false or disable flag is true");
     }
     install_kbo_early_no_minor_contract_hooks_once("presave_bootstrap");
     int foreign_ai_roster_management =
@@ -205,11 +205,11 @@ static DWORD WINAPI kbo_hot_reinject_ai_roster_management_thread(LPVOID paramete
         kbo_log_runtime_line("KBO hot reinject award schedule create-event hook disabled: disable_kbo_award_schedule_create_event_hook is true");
     }
 
-    if (!read_kbo_localappdata_flag_file("disable_kbo_current_date_tick_watchpoint.txt")) {
+    if (kbo_current_date_tick_watchpoint_enabled()) {
         kbo_log_runtime_line("KBO hot reinject current date tick watchpoint requested");
         start_kbo_current_date_tick_watchpoint_thread();
     } else {
-        kbo_log_runtime_line("KBO hot reinject current date tick watchpoint disabled: disable_kbo_current_date_tick_watchpoint is true");
+        kbo_log_runtime_line("KBO hot reinject current date tick watchpoint disabled: enable_kbo_current_date_tick_watchpoint is false or disable flag is true");
     }
 
     kbo_log_runtime_line("KBO hot reinject current-date consumers requested");
@@ -272,7 +272,7 @@ BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved)
         if (g_kbo_process_instance_mutex != NULL && GetLastError() == ERROR_ALREADY_EXISTS) {
             CloseHandle(g_kbo_process_instance_mutex);
             g_kbo_process_instance_mutex = NULL;
-            if (!read_kbo_localappdata_flag_file("disable_kbo_current_date_tick_watchpoint.txt")
+            if (kbo_current_date_tick_watchpoint_enabled()
                     || read_kbo_localappdata_flag_file("enable_foreign_ai_roster_management.txt")
                     || kbo_foreign_ai_controller_enabled()
                     || read_kbo_localappdata_flag_file("enable_kbo_hot_reinject_roster_flow_trace.txt")) {
