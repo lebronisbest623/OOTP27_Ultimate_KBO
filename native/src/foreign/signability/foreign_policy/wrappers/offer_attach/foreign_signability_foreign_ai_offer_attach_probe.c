@@ -2,6 +2,8 @@
 #include "foreign_signability_offer_attach_probe_utils.h"
 #include "../../../../../build_verify/build_verify.h"
 #include "../../../../../fa_market_investigation/probe/domestic_fa_offer_probe.h"
+#include "../../../../../team/assignment/org_query/team_org_assignment_query.h"
+#include "../../../../controller/foreign_ai_controller.h"
 #include "../../../api/foreign_signability_salary_floor.h"
 
 typedef void (__fastcall *KboOotpForeignAiOfferAttachFn)(uintptr_t player_ptr, uintptr_t offer_slot_ptr);
@@ -54,6 +56,127 @@ static int32_t kbo_offer_probe_player_value_score(uint8_t* player)
         return kbo_domestic_fa_offer_probe_value_score(player);
     }
     return kbo_foreign_waiver_value_score(player);
+}
+
+static int kbo_foreign_ai_fast_fill_offer_gate_enabled(void)
+{
+    enum { KBO_FOREIGN_AI_FAST_FILL_FLAG_CACHE_MS = 500u };
+    static volatile LONG s_cached_tick = 0;
+    static volatile LONG s_cached_enabled = 0;
+
+    DWORD now = GetTickCount();
+    LONG cached_tick = InterlockedCompareExchange(&s_cached_tick, 0, 0);
+    if (cached_tick != 0
+            && (DWORD)(now - (DWORD)cached_tick) <= KBO_FOREIGN_AI_FAST_FILL_FLAG_CACHE_MS) {
+        return InterlockedCompareExchange(&s_cached_enabled, 0, 0) != 0;
+    }
+
+    int enabled = kbo_custom_foreign_policy_enabled()
+        && (read_kbo_localappdata_flag_file("enable_foreign_ai_roster_management.txt")
+            || kbo_foreign_ai_controller_enabled())
+        && !read_kbo_localappdata_flag_file("disable_kbo_foreign_ai_fast_fill_offer_gate.txt");
+    InterlockedExchange(&s_cached_enabled, enabled ? 1 : 0);
+    InterlockedExchange(&s_cached_tick, (LONG)now);
+    return enabled;
+}
+
+static uint8_t kbo_foreign_ai_fast_fill_offer_final_gate(
+    uintptr_t team_ptr,
+    uintptr_t player_ptr,
+    int32_t salary,
+    uintptr_t offer_ptr,
+    uint8_t original_result)
+{
+    if (original_result != 0u || !kbo_foreign_ai_fast_fill_offer_gate_enabled()) {
+        return original_result;
+    }
+    if (team_ptr == 0
+            || player_ptr == 0
+            || !memory_range_readable((void*)player_ptr, OOTP27_PLAYER_SCAN_BYTES)) {
+        return original_result;
+    }
+
+    uint32_t team_id = kbo_offer_probe_team_id_from_ptr(team_ptr);
+    uint8_t* player = (uint8_t*)player_ptr;
+    uint32_t player_id = *(uint32_t*)(player + OOTP27_PLAYER_ID_OFFSET);
+    if (team_id == 0u
+            || player_id == 0u
+            || !kbo_player_is_foreign_for_kbo_rights(player)
+            || !kbo_custom_foreign_policy_can_override_original_block(player, team_id)
+            || kbo_player_current_assignment_matches_team_or_affiliate(player, team_id)
+            || *(uint32_t*)(player + OOTP27_PLAYER_CURRENT_TEAM_ID_OFFSET) != 0u
+            || *(uint32_t*)(player + OOTP27_PLAYER_LOAN_TEAM_ID_OFFSET) != 0u
+            || *(uint32_t*)(player + OOTP27_PLAYER_DRAFT_LEAGUE_ID_OFFSET) != 0u) {
+        return original_result;
+    }
+
+    uint32_t today = 0u;
+    if (!kbo_get_foreign_waiver_current_yyyymmdd(&today) || today == 0u) {
+        return original_result;
+    }
+
+    uint32_t pending_asian = 0u;
+    uint32_t pending_non_asian = 0u;
+    int candidate_pending = 0;
+    kbo_custom_foreign_count_pending_offers(
+        team_id,
+        today,
+        player_id,
+        &pending_asian,
+        &pending_non_asian,
+        &candidate_pending);
+    if (candidate_pending) {
+        return original_result;
+    }
+
+    uint32_t effective_before = 0u;
+    uint32_t effective_after = 0u;
+    uint32_t effective_limit = KBO_CUSTOM_FOREIGN_BASE_EFFECTIVE_LIMIT;
+    uint8_t slot_type = 0u;
+    uint32_t injured_player_id = 0u;
+    int allowed = kbo_custom_foreign_policy_team_allows_candidate(
+        team_id,
+        player,
+        &effective_before,
+        &effective_after,
+        &effective_limit,
+        &slot_type,
+        &injured_player_id);
+
+    uint32_t base_limit = KBO_CUSTOM_FOREIGN_BASE_EFFECTIVE_LIMIT;
+    if (!allowed || base_limit == 0u || effective_after > base_limit) {
+        return original_result;
+    }
+
+    kbo_record_custom_foreign_pending_offer(team_id, player, today);
+    kbo_record_recent_custom_foreign_policy_allow(player_id, team_id, today);
+
+    static volatile LONG fast_fill_log_count = 0;
+    LONG slot = InterlockedIncrement(&fast_fill_log_count);
+    if (slot <= 300) {
+        kbo_log_runtimef(
+            "foreign ai fast-fill offer final gate adjusted player=%u team=%u original=%u adjusted=1 effective_before=%u effective_after=%u limit=%u base_limit=%u pending_asian=%u pending_non_asian=%u asian=%u injury_slot=%s injured=%u salary_arg=%d demand=%d score=%d offer=%p offer_salary=%d offer_years=%u today=%u",
+            player_id,
+            team_id,
+            (uint32_t)original_result,
+            effective_before,
+            effective_after,
+            effective_limit,
+            base_limit,
+            pending_asian,
+            pending_non_asian,
+            kbo_player_is_asian_quota_candidate(player) ? 1u : 0u,
+            slot_type != 0u ? kbo_foreign_injury_slot_label(slot_type) : "none",
+            injured_player_id,
+            salary,
+            *(int32_t*)(player + OOTP27_PLAYER_FA_DEMAND_SALARY_OFFSET),
+            kbo_offer_probe_player_value_score(player),
+            (void*)offer_ptr,
+            kbo_offer_read_i32(offer_ptr, KBO_OFFER_SALARY_FIRST_YEAR_OFFSET),
+            (uint32_t)kbo_offer_read_u8(offer_ptr, KBO_OFFER_YEAR_COUNT_OFFSET),
+            today);
+    }
+    return 1u;
 }
 
 static void kbo_log_foreign_ai_offer_attach(
@@ -342,6 +465,7 @@ __declspec(noinline) uint8_t ootp_kbo_foreign_ai_offer_final_gate_probe_wrapper(
         result = original_func(team_ptr, player_ptr, salary);
         KBO_HOOK_PROFILE_RESUME(profile_hook);
     }
+    result = kbo_foreign_ai_fast_fill_offer_final_gate(team_ptr, player_ptr, salary, offer_ptr, result);
     if (read_kbo_localappdata_flag_file("enable_foreign_ai_roster_research_hooks.txt")
             || read_kbo_localappdata_flag_file("enable_kbo_foreign_ai_offer_attach_probe.txt")) {
         kbo_log_foreign_ai_offer_final_gate(team_ptr, player_ptr, salary, offer_ptr, result);

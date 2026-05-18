@@ -61,6 +61,16 @@
       }
     },
     {
+      "key": "disable_kbo_foreign_ai_fast_fill_offer_gate",
+      "defaultValue": null,
+      "lifecycle": "Recovery",
+      "ui": {
+        "label": "Foreign AI fast fill offer gate",
+        "enabledValue": 0,
+        "defaultEnabled": true
+      }
+    },
+    {
       "key": "disable_kbo_custom_foreign_policy",
       "defaultValue": null,
       "lifecycle": "Recovery",

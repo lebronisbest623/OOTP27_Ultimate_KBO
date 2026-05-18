@@ -57,6 +57,13 @@ void kbo_record_custom_foreign_pending_offer(
     uint32_t team_id,
     uint8_t* candidate,
     uint32_t today);
+void kbo_custom_foreign_count_pending_offers(
+    uint32_t team_id,
+    uint32_t today,
+    uint32_t candidate_id,
+    uint32_t* out_asian_pending,
+    uint32_t* out_non_asian_pending,
+    int* out_candidate_pending);
 void kbo_cancel_custom_foreign_pending_offer(uint32_t team_id, uint32_t player_id);
 int kbo_custom_foreign_policy_trade_allows(
     uintptr_t trade_ptr,

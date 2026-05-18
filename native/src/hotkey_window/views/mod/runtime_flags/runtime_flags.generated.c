@@ -9,6 +9,7 @@ const KboModRuntimeFlagSetting KBO_MOD_RUNTIME_FLAG_SETTINGS[] = {
     { "disable_kbo_no_minor_contract_patch", "No minor-contract patch", 0, 1, NULL, KBO_MOD_FLAG_RECOVERY },
     { "enable_kbo_ai_fa_status_candidate_insert_hook", "AI FA candidate hook", 1, 0, NULL, KBO_MOD_FLAG_RECOVERY },
     { "disable_kbo_foreign_ai_offer_candidate_priority_hook", "Foreign AI offer priority", 0, 1, NULL, KBO_MOD_FLAG_RECOVERY },
+    { "disable_kbo_foreign_ai_fast_fill_offer_gate", "Foreign AI fast fill offer gate", 0, 1, NULL, KBO_MOD_FLAG_RECOVERY },
     { "disable_kbo_custom_foreign_policy", "Custom foreign policy", 0, 1, NULL, KBO_MOD_FLAG_RECOVERY },
     { "disable_kbo_foreign_signing_branch_patch", "Foreign signing branch hook", 0, 1, NULL, KBO_MOD_FLAG_RECOVERY },
     { "disable_kbo_foreign_trade_check_patch", "Foreign trade quota guard", 0, 1, "enable_kbo_foreign_trade_check_patch", KBO_MOD_FLAG_RECOVERY },
