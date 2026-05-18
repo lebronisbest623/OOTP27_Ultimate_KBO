@@ -10,6 +10,7 @@
 #include <string.h>
 
 #include "../../../../bootstrap/abi/ootp_offsets.h"
+#include "../../../../core/core_flags/api/flags_api.h"
 #include "../../../../foreign/common/player_eval/foreign_waiver_player_eval.h"
 #include "../../../../foreign/common/policy/foreign_player_policy.h"
 #include "../../../../foreign/common/policy/foreign_waiver_policy.h"
@@ -17,7 +18,9 @@
 #include "../../../../runtime_memory/runtime_memory.h"
 #include "../../../lookup/team_lookup.h"
 
-#define KBO_INDEPENDENT_ACQUISITION_UI_TEAM_ORG_CACHE_MAX 128
+#define KBO_INDEPENDENT_ACQUISITION_UI_TEAM_ORG_CACHE_MAX 1024
+#define KBO_INDEPENDENT_ACQUISITION_UI_OFFER_CACHE_TTL_MS 30000ULL
+#define KBO_INDEPENDENT_ACQUISITION_UI_DECISION_KEY_MAX 4096
 
 typedef struct KboIndependentAcquisitionUiTeamOrgCacheEntry {
     uint32_t team_id;
@@ -29,6 +32,22 @@ typedef struct KboIndependentAcquisitionUiTeamOrgCache {
         KBO_INDEPENDENT_ACQUISITION_UI_TEAM_ORG_CACHE_MAX];
     int count;
 } KboIndependentAcquisitionUiTeamOrgCache;
+
+typedef struct KboIndependentAcquisitionUiOfferCache {
+    LONG generation;
+    ULONGLONG built_tick;
+    uint32_t buyer_team_id;
+    int32_t foreign_cash_cost;
+    int32_t domestic_cash_cost;
+    int32_t seller_transfer_limit;
+    int max_rows;
+    int count;
+    KboIndependentAcquisitionUiContext context;
+    KboIndependentAcquisitionUiOfferRow rows[KBO_INDEPENDENT_ACQUISITION_UI_MAX_OFFERS];
+} KboIndependentAcquisitionUiOfferCache;
+
+static volatile LONG g_kbo_independent_acquisition_ui_offer_cache_generation = 1;
+static KboIndependentAcquisitionUiOfferCache g_kbo_independent_acquisition_ui_offer_cache;
 
 typedef struct KboIndependentAcquisitionUiTeamMatch {
     uint32_t team_id;
@@ -45,6 +64,122 @@ typedef struct KboIndependentAcquisitionUiPlayerAssignmentSnapshot {
     uint32_t org_team_ids[3];
     int count;
 } KboIndependentAcquisitionUiPlayerAssignmentSnapshot;
+
+void kbo_independent_acquisition_ui_invalidate_offer_cache(void)
+{
+    InterlockedIncrement(&g_kbo_independent_acquisition_ui_offer_cache_generation);
+    g_kbo_independent_acquisition_ui_offer_cache.built_tick = 0u;
+}
+
+static int kbo_independent_acquisition_ui_offer_cache_context_matches(
+    const KboIndependentAcquisitionUiContext* left,
+    const KboIndependentAcquisitionUiContext* right)
+{
+    return left != NULL
+        && right != NULL
+        && left->today == right->today
+        && left->season == right->season
+        && left->buyer_team_id == right->buyer_team_id
+        && left->open_date == right->open_date
+        && left->close_date == right->close_date
+        && left->window_open == right->window_open
+        && left->policy_enabled == right->policy_enabled
+        && left->buyer_valid == right->buyer_valid
+        && left->seller_count == right->seller_count
+        && left->seed_rows == right->seed_rows
+        && left->unresolved_seed_rows == right->unresolved_seed_rows
+        && left->buyer_active_count == right->buyer_active_count
+        && left->buyer_effective_foreign_count == right->buyer_effective_foreign_count
+        && left->buyer_cash == right->buyer_cash;
+}
+
+static int kbo_independent_acquisition_ui_offer_cache_try_copy(
+    uint32_t buyer_team_id,
+    const KboIndependentAcquisitionUiContext* context,
+    int32_t foreign_cash_cost,
+    int32_t domestic_cash_cost,
+    int32_t seller_transfer_limit,
+    KboIndependentAcquisitionUiOfferRow* out_rows,
+    int max_rows,
+    KboIndependentAcquisitionUiContext* out_context,
+    int* out_count)
+{
+    if (out_count != NULL) {
+        *out_count = 0;
+    }
+    if (context == NULL || out_rows == NULL || max_rows <= 0) {
+        return 0;
+    }
+
+    LONG generation = InterlockedCompareExchange(
+        &g_kbo_independent_acquisition_ui_offer_cache_generation,
+        0,
+        0);
+    const KboIndependentAcquisitionUiOfferCache* cache =
+        &g_kbo_independent_acquisition_ui_offer_cache;
+    ULONGLONG now = GetTickCount64();
+    if (cache->generation != generation
+            || cache->built_tick == 0u
+            || now - cache->built_tick > KBO_INDEPENDENT_ACQUISITION_UI_OFFER_CACHE_TTL_MS
+            || cache->buyer_team_id != buyer_team_id
+            || cache->foreign_cash_cost != foreign_cash_cost
+            || cache->domestic_cash_cost != domestic_cash_cost
+            || cache->seller_transfer_limit != seller_transfer_limit
+            || cache->max_rows < max_rows
+            || !kbo_independent_acquisition_ui_offer_cache_context_matches(&cache->context, context)) {
+        return 0;
+    }
+
+    int copy_count = cache->count < max_rows ? cache->count : max_rows;
+    if (copy_count > 0) {
+        memcpy(out_rows, cache->rows, sizeof(out_rows[0]) * (size_t)copy_count);
+    }
+    if (out_context != NULL) {
+        *out_context = cache->context;
+    }
+    if (out_count != NULL) {
+        *out_count = copy_count;
+    }
+    return 1;
+}
+
+static void kbo_independent_acquisition_ui_offer_cache_store(
+    uint32_t buyer_team_id,
+    const KboIndependentAcquisitionUiContext* context,
+    int32_t foreign_cash_cost,
+    int32_t domestic_cash_cost,
+    int32_t seller_transfer_limit,
+    const KboIndependentAcquisitionUiOfferRow* rows,
+    int count,
+    int max_rows)
+{
+    if (context == NULL
+            || rows == NULL
+            || count < 0
+            || max_rows <= 0
+            || max_rows > KBO_INDEPENDENT_ACQUISITION_UI_MAX_OFFERS) {
+        return;
+    }
+
+    KboIndependentAcquisitionUiOfferCache* cache =
+        &g_kbo_independent_acquisition_ui_offer_cache;
+    cache->built_tick = 0u;
+    cache->generation = InterlockedCompareExchange(
+        &g_kbo_independent_acquisition_ui_offer_cache_generation,
+        0,
+        0);
+    cache->buyer_team_id = buyer_team_id;
+    cache->foreign_cash_cost = foreign_cash_cost;
+    cache->domestic_cash_cost = domestic_cash_cost;
+    cache->seller_transfer_limit = seller_transfer_limit;
+    cache->max_rows = max_rows;
+    cache->count = count;
+    cache->context = *context;
+    if (count > 0) {
+        memcpy(cache->rows, rows, sizeof(rows[0]) * (size_t)count);
+    }
+    cache->built_tick = GetTickCount64();
+}
 
 static uint32_t kbo_independent_acquisition_ui_org_team_id(
     uint32_t team_id,
@@ -182,6 +317,31 @@ static const KboIndependentAcquisitionUiSellerMatch* kbo_independent_acquisition
     return NULL;
 }
 
+static int kbo_independent_acquisition_ui_decision_key_exists(
+    const KboIndependentAcquisitionDecisionKey* keys,
+    int key_count,
+    int fallback_to_cached_file,
+    uint32_t season,
+    uint32_t seller_team_id,
+    uint32_t player_id)
+{
+    if (season == 0u || seller_team_id == 0u || player_id == 0u) {
+        return 0;
+    }
+    if (keys != NULL && key_count > 0) {
+        for (int i = 0; i < key_count; i++) {
+            if (keys[i].season == season
+                    && keys[i].seller_team_id == seller_team_id
+                    && keys[i].player_id == player_id) {
+                return 1;
+            }
+        }
+    }
+    return fallback_to_cached_file
+        ? kbo_independent_acquisition_decision_exists(season, seller_team_id, player_id)
+        : 0;
+}
+
 static void kbo_independent_acquisition_ui_slot_label(
     uint8_t slot_type,
     int foreign_player,
@@ -295,6 +455,24 @@ int kbo_independent_acquisition_ui_collect_offer_rows(
         return 0;
     }
 
+    int32_t foreign_cash_cost = kbo_get_independent_acquisition_foreign_cash_cost();
+    int32_t domestic_cash_cost = kbo_get_independent_acquisition_domestic_cash_cost();
+    int32_t seller_transfer_limit =
+        kbo_foreign_player_policy()->independent_acquisition_seller_transfer_limit;
+    int cached_count = 0;
+    if (kbo_independent_acquisition_ui_offer_cache_try_copy(
+            buyer_team_id,
+            &context,
+            foreign_cash_cost,
+            domestic_cash_cost,
+            seller_transfer_limit,
+            out_rows,
+            max_rows,
+            out_context,
+            &cached_count)) {
+        return cached_count;
+    }
+
     KboIndependentFuturesTeamLeague sellers[KBO_INDEPENDENT_ACQUISITION_MAX_SELLERS];
     int seller_count = kbo_collect_independent_futures_team_leagues(
         sellers,
@@ -310,8 +488,6 @@ int kbo_independent_acquisition_ui_collect_offer_rows(
     KboIndependentAcquisitionUiSellerMatch seller_matches[KBO_INDEPENDENT_ACQUISITION_MAX_SELLERS];
     memset(seller_matches, 0, sizeof(seller_matches));
 
-    int32_t seller_transfer_limit =
-        kbo_foreign_player_policy()->independent_acquisition_seller_transfer_limit;
     int available_seller_count = 0;
     for (int i = 0; i < seller_count; i++) {
         int transfers = kbo_independent_acquisition_transferred_count(context.season, sellers[i].team_id);
@@ -347,6 +523,19 @@ int kbo_independent_acquisition_ui_collect_offer_rows(
         requests,
         KBO_INDEPENDENT_ACQUISITION_MAX_QUEUE);
 
+    KboIndependentAcquisitionDecisionKey decision_keys[
+        KBO_INDEPENDENT_ACQUISITION_UI_DECISION_KEY_MAX];
+    memset(decision_keys, 0, sizeof(decision_keys));
+    int decision_key_count = kbo_independent_acquisition_load_decision_keys(
+        context.season,
+        decision_keys,
+        KBO_INDEPENDENT_ACQUISITION_UI_DECISION_KEY_MAX);
+    int decision_lookup_fallback = decision_key_count < 0
+        || decision_key_count >= KBO_INDEPENDENT_ACQUISITION_UI_DECISION_KEY_MAX;
+    if (decision_key_count < 0) {
+        decision_key_count = 0;
+    }
+
     uintptr_t player_vector = 0u;
     int32_t player_count = 0;
     if (!find_kbo_global_player_vector(&player_vector, &player_count, NULL)
@@ -360,8 +549,7 @@ int kbo_independent_acquisition_ui_collect_offer_rows(
     int count = 0;
     for (int32_t i = 0; i < player_count; i++) {
         uintptr_t player_ptr = *(uintptr_t*)(player_vector + ((uintptr_t)i * sizeof(uintptr_t)));
-        if (!kbo_player_pointer_plausible(player_ptr)
-                || !memory_range_readable((void*)player_ptr, OOTP27_PLAYER_SCAN_BYTES)) {
+        if (!kbo_player_pointer_plausible(player_ptr)) {
             continue;
         }
         uint8_t* player = (uint8_t*)player_ptr;
@@ -444,7 +632,10 @@ int kbo_independent_acquisition_ui_collect_offer_rows(
             buyer.team_id,
             seller->seller.team_id,
             player_id) ? 1u : 0u;
-        row.already_decided = kbo_independent_acquisition_decision_exists(
+        row.already_decided = kbo_independent_acquisition_ui_decision_key_exists(
+            decision_keys,
+            decision_key_count,
+            decision_lookup_fallback,
             context.season,
             seller->seller.team_id,
             player_id) ? 1u : 0u;
@@ -474,5 +665,14 @@ int kbo_independent_acquisition_ui_collect_offer_rows(
     if (count > 1) {
         qsort(out_rows, (size_t)count, sizeof(out_rows[0]), kbo_independent_acquisition_ui_offer_row_cmp);
     }
+    kbo_independent_acquisition_ui_offer_cache_store(
+        buyer_team_id,
+        &context,
+        foreign_cash_cost,
+        domestic_cash_cost,
+        seller_transfer_limit,
+        out_rows,
+        count,
+        max_rows);
     return count;
 }

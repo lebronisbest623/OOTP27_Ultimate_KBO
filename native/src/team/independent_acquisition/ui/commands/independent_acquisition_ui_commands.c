@@ -68,6 +68,7 @@ int kbo_independent_acquisition_ui_submit_offer(
         if (existing_player != NULL) {
             kbo_record_custom_foreign_pending_offer(buyer_team_id, existing_player, context.today);
         }
+        kbo_independent_acquisition_ui_invalidate_offer_cache();
         return KBO_INDEPENDENT_ACQUISITION_UI_SUBMIT_DUPLICATE;
     }
 
@@ -139,6 +140,7 @@ int kbo_independent_acquisition_ui_submit_offer(
             source != NULL ? source : "hub_independent_offer")) {
         return KBO_INDEPENDENT_ACQUISITION_UI_SUBMIT_FAILED;
     }
+    kbo_independent_acquisition_ui_invalidate_offer_cache();
     kbo_record_custom_foreign_pending_offer(buyer.team_id, player, context.today);
     kbo_log_runtimef(
         "independent acquisition UI offer source=%s buyer=%u seller=%u player=%u score=%lld cash_cost=%d",
@@ -180,6 +182,7 @@ int kbo_independent_acquisition_ui_cancel_offer(
     }
 
     kbo_cancel_custom_foreign_pending_offer(buyer_team_id, player_id);
+    kbo_independent_acquisition_ui_invalidate_offer_cache();
     kbo_log_runtimef(
         "independent acquisition UI offer cancel source=%s buyer=%u seller=%u player=%u removed=%d",
         source != NULL ? source : "",

@@ -511,6 +511,42 @@ int kbo_independent_acquisition_decision_exists(
     return exists;
 }
 
+int kbo_independent_acquisition_load_decision_keys(
+    uint32_t season,
+    KboIndependentAcquisitionDecisionKey* out,
+    int max_count)
+{
+    if (season == 0u || out == NULL || max_count <= 0) {
+        return -1;
+    }
+
+    kbo_independent_acquisition_decision_cache_lock_init();
+    EnterCriticalSection(&g_kbo_independent_acquisition_decision_cache_lock);
+    int ok = kbo_independent_acquisition_decision_cache_ensure_locked();
+    int count = 0;
+    if (ok) {
+        for (int i = 0; i < g_kbo_independent_acquisition_decision_cache.count; i++) {
+            const KboIndependentAcquisitionDecisionRecord* record =
+                &g_kbo_independent_acquisition_decision_cache.records[i];
+            if (record->season != season) {
+                continue;
+            }
+            if (count >= max_count) {
+                break;
+            }
+            out[count].season = record->season;
+            out[count].seller_team_id = record->seller_team_id;
+            out[count].player_id = record->player_id;
+            out[count].transferred = record->transferred;
+            count++;
+        }
+    } else {
+        count = -1;
+    }
+    LeaveCriticalSection(&g_kbo_independent_acquisition_decision_cache_lock);
+    return count;
+}
+
 int kbo_independent_acquisition_transferred_count(
     uint32_t season,
     uint32_t seller_team_id)
