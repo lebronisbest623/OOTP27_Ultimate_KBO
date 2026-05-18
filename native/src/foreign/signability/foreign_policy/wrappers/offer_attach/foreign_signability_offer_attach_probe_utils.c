@@ -1,5 +1,6 @@
 #include "foreign_signability_offer_attach_probe_utils.h"
 #include "../../../../../build_verify/build_verify.h"
+#include <string.h>
 
 uint32_t kbo_foreign_ai_offer_attach_caller_rva(uintptr_t caller_return_ptr)
 {
@@ -35,6 +36,36 @@ int32_t kbo_offer_read_i32(uintptr_t offer_ptr, uint32_t offset)
         return 0;
     }
     return *(int32_t*)(offer_ptr + offset);
+}
+
+static int kbo_offer_write_bytes(uintptr_t offer_ptr, uint32_t offset, const void* value, size_t size)
+{
+    if (offer_ptr == 0 || value == NULL || size == 0u
+            || offset + size > KBO_OFFER_READABLE_BYTES
+            || !memory_range_readable((void*)(offer_ptr + offset), size)) {
+        return 0;
+    }
+
+    void* address = (void*)(offer_ptr + offset);
+    DWORD old_protect = 0;
+    if (!VirtualProtect(address, size, PAGE_READWRITE, &old_protect)) {
+        return 0;
+    }
+
+    memcpy(address, value, size);
+    DWORD ignored = 0;
+    VirtualProtect(address, size, old_protect, &ignored);
+    return 1;
+}
+
+int kbo_offer_write_u8(uintptr_t offer_ptr, uint32_t offset, uint8_t value)
+{
+    return kbo_offer_write_bytes(offer_ptr, offset, &value, sizeof(value));
+}
+
+int kbo_offer_write_i32(uintptr_t offer_ptr, uint32_t offset, int32_t value)
+{
+    return kbo_offer_write_bytes(offer_ptr, offset, &value, sizeof(value));
 }
 
 uint32_t kbo_offer_probe_team_id_from_ptr(uintptr_t team_ptr)

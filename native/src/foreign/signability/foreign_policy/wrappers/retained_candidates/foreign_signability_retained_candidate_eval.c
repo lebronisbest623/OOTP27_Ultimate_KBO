@@ -11,8 +11,11 @@
 #include "../../../../../team/assignment/roster_arrays/team_roster_arrays.h"
 #include "../../../../../team/lookup/team_lookup.h"
 #include "../../../../common/player_eval/foreign_waiver_player_eval.h"
+#include "../../../../common/policy/foreign_player_policy.h"
 #include "../../../../controller/foreign_ai_controller.h"
 #include "../../../../rights/query/foreign_waiver_rights_query.h"
+
+int kbo_apply_foreign_reserve_demand_floor(uintptr_t player_ptr, const char* source);
 
 int kbo_ai_fa_status_retention_recently_attempted(
     uintptr_t frame_ptr,
@@ -80,6 +83,14 @@ static uint8_t kbo_ai_fa_status_player_u8(uint8_t* player, uint32_t offset)
     return player[offset];
 }
 
+static int32_t kbo_ai_fa_status_player_i32(uint8_t* player, uint32_t offset)
+{
+    if (player == NULL || !memory_range_readable(player + offset, sizeof(int32_t))) {
+        return 0;
+    }
+    return *(int32_t*)(player + offset);
+}
+
 static void kbo_ai_fa_status_refresh_candidate_assignment(
     uint8_t* player,
     uint32_t requester_team_id,
@@ -95,6 +106,7 @@ static void kbo_ai_fa_status_refresh_candidate_assignment(
     candidate->loan_team_id = kbo_ai_fa_status_player_u32(player, OOTP27_PLAYER_LOAN_TEAM_ID_OFFSET);
     candidate->draft_league_id = kbo_ai_fa_status_player_u32(player, OOTP27_PLAYER_DRAFT_LEAGUE_ID_OFFSET);
     candidate->contract_level = kbo_ai_fa_status_player_u8(player, OOTP27_PLAYER_CONTRACT_LEVEL_FLAG_OFFSET);
+    candidate->fa_demand = kbo_ai_fa_status_player_i32(player, OOTP27_PLAYER_FA_DEMAND_SALARY_OFFSET);
     candidate->already_in_org = kbo_player_current_assignment_matches_team_or_affiliate(player, requester_team_id);
     candidate->market_free_agent =
         candidate->current_team_id == 0u
@@ -208,6 +220,28 @@ static int kbo_ai_fa_status_restore_rights_only_assignment(
     return 1;
 }
 
+static int kbo_ai_fa_status_retained_market_demand_ready(
+    uint8_t* player,
+    KboAiFaStatusRetainedCandidate* candidate)
+{
+    if (player == NULL || candidate == NULL
+            || !memory_range_readable(player, OOTP27_PLAYER_SCAN_BYTES)
+            || !memory_range_readable(player + OOTP27_PLAYER_FA_DEMAND_SALARY_OFFSET, sizeof(int32_t))) {
+        return 0;
+    }
+
+    candidate->fa_demand = *(int32_t*)(player + OOTP27_PLAYER_FA_DEMAND_SALARY_OFFSET);
+    if (kbo_foreign_policy_demand_salary_plausible(candidate->fa_demand)) {
+        return 1;
+    }
+
+    (void)kbo_apply_foreign_reserve_demand_floor(
+        (uintptr_t)player,
+        "retained_candidate_eval");
+    candidate->fa_demand = *(int32_t*)(player + OOTP27_PLAYER_FA_DEMAND_SALARY_OFFSET);
+    return kbo_foreign_policy_demand_salary_plausible(candidate->fa_demand);
+}
+
 void kbo_ai_fa_status_log_retained_candidate_eval(
     uint32_t requester_team_id, uint32_t today, const KboAiFaStatusRetainedCandidate* candidate, int can_enter)
 {
@@ -218,13 +252,14 @@ void kbo_ai_fa_status_log_retained_candidate_eval(
     }
 
     kbo_log_runtimef(
-        "foreign retention priority: candidate_eval team=%u player=%u can_enter=%d reason=%s score=%d threshold=%d pos=%u/%u asian=%u in_org=%d market=%d holder_org=%d current=%u active=%u original=%u default=%u loan=%u draft=%u level=%u today=%u",
+        "foreign retention priority: candidate_eval team=%u player=%u can_enter=%d reason=%s score=%d threshold=%d demand=%d pos=%u/%u asian=%u in_org=%d market=%d holder_org=%d current=%u active=%u original=%u default=%u loan=%u draft=%u level=%u today=%u",
         requester_team_id,
         candidate->player_id,
         can_enter,
         candidate->reject_reason != NULL ? candidate->reject_reason : "ok",
         candidate->score,
         candidate->threshold,
+        candidate->fa_demand,
         (uint32_t)candidate->position_group,
         (uint32_t)candidate->position_role,
         (uint32_t)candidate->asian,
@@ -277,6 +312,7 @@ int kbo_ai_fa_status_evaluate_retained_market_candidate(
     candidate.position_role = player[OOTP27_PLAYER_POSITION_ROLE_OFFSET];
     candidate.asian = kbo_player_is_asian_quota_candidate(player) ? 1u : 0u;
     candidate.contract_level = kbo_ai_fa_status_player_u8(player, OOTP27_PLAYER_CONTRACT_LEVEL_FLAG_OFFSET);
+    candidate.fa_demand = kbo_ai_fa_status_player_i32(player, OOTP27_PLAYER_FA_DEMAND_SALARY_OFFSET);
     kbo_ai_fa_status_refresh_candidate_assignment(player, requester_team_id, &candidate);
 
     if (candidate.player_id != expected_player_id) {
@@ -304,8 +340,18 @@ int kbo_ai_fa_status_evaluate_retained_market_candidate(
         requester_team_id,
         today,
         &candidate);
-    if (!candidate.market_free_agent && !candidate.holder_org_candidate) {
+    if (candidate.already_in_org) {
+        candidate.reject_reason = "already_in_org";
+        if (out_candidate != NULL) { *out_candidate = candidate; }
+        return 0;
+    }
+    if (!candidate.market_free_agent) {
         candidate.reject_reason = "not_market_free_agent";
+        if (out_candidate != NULL) { *out_candidate = candidate; }
+        return 0;
+    }
+    if (!kbo_ai_fa_status_retained_market_demand_ready(player, &candidate)) {
+        candidate.reject_reason = "demand_not_ready";
         if (out_candidate != NULL) { *out_candidate = candidate; }
         return 0;
     }

@@ -24,6 +24,8 @@ uint32_t kbo_foreign_ai_offer_attach_caller_rva(uintptr_t caller_return_ptr);
 uint8_t kbo_offer_read_u8(uintptr_t offer_ptr, uint32_t offset);
 uint16_t kbo_offer_read_u16(uintptr_t offer_ptr, uint32_t offset);
 int32_t kbo_offer_read_i32(uintptr_t offer_ptr, uint32_t offset);
+int kbo_offer_write_u8(uintptr_t offer_ptr, uint32_t offset, uint8_t value);
+int kbo_offer_write_i32(uintptr_t offer_ptr, uint32_t offset, int32_t value);
 uint32_t kbo_offer_probe_team_id_from_ptr(uintptr_t team_ptr);
 void* kbo_offer_probe_resolve_rva(uint32_t rva);
 

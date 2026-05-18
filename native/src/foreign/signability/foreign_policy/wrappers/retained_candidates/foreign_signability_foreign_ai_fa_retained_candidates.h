@@ -9,7 +9,7 @@ typedef struct KboAiFaStatusRetainedCandidate {
     uintptr_t player_ptr;
     uint32_t player_id, current_team_id, active_team_id, original_team_id;
     uint32_t default_team_id, loan_team_id, draft_league_id;
-    int32_t score, threshold;
+    int32_t score, threshold, fa_demand;
     uint8_t position_group, position_role, asian, contract_level;
     int already_in_org, market_free_agent, holder_org_candidate;
     const char* reject_reason;

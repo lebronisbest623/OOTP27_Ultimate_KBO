@@ -132,11 +132,12 @@ int32_t kbo_ai_fa_status_force_retained_market_candidates(
             LONG slot = InterlockedIncrement(&retention_force_log_count);
             if (slot <= 200) {
                 kbo_log_runtimef(
-                    "foreign retention priority: force_retained_candidate team=%u player=%u score=%d threshold=%d pos=%u/%u asian=%u in_org=%d market=%d holder_org=%d current=%u active=%u original=%u default=%u loan=%u draft=%u level=%u index=%d next=%d today=%u",
+                    "foreign retention priority: force_retained_candidate team=%u player=%u score=%d threshold=%d demand=%d pos=%u/%u asian=%u in_org=%d market=%d holder_org=%d current=%u active=%u original=%u default=%u loan=%u draft=%u level=%u index=%d next=%d today=%u",
                     requester_team_id,
                     candidate->player_id,
                     candidate->score,
                     candidate->threshold,
+                    candidate->fa_demand,
                     (uint32_t)candidate->position_group,
                     (uint32_t)candidate->position_role,
                     (uint32_t)candidate->asian,

@@ -10,6 +10,7 @@
 #include "../../../../../team/assignment/org_query/team_org_assignment_query.h"
 #include "../../../../common/dates/foreign_waiver_date.h"
 #include "../../../../common/player_eval/foreign_waiver_player_eval.h"
+#include "../../../../common/policy/foreign_player_policy.h"
 #include "../../../../controller/foreign_ai_controller.h"
 #include "../../../../quota/candidates/foreign_quota_retention_opportunity_probe.h"
 #include "../../../../rights/query/foreign_waiver_rights_query.h"
@@ -90,6 +91,11 @@ static int kbo_offer_candidate_priority_market_retained(
             || active_team_id != 0u
             || loan_team_id != 0u
             || draft_league_id != 0u) {
+        return 0;
+    }
+    if (!memory_range_readable(player + OOTP27_PLAYER_FA_DEMAND_SALARY_OFFSET, sizeof(int32_t))
+            || !kbo_foreign_policy_demand_salary_plausible(
+                *(int32_t*)(player + OOTP27_PLAYER_FA_DEMAND_SALARY_OFFSET))) {
         return 0;
     }
 

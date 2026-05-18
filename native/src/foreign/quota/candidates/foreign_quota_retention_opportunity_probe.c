@@ -65,6 +65,11 @@ static int kbo_retention_opportunity_player_protectable(
             || kbo_player_current_assignment_matches_team_or_affiliate(player, team_id)) {
         return 0;
     }
+    if (!memory_range_readable(player + OOTP27_PLAYER_FA_DEMAND_SALARY_OFFSET, sizeof(int32_t))
+            || !kbo_foreign_policy_demand_salary_plausible(
+                *(int32_t*)(player + OOTP27_PLAYER_FA_DEMAND_SALARY_OFFSET))) {
+        return 0;
+    }
 
     int32_t score = kbo_foreign_waiver_value_score(player);
     if (score < kbo_get_foreign_waiver_value_threshold_for_player(player)) {
