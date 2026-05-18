@@ -94,6 +94,21 @@ uint8_t* resolve_patch_target_by_rva_or_pattern(
     return NULL;
 }
 
+uint8_t* resolve_patch_target_by_rva_existing_rax_or_pattern(
+    HMODULE exe,
+    uint32_t rva,
+    const uint8_t* expected,
+    size_t expected_size,
+    const char* label)
+{
+    uint8_t* target = (uint8_t*)kbo_resolve_build_specific_rva_ptr(exe, rva);
+    if (memory_range_readable(target, 12) && is_rax_absolute_jump_patch(target)) {
+        kbo_log_runtimef("%s already installed target=%p", label != NULL ? label : "patch target", target);
+        return target;
+    }
+    return resolve_patch_target_by_rva_or_pattern(exe, rva, expected, expected_size, label);
+}
+
 uint8_t* find_ootp_executable_pattern_nth(const uint8_t* pattern, size_t pattern_size, int desired_index, int expected_hits)
 {
     if (pattern == NULL || pattern_size == 0 || desired_index < 0 || expected_hits <= desired_index) {

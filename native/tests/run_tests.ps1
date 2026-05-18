@@ -9,6 +9,10 @@ $ForeignRetentionCandidateGateTestSrc = Join-Path $PSScriptRoot "test_foreign_re
 $ForeignRetentionCandidateGateTestExe = Join-Path $PSScriptRoot "test_foreign_retention_candidate_gate.exe"
 $ForeignRetentionScoreGateTestSrc = Join-Path $PSScriptRoot "test_foreign_retention_score_gate.c"
 $ForeignRetentionScoreGateTestExe = Join-Path $PSScriptRoot "test_foreign_retention_score_gate.exe"
+$ForeignOfferAttachHookPolicyTestSrc = Join-Path $PSScriptRoot "test_foreign_offer_attach_hook_policy.c"
+$ForeignOfferAttachHookPolicyTestExe = Join-Path $PSScriptRoot "test_foreign_offer_attach_hook_policy.exe"
+$IntlEstablishedFaMarketNormalizeTestSrc = Join-Path $PSScriptRoot "test_intl_established_fa_market_normalize.c"
+$IntlEstablishedFaMarketNormalizeTestExe = Join-Path $PSScriptRoot "test_intl_established_fa_market_normalize.exe"
 $WebViewCommandRouterTestSrc = Join-Path $PSScriptRoot "test_webview_command_router.c"
 $WebViewCommandRouterTestExe = Join-Path $PSScriptRoot "test_webview_command_router.exe"
 
@@ -112,6 +116,36 @@ if ($LASTEXITCODE -ne 0) {
 & $ForeignRetentionScoreGateTestExe
 if ($LASTEXITCODE -ne 0) {
     throw "Foreign retention score gate tests failed"
+}
+
+& $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
+    -I $Root `
+    -I (Join-Path $Root "src") `
+    -o $ForeignOfferAttachHookPolicyTestExe `
+    $ForeignOfferAttachHookPolicyTestSrc `
+    (Join-Path $Root "src\foreign\signability\foreign_policy\wrappers\offer_attach\install_policy\foreign_ai_offer_attach_hook_policy.c")
+if ($LASTEXITCODE -ne 0) {
+    throw "Foreign offer attach hook policy test build failed"
+}
+
+& $ForeignOfferAttachHookPolicyTestExe
+if ($LASTEXITCODE -ne 0) {
+    throw "Foreign offer attach hook policy tests failed"
+}
+
+& $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
+    -I $Root `
+    -I (Join-Path $Root "src") `
+    -o $IntlEstablishedFaMarketNormalizeTestExe `
+    $IntlEstablishedFaMarketNormalizeTestSrc `
+    (Join-Path $Root "src\foreign\intl_established_fa_postscan\market\intl_established_fa_market_normalize.c")
+if ($LASTEXITCODE -ne 0) {
+    throw "International established FA market normalization test build failed"
+}
+
+& $IntlEstablishedFaMarketNormalizeTestExe
+if ($LASTEXITCODE -ne 0) {
+    throw "International established FA market normalization tests failed"
 }
 
 & $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `

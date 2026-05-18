@@ -21,6 +21,7 @@
     <Content Include="..\..\native\kbo_league_id.txt" Link="kbo_league_id.txt" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\..\tools\kbo_optimizer.exe" Link="tools\kbo_optimizer.exe" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\..\tools\kbo_optimizer.py" Link="tools\kbo_optimizer.py" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\tools\kbo_optimizer_lib\**\*.py" Link="tools\kbo_optimizer_lib\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />

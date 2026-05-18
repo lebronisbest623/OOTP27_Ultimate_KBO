@@ -53,7 +53,21 @@ $requiredFiles = @(
     "assets\fonts\JejuGothic-OFL.txt",
     "assets\icons\github-mark.png",
     "tools\kbo_optimizer.exe",
-    "tools\kbo_optimizer.py"
+    "tools\kbo_optimizer.py",
+    "tools\kbo_optimizer_lib\__init__.py",
+    "tools\kbo_optimizer_lib\amateur_assignment.py",
+    "tools\kbo_optimizer_lib\amateur_batch.py",
+    "tools\kbo_optimizer_lib\amateur_common.py",
+    "tools\kbo_optimizer_lib\amateur_metrics.py",
+    "tools\kbo_optimizer_lib\amateur_role_capacities.py",
+    "tools\kbo_optimizer_lib\amateur_roles.py",
+    "tools\kbo_optimizer_lib\amateur_targets.py",
+    "tools\kbo_optimizer_lib\asian_games_roster.py",
+    "tools\kbo_optimizer_lib\cli.py",
+    "tools\kbo_optimizer_lib\constants.py",
+    "tools\kbo_optimizer_lib\csv_io.py",
+    "tools\kbo_optimizer_lib\fa_compensation.py",
+    "tools\kbo_optimizer_lib\military_selection.py"
 )
 $requiredFiles += Get-SeedManifestPayloadFiles -RepoRoot $RepoRoot
 

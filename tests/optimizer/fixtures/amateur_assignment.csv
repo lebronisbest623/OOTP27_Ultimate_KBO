@@ -1,0 +1,4 @@
+player_id,current_team_id,player_tier,team_id,team_tier,reputation,target_reputation,player_count,league_id,target_max_players,rejected
+1001,10,2,20,2,80,80,20,201,40,0
+1001,10,2,30,3,70,80,24,201,40,0
+1001,10,2,40,4,95,80,18,201,40,0

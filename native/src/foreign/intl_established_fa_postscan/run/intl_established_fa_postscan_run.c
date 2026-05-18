@@ -257,11 +257,6 @@ void kbo_intl_established_fa_postscan_run(const KboIntlEstablishedFaPostscanStat
             && age >= policy->market_age_min
             && age <= policy->market_age_max
             && draft_eligible == 0u
-            && draft_class == 0u
-            && draft_subtype == 0u
-            && draft_extra == 0u
-            && draft_league_id == 0u
-            && contract_level == 0u
             && fa_demand > 0
             && has_context;
         if (candidate_ok) {
@@ -270,8 +265,7 @@ void kbo_intl_established_fa_postscan_run(const KboIntlEstablishedFaPostscanStat
             if (current_team_id != 0u) { market_block_team++; }
             if (retired_flag != 0u) { market_block_retired++; }
             if (age < policy->market_age_min || age > policy->market_age_max) { market_block_age++; }
-            if (draft_eligible != 0u || draft_class != 0u || draft_subtype != 0u || draft_extra != 0u || draft_league_id != 0u) { market_block_draft_pool++; }
-            if (contract_level != 0u) { market_block_contract++; }
+            if (draft_eligible != 0u) { market_block_draft_pool++; }
             if (fa_demand <= 0) { market_block_demand++; }
             if (!has_context) { market_block_context++; }
         }
@@ -330,8 +324,8 @@ void kbo_intl_established_fa_postscan_run(const KboIntlEstablishedFaPostscanStat
                 current_team_id != 0u,
                 retired_flag != 0u,
                 age < policy->market_age_min || age > policy->market_age_max,
-                draft_eligible != 0u || draft_class != 0u || draft_subtype != 0u || draft_extra != 0u || draft_league_id != 0u,
-                contract_level != 0u,
+                draft_eligible != 0u,
+                0,
                 fa_demand <= 0,
                 !has_context,
                 current_team_id,

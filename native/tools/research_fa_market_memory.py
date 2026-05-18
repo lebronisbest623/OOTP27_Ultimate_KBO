@@ -9,6 +9,7 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 
+# Win32 process/memory flags used only by this live-memory research tool.
 PROCESS_QUERY_INFORMATION = 0x0400
 PROCESS_VM_READ = 0x0010
 MEM_COMMIT = 0x1000
@@ -16,11 +17,13 @@ PAGE_GUARD = 0x100
 PAGE_NOACCESS = 0x01
 READABLE_PROTECT = {0x02, 0x04, 0x08, 0x20, 0x40, 0x80}
 
+# OOTP player-vector geometry and anchor fields.
 PLAYER_SCAN_BYTES = 0x1800
 PLAYER_VECTOR_OFFSET = 0x30
 PLAYER_ID_OFFSET = 0xB4
 PLAYER_AGE_OFFSET = 0x7C
 
+# Player memory fields probed during FA market reverse-engineering.
 KNOWN_FIELDS = [
     ("retired_flag", "u8", 0x40),
     ("current_league", "u32", 0x48),

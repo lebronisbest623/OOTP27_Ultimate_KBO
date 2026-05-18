@@ -1,3 +1,9 @@
+"""Probe OOTP memory for high-school record fields.
+
+Future split targets: Win32 process discovery, process-memory reads, league/team
+memory probes, save-file record loading, and offset scoring/reporting.
+"""
+
 import ctypes
 import html
 import os

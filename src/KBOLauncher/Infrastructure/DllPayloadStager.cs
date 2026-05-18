@@ -135,6 +135,14 @@ internal static class DllPayloadStager
             copied++;
         }
 
+        var packageSource = Path.Combine(sourceDir, "kbo_optimizer_lib");
+        if (Directory.Exists(packageSource))
+        {
+            var packageTarget = Path.Combine(targetDir, "kbo_optimizer_lib");
+            CopyDirectory(packageSource, packageTarget);
+            copied += Directory.EnumerateFiles(packageSource, "*", SearchOption.AllDirectories).Count();
+        }
+
         return copied;
     }
 

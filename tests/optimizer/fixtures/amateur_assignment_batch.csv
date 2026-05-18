@@ -1,0 +1,5 @@
+player_id,current_team_id,player_tier,team_id,team_tier,reputation,target_reputation,player_count,hitter_count,league_id,target_max_players,rejected,quality_score,is_hitter,role_bucket,batch_mode
+5001,10,2,20,2,90,90,20,10,201,40,0,95,0,P,incoming
+5001,10,2,30,3,70,90,20,10,201,40,0,95,0,P,incoming
+5002,11,3,20,2,90,80,20,10,201,40,0,85,1,C,incoming
+5002,11,3,30,3,70,80,20,10,201,40,0,85,1,C,incoming

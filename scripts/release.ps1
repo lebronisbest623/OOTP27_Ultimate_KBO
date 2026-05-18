@@ -45,6 +45,7 @@ if ($LASTEXITCODE -ne 0) { throw "Native build failed" }
 
 Write-Host "==> Building optimizer tool..."
 $OptimizerSource = Join-Path $RepoRoot "tools\kbo_optimizer.py"
+$OptimizerLibSource = Join-Path $RepoRoot "tools\kbo_optimizer_lib"
 $PyInstallerWork = Join-Path $RepoRoot "obj\pyinstaller"
 $OptimizerExe = Join-Path $RepoRoot "tools\kbo_optimizer.exe"
 
@@ -138,6 +139,9 @@ if (Test-Path -LiteralPath $DistTools) {
 New-Item -ItemType Directory -Path $DistTools | Out-Null
 Copy-Item $OptimizerExe $DistTools -Force
 Copy-Item $OptimizerSource $DistTools -Force
+if (Test-Path -LiteralPath $OptimizerLibSource -PathType Container) {
+    Copy-Item $OptimizerLibSource $DistTools -Recurse -Force
+}
 
 Write-Host "==> Validating release payload..."
 $RequiredFiles = @(
@@ -149,7 +153,21 @@ $RequiredFiles = @(
     "assets\fonts\JejuGothic-OFL.txt",
     "assets\icons\github-mark.png",
     "tools\kbo_optimizer.exe",
-    "tools\kbo_optimizer.py"
+    "tools\kbo_optimizer.py",
+    "tools\kbo_optimizer_lib\__init__.py",
+    "tools\kbo_optimizer_lib\amateur_assignment.py",
+    "tools\kbo_optimizer_lib\amateur_batch.py",
+    "tools\kbo_optimizer_lib\amateur_common.py",
+    "tools\kbo_optimizer_lib\amateur_metrics.py",
+    "tools\kbo_optimizer_lib\amateur_role_capacities.py",
+    "tools\kbo_optimizer_lib\amateur_roles.py",
+    "tools\kbo_optimizer_lib\amateur_targets.py",
+    "tools\kbo_optimizer_lib\asian_games_roster.py",
+    "tools\kbo_optimizer_lib\cli.py",
+    "tools\kbo_optimizer_lib\constants.py",
+    "tools\kbo_optimizer_lib\csv_io.py",
+    "tools\kbo_optimizer_lib\fa_compensation.py",
+    "tools\kbo_optimizer_lib\military_selection.py"
 )
 $RequiredFiles += Get-SeedManifestPayloadFiles -RepoRoot $RepoRoot
 foreach ($RequiredFile in $RequiredFiles) {

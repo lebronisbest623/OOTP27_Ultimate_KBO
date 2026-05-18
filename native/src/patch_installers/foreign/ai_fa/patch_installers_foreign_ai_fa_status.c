@@ -198,7 +198,7 @@ static int kbo_install_foreign_ai_offer_build_probe_patch(HMODULE exe)
         0xE8, 0xE0, 0x94, 0xDA, 0xFF                    /* call offer builder */
     };
 
-    uint8_t* target = resolve_patch_target_by_rva_or_pattern(
+    uint8_t* target = resolve_patch_target_by_rva_existing_rax_or_pattern(
         exe,
         OOTP27_AI_FA_OFFER_BUILD_PREP_RVA,
         expected,
@@ -255,7 +255,7 @@ static int kbo_install_foreign_ai_offer_final_gate_probe_patch(HMODULE exe)
         0x0F, 0x84, 0x8F, 0xEF, 0xFF, 0xFF              /* je failure */
     };
 
-    uint8_t* target = resolve_patch_target_by_rva_or_pattern(
+    uint8_t* target = resolve_patch_target_by_rva_existing_rax_or_pattern(
         exe,
         OOTP27_AI_FA_OFFER_FINAL_GATE_RVA,
         expected,
@@ -333,7 +333,7 @@ int install_kbo_foreign_ai_offer_attach_probe_patch(void)
     };
 
     int attach_ok = 0;
-    uint8_t* target = resolve_patch_target_by_rva_or_pattern(
+    uint8_t* target = resolve_patch_target_by_rva_existing_rax_or_pattern(
         exe,
         OOTP27_PLAYER_CONTRACT_OFFER_ATTACH_RVA,
         expected,

@@ -317,11 +317,15 @@ void install_kbo_full_runtime_after_roster_marker(HINSTANCE instance)
     } else {
         kbo_log_runtime_line("KBO foreign AI offer candidate priority hook disabled: no explicit/foreign-AI/controller auto-enable or disable flag is set");
     }
-    if (read_kbo_localappdata_flag_file("enable_foreign_ai_roster_research_hooks.txt")
-            || read_kbo_localappdata_flag_file("enable_kbo_foreign_ai_offer_attach_probe.txt")) {
+    if (kbo_foreign_ai_offer_attach_hook_required(
+            auto_enable_foreign_ai_offer_candidate_priority_hook_for_foreign_ai,
+            auto_enable_foreign_ai_offer_candidate_priority_hook_for_foreign_controller,
+            read_kbo_localappdata_flag_file("enable_foreign_ai_roster_research_hooks.txt"),
+            read_kbo_localappdata_flag_file("enable_kbo_foreign_ai_offer_attach_probe.txt"))) {
+        kbo_log_runtime_line("KBO foreign AI offer attach hook enabled");
         install_kbo_foreign_ai_offer_attach_probe_patch();
     } else {
-        kbo_log_runtime_line("KBO foreign AI offer attach hook disabled: no research/probe flag is enabled");
+        kbo_log_runtime_line("KBO foreign AI offer attach hook disabled: no foreign AI/controller/research/probe flag is enabled");
     }
     if (!read_kbo_localappdata_flag_file("disable_kbo_season_phase_capture_hooks.txt")) {
         install_kbo_season_phase_capture_hooks();

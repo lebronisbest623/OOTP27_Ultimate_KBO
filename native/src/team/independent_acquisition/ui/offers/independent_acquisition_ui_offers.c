@@ -15,20 +15,167 @@
 #include "../../../../foreign/common/policy/foreign_waiver_policy.h"
 #include "../../../../foreign/injury/api/foreign_injury_labels.h"
 #include "../../../../runtime_memory/runtime_memory.h"
-#include "../../../assignment/org_query/team_org_assignment_query.h"
 #include "../../../lookup/team_lookup.h"
 
-static const KboIndependentFuturesTeamLeague* kbo_independent_acquisition_ui_seller_for_player(
+#define KBO_INDEPENDENT_ACQUISITION_UI_TEAM_ORG_CACHE_MAX 128
+
+typedef struct KboIndependentAcquisitionUiTeamOrgCacheEntry {
+    uint32_t team_id;
+    uint32_t org_team_id;
+} KboIndependentAcquisitionUiTeamOrgCacheEntry;
+
+typedef struct KboIndependentAcquisitionUiTeamOrgCache {
+    KboIndependentAcquisitionUiTeamOrgCacheEntry entries[
+        KBO_INDEPENDENT_ACQUISITION_UI_TEAM_ORG_CACHE_MAX];
+    int count;
+} KboIndependentAcquisitionUiTeamOrgCache;
+
+typedef struct KboIndependentAcquisitionUiTeamMatch {
+    uint32_t team_id;
+    uint32_t org_team_id;
+} KboIndependentAcquisitionUiTeamMatch;
+
+typedef struct KboIndependentAcquisitionUiSellerMatch {
+    KboIndependentFuturesTeamLeague seller;
+    KboIndependentAcquisitionUiTeamMatch match;
+} KboIndependentAcquisitionUiSellerMatch;
+
+typedef struct KboIndependentAcquisitionUiPlayerAssignmentSnapshot {
+    uint32_t team_ids[3];
+    uint32_t org_team_ids[3];
+    int count;
+} KboIndependentAcquisitionUiPlayerAssignmentSnapshot;
+
+static uint32_t kbo_independent_acquisition_ui_org_team_id(
+    uint32_t team_id,
+    KboIndependentAcquisitionUiTeamOrgCache* cache)
+{
+    if (team_id == 0u) {
+        return 0u;
+    }
+    if (cache != NULL) {
+        for (int i = 0; i < cache->count; i++) {
+            if (cache->entries[i].team_id == team_id) {
+                return cache->entries[i].org_team_id;
+            }
+        }
+    }
+
+    uint32_t org_team_id = team_id;
+    uint8_t* team = find_kbo_team_by_numeric_id_any_league(team_id, 1);
+    if (team != NULL
+            && memory_range_readable(
+                team + OOTP27_KBO_TEAM_PARENT_TEAM_ID_OFFSET,
+                sizeof(uint32_t))) {
+        uint32_t parent_team_id = *(uint32_t*)(team + OOTP27_KBO_TEAM_PARENT_TEAM_ID_OFFSET);
+        if (parent_team_id != 0u) {
+            org_team_id = parent_team_id;
+        }
+    }
+
+    if (cache != NULL && cache->count < KBO_INDEPENDENT_ACQUISITION_UI_TEAM_ORG_CACHE_MAX) {
+        cache->entries[cache->count].team_id = team_id;
+        cache->entries[cache->count].org_team_id = org_team_id;
+        cache->count++;
+    }
+    return org_team_id;
+}
+
+static KboIndependentAcquisitionUiTeamMatch kbo_independent_acquisition_ui_team_match(
+    uint32_t team_id,
+    KboIndependentAcquisitionUiTeamOrgCache* cache)
+{
+    KboIndependentAcquisitionUiTeamMatch match;
+    memset(&match, 0, sizeof(match));
+    match.team_id = team_id;
+    match.org_team_id = kbo_independent_acquisition_ui_org_team_id(team_id, cache);
+    return match;
+}
+
+static int kbo_independent_acquisition_ui_add_player_assignment(
+    KboIndependentAcquisitionUiPlayerAssignmentSnapshot* snapshot,
+    uint32_t team_id,
+    KboIndependentAcquisitionUiTeamOrgCache* cache)
+{
+    if (snapshot == NULL || team_id == 0u) {
+        return 0;
+    }
+    for (int i = 0; i < snapshot->count; i++) {
+        if (snapshot->team_ids[i] == team_id) {
+            return 1;
+        }
+    }
+    if (snapshot->count >= 3) {
+        return 0;
+    }
+    snapshot->team_ids[snapshot->count] = team_id;
+    snapshot->org_team_ids[snapshot->count] =
+        kbo_independent_acquisition_ui_org_team_id(team_id, cache);
+    snapshot->count++;
+    return 1;
+}
+
+static int kbo_independent_acquisition_ui_build_player_assignment_snapshot(
     uint8_t* player,
-    const KboIndependentFuturesTeamLeague* sellers,
+    KboIndependentAcquisitionUiTeamOrgCache* cache,
+    KboIndependentAcquisitionUiPlayerAssignmentSnapshot* out_snapshot)
+{
+    if (out_snapshot != NULL) {
+        memset(out_snapshot, 0, sizeof(*out_snapshot));
+    }
+    if (player == NULL
+            || out_snapshot == NULL
+            || !memory_range_readable(
+                player,
+                OOTP27_PLAYER_LOAN_TEAM_ID_OFFSET + sizeof(uint32_t))) {
+        return 0;
+    }
+
+    kbo_independent_acquisition_ui_add_player_assignment(
+        out_snapshot,
+        *(uint32_t*)(player + OOTP27_PLAYER_CURRENT_TEAM_ID_OFFSET),
+        cache);
+    kbo_independent_acquisition_ui_add_player_assignment(
+        out_snapshot,
+        *(uint32_t*)(player + OOTP27_PLAYER_ACTIVE_TEAM_ID_OFFSET),
+        cache);
+    kbo_independent_acquisition_ui_add_player_assignment(
+        out_snapshot,
+        *(uint32_t*)(player + OOTP27_PLAYER_LOAN_TEAM_ID_OFFSET),
+        cache);
+    return out_snapshot->count > 0;
+}
+
+static int kbo_independent_acquisition_ui_assignment_snapshot_matches_team(
+    const KboIndependentAcquisitionUiPlayerAssignmentSnapshot* snapshot,
+    const KboIndependentAcquisitionUiTeamMatch* match)
+{
+    if (snapshot == NULL || match == NULL || match->org_team_id == 0u) {
+        return 0;
+    }
+    for (int i = 0; i < snapshot->count; i++) {
+        if (snapshot->team_ids[i] == match->team_id
+                || snapshot->team_ids[i] == match->org_team_id
+                || snapshot->org_team_ids[i] == match->org_team_id) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static const KboIndependentAcquisitionUiSellerMatch* kbo_independent_acquisition_ui_seller_for_player(
+    const KboIndependentAcquisitionUiPlayerAssignmentSnapshot* snapshot,
+    const KboIndependentAcquisitionUiSellerMatch* sellers,
     int seller_count)
 {
-    if (player == NULL || sellers == NULL || seller_count <= 0) {
+    if (snapshot == NULL || sellers == NULL || seller_count <= 0) {
         return NULL;
     }
     for (int i = 0; i < seller_count; i++) {
-        if (sellers[i].team_id != 0u
-                && kbo_player_current_assignment_matches_team_or_affiliate(player, sellers[i].team_id)) {
+        if (sellers[i].seller.team_id != 0u
+                && kbo_independent_acquisition_ui_assignment_snapshot_matches_team(
+                    snapshot,
+                    &sellers[i].match)) {
             return &sellers[i];
         }
     }
@@ -101,6 +248,30 @@ static int kbo_independent_acquisition_ui_offer_row_cmp(const void* a, const voi
     return 0;
 }
 
+static int kbo_independent_acquisition_ui_request_row_exists(
+    const KboIndependentAcquisitionQueuedRequest* requests,
+    int request_count,
+    uint32_t buyer_team_id,
+    uint32_t seller_team_id,
+    uint32_t player_id)
+{
+    if (requests == NULL
+            || request_count <= 0
+            || buyer_team_id == 0u
+            || seller_team_id == 0u
+            || player_id == 0u) {
+        return 0;
+    }
+    for (int i = 0; i < request_count; i++) {
+        if (requests[i].buyer_team_id == buyer_team_id
+                && requests[i].seller_team_id == seller_team_id
+                && requests[i].player_id == player_id) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 int kbo_independent_acquisition_ui_collect_offer_rows(
     uint32_t buyer_team_id,
     KboIndependentAcquisitionUiOfferRow* out_rows,
@@ -133,6 +304,12 @@ int kbo_independent_acquisition_ui_collect_offer_rows(
     if (seller_count <= 0) {
         return 0;
     }
+
+    KboIndependentAcquisitionUiTeamOrgCache team_org_cache;
+    memset(&team_org_cache, 0, sizeof(team_org_cache));
+    KboIndependentAcquisitionUiSellerMatch seller_matches[KBO_INDEPENDENT_ACQUISITION_MAX_SELLERS];
+    memset(seller_matches, 0, sizeof(seller_matches));
+
     int32_t seller_transfer_limit =
         kbo_foreign_player_policy()->independent_acquisition_seller_transfer_limit;
     int available_seller_count = 0;
@@ -141,9 +318,9 @@ int kbo_independent_acquisition_ui_collect_offer_rows(
         if (transfers >= seller_transfer_limit) {
             continue;
         }
-        if (available_seller_count != i) {
-            sellers[available_seller_count] = sellers[i];
-        }
+        seller_matches[available_seller_count].seller = sellers[i];
+        seller_matches[available_seller_count].match =
+            kbo_independent_acquisition_ui_team_match(sellers[i].team_id, &team_org_cache);
         available_seller_count++;
     }
     seller_count = available_seller_count;
@@ -160,6 +337,15 @@ int kbo_independent_acquisition_ui_collect_offer_rows(
     if (buyer.team_id == 0u) {
         return 0;
     }
+
+    KboIndependentAcquisitionUiTeamMatch buyer_match =
+        kbo_independent_acquisition_ui_team_match(buyer.team_id, &team_org_cache);
+    KboIndependentAcquisitionQueuedRequest requests[KBO_INDEPENDENT_ACQUISITION_MAX_QUEUE];
+    memset(requests, 0, sizeof(requests));
+    int request_count = kbo_independent_acquisition_load_requests(
+        context.season,
+        requests,
+        KBO_INDEPENDENT_ACQUISITION_MAX_QUEUE);
 
     uintptr_t player_vector = 0u;
     int32_t player_count = 0;
@@ -179,13 +365,26 @@ int kbo_independent_acquisition_ui_collect_offer_rows(
             continue;
         }
         uint8_t* player = (uint8_t*)player_ptr;
-        if (!kbo_independent_acquisition_player_status_ok(player)
-                || kbo_player_current_assignment_matches_team_or_affiliate(player, buyer.team_id)) {
+        if (!kbo_independent_acquisition_player_status_ok(player)) {
             continue;
         }
 
-        const KboIndependentFuturesTeamLeague* seller =
-            kbo_independent_acquisition_ui_seller_for_player(player, sellers, seller_count);
+        KboIndependentAcquisitionUiPlayerAssignmentSnapshot assignment;
+        if (!kbo_independent_acquisition_ui_build_player_assignment_snapshot(
+                player,
+                &team_org_cache,
+                &assignment)
+                || kbo_independent_acquisition_ui_assignment_snapshot_matches_team(
+                    &assignment,
+                    &buyer_match)) {
+            continue;
+        }
+
+        const KboIndependentAcquisitionUiSellerMatch* seller =
+            kbo_independent_acquisition_ui_seller_for_player(
+                &assignment,
+                seller_matches,
+                seller_count);
         if (seller == NULL) {
             continue;
         }
@@ -224,8 +423,8 @@ int kbo_independent_acquisition_ui_collect_offer_rows(
         memset(&row, 0, sizeof(row));
         row.player_ptr = player_ptr;
         row.player_id = player_id;
-        row.seller_team_id = seller->team_id;
-        row.seller_league_id = seller->league_id;
+        row.seller_team_id = seller->seller.team_id;
+        row.seller_league_id = seller->seller.league_id;
         row.nation_id = *(uint32_t*)(player + OOTP27_PLAYER_NATION_ID_OFFSET);
         row.effective_before = effective_before;
         row.effective_after = effective_after;
@@ -239,14 +438,15 @@ int kbo_independent_acquisition_ui_collect_offer_rows(
         row.asian_quota = asian_quota ? 1u : 0u;
         row.slot_type = slot_type;
         row.offer_blocked = (no_cash || policy_blocked) ? 1u : 0u;
-        row.already_requested = kbo_independent_acquisition_request_exists(
-            context.season,
+        row.already_requested = kbo_independent_acquisition_ui_request_row_exists(
+            requests,
+            request_count,
             buyer.team_id,
-            seller->team_id,
+            seller->seller.team_id,
             player_id) ? 1u : 0u;
         row.already_decided = kbo_independent_acquisition_decision_exists(
             context.season,
-            seller->team_id,
+            seller->seller.team_id,
             player_id) ? 1u : 0u;
         row.value_score = kbo_foreign_waiver_value_score(player);
         row.cash_cost = cash_cost;

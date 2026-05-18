@@ -31,6 +31,20 @@ public sealed class ReleasePackageIgnoreTests
     [InlineData("\"assets\\icons\\github-mark.png\"")]
     [InlineData("\"tools\\kbo_optimizer.exe\"")]
     [InlineData("\"tools\\kbo_optimizer.py\"")]
+    [InlineData("\"tools\\kbo_optimizer_lib\\__init__.py\"")]
+    [InlineData("\"tools\\kbo_optimizer_lib\\amateur_assignment.py\"")]
+    [InlineData("\"tools\\kbo_optimizer_lib\\amateur_batch.py\"")]
+    [InlineData("\"tools\\kbo_optimizer_lib\\amateur_common.py\"")]
+    [InlineData("\"tools\\kbo_optimizer_lib\\amateur_metrics.py\"")]
+    [InlineData("\"tools\\kbo_optimizer_lib\\amateur_role_capacities.py\"")]
+    [InlineData("\"tools\\kbo_optimizer_lib\\amateur_roles.py\"")]
+    [InlineData("\"tools\\kbo_optimizer_lib\\amateur_targets.py\"")]
+    [InlineData("\"tools\\kbo_optimizer_lib\\asian_games_roster.py\"")]
+    [InlineData("\"tools\\kbo_optimizer_lib\\cli.py\"")]
+    [InlineData("\"tools\\kbo_optimizer_lib\\constants.py\"")]
+    [InlineData("\"tools\\kbo_optimizer_lib\\csv_io.py\"")]
+    [InlineData("\"tools\\kbo_optimizer_lib\\fa_compensation.py\"")]
+    [InlineData("\"tools\\kbo_optimizer_lib\\military_selection.py\"")]
     public void ReleaseScript_ValidatesRequiredNonSeedPayloadFiles(string requiredFileLiteral)
     {
         var script = File.ReadAllText(Path.Combine(FindRepoRoot(), "scripts", "release.ps1"));

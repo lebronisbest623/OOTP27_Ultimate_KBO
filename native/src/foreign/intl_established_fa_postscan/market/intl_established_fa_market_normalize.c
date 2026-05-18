@@ -174,28 +174,15 @@ int kbo_intl_established_fa_normalize_market_state(
         changed = 1;
     }
 
-    uint32_t draft_league_id = *(uint32_t*)(player + OOTP27_PLAYER_DRAFT_LEAGUE_ID_OFFSET);
-    if (kbo_intl_established_fa_league_matches_batch(draft_league_id, primary_league_id, fallback_league_id)) {
-        *(uint32_t*)(player + OOTP27_PLAYER_DRAFT_LEAGUE_ID_OFFSET) = 0u;
-        result->draft_league_cleared = 1;
-        changed = 1;
-    }
-
-    if (player[OOTP27_PLAYER_DRAFT_CLASS_OFFSET] != 0u
-            || player[OOTP27_PLAYER_DRAFT_SUBTYPE_OFFSET] != 0u
-            || player[OOTP27_PLAYER_DRAFT_ELIGIBLE_OFFSET] != 0u
-            || player[OOTP27_PLAYER_DRAFT_EXTRA_FLAG_OFFSET] != 0u) {
-        player[OOTP27_PLAYER_DRAFT_CLASS_OFFSET] = 0u;
-        player[OOTP27_PLAYER_DRAFT_SUBTYPE_OFFSET] = 0u;
+    /*
+     * OOTP tags freshly generated established international FAs with the KBO
+     * draft league and contract level before its own AI market pass sees them.
+     * Preserve those OOTP-owned fields; only clear the explicit draft-eligible
+     * bit that keeps them in the draft pool.
+     */
+    if (player[OOTP27_PLAYER_DRAFT_ELIGIBLE_OFFSET] != 0u) {
         player[OOTP27_PLAYER_DRAFT_ELIGIBLE_OFFSET] = 0u;
-        player[OOTP27_PLAYER_DRAFT_EXTRA_FLAG_OFFSET] = 0u;
         result->draft_fields_cleared = 1;
-        changed = 1;
-    }
-
-    if (player[OOTP27_PLAYER_CONTRACT_LEVEL_FLAG_OFFSET] != 0u) {
-        player[OOTP27_PLAYER_CONTRACT_LEVEL_FLAG_OFFSET] = 0u;
-        result->contract_level_cleared = 1;
         changed = 1;
     }
 
@@ -215,12 +202,7 @@ int kbo_intl_established_fa_normalize_market_state(
         && *(uint32_t*)(player + OOTP27_PLAYER_ACTIVE_TEAM_ID_OFFSET) == 0u
         && *(uint32_t*)(player + OOTP27_PLAYER_LOAN_TEAM_ID_OFFSET) == 0u
         && player[OOTP27_PLAYER_RETIRED_FLAG_OFFSET] == 0u
-        && *(uint32_t*)(player + OOTP27_PLAYER_DRAFT_LEAGUE_ID_OFFSET) == 0u
-        && player[OOTP27_PLAYER_DRAFT_CLASS_OFFSET] == 0u
-        && player[OOTP27_PLAYER_DRAFT_SUBTYPE_OFFSET] == 0u
         && player[OOTP27_PLAYER_DRAFT_ELIGIBLE_OFFSET] == 0u
-        && player[OOTP27_PLAYER_DRAFT_EXTRA_FLAG_OFFSET] == 0u
-        && player[OOTP27_PLAYER_CONTRACT_LEVEL_FLAG_OFFSET] == 0u
         && *(int32_t*)(player + OOTP27_PLAYER_FA_DEMAND_SALARY_OFFSET) > 0
         && kbo_intl_established_fa_has_league_context(player, primary_league_id, fallback_league_id);
 

@@ -5,6 +5,9 @@ The runtime profiler records inclusive zone timings inside OOTP. This script
 aggregates those CSV rows, optionally compares a mod-on run against a baseline
 wall-clock run, and can multiply profiler call counts by offline benchmark costs
 when a mapping file is supplied.
+
+Future split targets: input discovery/CSV parsing, benchmark mapping, coverage
+accounting, Markdown report rendering, and replay-plan export.
 """
 
 from __future__ import annotations

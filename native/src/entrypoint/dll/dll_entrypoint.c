@@ -100,8 +100,11 @@ DWORD WINAPI patch_thread(LPVOID parameter)
         kbo_log_runtime_line("KBO presave foreign AI offer candidate priority hook install requested");
         install_kbo_foreign_ai_offer_candidate_priority_patch();
     }
-    if (read_kbo_localappdata_flag_file("enable_foreign_ai_roster_research_hooks.txt")
-            || read_kbo_localappdata_flag_file("enable_kbo_foreign_ai_offer_attach_probe.txt")) {
+    if (kbo_foreign_ai_offer_attach_hook_required(
+            foreign_ai_roster_management,
+            foreign_ai_controller,
+            read_kbo_localappdata_flag_file("enable_foreign_ai_roster_research_hooks.txt"),
+            read_kbo_localappdata_flag_file("enable_kbo_foreign_ai_offer_attach_probe.txt"))) {
         kbo_log_runtime_line("KBO presave foreign AI offer attach hook install requested");
         install_kbo_foreign_ai_offer_attach_probe_patch();
     }
@@ -245,6 +248,13 @@ static DWORD WINAPI kbo_hot_reinject_ai_roster_management_thread(LPVOID paramete
             || read_kbo_localappdata_flag_file("enable_kbo_foreign_ai_offer_candidate_priority_hook.txt"))
             && !read_kbo_localappdata_flag_file("disable_kbo_foreign_ai_offer_candidate_priority_hook.txt")) {
         install_kbo_foreign_ai_offer_candidate_priority_patch();
+    }
+    if (kbo_foreign_ai_offer_attach_hook_required(
+            foreign_ai_roster_management,
+            foreign_ai_controller,
+            read_kbo_localappdata_flag_file("enable_foreign_ai_roster_research_hooks.txt"),
+            read_kbo_localappdata_flag_file("enable_kbo_foreign_ai_offer_attach_probe.txt"))) {
+        install_kbo_foreign_ai_offer_attach_probe_patch();
     }
     if (foreign_ai_roster_management || hot_roster_flow_trace) {
         install_kbo_military_team_add_guard_patch();
