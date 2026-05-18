@@ -2,7 +2,8 @@
 
 int kbo_webview_team_action_allowed(uint32_t team_id, const char* source)
 {
-    if (kbo_get_allow_all_ui_team_actions_setting()) {
+    if (kbo_hub_current_mode_is_developer()
+            && kbo_get_allow_all_ui_team_actions_setting()) {
         return 1;
     }
 

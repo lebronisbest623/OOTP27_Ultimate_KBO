@@ -1,4 +1,5 @@
 #include "../info/ui_mod_info_views_internal.h"
+#include "../../../runtime/mode/hotkey_window_runtime_mode.h"
 
 static void kbo_webview_append_settings_section_start(KboWindowTextBuffer* buffer, const char* title_ko, const char* title_en)
 {
@@ -12,11 +13,27 @@ static void kbo_webview_append_settings_section_end(KboWindowTextBuffer* buffer)
     kbo_window_text_appendf(buffer, "</div></div>");
 }
 
-void kbo_webview_append_settings_view(KboWindowTextBuffer* buffer)
+static void kbo_webview_append_asian_quota_salary_limit_setting(KboWindowTextBuffer* buffer)
+{
+    int asian_quota_salary_limit = kbo_get_asian_quota_salary_limit();
+    kbo_window_text_appendf(
+        buffer,
+        "<div class='settingRow'><label class='settingLabel' for='asianQuotaSalaryLimit'>");
+    kbo_html_append_escaped(buffer, kbo_hub_text("\xec\x95\x84\xec\x8b\x9c\xec\x95\x84\xec\xbf\xbc\xed\x84\xb0 \xec\x97\xb0\xeb\xb4\x89 \xec\x83\x81\xed\x95\x9c", "아시아쿼터 연봉 상한"));
+    kbo_window_text_appendf(
+        buffer,
+        "</label><input id='asianQuotaSalaryLimit' class='ootpSelect salaryInput' type='text' inputmode='numeric' pattern='[0-9]*' data-min='0' data-max='20000000' data-step='1000' value='%d' "
+        "onchange=\"location.href='kbo://settings/asian-quota-salary-limit/'+this.value\" "
+        "onkeydown=\"if(event.key==='Enter'){this.blur();}\"></div>",
+        asian_quota_salary_limit);
+}
+
+void kbo_webview_append_settings_view(KboWindowTextBuffer* buffer, int selected_settings_subview)
 {
     if (buffer == NULL) {
         return;
     }
+    (void)selected_settings_subview;
 
     int multiplier = kbo_get_intl_established_fa_multiplier();
     const int presets[] = {1, 2, 5, 10, 20};
@@ -71,6 +88,14 @@ void kbo_webview_append_settings_view(KboWindowTextBuffer* buffer)
     kbo_html_append_escaped(buffer, kbo_hub_text("\xeb\xa6\xac\xea\xb7\xb8 \xec\x84\xa4\xec\xa0\x95", "리그 설정"));
     kbo_window_text_appendf(buffer, "</h2>");
 
+    if (!kbo_hub_current_mode_is_developer()) {
+        kbo_webview_append_settings_section_start(buffer, "\xec\x99\xb8\xea\xb5\xad\xec\x9d\xb8 \xec\x84\xa0\xec\x88\x98 \xec\x9a\xb4\xec\x98\x81", "외국인 선수 운영");
+        kbo_webview_append_asian_quota_salary_limit_setting(buffer);
+        kbo_webview_append_settings_section_end(buffer);
+        kbo_window_text_appendf(buffer, "</section></div>");
+        return;
+    }
+
     kbo_webview_append_settings_section_start(buffer, "\xec\x99\xb8\xea\xb5\xad\xec\x9d\xb8 \xec\x84\xa0\xec\x88\x98 \xec\x9a\xb4\xec\x98\x81", "외국인 선수 운영");
     kbo_window_text_appendf(buffer, "<div class='settingRow'><label class='settingLabel' for='intlFaMultiplierSelect'>");
     kbo_html_append_escaped(buffer, kbo_hub_text("\xec\x99\xb8\xea\xb5\xad\xec\x9d\xb8 FA \xec\x83\x9d\xec\x84\xb1", "외국인 FA 생성"));
@@ -96,7 +121,6 @@ void kbo_webview_append_settings_view(KboWindowTextBuffer* buffer)
     kbo_window_text_appendf(buffer, "</div>");
 
     int quality_cap_enabled = kbo_get_foreign_fa_quality_cap_enabled_setting();
-    int asian_quota_salary_limit = kbo_get_asian_quota_salary_limit();
     int asian_games_no_gold_odds = kbo_get_asian_games_no_gold_odds_denominator();
     int32_t independent_foreign_cash_cost = kbo_get_independent_acquisition_foreign_cash_cost();
     int32_t independent_domestic_cash_cost = kbo_get_independent_acquisition_domestic_cash_cost();
@@ -109,16 +133,7 @@ void kbo_webview_append_settings_view(KboWindowTextBuffer* buffer)
     kbo_webview_end_ootp_choice(buffer);
     kbo_window_text_appendf(buffer, "</div>");
 
-    kbo_window_text_appendf(
-        buffer,
-        "<div class='settingRow'><label class='settingLabel' for='asianQuotaSalaryLimit'>");
-    kbo_html_append_escaped(buffer, kbo_hub_text("\xec\x95\x84\xec\x8b\x9c\xec\x95\x84\xec\xbf\xbc\xed\x84\xb0 \xec\x97\xb0\xeb\xb4\x89 \xec\x83\x81\xed\x95\x9c", "아시아쿼터 연봉 상한"));
-    kbo_window_text_appendf(
-        buffer,
-        "</label><input id='asianQuotaSalaryLimit' class='ootpSelect salaryInput' type='text' inputmode='numeric' pattern='[0-9]*' data-min='0' data-max='20000000' data-step='1000' value='%d' "
-        "onchange=\"location.href='kbo://settings/asian-quota-salary-limit/'+this.value\" "
-        "onkeydown=\"if(event.key==='Enter'){this.blur();}\"></div>",
-        asian_quota_salary_limit);
+    kbo_webview_append_asian_quota_salary_limit_setting(buffer);
 
     kbo_window_text_appendf(
         buffer,

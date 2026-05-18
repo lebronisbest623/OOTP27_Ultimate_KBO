@@ -83,7 +83,12 @@ public sealed class OotpSupportedBuildManifestTests
             "OOTP27_MAKE_ALLSTAR_GAME_EVENTS_RVA",
         };
 
-        officialBuilds.Should().NotBeEmpty();
+        if (officialBuilds.Length == 0)
+        {
+            resolverText.Should().NotContain("KBO_SUPPORTED_OOTP_BUILD_OFFICIAL");
+            return;
+        }
+
         foreach (var build in officialBuilds.Where(build => build.NativePatchesSupported))
         {
             var token = ToNativeBuildMacroToken(build.Label);

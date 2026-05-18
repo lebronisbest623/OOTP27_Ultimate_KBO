@@ -7,8 +7,8 @@
 BOOL CALLBACK kbo_enum_main_window_proc(HWND hwnd, LPARAM lparam);
 HWND kbo_find_ootp_main_window(void);
 int kbo_foreground_is_this_process(void);
-void kbo_show_or_hide_hotkey_window(void);
-int kbo_queue_hotkey_window_toggle(void);
+void kbo_show_or_hide_hotkey_window(int requested_mode);
+int kbo_queue_hotkey_window_toggle(int requested_mode);
 int kbo_request_hotkey_window_refresh(const char* source);
 LRESULT CALLBACK kbo_hotkey_keyboard_proc(int code, WPARAM wparam, LPARAM lparam);
 void kbo_layout_hotkey_window(HWND hwnd);

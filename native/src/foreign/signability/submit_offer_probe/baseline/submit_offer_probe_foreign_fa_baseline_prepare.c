@@ -127,6 +127,7 @@ void kbo_prepare_foreign_fa_offer_demand_baseline(uintptr_t player_ptr, const ch
     if (!kbo_player_is_foreign_for_kbo_rights(player)) {
         return;
     }
+    kbo_apply_foreign_contract_demand_floor(player_ptr, 0u, source != NULL ? source : "offer_demand_baseline_prepare");
 
     uint32_t league_id = 0u;
     uint8_t* financials = kbo_resolve_current_league_financials(&league_id);

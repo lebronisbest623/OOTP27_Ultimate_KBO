@@ -1,5 +1,6 @@
 #include "../hotkey_window_runtime_content_internal.h"
 #include "../../hotkey_window_domain_contract.h"
+#include "../../../../fa_market_classification/api/fa_market_classification.h"
 
 void kbo_webview_append_asian_quota_view(KboWindowTextBuffer* buffer)
 {
@@ -28,7 +29,8 @@ void kbo_webview_append_asian_quota_view(KboWindowTextBuffer* buffer)
         "<section class='tablewrap rosterTableWrap'><table class='ootpRosterTable foreignRosterTable'><thead><tr>"
         "<th class='roPo' data-sort-type='text'>PO</th><th class='roNum' data-sort-type='number'></th><th class='roName' data-sort-type='text'>Name</th>"
         "<th class='roSlot' data-sort-type='text'>Slot</th><th class='roTeam' data-sort-type='text'>Team</th>"
-        "<th class='roNat' data-sort-type='text'>Nationality*</th><th class='roAge' data-sort-type='number'>Age</th><th class='roStatus' data-sort-type='text'>Status</th>"
+        "<th class='roNat' data-sort-type='text'>Nationality*</th><th class='roAge' data-sort-type='number'>Age</th>"
+        "<th class='roEntry' data-sort-type='number'>연봉</th><th class='roStatus' data-sort-type='text'>Status</th>"
         "</tr></thead><tbody>");
 
     uintptr_t player_vector = 0;
@@ -52,9 +54,14 @@ void kbo_webview_append_asian_quota_view(KboWindowTextBuffer* buffer)
             char uniform_number[8] = {0};
             char current_team_abbrev[16] = {0};
             char flags[96] = {0};
+            char salary_text[32] = "-";
             uint16_t age = memory_range_readable(player + OOTP27_PLAYER_AGE_OFFSET, sizeof(uint16_t))
                 ? *(uint16_t*)(player + OOTP27_PLAYER_AGE_OFFSET)
                 : 0u;
+            int32_t salary = memory_range_readable(player + OOTP27_PLAYER_CONTRACT_SALARY_Y1_OFFSET, sizeof(int32_t))
+                ? *(int32_t*)(player + OOTP27_PLAYER_CONTRACT_SALARY_Y1_OFFSET)
+                : 0;
+            kbo_fa_market_format_salary(salary, salary_text, sizeof(salary_text));
             kbo_hub_copy_player_display_name(player, player_name, sizeof(player_name));
             kbo_webview_copy_player_uniform_number(player_id, uniform_number, sizeof(uniform_number));
             kbo_hub_copy_team_abbrev_by_id(current_team_id, current_team_abbrev, sizeof(current_team_abbrev), NULL);
@@ -80,17 +87,20 @@ void kbo_webview_append_asian_quota_view(KboWindowTextBuffer* buffer)
             kbo_window_text_appendf(buffer, "</td>");
             kbo_webview_append_roster_nation_cell(buffer, nation_id, kbo_hub_nation_flag_asset_path);
             if (age > 0u) {
-                kbo_window_text_appendf(buffer, "<td class='roAge'>%u</td><td class='roStatus'>", (uint32_t)age);
+                kbo_window_text_appendf(buffer, "<td class='roAge'>%u</td>", (uint32_t)age);
             } else {
-                kbo_window_text_appendf(buffer, "<td class='roAge'></td><td class='roStatus'>");
+                kbo_window_text_appendf(buffer, "<td class='roAge'></td>");
             }
+            kbo_window_text_appendf(buffer, "<td class='roEntry' data-sort-value='%d'>", salary);
+            kbo_html_append_escaped(buffer, salary_text);
+            kbo_window_text_appendf(buffer, "</td><td class='roStatus'>");
             kbo_html_append_escaped(buffer, flags);
             kbo_window_text_appendf(buffer, "</td></tr>");
             rendered++;
         }
     }
     if (rendered == 0) {
-        kbo_window_text_appendf(buffer, "<tr><td colspan='8'></td></tr>");
+        kbo_window_text_appendf(buffer, "<tr><td colspan='9'></td></tr>");
     }
     kbo_window_text_appendf(buffer, "</tbody></table></section></div>");
 }
@@ -137,7 +147,7 @@ void kbo_webview_append_selected_view(KboWindowTextBuffer* buffer, uint32_t curr
             g_kbo_hub_selected_fa_compensation_player_id,
             g_kbo_hub_selected_league_id);
     } else if (g_kbo_hub_selected_view == KBO_HUB_VIEW_SETTINGS) {
-        kbo_webview_append_settings_view(buffer);
+        kbo_webview_append_settings_view(buffer, g_kbo_hub_selected_settings_subview);
     } else if (g_kbo_hub_selected_view == KBO_HUB_VIEW_REPUTATION) {
         kbo_webview_append_reputation_view(buffer, g_kbo_hub_selected_league_id);
     } else if (g_kbo_hub_selected_view == KBO_HUB_VIEW_CBT) {
@@ -254,6 +264,13 @@ void kbo_webview_append_sub_tabs(KboWindowTextBuffer* buffer)
             kbo_window_text_appendf(buffer, "<a class='subTab %s' href='kbo://futures/%d'>",
                 i == g_kbo_hub_selected_futures_subview ? "active" : "", i);
             kbo_html_append_escaped(buffer, kbo_hub_futures_subnav_label(i));
+            kbo_window_text_appendf(buffer, "</a>");
+        }
+    } else if (g_kbo_hub_selected_view == KBO_HUB_VIEW_SETTINGS) {
+        for (int i = 0; i < KBO_HUB_SETTINGS_SUBVIEW_COUNT; i++) {
+            kbo_window_text_appendf(buffer, "<a class='subTab %s' href='kbo://settings-tab/%d'>",
+                i == g_kbo_hub_selected_settings_subview ? "active" : "", i);
+            kbo_html_append_escaped(buffer, kbo_hub_settings_subnav_label(i));
             kbo_window_text_appendf(buffer, "</a>");
         }
     }

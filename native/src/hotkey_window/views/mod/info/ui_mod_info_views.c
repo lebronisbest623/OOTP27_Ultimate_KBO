@@ -8,7 +8,6 @@ void kbo_webview_append_mod_info_view(KboWindowTextBuffer* buffer, int selected_
 
     if (selected_mod_subview == KBO_HUB_MOD_SUBVIEW_SETTINGS) {
         int profiler_enabled = kbo_get_profiler_enabled_setting();
-        int allow_all_team_actions = kbo_get_allow_all_ui_team_actions_setting();
         int custom_news_language = kbo_get_custom_news_language_setting();
         kbo_window_text_appendf(
             buffer,
@@ -61,50 +60,6 @@ void kbo_webview_append_mod_info_view(KboWindowTextBuffer* buffer, int selected_
         kbo_webview_append_ootp_choice_option(buffer, "kbo://mod/settings/profiler/on", "켬", profiler_enabled);
         kbo_webview_end_ootp_choice(buffer);
         kbo_window_text_appendf(buffer, "</div>");
-        kbo_window_text_appendf(
-            buffer,
-            "<div class='settingRow'><span class='settingLabel'>");
-        kbo_html_append_escaped(buffer, kbo_hub_text("\xec\x84\xb1\xeb\x8a\xa5 \xec\x8a\xa4\xeb\x83\x85\xec\x83\xb7", "성능 스냅샷"));
-        kbo_window_text_appendf(
-            buffer,
-            "</span><a class='action' href='kbo://mod/settings/perf-snapshot/dump'>");
-        kbo_html_append_escaped(buffer, kbo_hub_text("\xeb\x8d\xa4\xed\x94\x84", "덤프"));
-        kbo_window_text_appendf(buffer, "</a></div>");
-        kbo_window_text_appendf(
-            buffer,
-            "<div class='settingRow'><label class='settingLabel' for='uiTeamActionsSelect'>");
-        kbo_html_append_escaped(buffer, kbo_hub_text("UI \xed\x8c\x80 \xec\x95\xa1\xec\x85\x98", "UI 구단 액션"));
-        const char* all_teams_label =
-            kbo_hub_text("\xeb\xaa\xa8\xeb\x93\xa0 \xed\x8c\x80 \xed\x97\x88\xec\x9a\xa9 (\xea\xb0\x9c\xeb\xb0\x9c)", "모든 팀 허용 (개발)");
-        const char* controlled_team_label =
-            kbo_hub_text("\xeb\x82\xb4 \xed\x8c\x80\xeb\xa7\x8c \xed\x97\x88\xec\x9a\xa9", "내 팀만 허용");
-        kbo_window_text_appendf(buffer, "</label>");
-        kbo_webview_begin_ootp_choice(
-            buffer,
-            "uiTeamActionsSelect",
-            allow_all_team_actions ? all_teams_label : controlled_team_label);
-        kbo_webview_append_ootp_choice_option(
-            buffer, "kbo://mod/settings/ui-team-actions/all", all_teams_label, allow_all_team_actions);
-        kbo_webview_append_ootp_choice_option(
-            buffer, "kbo://mod/settings/ui-team-actions/controlled", controlled_team_label, !allow_all_team_actions);
-        kbo_webview_end_ootp_choice(buffer);
-        kbo_window_text_appendf(buffer, "</div>");
-        kbo_window_text_appendf(buffer, "<div class='settingsDivider'></div>");
-        kbo_webview_append_mod_runtime_flag_group(
-            buffer,
-            KBO_MOD_FLAG_USER,
-            "사용자 설정",
-            "일반 플레이에서 사용하는 기본 옵션입니다.");
-        kbo_webview_append_mod_runtime_flag_group(
-            buffer,
-            KBO_MOD_FLAG_RECOVERY,
-            "복구 스위치",
-            "기능 오류가 있을 때 JSON을 직접 수정하지 않고 임시로 끄는 옵션입니다.");
-        kbo_webview_append_mod_runtime_flag_group(
-            buffer,
-            KBO_MOD_FLAG_DIAGNOSTIC,
-            "개발자 진단",
-            "문제 추적용 추가 로그와 진단 기능입니다.");
         kbo_window_text_appendf(buffer, "</section></div>");
         return;
     }

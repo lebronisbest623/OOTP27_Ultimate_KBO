@@ -47,7 +47,10 @@ static int kbo_webview_handle_cbt_exception_command(const char* cmd)
         char player_key[64] = {0};
         int parsed = sscanf(cmd + 18, "%u/%u/%63[A-Za-z0-9_.-]", &season, &team_id, player_key);
         int window_open = parsed == 3 ? kbo_webview_cbt_exception_window_open(season) : 0;
-        if (parsed == 3 && window_open) {
+        int action_allowed = parsed == 3
+            ? kbo_webview_team_action_allowed(team_id, "hub_cbt_exception_set")
+            : 0;
+        if (parsed == 3 && window_open && action_allowed) {
             char player_name[96];
             kbo_webview_cbt_exception_player_name(season, team_id, player_key, player_name, sizeof(player_name));
             if (kbo_cbt_exception_save_designation(season, team_id, player_key, player_name)) {
@@ -66,12 +69,13 @@ static int kbo_webview_handle_cbt_exception_command(const char* cmd)
             }
         } else {
             kbo_log_runtimef(
-                "KBO CBT exception UI set ignored parsed=%d season=%u team=%u player_key=%s window_open=%d",
+                "KBO CBT exception UI set ignored parsed=%d season=%u team=%u player_key=%s window_open=%d action_allowed=%d",
                 parsed,
                 season,
                 team_id,
                 player_key,
-                window_open);
+                window_open,
+                action_allowed);
         }
         g_kbo_hub_selected_view = KBO_HUB_VIEW_CBT;
         g_kbo_hub_selected_cbt_subview = KBO_HUB_CBT_SUBVIEW_EXCEPTIONS;
@@ -86,7 +90,10 @@ static int kbo_webview_handle_cbt_exception_command(const char* cmd)
         uint32_t team_id = 0u;
         int parsed = sscanf(cmd + 20, "%u/%u", &season, &team_id);
         int window_open = parsed == 2 ? kbo_webview_cbt_exception_window_open(season) : 0;
-        if (parsed == 2 && window_open) {
+        int action_allowed = parsed == 2
+            ? kbo_webview_team_action_allowed(team_id, "hub_cbt_exception_clear")
+            : 0;
+        if (parsed == 2 && window_open && action_allowed) {
             if (kbo_cbt_exception_clear_designation(season, team_id)) {
                 kbo_log_runtimef("KBO CBT exception UI clear season=%u team=%u", season, team_id);
             } else {
@@ -94,11 +101,12 @@ static int kbo_webview_handle_cbt_exception_command(const char* cmd)
             }
         } else {
             kbo_log_runtimef(
-                "KBO CBT exception UI clear ignored parsed=%d season=%u team=%u window_open=%d",
+                "KBO CBT exception UI clear ignored parsed=%d season=%u team=%u window_open=%d action_allowed=%d",
                 parsed,
                 season,
                 team_id,
-                window_open);
+                window_open,
+                action_allowed);
         }
         g_kbo_hub_selected_view = KBO_HUB_VIEW_CBT;
         g_kbo_hub_selected_cbt_subview = KBO_HUB_CBT_SUBVIEW_EXCEPTIONS;
@@ -238,6 +246,11 @@ int kbo_webview_handle_view_navigation_command(const char* cmd)
                         || g_kbo_hub_selected_futures_subview >= KBO_HUB_FUTURES_SUBVIEW_COUNT)) {
                 g_kbo_hub_selected_futures_subview = KBO_HUB_FUTURES_SUBVIEW_OFFER;
             }
+            if (g_kbo_hub_selected_view == KBO_HUB_VIEW_SETTINGS
+                    && (g_kbo_hub_selected_settings_subview < 0
+                        || g_kbo_hub_selected_settings_subview >= KBO_HUB_SETTINGS_SUBVIEW_COUNT)) {
+                g_kbo_hub_selected_settings_subview = KBO_HUB_SETTINGS_SUBVIEW_LEAGUE;
+            }
         }
         kbo_webview_navigate_current();
         return 1;
@@ -318,6 +331,22 @@ int kbo_webview_handle_view_navigation_command(const char* cmd)
         if (subview >= 0 && subview < KBO_HUB_FUTURES_SUBVIEW_COUNT) {
             g_kbo_hub_selected_view = KBO_HUB_VIEW_FUTURES_LEAGUE;
             g_kbo_hub_selected_futures_subview = subview;
+            g_kbo_hub_open_dropdown = 0;
+        }
+        kbo_webview_navigate_current();
+        return 1;
+    }
+    if (strncmp(cmd, "settings-tab/", 13) == 0) {
+        if (!kbo_hub_selected_league_is_kbo()) {
+            g_kbo_hub_selected_view = KBO_HUB_VIEW_MOD_INFO;
+            g_kbo_hub_open_dropdown = 0;
+            kbo_webview_navigate_current();
+            return 1;
+        }
+        int subview = atoi(cmd + 13);
+        if (subview >= 0 && subview < KBO_HUB_SETTINGS_SUBVIEW_COUNT) {
+            g_kbo_hub_selected_view = KBO_HUB_VIEW_SETTINGS;
+            g_kbo_hub_selected_settings_subview = subview;
             g_kbo_hub_open_dropdown = 0;
         }
         kbo_webview_navigate_current();

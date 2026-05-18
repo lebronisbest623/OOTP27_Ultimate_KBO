@@ -206,6 +206,11 @@ void kbo_hub_ensure_valid_selection(void)
         g_kbo_hub_selected_team_id = first_team_in_selected_league != 0
             ? first_team_in_selected_league : first_team_id;
     }
+
+    if (g_kbo_hub_selected_settings_subview < 0
+            || g_kbo_hub_selected_settings_subview >= KBO_HUB_SETTINGS_SUBVIEW_COUNT) {
+        g_kbo_hub_selected_settings_subview = KBO_HUB_SETTINGS_SUBVIEW_LEAGUE;
+    }
 }
 
 POINT kbo_hub_dropdown_anchor_point(HWND hwnd, const RECT* rect)

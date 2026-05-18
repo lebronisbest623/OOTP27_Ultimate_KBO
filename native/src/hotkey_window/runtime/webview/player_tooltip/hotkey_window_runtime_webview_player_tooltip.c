@@ -1,10 +1,11 @@
 #include "../hotkey_window_webview_internal.h"
 
 #define KBO_PLAYER_TOOLTIP_CLASS_NAME "OOTPKBOPlayerTooltipWindow"
-#define KBO_PLAYER_TOOLTIP_HTML_MAX   65536u
+#define KBO_PLAYER_TOOLTIP_HTML_MAX   (128u * 1024u)
 #define KBO_PLAYER_TOOLTIP_WIDTH      430
 #define KBO_PLAYER_TOOLTIP_HEIGHT     252
 #define KBO_PLAYER_TOOLTIP_MARGIN     8
+#define KBO_PLAYER_TOOLTIP_WM_START   (WM_APP + 0x53au)
 
 typedef struct KboPlayerTooltipControllerHandler {
     ICoreWebView2CreateCoreWebView2ControllerCompletedHandler iface;
@@ -21,11 +22,17 @@ static ICoreWebView2Controller* g_kbo_player_tooltip_controller = NULL;
 static ICoreWebView2* g_kbo_player_tooltip_webview = NULL;
 static EventRegistrationToken g_kbo_player_tooltip_nav_token = {0};
 static LONG g_kbo_player_tooltip_creating = 0;
+static HWND g_kbo_player_tooltip_owner = NULL;
+static int g_kbo_player_tooltip_plain_host = 0;
 static POINT g_kbo_player_tooltip_anchor = {0, 0};
 static int g_kbo_player_tooltip_width = KBO_PLAYER_TOOLTIP_WIDTH;
 static int g_kbo_player_tooltip_height = KBO_PLAYER_TOOLTIP_HEIGHT;
 static uint32_t g_kbo_player_tooltip_seq = 0u;
+static char g_kbo_player_tooltip_asset_folder[MAX_PATH];
 static char g_kbo_player_tooltip_pending_html[KBO_PLAYER_TOOLTIP_HTML_MAX];
+
+static int kbo_tooltip_start_controller(void);
+static int kbo_tooltip_schedule_controller_start(void);
 
 static int kbo_tooltip_max_int(int a, int b)
 {
@@ -78,6 +85,73 @@ static WCHAR* kbo_tooltip_alloc_wide_from_utf8(const char* text)
         return NULL;
     }
     return wide;
+}
+
+static void kbo_tooltip_apply_asset_mapping(void)
+{
+    if (g_kbo_player_tooltip_webview == NULL) {
+        return;
+    }
+
+    ICoreWebView2_3* webview3 = NULL;
+    HRESULT qi_hr = ICoreWebView2_QueryInterface(
+        g_kbo_player_tooltip_webview,
+        &IID_ICoreWebView2_3,
+        (void**)&webview3);
+    if (FAILED(qi_hr) || webview3 == NULL) {
+        kbo_log_runtimef("KBO player tooltip asset mapping unavailable hr=0x%08lx", (unsigned long)qi_hr);
+        return;
+    }
+
+    WCHAR* host_w = kbo_tooltip_alloc_wide_from_utf8(KBO_PLAYER_TOOLTIP_ASSET_HOST);
+    if (host_w == NULL) {
+        ICoreWebView2_3_Release(webview3);
+        return;
+    }
+
+    HRESULT map_hr = S_OK;
+    if (g_kbo_player_tooltip_asset_folder[0] == '\0') {
+        map_hr = ICoreWebView2_3_ClearVirtualHostNameToFolderMapping(webview3, host_w);
+    } else {
+        WCHAR* folder_w = kbo_tooltip_alloc_wide_from_utf8(g_kbo_player_tooltip_asset_folder);
+        if (folder_w == NULL) {
+            HeapFree(GetProcessHeap(), 0, host_w);
+            ICoreWebView2_3_Release(webview3);
+            return;
+        }
+        map_hr = ICoreWebView2_3_SetVirtualHostNameToFolderMapping(
+            webview3,
+            host_w,
+            folder_w,
+            COREWEBVIEW2_HOST_RESOURCE_ACCESS_KIND_ALLOW);
+        HeapFree(GetProcessHeap(), 0, folder_w);
+    }
+
+    if (FAILED(map_hr)) {
+        kbo_log_runtimef(
+            "KBO player tooltip asset mapping failed hr=0x%08lx folder=%s",
+            (unsigned long)map_hr,
+            g_kbo_player_tooltip_asset_folder);
+    }
+    HeapFree(GetProcessHeap(), 0, host_w);
+    ICoreWebView2_3_Release(webview3);
+}
+
+void kbo_set_webview_player_tooltip_asset_folder(const char* folder_path)
+{
+    char next[MAX_PATH] = {0};
+    if (folder_path != NULL && folder_path[0] != '\0') {
+        int written = snprintf(next, sizeof(next), "%s", folder_path);
+        if (written <= 0 || (size_t)written >= sizeof(next)) {
+            return;
+        }
+    }
+    if (strcmp(g_kbo_player_tooltip_asset_folder, next) == 0) {
+        return;
+    }
+
+    snprintf(g_kbo_player_tooltip_asset_folder, sizeof(g_kbo_player_tooltip_asset_folder), "%s", next);
+    kbo_tooltip_apply_asset_mapping();
 }
 
 static int kbo_tooltip_parse_u32_segment(const char** cursor, uint32_t* out)
@@ -184,9 +258,13 @@ static LRESULT CALLBACK kbo_player_tooltip_window_proc(HWND hwnd, UINT message, 
     case WM_CLOSE:
         ShowWindow(hwnd, SW_HIDE);
         return 0;
+    case KBO_PLAYER_TOOLTIP_WM_START:
+        (void)kbo_tooltip_start_controller();
+        return 0;
     case WM_DESTROY:
         if (hwnd == g_kbo_player_tooltip_hwnd) {
             g_kbo_player_tooltip_hwnd = NULL;
+            InterlockedExchange(&g_kbo_player_tooltip_creating, 0);
         }
         return 0;
     }
@@ -226,11 +304,15 @@ static int kbo_tooltip_ensure_window(HWND owner)
 
     HINSTANCE instance = g_kbo_hotkey_instance != NULL ? g_kbo_hotkey_instance : GetModuleHandleA(NULL);
     RECT rect = kbo_tooltip_rect_for_anchor(KBO_PLAYER_TOOLTIP_WIDTH, KBO_PLAYER_TOOLTIP_HEIGHT);
+    DWORD ex_style = WS_EX_TOOLWINDOW;
+    if (!g_kbo_player_tooltip_plain_host) {
+        ex_style |= WS_EX_NOACTIVATE;
+    }
     g_kbo_player_tooltip_hwnd = CreateWindowExA(
-        WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_TRANSPARENT,
+        ex_style,
         KBO_PLAYER_TOOLTIP_CLASS_NAME,
         "",
-        WS_POPUP,
+        WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS,
         rect.left,
         rect.top,
         rect.right - rect.left,
@@ -243,6 +325,12 @@ static int kbo_tooltip_ensure_window(HWND owner)
         kbo_log_runtimef("KBO player tooltip popup window creation failed error=%lu", GetLastError());
         return 0;
     }
+    kbo_log_runtimef(
+        "KBO player tooltip popup window ready hwnd=%p owner=%p ex=0x%08lx plain=%d",
+        (void*)g_kbo_player_tooltip_hwnd,
+        (void*)owner,
+        (unsigned long)ex_style,
+        g_kbo_player_tooltip_plain_host);
     return 1;
 }
 
@@ -441,6 +529,17 @@ static HRESULT STDMETHODCALLTYPE kbo_tooltip_controller_invoke(
     InterlockedExchange(&g_kbo_player_tooltip_creating, 0);
     if (FAILED(errorCode) || result == NULL) {
         kbo_log_runtimef("KBO player tooltip WebView controller create failed hr=0x%08lx", (unsigned long)errorCode);
+        if (!g_kbo_player_tooltip_plain_host && g_kbo_player_tooltip_hwnd != NULL) {
+            g_kbo_player_tooltip_plain_host = 1;
+            DestroyWindow(g_kbo_player_tooltip_hwnd);
+            g_kbo_player_tooltip_hwnd = NULL;
+            if (kbo_tooltip_ensure_window(g_kbo_player_tooltip_owner)) {
+                kbo_log_runtime_line("KBO player tooltip retrying WebView controller with plain host window");
+                (void)kbo_tooltip_schedule_controller_start();
+            }
+        } else if (g_kbo_player_tooltip_hwnd != NULL) {
+            ShowWindow(g_kbo_player_tooltip_hwnd, SW_HIDE);
+        }
         return S_OK;
     }
 
@@ -455,6 +554,7 @@ static HRESULT STDMETHODCALLTYPE kbo_tooltip_controller_invoke(
             g_kbo_player_tooltip_webview,
             &g_kbo_tooltip_nav_handler.iface,
             &g_kbo_player_tooltip_nav_token);
+        kbo_tooltip_apply_asset_mapping();
         kbo_log_runtimef(
             "KBO player tooltip WebView ready hwnd=%p controller=%p core=%p hr_core=0x%08lx hr_nav=0x%08lx",
             (void*)g_kbo_player_tooltip_hwnd,
@@ -481,24 +581,59 @@ static KboPlayerTooltipControllerHandler g_kbo_tooltip_controller_handler = {
     1
 };
 
-static void kbo_tooltip_start_controller(void)
+static int kbo_tooltip_start_controller(void)
 {
-    if (g_kbo_webview_environment == NULL || g_kbo_player_tooltip_hwnd == NULL
-            || g_kbo_player_tooltip_controller != NULL) {
-        return;
+    if (g_kbo_webview_environment == NULL || g_kbo_player_tooltip_hwnd == NULL) {
+        return 0;
+    }
+    if (g_kbo_player_tooltip_pending_html[0] == '\0') {
+        return 0;
+    }
+    if (g_kbo_player_tooltip_controller != NULL) {
+        return 1;
     }
     if (InterlockedCompareExchange(&g_kbo_player_tooltip_creating, 1, 0) != 0) {
-        return;
+        return 1;
     }
 
+    kbo_tooltip_apply_bounds(1);
     HRESULT hr = ICoreWebView2Environment_CreateCoreWebView2Controller(
         g_kbo_webview_environment,
         g_kbo_player_tooltip_hwnd,
         &g_kbo_tooltip_controller_handler.iface);
     if (FAILED(hr)) {
         InterlockedExchange(&g_kbo_player_tooltip_creating, 0);
+        ShowWindow(g_kbo_player_tooltip_hwnd, SW_HIDE);
         kbo_log_runtimef("KBO player tooltip WebView controller start failed hr=0x%08lx", (unsigned long)hr);
+        return 0;
     }
+    kbo_log_runtimef(
+        "KBO player tooltip WebView controller creation requested hwnd=%p hr=0x%08lx visible=%d",
+        (void*)g_kbo_player_tooltip_hwnd,
+        (unsigned long)hr,
+        IsWindowVisible(g_kbo_player_tooltip_hwnd) ? 1 : 0);
+    return 1;
+}
+
+static int kbo_tooltip_schedule_controller_start(void)
+{
+    if (g_kbo_player_tooltip_hwnd == NULL || !IsWindow(g_kbo_player_tooltip_hwnd)) {
+        return 0;
+    }
+    if (g_kbo_player_tooltip_controller != NULL || g_kbo_player_tooltip_webview != NULL) {
+        return 1;
+    }
+    if (InterlockedCompareExchange(&g_kbo_player_tooltip_creating, 0, 0) != 0) {
+        return 1;
+    }
+
+    if (!PostMessageA(g_kbo_player_tooltip_hwnd, KBO_PLAYER_TOOLTIP_WM_START, 0, 0)) {
+        DWORD error = GetLastError();
+        kbo_log_runtimef("KBO player tooltip WebView controller start post failed error=%lu", error);
+        return kbo_tooltip_start_controller();
+    }
+    kbo_log_runtimef("KBO player tooltip WebView controller start posted hwnd=%p", (void*)g_kbo_player_tooltip_hwnd);
+    return 1;
 }
 
 int kbo_show_webview_player_tooltip_popup(HWND owner, int screen_x, int screen_y, uint32_t hover_seq, const char* html)
@@ -507,12 +642,18 @@ int kbo_show_webview_player_tooltip_popup(HWND owner, int screen_x, int screen_y
         return 0;
     }
 
+    g_kbo_player_tooltip_owner = owner;
     g_kbo_player_tooltip_anchor.x = screen_x;
     g_kbo_player_tooltip_anchor.y = screen_y;
     g_kbo_player_tooltip_width = KBO_PLAYER_TOOLTIP_WIDTH;
     g_kbo_player_tooltip_height = KBO_PLAYER_TOOLTIP_HEIGHT;
     g_kbo_player_tooltip_seq = hover_seq;
-    snprintf(g_kbo_player_tooltip_pending_html, sizeof(g_kbo_player_tooltip_pending_html), "%s", html);
+    int written = snprintf(g_kbo_player_tooltip_pending_html, sizeof(g_kbo_player_tooltip_pending_html), "%s", html);
+    if (written <= 0 || (size_t)written >= sizeof(g_kbo_player_tooltip_pending_html)) {
+        g_kbo_player_tooltip_pending_html[0] = '\0';
+        kbo_log_runtimef("KBO player tooltip popup skipped reason=html_too_large bytes=%d", written);
+        return 0;
+    }
 
     if (!kbo_tooltip_ensure_window(owner)) {
         return 0;
@@ -524,8 +665,7 @@ int kbo_show_webview_player_tooltip_popup(HWND owner, int screen_x, int screen_y
         return 1;
     }
 
-    kbo_tooltip_start_controller();
-    return g_kbo_webview_environment != NULL;
+    return kbo_tooltip_schedule_controller_start();
 }
 
 void kbo_hide_webview_player_tooltip_popup(uint32_t hover_seq)
@@ -533,6 +673,7 @@ void kbo_hide_webview_player_tooltip_popup(uint32_t hover_seq)
     if (hover_seq != 0u && hover_seq != g_kbo_player_tooltip_seq) {
         return;
     }
+    g_kbo_player_tooltip_pending_html[0] = '\0';
     if (g_kbo_player_tooltip_hwnd != NULL) {
         ShowWindow(g_kbo_player_tooltip_hwnd, SW_HIDE);
     }
@@ -541,6 +682,8 @@ void kbo_hide_webview_player_tooltip_popup(uint32_t hover_seq)
 void kbo_destroy_webview_player_tooltip_popup(void)
 {
     g_kbo_player_tooltip_pending_html[0] = '\0';
+    g_kbo_player_tooltip_owner = NULL;
+    g_kbo_player_tooltip_plain_host = 0;
     InterlockedExchange(&g_kbo_player_tooltip_creating, 0);
     if (g_kbo_player_tooltip_webview != NULL) {
         ICoreWebView2_Release(g_kbo_player_tooltip_webview);

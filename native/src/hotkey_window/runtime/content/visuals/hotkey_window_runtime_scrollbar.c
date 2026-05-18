@@ -218,21 +218,47 @@ int kbo_foreground_is_this_process(void)
     return pid == GetCurrentProcessId();
 }
 
-void kbo_show_or_hide_hotkey_window(void)
+void kbo_show_or_hide_hotkey_window(int requested_mode)
 {
     HWND hwnd = g_kbo_hotkey_window;
     if (hwnd == NULL || !IsWindow(hwnd)) {
         return;
     }
 
-    if (IsWindowVisible(hwnd)) {
-        kbo_hide_webview_player_tooltip_popup(0u);
-        kbo_hub_save_window_placement(hwnd);
-        ShowWindow(hwnd, SW_HIDE);
-        kbo_log_runtimef("KBO F2 hub hidden hwnd=%p", (void*)hwnd);
+    int next_mode = requested_mode == KBO_HUB_MODE_DEVELOPER
+        ? KBO_HUB_MODE_DEVELOPER
+        : KBO_HUB_MODE_RELEASE;
+    if (!kbo_hub_requested_mode_available(next_mode)) {
+        kbo_log_runtime_line("KBO hub developer mode ignored reason=developer_mode_file_missing");
         return;
     }
 
+    if (IsWindowVisible(hwnd)) {
+        if (g_kbo_hub_mode != next_mode) {
+            kbo_hub_set_mode(next_mode);
+            kbo_hub_ensure_valid_selection();
+            SetWindowTextA(
+                hwnd,
+                kbo_hub_current_mode_is_developer() ? "Ultimate KBO - Developer" : "Ultimate KBO");
+            kbo_webview_navigate_current();
+            InvalidateRect(hwnd, NULL, TRUE);
+            kbo_log_runtimef(
+                "KBO hub mode switched while visible mode=%s hwnd=%p",
+                kbo_hub_mode_log_label(),
+                (void*)hwnd);
+            return;
+        }
+        kbo_hide_webview_player_tooltip_popup(0u);
+        kbo_hub_save_window_placement(hwnd);
+        ShowWindow(hwnd, SW_HIDE);
+        kbo_log_runtimef("KBO hub hidden mode=%s hwnd=%p", kbo_hub_mode_log_label(), (void*)hwnd);
+        return;
+    }
+
+    kbo_hub_set_mode(next_mode);
+    SetWindowTextA(
+        hwnd,
+        kbo_hub_current_mode_is_developer() ? "Ultimate KBO - Developer" : "Ultimate KBO");
     HWND owner = kbo_find_ootp_main_window();
     if (owner != NULL) {
         SetWindowLongPtrA(hwnd, GWLP_HWNDPARENT, (LONG_PTR)owner);
@@ -247,11 +273,23 @@ void kbo_show_or_hide_hotkey_window(void)
     ShowWindow(hwnd, SW_SHOWNORMAL);
     SetForegroundWindow(hwnd);
     PostMessageA(hwnd, KBO_WM_SHOW_HUB_CONTENT, 0, 0);
-    kbo_log_runtimef("KBO F2 hub shown hwnd=%p owner=%p", (void*)hwnd, (void*)owner);
+    kbo_log_runtimef(
+        "KBO hub shown mode=%s hwnd=%p owner=%p",
+        kbo_hub_mode_log_label(),
+        (void*)hwnd,
+        (void*)owner);
 }
 
-int kbo_queue_hotkey_window_toggle(void)
+int kbo_queue_hotkey_window_toggle(int requested_mode)
 {
+    int next_mode = requested_mode == KBO_HUB_MODE_DEVELOPER
+        ? KBO_HUB_MODE_DEVELOPER
+        : KBO_HUB_MODE_RELEASE;
+    if (!kbo_hub_requested_mode_available(next_mode)) {
+        kbo_log_runtime_line("KBO hub developer toggle ignored reason=developer_mode_file_missing");
+        return 0;
+    }
+
     ULONGLONG now = GetTickCount64();
     if (now - g_kbo_hotkey_last_toggle_ms < 250u) {
         return 1;
@@ -260,12 +298,15 @@ int kbo_queue_hotkey_window_toggle(void)
 
     HWND hwnd = g_kbo_hotkey_window;
     if (hwnd == NULL || !IsWindow(hwnd)) {
-        kbo_log_runtime_line("KBO F2 hub toggle skipped reason=no_window");
+        kbo_log_runtime_line("KBO hub toggle skipped reason=no_window");
         return 0;
     }
 
-    PostMessageA(hwnd, KBO_WM_TOGGLE_SERVICE_MONITOR, 0, 0);
-    kbo_log_runtimef("KBO F2 hub toggle queued hwnd=%p", (void*)hwnd);
+    PostMessageA(hwnd, KBO_WM_TOGGLE_SERVICE_MONITOR, (WPARAM)next_mode, 0);
+    kbo_log_runtimef(
+        "KBO hub toggle queued requested_mode=%s hwnd=%p",
+        next_mode == KBO_HUB_MODE_DEVELOPER ? "developer" : "release",
+        (void*)hwnd);
     return 1;
 }
 
@@ -288,9 +329,14 @@ LRESULT CALLBACK kbo_hotkey_keyboard_proc(int code, WPARAM wparam, LPARAM lparam
 {
     if (code == HC_ACTION && (wparam == WM_KEYDOWN || wparam == WM_SYSKEYDOWN) && lparam != 0) {
         const KBDLLHOOKSTRUCT* key = (const KBDLLHOOKSTRUCT*)lparam;
-        if ((key->vkCode == VK_F2 || key->vkCode == VK_F9) && kbo_foreground_is_this_process()) {
-            kbo_queue_hotkey_window_toggle();
-            return 1;
+        if ((key->vkCode == VK_F2 || key->vkCode == VK_F3)
+                && kbo_foreground_is_this_process()) {
+            int requested_mode = key->vkCode == VK_F3
+                ? KBO_HUB_MODE_DEVELOPER
+                : KBO_HUB_MODE_RELEASE;
+            if (kbo_queue_hotkey_window_toggle(requested_mode)) {
+                return 1;
+            }
         }
         if (key->vkCode == VK_F5
                 && g_kbo_hotkey_window != NULL

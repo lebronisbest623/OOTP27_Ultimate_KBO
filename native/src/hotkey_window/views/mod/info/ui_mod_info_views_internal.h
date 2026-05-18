@@ -52,6 +52,6 @@ void kbo_webview_append_ootp_choice_option(
 void kbo_webview_end_ootp_choice(KboWindowTextBuffer* buffer);
 void kbo_webview_append_mod_tester_credits(KboWindowTextBuffer* buffer);
 void kbo_webview_append_mod_info_view(KboWindowTextBuffer* buffer, int selected_mod_subview);
-void kbo_webview_append_settings_view(KboWindowTextBuffer* buffer);
+void kbo_webview_append_settings_view(KboWindowTextBuffer* buffer, int selected_settings_subview);
 
 #endif

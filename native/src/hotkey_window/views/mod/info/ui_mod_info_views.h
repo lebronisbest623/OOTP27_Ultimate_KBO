@@ -15,6 +15,6 @@ typedef struct KboModRuntimeFlagSetting KboModRuntimeFlagSetting;
 const KboModRuntimeFlagSetting* kbo_find_mod_runtime_flag_setting(const char* key);
 int kbo_set_mod_runtime_flag_enabled(const KboModRuntimeFlagSetting* setting, int enabled);
 void kbo_webview_append_mod_info_view(KboWindowTextBuffer* buffer, int selected_mod_subview);
-void kbo_webview_append_settings_view(KboWindowTextBuffer* buffer);
+void kbo_webview_append_settings_view(KboWindowTextBuffer* buffer, int selected_settings_subview);
 
 #endif

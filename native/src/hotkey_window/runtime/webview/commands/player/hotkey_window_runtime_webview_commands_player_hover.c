@@ -1,13 +1,11 @@
 #include "../../hotkey_window_webview_internal.h"
 #include "../../../player_hover/player_hover_manager_probe.h"
-#include "../../../../support/assets/paths/ui_image_sources.h"
 #include "../../../../../core/files/save_paths/core_save_paths.h"
 #include "../../../../../foreign/common/player_eval/foreign_waiver_player_eval.h"
 #include <stdarg.h>
 
-#define KBO_PLAYER_TOOLTIP_PORTRAIT_SRC_BYTES (768u * 1024u)
-#define KBO_PLAYER_TOOLTIP_SCRIPT_BYTES       (1024u * 1024u)
-#define KBO_PLAYER_TOOLTIP_HTML_BYTES         (1152u * 1024u)
+#define KBO_PLAYER_TOOLTIP_SCRIPT_BYTES (96u * 1024u)
+#define KBO_PLAYER_TOOLTIP_HTML_BYTES   (128u * 1024u)
 
 static void kbo_append_rawf(char* out, size_t out_size, size_t* pos, const char* fmt, ...)
 {
@@ -140,28 +138,46 @@ static int kbo_find_player_portrait_src(uint32_t player_id, char* out, size_t ou
         return 0;
     }
 
-    char portrait_path[MAX_PATH] = {0};
+    char portrait_folder[MAX_PATH] = {0};
     int written = snprintf(
+        portrait_folder,
+        sizeof(portrait_folder),
+        "%s\\news\\html\\images\\person_pictures",
+        save_path);
+    if (written <= 0 || (size_t)written >= sizeof(portrait_folder)) {
+        return 0;
+    }
+
+    char portrait_path[MAX_PATH] = {0};
+    written = snprintf(
         portrait_path,
         sizeof(portrait_path),
-        "%s\\news\\html\\images\\person_pictures\\player_%u.png",
-        save_path,
+        "%s\\player_%u.png",
+        portrait_folder,
         player_id);
     if (written <= 0 || (size_t)written >= sizeof(portrait_path)) {
         return 0;
     }
 
-    DWORD attrs = GetFileAttributesA(portrait_path);
-    if (attrs == INVALID_FILE_ATTRIBUTES || (attrs & FILE_ATTRIBUTE_DIRECTORY) != 0u) {
+    WIN32_FILE_ATTRIBUTE_DATA attrs;
+    memset(&attrs, 0, sizeof(attrs));
+    if (!GetFileAttributesExA(portrait_path, GetFileExInfoStandard, &attrs)
+            || (attrs.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0u) {
         return 0;
     }
 
-    kbo_webview_copy_image_src(portrait_path, out, out_size);
-    if (strncmp(out, "data:", 5) != 0) {
-        kbo_log_runtimef(
-            "webview player tooltip portrait skipped reason=not_embedded player=%u path=%s",
-            player_id,
-            portrait_path);
+    kbo_set_webview_player_tooltip_asset_folder(portrait_folder);
+    written = snprintf(
+        out,
+        out_size,
+        "https://%s/player_%u.png?m=%08lx%08lx&s=%08lx%08lx",
+        KBO_PLAYER_TOOLTIP_ASSET_HOST,
+        player_id,
+        (unsigned long)attrs.ftLastWriteTime.dwHighDateTime,
+        (unsigned long)attrs.ftLastWriteTime.dwLowDateTime,
+        (unsigned long)attrs.nFileSizeHigh,
+        (unsigned long)attrs.nFileSizeLow);
+    if (written <= 0 || (size_t)written >= out_size) {
         out[0] = '\0';
         return 0;
     }
@@ -231,26 +247,15 @@ static void kbo_show_webview_player_tooltip(
         return;
     }
 
-    char* portrait_src = (char*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, KBO_PLAYER_TOOLTIP_PORTRAIT_SRC_BYTES);
-    if (portrait_src != NULL) {
-        kbo_find_player_portrait_src(player_id, portrait_src, KBO_PLAYER_TOOLTIP_PORTRAIT_SRC_BYTES);
-    }
+    char portrait_src[256] = {0};
+    kbo_find_player_portrait_src(player_id, portrait_src, sizeof(portrait_src));
     char team_primary[16] = "#f05024";
     char team_secondary[16] = "#303135";
     uint32_t color_team_id = g_kbo_hub_selected_team_id != 0u ? g_kbo_hub_selected_team_id : team_id;
     kbo_hub_copy_team_bar_colors(color_team_id, team_primary, sizeof(team_primary), team_secondary, sizeof(team_secondary));
 
-    if (portrait_src != NULL && portrait_src[0] != '\0'
-            && strlen(portrait_src) + 65536u >= KBO_PLAYER_TOOLTIP_SCRIPT_BYTES) {
-        kbo_log_runtimef("webview player tooltip portrait skipped reason=script_budget player=%u", player_id);
-        portrait_src[0] = '\0';
-    }
-
     char* simple_script = (char*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, KBO_PLAYER_TOOLTIP_SCRIPT_BYTES);
     if (simple_script == NULL) {
-        if (portrait_src != NULL) {
-            HeapFree(GetProcessHeap(), 0, portrait_src);
-        }
         kbo_show_webview_player_tooltip_shell(hwnd, player_name, screen_x, screen_y, hover_seq);
         kbo_log_runtimef("webview player tooltip skipped reason=script_alloc_failed player=%u", player_id);
         return;
@@ -270,7 +275,7 @@ static void kbo_show_webview_player_tooltip(
         simple_script,
         KBO_PLAYER_TOOLTIP_SCRIPT_BYTES,
         &simple_pos,
-        portrait_src != NULL ? portrait_src : "");
+        portrait_src);
     kbo_append_rawf(simple_script, KBO_PLAYER_TOOLTIP_SCRIPT_BYTES, &simple_pos, ";var teamPrimary=");
     kbo_append_js_literal(simple_script, KBO_PLAYER_TOOLTIP_SCRIPT_BYTES, &simple_pos, team_primary);
     kbo_append_rawf(simple_script, KBO_PLAYER_TOOLTIP_SCRIPT_BYTES, &simple_pos, ";var teamSecondary=");
@@ -312,9 +317,6 @@ static void kbo_show_webview_player_tooltip(
         0);
 
     if (simple_pos + 1u >= KBO_PLAYER_TOOLTIP_SCRIPT_BYTES) {
-        if (portrait_src != NULL) {
-            HeapFree(GetProcessHeap(), 0, portrait_src);
-        }
         HeapFree(GetProcessHeap(), 0, simple_script);
         kbo_show_webview_player_tooltip_shell(hwnd, player_name, screen_x, screen_y, hover_seq);
         kbo_log_runtimef("webview player tooltip skipped reason=script_full player=%u", player_id);
@@ -323,9 +325,6 @@ static void kbo_show_webview_player_tooltip(
 
     char* html = (char*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, KBO_PLAYER_TOOLTIP_HTML_BYTES);
     if (html == NULL) {
-        if (portrait_src != NULL) {
-            HeapFree(GetProcessHeap(), 0, portrait_src);
-        }
         HeapFree(GetProcessHeap(), 0, simple_script);
         kbo_show_webview_player_tooltip_shell(hwnd, player_name, screen_x, screen_y, hover_seq);
         kbo_log_runtimef("webview player tooltip skipped reason=html_alloc_failed player=%u", player_id);
@@ -344,11 +343,16 @@ static void kbo_show_webview_player_tooltip(
     kbo_append_rawf(html, KBO_PLAYER_TOOLTIP_HTML_BYTES, &html_pos, "%s", simple_script);
     kbo_append_rawf(html, KBO_PLAYER_TOOLTIP_HTML_BYTES, &html_pos, "</script></body></html>");
 
+    if (html_pos + 1u >= KBO_PLAYER_TOOLTIP_HTML_BYTES) {
+        HeapFree(GetProcessHeap(), 0, simple_script);
+        HeapFree(GetProcessHeap(), 0, html);
+        kbo_show_webview_player_tooltip_shell(hwnd, player_name, screen_x, screen_y, hover_seq);
+        kbo_log_runtimef("webview player tooltip skipped reason=html_full player=%u", player_id);
+        return;
+    }
+
     if (!kbo_show_webview_player_tooltip_popup(hwnd, screen_x, screen_y, hover_seq, html)) {
         kbo_log_runtimef("webview player tooltip popup card show failed player=%u", player_id);
-    }
-    if (portrait_src != NULL) {
-        HeapFree(GetProcessHeap(), 0, portrait_src);
     }
     HeapFree(GetProcessHeap(), 0, simple_script);
     HeapFree(GetProcessHeap(), 0, html);

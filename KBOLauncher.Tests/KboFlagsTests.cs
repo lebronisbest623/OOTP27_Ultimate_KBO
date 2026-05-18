@@ -166,7 +166,7 @@ public sealed class KboFlagsTests : IDisposable
         flags["enable_foreign_waiver_ai"].Should().BeTrue();
         flags["enable_foreign_waiver_background_scanner"].Should().BeTrue();
         flags["enable_launcher_injection"].Should().BeTrue();
-        flags["enable_foreign_ai_roster_management"].Should().BeFalse();
+        flags["enable_foreign_ai_roster_management"].Should().BeTrue();
         flags["enable_single_division_allstar_runtime_patches"].Should().BeFalse();
         flags["enable_single_division_allstar_settings_patch"].Should().BeFalse();
         flags["enable_single_division_allstar_voting_hook"].Should().BeFalse();

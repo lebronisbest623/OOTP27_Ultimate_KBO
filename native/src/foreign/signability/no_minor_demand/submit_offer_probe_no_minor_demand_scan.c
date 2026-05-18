@@ -125,6 +125,7 @@ int kbo_no_minor_scan_and_floor_teamless_fa_demands(const char* source)
     int changed = 0;
     int demand_fixed = 0;
     int retained_demand_fixed = 0;
+    int foreign_contract_demand_fixed = 0;
     int foreign_demand_mapped = 0;
     int level_observed_nonmajor = 0;
     static LONG detail_log_count = 0;
@@ -179,6 +180,11 @@ int kbo_no_minor_scan_and_floor_teamless_fa_demands(const char* source)
         if (retained_demand_floor > old_demand
                 && kbo_apply_foreign_reserve_demand_floor(player_ptr, source)) {
             retained_demand_fixed++;
+            player_changed = 1;
+            kbo_no_minor_read_player_i32(player_ptr, OOTP27_PLAYER_FA_DEMAND_SALARY_OFFSET, &old_demand);
+        }
+        if (foreign_candidate && kbo_apply_foreign_contract_demand_floor(player_ptr, today, source)) {
+            foreign_contract_demand_fixed++;
             player_changed = 1;
             kbo_no_minor_read_player_i32(player_ptr, OOTP27_PLAYER_FA_DEMAND_SALARY_OFFSET, &old_demand);
         }
@@ -245,7 +251,7 @@ int kbo_no_minor_scan_and_floor_teamless_fa_demands(const char* source)
     LONG summary_slot = changed > 0 ? InterlockedIncrement(&summary_log_count) : 0;
     if (changed > 0 && (summary_slot <= 20 || (summary_slot % 40) == 0)) {
         kbo_log_runtimef(
-            "KBO no-minor demand floor prescan complete: source=%s league=%u vector_off=0x%x scanned=%d teamless=%d changed=%d demand_fixed=%d retained_demand_fixed=%d foreign_demand_mapped=%d level_observed_nonmajor=%d floor=%d summary_slot=%ld",
+            "KBO no-minor demand floor prescan complete: source=%s league=%u vector_off=0x%x scanned=%d teamless=%d changed=%d demand_fixed=%d retained_demand_fixed=%d foreign_contract_demand_fixed=%d foreign_demand_mapped=%d level_observed_nonmajor=%d floor=%d summary_slot=%ld",
             source,
             league_id,
             vector_offset,
@@ -254,6 +260,7 @@ int kbo_no_minor_scan_and_floor_teamless_fa_demands(const char* source)
             changed,
             demand_fixed,
             retained_demand_fixed,
+            foreign_contract_demand_fixed,
             foreign_demand_mapped,
             level_observed_nonmajor,
             salary_floor,

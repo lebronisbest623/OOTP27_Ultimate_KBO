@@ -2,8 +2,8 @@
 #include "../api/intl_established_fa_postscan.h"
 
 #include "../../../core/news/templates/core_news_templates.h"
+#include "../../../core/news/live/core_live_news.h"
 #include "../../../core/core_flags/api/flags_api.h"
-#include "../../../core/sql/league_news/core_sql_league_news.h"
 #include "../../../custom_events/runtime/dates/custom_event_dates.h"
 #include "../../../team/names/team_name_cache.h"
 
@@ -318,23 +318,14 @@ int kbo_handle_intl_established_fa_event(uint32_t event_yyyymmdd, const char* so
     if (league_id == 0u) {
         league_id = OOTP27_KBO_MAIN_LEAGUE_ID;
     }
-    insert_kbo_league_news_sql(
+    create_kbo_native_live_news_with_body(
         news_date / 10000u,
         (news_date / 100u) % 100u,
         news_date % 100u,
         league_id,
         3u,
         title,
-        body,
-        source != NULL ? source : "intl_established_fa_event");
-    insert_kbo_league_news_table_sql(
-        news_date / 10000u,
-        (news_date / 100u) % 100u,
-        news_date % 100u,
-        league_id,
-        title,
-        body,
-        source != NULL ? source : "intl_established_fa_event");
+        body);
 
     kbo_log_runtimef(
         "international established FA event news source=%s date=%u generation=%u news=%u league=%u total=%d top=%d expected=%d multiplier=%d",

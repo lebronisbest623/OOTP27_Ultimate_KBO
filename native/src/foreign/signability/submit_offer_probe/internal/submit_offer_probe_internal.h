@@ -22,6 +22,7 @@
 #include "../../../common/policy/foreign_waiver_policy.h"
 #include "../../../injury/api/foreign_injury.h"
 #include "../../../rights/query/foreign_waiver_rights_query.h"
+#include "../../api/foreign_signability_salary_floor.h"
 #include "../../../../military_service/military_service.h"
 #include "../../state/foreign_fa_block_state.h"
 #include "../../state/submit_offer_probe_state.h"

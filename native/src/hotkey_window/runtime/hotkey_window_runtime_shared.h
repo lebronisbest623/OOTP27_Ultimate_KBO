@@ -64,6 +64,7 @@
 #include "../support/assets/names/ui_uniform_numbers.h"
 #include "../support/skin_assets/bitmap_draw.h"
 #include "../ui_html_helpers/position_helpers.h"
+#include "mode/hotkey_window_runtime_mode.h"
 #include "hotkey_window_domain_contract.h"
 
 #define KBO_WM_TOGGLE_SERVICE_MONITOR (WM_APP + 0x4b0u)
@@ -98,7 +99,8 @@
 #define KBO_HUB_MOD_SUBVIEW_CONTRIBUTIONS 3
 #define KBO_HUB_MOD_SUBVIEW_SETTINGS      4
 #define KBO_HUB_MOD_SUBVIEW_COUNT         5
-
+#define KBO_HUB_SETTINGS_SUBVIEW_LEAGUE   0
+#define KBO_HUB_SETTINGS_SUBVIEW_COUNT    1
 extern LONG g_kbo_hotkey_window_started;
 extern HWND g_kbo_hotkey_window;
 extern HWND g_kbo_hotkey_edit;
@@ -136,6 +138,8 @@ extern int g_kbo_hub_selected_fa_subview;
 extern int g_kbo_hub_selected_fa_compensation_subview;
 extern int g_kbo_hub_selected_cbt_subview;
 extern int g_kbo_hub_selected_futures_subview;
+extern int g_kbo_hub_selected_settings_subview;
+extern int g_kbo_hub_mode;
 extern int g_kbo_hub_fa_market_filter;
 extern int g_kbo_hub_fa_market_position_filter;
 extern uint32_t g_kbo_hub_selected_fa_compensation_player_id;

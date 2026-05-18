@@ -103,6 +103,16 @@ const char* kbo_hub_mod_subnav_label(int index)
         return "";
     }
 }
+
+const char* kbo_hub_settings_subnav_label(int index)
+{
+    switch (index) {
+    case KBO_HUB_SETTINGS_SUBVIEW_LEAGUE:
+        return kbo_hub_text("\xeb\xa6\xac\xea\xb7\xb8", "리그");
+    default:
+        return "";
+    }
+}
 void kbo_hub_ensure_valid_selection(void);
 void kbo_refresh_hotkey_window(void);
 void kbo_hub_apply_fixed_window_placement(HWND hwnd, int preserve_position);

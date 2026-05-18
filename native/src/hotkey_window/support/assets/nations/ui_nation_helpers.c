@@ -5,7 +5,7 @@
 #include "../paths/ui_image_sources.h"
 #include "ui_nation_helpers.h"
 
-static const char* kbo_hub_nation_label_for_id(uint32_t nation_id)
+const char* kbo_hub_nation_label_for_id(uint32_t nation_id)
 {
     switch (nation_id) {
     case OOTP27_KBO_KOREA_NATION_ID: return "Korea";
@@ -22,7 +22,7 @@ static const char* kbo_hub_nation_label_for_id(uint32_t nation_id)
     }
 }
 
-static const char* kbo_hub_nation_abbrev_for_id(uint32_t nation_id)
+const char* kbo_hub_nation_abbrev_for_id(uint32_t nation_id)
 {
     switch (nation_id) {
     case OOTP27_KBO_KOREA_NATION_ID: return "KOR";
@@ -39,7 +39,7 @@ static const char* kbo_hub_nation_abbrev_for_id(uint32_t nation_id)
     }
 }
 
-static const char* kbo_hub_nation_flag_file_for_id(uint32_t nation_id)
+const char* kbo_hub_nation_flag_file_for_id(uint32_t nation_id)
 {
     switch (nation_id) {
     case OOTP27_KBO_KOREA_NATION_ID: return "kor.png";

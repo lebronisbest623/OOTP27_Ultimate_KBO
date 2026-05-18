@@ -39,6 +39,8 @@ int g_kbo_hub_selected_fa_subview = 0;
 int g_kbo_hub_selected_fa_compensation_subview = 0;
 int g_kbo_hub_selected_cbt_subview = 0;
 int g_kbo_hub_selected_futures_subview = 0;
+int g_kbo_hub_selected_settings_subview = 0;
+int g_kbo_hub_mode = KBO_HUB_MODE_RELEASE;
 int g_kbo_hub_fa_market_filter = 0;
 int g_kbo_hub_fa_market_position_filter = 0;
 uint32_t g_kbo_hub_selected_fa_compensation_player_id = 0u;
@@ -106,6 +108,8 @@ HBITMAP g_kbo_hub_asset_sb_slider_bottom = NULL;
 #define KBO_HUB_MOD_SUBVIEW_CONTRIBUTIONS 3
 #define KBO_HUB_MOD_SUBVIEW_SETTINGS      4
 #define KBO_HUB_MOD_SUBVIEW_COUNT         5
+#define KBO_HUB_SETTINGS_SUBVIEW_LEAGUE   0
+#define KBO_HUB_SETTINGS_SUBVIEW_COUNT    1
 
 const COLORREF KBO_HUB_COLOR_BG         = RGB(0x0A, 0x0A, 0x0A);
 const COLORREF KBO_HUB_COLOR_HEADER      = RGB(0x1D, 0x55, 0x6C);

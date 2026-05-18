@@ -84,21 +84,17 @@ public sealed class OotpBuildGuardTests : IDisposable
     }
 
     [Fact]
-    public void FindSupportedBuild_RejectsMetadataOnlyExperimentalSignatureBuild()
+    public void FindSupportedBuild_RejectsUnknownBuild()
     {
-        var expected = global::OotpSupportedBuilds.All.First(build => build.ExperimentalSignature);
-        var info = new global::OotpBuildInfo(true, expected.Timestamp, expected.SizeOfImage, null);
+        var info = new global::OotpBuildInfo(true, 0x11111111u, 0x02222222u, null);
 
         var supported = global::OotpBuildGuard.FindSupportedBuild(info);
         var known = global::OotpBuildGuard.FindKnownBuild(info);
 
         supported.Should().BeNull();
-        known.Should().NotBeNull();
-        known!.ExperimentalSignature.Should().BeTrue();
-        known.NativePatchesSupported.Should().BeFalse();
+        known.Should().BeNull();
         global::OotpBuildGuard.FormatConsoleStatus(info, supported).Should().Contain("unsupported");
-        global::OotpBuildGuard.SupportedBuildDescriptions().Should().Contain(
-            $"{expected.Label}:0x{expected.Timestamp:X8}/0x{expected.SizeOfImage:X8}[experimental_signature][metadata_only]");
+        global::OotpBuildGuard.SupportedBuildDescriptions().Should().NotContain("Official");
     }
 
     [Fact]

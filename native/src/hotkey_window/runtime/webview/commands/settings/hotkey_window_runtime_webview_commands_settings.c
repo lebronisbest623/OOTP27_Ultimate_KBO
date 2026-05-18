@@ -1,7 +1,23 @@
 #include "../../hotkey_window_webview_internal.h"
 
+static int kbo_webview_settings_command_allowed_for_current_mode(const char* cmd)
+{
+    if (kbo_hub_current_mode_is_developer()) {
+        return 1;
+    }
+    return strncmp(cmd, "settings/asian-quota-salary-limit/", 35) == 0;
+}
+
 int kbo_webview_handle_settings_command(const char* cmd)
 {
+    if (strncmp(cmd, "settings/", 9) == 0
+            && !kbo_webview_settings_command_allowed_for_current_mode(cmd)) {
+        kbo_log_runtimef("settings webview: blocked release-mode command=%s", cmd);
+        g_kbo_hub_selected_view = KBO_HUB_VIEW_SETTINGS;
+        g_kbo_hub_open_dropdown = 0;
+        kbo_webview_navigate_current();
+        return 1;
+    }
 
     if (strncmp(cmd, "settings/intl-fa-multiplier/", 29) == 0) {
         if (!kbo_hub_selected_league_is_kbo()) {

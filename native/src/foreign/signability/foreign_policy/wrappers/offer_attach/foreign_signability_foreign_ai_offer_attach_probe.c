@@ -2,6 +2,7 @@
 #include "foreign_signability_offer_attach_probe_utils.h"
 #include "../../../../../build_verify/build_verify.h"
 #include "../../../../../fa_market_investigation/probe/domestic_fa_offer_probe.h"
+#include "../../../api/foreign_signability_salary_floor.h"
 
 typedef void (__fastcall *KboOotpForeignAiOfferAttachFn)(uintptr_t player_ptr, uintptr_t offer_slot_ptr);
 typedef uintptr_t (__fastcall *KboOotpForeignAiOfferBuildFn)(
@@ -15,7 +16,6 @@ typedef uint8_t (__fastcall *KboOotpForeignAiOfferFinalGateFn)(
     uintptr_t player_ptr,
     int32_t salary);
 
-int kbo_apply_foreign_reserve_demand_floor(uintptr_t player_ptr, const char* source);
 void kbo_prepare_foreign_fa_offer_demand_baseline(uintptr_t player_ptr, const char* source);
 void kbo_restore_foreign_fa_demand_salary_ladder(const char* source);
 
@@ -312,7 +312,7 @@ __declspec(noinline) uintptr_t ootp_kbo_foreign_ai_offer_build_probe_wrapper(
 
     uintptr_t offer_ptr = 0;
     if (original_func != NULL) {
-        kbo_apply_foreign_reserve_demand_floor(player_ptr, "ai_offer_build");
+        kbo_apply_foreign_contract_demand_floor(player_ptr, 0u, "ai_offer_build");
         kbo_prepare_foreign_fa_offer_demand_baseline(player_ptr, "ai_offer_build");
         KBO_HOOK_PROFILE_PAUSE(profile_hook);
         offer_ptr = original_func(player_ptr, team_id, zero_arg, flag_ptr, 0u);

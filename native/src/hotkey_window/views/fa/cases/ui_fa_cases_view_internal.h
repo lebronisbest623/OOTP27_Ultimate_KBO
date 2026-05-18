@@ -4,6 +4,7 @@
 #include "../ui_fa_views_internal.h"
 
 #define KBO_FA_MARKET_UI_MAX_ROWS KBO_FA_MARKET_CLASSIFICATION_MAX
+#define KBO_FA_MARKET_UI_RENDER_CHUNK 500
 
 extern int g_kbo_hub_fa_market_filter;
 extern int g_kbo_hub_fa_market_position_filter;

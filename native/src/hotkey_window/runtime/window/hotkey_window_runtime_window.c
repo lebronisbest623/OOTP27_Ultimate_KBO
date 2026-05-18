@@ -439,9 +439,15 @@ LRESULT CALLBACK kbo_hotkey_window_proc(HWND hwnd, UINT message, WPARAM wparam, 
 
     case WM_TIMER:
         if (wparam == 1u
-                && ((GetAsyncKeyState(VK_F2) & 1) != 0 || (GetAsyncKeyState(VK_F9) & 1) != 0)
+                && (GetAsyncKeyState(VK_F2) & 1) != 0
                 && kbo_foreground_is_this_process()) {
-            kbo_queue_hotkey_window_toggle();
+            kbo_queue_hotkey_window_toggle(KBO_HUB_MODE_RELEASE);
+            return 0;
+        }
+        if (wparam == 1u
+                && (GetAsyncKeyState(VK_F3) & 1) != 0
+                && kbo_foreground_is_this_process()) {
+            kbo_queue_hotkey_window_toggle(KBO_HUB_MODE_DEVELOPER);
             return 0;
         }
         if (wparam == 1u
@@ -467,7 +473,7 @@ LRESULT CALLBACK kbo_hotkey_window_proc(HWND hwnd, UINT message, WPARAM wparam, 
         break;
 
     case KBO_WM_TOGGLE_SERVICE_MONITOR:
-        kbo_show_or_hide_hotkey_window();
+        kbo_show_or_hide_hotkey_window((int)wparam);
         return 0;
 
     case KBO_WM_REFRESH_HUB:

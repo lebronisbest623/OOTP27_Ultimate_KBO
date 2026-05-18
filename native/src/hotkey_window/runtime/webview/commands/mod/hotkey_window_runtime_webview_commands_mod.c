@@ -52,6 +52,15 @@ int kbo_webview_handle_mod_settings_command(const char* cmd)
         kbo_webview_navigate_current();
         return 1;
     }
+    if (strncmp(cmd, "mod/settings/", 13) == 0
+            && !kbo_hub_current_mode_is_developer()) {
+        kbo_log_runtimef("mod settings webview: blocked release-mode command=%s", cmd);
+        g_kbo_hub_selected_view = KBO_HUB_VIEW_MOD_INFO;
+        g_kbo_hub_selected_mod_subview = KBO_HUB_MOD_SUBVIEW_SETTINGS;
+        g_kbo_hub_open_dropdown = 0;
+        kbo_webview_navigate_current();
+        return 1;
+    }
     if (strcmp(cmd, "mod/settings/perf-snapshot/dump") == 0) {
         char snapshot_path[MAX_PATH] = {0};
         int ok = kbo_dump_perf_player_snapshot(

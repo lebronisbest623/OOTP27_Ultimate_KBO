@@ -3,7 +3,7 @@
   "fa_compensation.player_selected.title.variants": 4,
   "fa_compensation.player_selected.title.v1": "{selected_player_link}, FA 이적의 후속 카드 됐다",
   "fa_compensation.player_selected.title.v2": "{selected_player_link}, 보호명단 밖에서 새 기회",
-  "fa_compensation.player_selected.title.v3": "{original_team_link}, 보호 밖 선수에서 답 찾았다",
+  "fa_compensation.player_selected.title.v3": "{selected_player_link}, {original_team_link}의 보상 선택",
   "fa_compensation.player_selected.title.v4": "{selected_player_link}, FA 보상 카드로 새 팀 향한다",
   "fa_compensation.player_selected.body": "{fa_player_link}의 FA 이적이 {selected_player_link}의 새 출발로 이어졌습니다. {original_team_link}는 {signing_team_link}의 보호명단 밖에 있던 이 선수를 데려오며 떠난 자리를 메울 카드를 골랐습니다. 등급은 {grade}입니다.\n\n현금 {cash_text}도 함께 붙었습니다. FA를 잡은 팀에는 추가 비용이 남았고, 떠나보낸 팀에는 새로운 전력 실험이 시작됐습니다.",
   "fa_compensation.player_selected.body.variants": 3,

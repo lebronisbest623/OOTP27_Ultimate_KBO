@@ -1,5 +1,7 @@
 #include "ui_fa_cases_view_internal.h"
 #include "../../../../team/lookup/team_lookup.h"
+#include "../../../support/assets/paths/ui_image_sources.h"
+#include "../../../support/text/js/ui_js_string.h"
 
 static void kbo_webview_append_fa_market_grade_cell(
     KboWindowTextBuffer* buffer,
@@ -43,6 +45,223 @@ static void kbo_webview_append_fa_market_grade_cell(
     }
 
     kbo_window_text_appendf(buffer, "</td>");
+}
+
+static void kbo_webview_append_fa_market_compact_nation_cell(
+    KboWindowTextBuffer* buffer,
+    uint32_t nation_id)
+{
+    if (buffer == NULL) {
+        return;
+    }
+
+    const char* label = kbo_hub_nation_label_for_id(nation_id);
+    const char* abbrev = kbo_hub_nation_abbrev_for_id(nation_id);
+    kbo_window_text_appendf(buffer, "<td class='roNat' title='");
+    kbo_html_append_escaped(buffer, label);
+    kbo_window_text_appendf(buffer, " nation#%u'><span class='roNatWrap'><img class='roNatFlag' alt='", nation_id);
+    kbo_html_append_escaped(buffer, abbrev);
+    kbo_window_text_appendf(buffer, "' title='");
+    kbo_html_append_escaped(buffer, label);
+    kbo_window_text_appendf(buffer, " nation#%u' data-fa-nation-flag='%u'><span class='roNatText'>", nation_id, nation_id);
+    kbo_html_append_escaped(buffer, abbrev);
+    kbo_window_text_appendf(buffer, "</span></span></td>");
+}
+
+static void kbo_webview_append_fa_market_row_html(
+    KboWindowTextBuffer* buffer,
+    const KboFaMarketClassification* row)
+{
+    if (buffer == NULL || row == NULL) {
+        return;
+    }
+
+    char rights_abbrev[16] = "-";
+    const char* grade_display = kbo_fa_market_display_grade(row->grade);
+    uint32_t grade_sort_rank = kbo_fa_market_display_grade_sort_rank(row->grade);
+    kbo_hub_copy_team_abbrev_by_id(row->rights_team_id, rights_abbrev, sizeof(rights_abbrev), "-");
+
+    kbo_window_text_appendf(buffer, "<tr>");
+    kbo_window_text_appendf(buffer, "<td class='roPo'>");
+    kbo_html_append_escaped(
+        buffer,
+        kbo_webview_position_label_from_values(row->position_group, row->position_role));
+    kbo_window_text_appendf(buffer, "</td>");
+    kbo_webview_append_player_name_cell(buffer, row->player_name, row->player_id);
+    kbo_window_text_appendf(buffer, "<td class='roCase'>");
+    kbo_html_append_escaped(buffer, kbo_fa_market_display_case_label(row->case_label));
+    kbo_window_text_appendf(buffer, "</td>");
+    kbo_webview_append_fa_market_grade_cell(buffer, row, grade_display, grade_sort_rank);
+    kbo_window_text_appendf(buffer, "<td class='roAge'>%u</td>", (uint32_t)row->age);
+    kbo_webview_append_fa_market_compact_nation_cell(buffer, row->nation_id);
+    kbo_window_text_appendf(buffer, "<td class='roRights'>");
+    kbo_html_append_escaped(buffer, rights_abbrev);
+    kbo_window_text_appendf(buffer, "</td></tr>");
+}
+
+static int kbo_webview_fa_market_row_visible(const KboFaMarketClassification* row)
+{
+    return row != NULL
+        && kbo_fa_market_row_matches_filter(row, g_kbo_hub_fa_market_filter)
+        && kbo_fa_market_row_matches_position_filter(row, g_kbo_hub_fa_market_position_filter);
+}
+
+static void kbo_webview_fa_market_add_nation_id(
+    uint32_t* nation_ids,
+    int* nation_count,
+    uint32_t nation_id)
+{
+    if (nation_ids == NULL || nation_count == NULL || *nation_count >= 64) {
+        return;
+    }
+    for (int i = 0; i < *nation_count; i++) {
+        if (nation_ids[i] == nation_id) {
+            return;
+        }
+    }
+    nation_ids[*nation_count] = nation_id;
+    *nation_count += 1;
+}
+
+static void kbo_webview_append_fa_market_flag_src(
+    KboWindowTextBuffer* buffer,
+    uint32_t nation_id)
+{
+    if (buffer == NULL) {
+        return;
+    }
+
+    char flag_path[MAX_PATH] = {0};
+    char src[65536] = {0};
+    KboWindowTextBuffer src_buffer;
+    kbo_hub_nation_flag_asset_path(kbo_hub_nation_flag_file_for_id(nation_id), flag_path, sizeof(flag_path));
+    if (flag_path[0] == '\0' || GetFileAttributesA(flag_path) == INVALID_FILE_ATTRIBUTES) {
+        kbo_hub_nation_flag_asset_path("unknown.png", flag_path, sizeof(flag_path));
+    }
+    src_buffer.data = src;
+    src_buffer.capacity = sizeof(src);
+    src_buffer.length = 0;
+    kbo_webview_append_image_src(&src_buffer, flag_path);
+    if (src[0] == '\0') {
+        kbo_webview_copy_file_url(flag_path, src, sizeof(src));
+    }
+    kbo_webview_append_js_string(buffer, src);
+}
+
+static void kbo_webview_append_fa_market_flag_map(
+    KboWindowTextBuffer* buffer,
+    const uint32_t* nation_ids,
+    int nation_count)
+{
+    if (buffer == NULL) {
+        return;
+    }
+
+    kbo_window_text_appendf(buffer, "var flags={");
+    for (int i = 0; i < nation_count; i++) {
+        if (i > 0) {
+            kbo_window_text_appendf(buffer, ",");
+        }
+        kbo_window_text_appendf(buffer, "'%u':", nation_ids[i]);
+        kbo_webview_append_fa_market_flag_src(buffer, nation_ids[i]);
+    }
+    if (nation_count > 0) {
+        kbo_window_text_appendf(buffer, ",");
+    }
+    kbo_window_text_appendf(buffer, "unknown:");
+    kbo_webview_append_fa_market_flag_src(buffer, 0u);
+    kbo_window_text_appendf(buffer, "};");
+}
+
+static void kbo_webview_append_fa_market_virtual_rows(
+    KboWindowTextBuffer* buffer,
+    const KboFaMarketClassification* rows,
+    int count)
+{
+    if (buffer == NULL || rows == NULL || count <= 0) {
+        kbo_window_text_appendf(
+            buffer,
+            "<script>(function(){var cell=document.getElementById('faMarketMoreCell');"
+            "if(cell){cell.textContent='현재 필터와 일치하는 FA 선수를 찾지 못했습니다.';cell.parentNode.style.display='table-row';}})();</script>");
+        return;
+    }
+
+    uint32_t nation_ids[64] = {0};
+    int nation_count = 0;
+    for (int i = 0; i < count; i++) {
+        if (kbo_webview_fa_market_row_visible(&rows[i])) {
+            kbo_webview_fa_market_add_nation_id(nation_ids, &nation_count, rows[i].nation_id);
+        }
+    }
+
+    kbo_window_text_appendf(buffer, "<script>(function(){");
+    kbo_webview_append_fa_market_flag_map(buffer, nation_ids, nation_count);
+    kbo_window_text_appendf(buffer, "var rows=[");
+    int appended = 0;
+    for (int i = 0; i < count; i++) {
+        const KboFaMarketClassification* row = &rows[i];
+        if (!kbo_webview_fa_market_row_visible(row)) {
+            continue;
+        }
+
+        char row_html[4096] = {0};
+        KboWindowTextBuffer row_buffer;
+        row_buffer.data = row_html;
+        row_buffer.capacity = sizeof(row_html);
+        row_buffer.length = 0;
+        kbo_webview_append_fa_market_row_html(&row_buffer, row);
+
+        char rights_abbrev[16] = "-";
+        kbo_hub_copy_team_abbrev_by_id(row->rights_team_id, rights_abbrev, sizeof(rights_abbrev), "-");
+
+        if (appended > 0) {
+            kbo_window_text_appendf(buffer, ",");
+        }
+        kbo_window_text_appendf(buffer, "{h:");
+        kbo_webview_append_js_string(buffer, row_html);
+        kbo_window_text_appendf(buffer, ",s:[");
+        kbo_webview_append_js_string(
+            buffer,
+            kbo_webview_position_label_from_values(row->position_group, row->position_role));
+        kbo_window_text_appendf(buffer, ",");
+        kbo_webview_append_js_string(buffer, row->player_name);
+        kbo_window_text_appendf(buffer, ",");
+        kbo_webview_append_js_string(buffer, kbo_fa_market_display_case_label(row->case_label));
+        kbo_window_text_appendf(
+            buffer,
+            ",%u,%u,",
+            kbo_fa_market_display_grade_sort_rank(row->grade),
+            (uint32_t)row->age);
+        kbo_webview_append_js_string(buffer, kbo_hub_nation_abbrev_for_id(row->nation_id));
+        kbo_window_text_appendf(buffer, ",");
+        kbo_webview_append_js_string(buffer, rights_abbrev);
+        kbo_window_text_appendf(buffer, "]}");
+        appended++;
+    }
+    kbo_window_text_appendf(
+        buffer,
+        "];"
+        "var chunk=%d,rendered=0;"
+        "var body=document.getElementById('faMarketRows');"
+        "var scroller=document.querySelector('.faMarketTableWrap');"
+        "var more=document.getElementById('faMarketMoreCell');"
+        "function low(v){return v==null?'':String(v).toLowerCase();}"
+        "function cmp(a,b,type){if(type==='number'){a=Number(a)||0;b=Number(b)||0;return a-b;}return low(a).localeCompare(low(b),undefined,{numeric:true,sensitivity:'base'});}"
+        "function clearSort(table){var hs=table?table.querySelectorAll('th.sortAsc,th.sortDesc'):[];for(var i=0;i<hs.length;i++){hs[i].classList.remove('sortAsc');hs[i].classList.remove('sortDesc');}}"
+        "function hydrateFlags(){if(!body){return;}var imgs=body.querySelectorAll('img[data-fa-nation-flag]:not([src])');for(var i=0;i<imgs.length;i++){var key=imgs[i].getAttribute('data-fa-nation-flag');var src=flags[key]||flags.unknown||'';if(src){imgs[i].src=src;}}}"
+        "function updateMore(){if(!more){return;}if(rows.length===0){more.textContent='현재 필터와 일치하는 FA 선수를 찾지 못했습니다.';more.parentNode.style.display='table-row';return;}more.textContent=Math.min(rendered,rows.length)+' / '+rows.length+' 표시 - 스크롤하면 더 불러옵니다';more.parentNode.style.display=rendered<rows.length?'table-row':'none';}"
+        "function updateScroll(){if(scroller&&scroller.kboOotpUpdate){scroller.kboOotpUpdate();}}"
+        "function appendRows(){if(!body){return;}if(rendered>=rows.length){updateMore();updateScroll();return;}var end=Math.min(rows.length,rendered+chunk),html='';for(;rendered<end;rendered++){html+=rows[rendered].h;}body.insertAdjacentHTML('beforeend',html);hydrateFlags();updateMore();updateScroll();}"
+        "function resetRows(){if(!body){return;}body.innerHTML='';rendered=0;appendRows();if(scroller){scroller.scrollTop=0;}}"
+        "function nearEnd(){return !scroller||scroller.scrollTop+scroller.clientHeight>=scroller.scrollHeight-160;}"
+        "function loadNearEnd(){if(rendered<rows.length&&nearEnd()){appendRows();}}"
+        "if(more){more.addEventListener('click',function(e){e.preventDefault();appendRows();});}"
+        "if(scroller){scroller.addEventListener('scroll',loadNearEnd);}"
+        "var headers=document.querySelectorAll('.faCasesTable th[data-fa-sort-type]');"
+        "for(var i=0;i<headers.length;i++){headers[i].addEventListener('click',function(){var table=this.closest('table');var col=Number(this.getAttribute('data-fa-column')||0);var type=this.getAttribute('data-fa-sort-type')||'text';var dir=this.classList.contains('sortAsc')?'desc':'asc';rows.sort(function(a,b){var d=cmp(a.s[col],b.s[col],type);return dir==='asc'?d:-d;});clearSort(table);this.classList.add(dir==='asc'?'sortAsc':'sortDesc');resetRows();});}"
+        "appendRows();"
+        "})();</script>",
+        KBO_FA_MARKET_UI_RENDER_CHUNK);
 }
 
 void kbo_webview_append_fa_cases_view(KboWindowTextBuffer* buffer, uint32_t selected_league_id)
@@ -108,49 +327,16 @@ void kbo_webview_append_fa_cases_view(KboWindowTextBuffer* buffer, uint32_t sele
     kbo_window_text_appendf(
         buffer,
         "<section class='tablewrap rosterTableWrap faMarketTableWrap'><table class='ootpRosterTable faCasesTable'><thead><tr>"
-        "<th class='roPo' data-sort-type='text'>포지션</th>"
-        "<th class='roName' data-sort-type='text'>선수</th>"
-        "<th data-sort-type='text'>유형</th>"
-        "<th class='roGrade' data-sort-type='number'>등급</th>"
-        "<th class='roAge' data-sort-type='number'>나이</th>"
-        "<th class='roNat' data-sort-type='text'>국적</th>"
-        "<th data-sort-type='text'>보류권</th>"
-        "</tr></thead><tbody>");
-
-    for (int i = 0; i < count; i++) {
-        KboFaMarketClassification* row = &s_cached_rows[i];
-        if (!kbo_fa_market_row_matches_filter(row, g_kbo_hub_fa_market_filter)
-                || !kbo_fa_market_row_matches_position_filter(
-                    row,
-                    g_kbo_hub_fa_market_position_filter)) {
-            continue;
-        }
-        char rights_abbrev[16] = "-";
-        const char* grade_display = kbo_fa_market_display_grade(row->grade);
-        uint32_t grade_sort_rank = kbo_fa_market_display_grade_sort_rank(row->grade);
-        kbo_hub_copy_team_abbrev_by_id(row->rights_team_id, rights_abbrev, sizeof(rights_abbrev), "-");
-        kbo_window_text_appendf(buffer, "<tr>");
-        kbo_window_text_appendf(buffer, "<td class='roPo'>");
-        kbo_html_append_escaped(
-            buffer,
-            kbo_webview_position_label_from_values(row->position_group, row->position_role));
-        kbo_window_text_appendf(buffer, "</td>");
-        kbo_webview_append_player_name_cell(buffer, row->player_name, row->player_id);
-        kbo_window_text_appendf(buffer, "<td>");
-        kbo_html_append_escaped(buffer, kbo_fa_market_display_case_label(row->case_label));
-        kbo_window_text_appendf(buffer, "</td>");
-        kbo_webview_append_fa_market_grade_cell(buffer, row, grade_display, grade_sort_rank);
-        kbo_window_text_appendf(buffer, "<td class='roAge'>%u</td>", (uint32_t)row->age);
-        kbo_webview_append_roster_nation_cell(buffer, row->nation_id, kbo_hub_nation_flag_asset_path);
-        kbo_window_text_appendf(buffer, "<td>");
-        kbo_html_append_escaped(buffer, rights_abbrev);
-        kbo_window_text_appendf(buffer, "</td></tr>");
-    }
-    if (filtered_count == 0) {
-        kbo_window_text_appendf(buffer, "<tr><td colspan='7'>현재 필터와 일치하는 FA 선수를 찾지 못했습니다.</td></tr>");
-    }
-
-    kbo_window_text_appendf(buffer, "</tbody></table></section></div>");
+        "<th class='roPo' data-fa-column='0' data-fa-sort-type='text'>포지션</th>"
+        "<th class='roName' data-fa-column='1' data-fa-sort-type='text'>선수</th>"
+        "<th class='roCase' data-fa-column='2' data-fa-sort-type='text'>유형</th>"
+        "<th class='roGrade' data-fa-column='3' data-fa-sort-type='number'>등급</th>"
+        "<th class='roAge' data-fa-column='4' data-fa-sort-type='number'>나이</th>"
+        "<th class='roNat' data-fa-column='5' data-fa-sort-type='text'>국적</th>"
+        "<th class='roRights' data-fa-column='6' data-fa-sort-type='text'>보류권</th>"
+        "</tr></thead><tbody id='faMarketRows'></tbody><tfoot><tr class='faMarketMoreRow'><td id='faMarketMoreCell' colspan='7'></td></tr></tfoot></table></section>");
+    kbo_webview_append_fa_market_virtual_rows(buffer, s_cached_rows, count);
+    kbo_window_text_appendf(buffer, "</div>");
     KBO_PROFILE_END(profile_fa_cases_render, cache_hit
         ? "webview.fa_market.render.cache_hit"
         : "webview.fa_market.render.fresh");
