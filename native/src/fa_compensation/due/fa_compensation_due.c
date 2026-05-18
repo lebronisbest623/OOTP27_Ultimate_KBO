@@ -76,8 +76,20 @@ static int kbo_submit_fa_compensation_protected_list_record(
         auto_protected,
         auto_protected_count,
         source);
+    int first_list_submission = rec->status == KBO_FA_COMPENSATION_STATUS_PENDING;
     if (!kbo_persist_fa_compensation_protected_list(rec, due, today, candidates, candidate_count, source)) {
         return 0;
+    }
+
+    int protected_count = candidate_count > (int)rec->protect_count ? (int)rec->protect_count : candidate_count;
+    int unprotected_count_for_news = candidate_count - protected_count;
+    if (first_list_submission) {
+        kbo_emit_fa_compensation_protected_list_submitted_news(
+            rec,
+            today,
+            rules->protected_list_due_days,
+            protected_count,
+            unprotected_count_for_news);
     }
 
     KboFaProtectedCandidate selected;

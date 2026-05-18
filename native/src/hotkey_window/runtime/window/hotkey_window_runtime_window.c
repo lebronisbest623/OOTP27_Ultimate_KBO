@@ -339,6 +339,7 @@ LRESULT CALLBACK kbo_hotkey_window_proc(HWND hwnd, UINT message, WPARAM wparam, 
 
     case WM_SIZE:
         if (wparam != SIZE_MINIMIZED) {
+            kbo_hide_webview_player_tooltip_popup(0u);
             kbo_layout_hotkey_window(hwnd);
             InvalidateRect(hwnd, NULL, FALSE);
         }
@@ -482,11 +483,13 @@ LRESULT CALLBACK kbo_hotkey_window_proc(HWND hwnd, UINT message, WPARAM wparam, 
         return 0;
 
     case WM_CLOSE:
+        kbo_hide_webview_player_tooltip_popup(0u);
         kbo_hub_save_window_placement(hwnd);
         ShowWindow(hwnd, SW_HIDE);
         return 0;
 
     case WM_DESTROY:
+        kbo_destroy_webview_player_tooltip_popup();
         KillTimer(hwnd, 1u);
         if (g_kbo_hotkey_keyboard_hook != NULL) {
             UnhookWindowsHookEx(g_kbo_hotkey_keyboard_hook);

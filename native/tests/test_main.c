@@ -372,7 +372,51 @@ static void test_news_related_link_parse(void)
     assert(ids.team_count == 2);
     assert(ids.team_ids[0] == 7u);
     assert(ids.team_ids[1] == 8u);
+
+    kbo_news_related_ids_collect_pair(
+        &ids,
+        "<Jack Cushing:player#456>, Trenton Brooks injury replacement",
+        "<Kiwoom Heroes:team#42> filled <Trenton Brooks:player#123>'s absence with "
+        "<Jack Cushing:player#456>.");
+    assert(ids.player_count == 2);
+    assert(ids.player_ids[0] == 456u);
+    assert(ids.player_ids[1] == 123u);
+    assert(ids.team_count == 1);
+    assert(ids.team_ids[0] == 42u);
+
+    kbo_news_related_ids_collect_pair(
+        &ids,
+        "<Compensation Pick:player#777> moves as FA compensation pick",
+        "The compensation process tied to <Free Agent:player#888>'s move is complete. "
+        "<Original Team:team#11> selected <Compensation Pick:player#777>.");
+    assert(ids.player_count == 2);
+    assert(ids.player_ids[0] == 777u);
+    assert(ids.player_ids[1] == 888u);
+    assert(ids.team_count == 1);
+    assert(ids.team_ids[0] == 11u);
     printf("test_news_related_link_parse: PASS\n");
+}
+
+static void test_news_strip_link_markup(void)
+{
+    char out[256] = {0};
+
+    assert(kbo_news_strip_link_markup(
+        "<Jack Cushing:player#456>, <Kiwoom Heroes:team#42> injury replacement",
+        out,
+        sizeof(out)));
+    assert(strcmp(out, "Jack Cushing, Kiwoom Heroes injury replacement") == 0);
+
+    assert(kbo_news_strip_link_markup(
+        "Keeps malformed <Bad:player#55 text and strips <Good:player#77>.",
+        out,
+        sizeof(out)));
+    assert(strcmp(out, "Keeps malformed <Bad:player#55 text and strips Good.") == 0);
+
+    assert(kbo_news_strip_link_markup("Plain title", out, sizeof(out)));
+    assert(strcmp(out, "Plain title") == 0);
+
+    printf("test_news_strip_link_markup: PASS\n");
 }
 
 static void test_date_serial(void)
@@ -870,6 +914,38 @@ static void test_fa_market_independent_source_precedence(void)
     assert(strstr(row.reason, "independent futures-team") != NULL);
 
     printf("test_fa_market_independent_source_precedence: PASS\n");
+}
+
+static void test_fa_market_carryover_unsigned_metadata(void)
+{
+    memset(g_test_fa_market_team_leagues, 0, sizeof(g_test_fa_market_team_leagues));
+    memset(g_test_fa_market_team_independent_kinds, 0, sizeof(g_test_fa_market_team_independent_kinds));
+
+    KboFaMarketClassification row = {0};
+    row.player_id = 40400u;
+    row.nation_id = OOTP27_KBO_KOREA_NATION_ID;
+    row.original_team_id = 7u;
+    row.current_team_id = 0u;
+    row.age = 31u;
+
+    KboFaMarketHistoryCase history = {0};
+    history.found = 1;
+    history.became_free_agent = 1;
+    snprintf(history.history_date, sizeof(history.history_date), "20261120");
+    snprintf(history.history_text, sizeof(history.history_text), "[G]Became a free agent.");
+
+    assert(kbo_fa_market_apply_history_case(&row, &history));
+    assert(strcmp(row.case_label, "KBO_FA_BY_HISTORY_UNGRADED") == 0);
+    assert(row.fa_filing_date == 20261120u);
+    assert(row.fa_filing_season == 2026u);
+    assert(!kbo_fa_market_history_is_carryover_unsigned(&row, &history, 20261201u));
+    assert(kbo_fa_market_history_is_carryover_unsigned(&row, &history, 20271120u));
+    assert(kbo_fa_market_display_team_id(&row) == 7u);
+
+    snprintf(row.case_label, sizeof(row.case_label), "KBO_FA_CARRYOVER_UNSIGNED");
+    assert(kbo_fa_market_display_team_id(&row) == 7u);
+
+    printf("test_fa_market_carryover_unsigned_metadata: PASS\n");
 }
 
 static void test_allstar_csv_parse(void)
@@ -1843,7 +1919,7 @@ static void test_foreign_injury_status_label(void)
     printf("test_foreign_injury_status_label: PASS\n");
 }
 
-static void test_foreign_injury_inactive_roster_long_term_basis(void)
+static void test_foreign_injury_policy_helpers(void)
 {
     const int min_days = 42;
 
@@ -1852,7 +1928,6 @@ static void test_foreign_injury_inactive_roster_long_term_basis(void)
     assert(kbo_foreign_injury_duration_meets_minimum(42, min_days));
     assert(kbo_foreign_injury_duration_meets_minimum(1239, min_days));
     assert(!kbo_foreign_injury_duration_meets_minimum(-1, min_days));
-
     int evidence_days = 0;
     assert(kbo_foreign_injury_duration_text_meets_minimum(
         "It will be at least 12 months before White returns to the field.",
@@ -1932,15 +2007,6 @@ static void test_foreign_injury_inactive_roster_long_term_basis(void)
     assert(kbo_foreign_injury_expected_end_from_duration(20260621, 150) == 20261118u);
     assert(kbo_foreign_injury_expected_end_from_duration(0, 150) == 0u);
     assert(kbo_foreign_injury_expected_end_from_duration(20260602, 0) == 0u);
-    assert(kbo_foreign_injury_sql_evidence_date_allowed(20260524u, 20260524u, 120, 0));
-    assert(!kbo_foreign_injury_sql_evidence_date_allowed(20260530u, 20260524u, 120, 0));
-    assert(kbo_foreign_injury_sql_evidence_date_allowed(20260530u, 20260524u, 120, 1));
-    assert(!kbo_foreign_injury_sql_evidence_date_allowed(20260922u, 20260524u, 120, 1));
-    assert(!kbo_foreign_injury_sql_evidence_date_allowed(20260523u, 20260524u, 120, 1));
-    assert(kbo_foreign_injury_slot_opened_on_from_sql_evidence(20260530u, 20260524u, 1) == 20260530u);
-    assert(kbo_foreign_injury_slot_opened_on_from_sql_evidence(20260530u, 20260524u, 0) == 20260524u);
-    assert(kbo_foreign_injury_slot_opened_on_from_sql_evidence(20260524u, 20260524u, 1) == 20260524u);
-
     assert(!kbo_foreign_injury_replacement_phase_allows_signing(KBO_SEASON_PHASE_OFFSEASON_RESET));
     assert(!kbo_foreign_injury_replacement_phase_allows_signing(KBO_SEASON_PHASE_OFFSEASON_STARTED));
     assert(!kbo_foreign_injury_replacement_phase_allows_signing(KBO_SEASON_PHASE_PRESEASON));
@@ -1953,13 +2019,6 @@ static void test_foreign_injury_inactive_roster_long_term_basis(void)
     assert(kbo_foreign_injury_replacement_phase_allows_close(KBO_SEASON_PHASE_REGULAR_SEASON));
     assert(kbo_foreign_injury_replacement_phase_allows_close(KBO_SEASON_PHASE_POSTSEASON));
     assert(!kbo_foreign_injury_replacement_phase_allows_close(KBO_SEASON_PHASE_UNKNOWN));
-
-    assert(!kbo_foreign_injury_inactive_roster_has_long_term_injury_basis(0u, 0, min_days, 1));
-    assert(!kbo_foreign_injury_inactive_roster_has_long_term_injury_basis(1u, 8, min_days, 1));
-    assert(!kbo_foreign_injury_inactive_roster_has_long_term_injury_basis(1u, 0, min_days, 0));
-    assert(!kbo_foreign_injury_inactive_roster_has_long_term_injury_basis(1u, 0, min_days, 1));
-    assert(!kbo_foreign_injury_inactive_roster_has_long_term_injury_basis(1u, -1, min_days, 1));
-    assert(kbo_foreign_injury_inactive_roster_has_long_term_injury_basis(1u, 42, min_days, 1));
 
     assert(!kbo_foreign_injury_active_record_has_roster_basis(KBO_FOREIGN_INJURY_STATUS_OPEN, 3001u, 1));
     assert(!kbo_foreign_injury_active_record_has_roster_basis(KBO_FOREIGN_INJURY_STATUS_ACTIVE, 0u, 1));
@@ -1984,7 +2043,68 @@ static void test_foreign_injury_inactive_roster_long_term_basis(void)
     assert(!kbo_foreign_injury_open_news_allowed(20260329u, 20260329u, 20260330u, 1, 1));
     assert(!kbo_foreign_injury_open_news_allowed(20260329u, 20260329u, 20260329u, 0, 1));
 
-    printf("test_foreign_injury_inactive_roster_long_term_basis: PASS\n");
+    printf("test_foreign_injury_policy_helpers: PASS\n");
+}
+
+static void test_foreign_injury_live_memory_fields(void)
+{
+    uint8_t player[OOTP27_PLAYER_SCAN_BYTES];
+    uint8_t injury[OOTP27_PLAYER_INJURY_OBJECT_READABLE_BYTES];
+    uintptr_t active_injuries[1];
+    memset(player, 0, sizeof(player));
+    memset(injury, 0, sizeof(injury));
+    memset(active_injuries, 0, sizeof(active_injuries));
+
+    active_injuries[0] = (uintptr_t)injury;
+    *(uintptr_t*)(player + OOTP27_PLAYER_ACTIVE_INJURY_VECTOR_OFFSET) = (uintptr_t)active_injuries;
+    *(int32_t*)(player + OOTP27_PLAYER_ACTIVE_INJURY_COUNT_OFFSET) = 1;
+    *(uint32_t*)(injury + OOTP27_PLAYER_INJURY_OBJECT_ID_OFFSET) = 86u;
+    *(int32_t*)(injury + OOTP27_PLAYER_INJURY_OBJECT_TOTAL_DAYS_OFFSET) = 117;
+    *(int32_t*)(injury + OOTP27_PLAYER_INJURY_OBJECT_DAYS_LEFT_OFFSET) = 82;
+
+    KboForeignInjuryLiveMemory live;
+    assert(kbo_foreign_injury_read_live_memory(player, &live));
+    assert(live.active == 1u);
+    assert(live.active_count == 1);
+    assert(live.injury_id == 86u);
+    assert(live.days_left == 82);
+    assert(kbo_foreign_injury_live_memory_has_long_term_basis(&live, 42));
+
+    injury[OOTP27_PLAYER_INJURY_OBJECT_PENDING_DIAGNOSIS_OFFSET] = 1u;
+    assert(kbo_foreign_injury_read_live_memory(player, &live));
+    assert(live.pending_diagnosis == 1u);
+    assert(!kbo_foreign_injury_live_memory_has_long_term_basis(&live, 42));
+
+    injury[OOTP27_PLAYER_INJURY_OBJECT_PENDING_DIAGNOSIS_OFFSET] = 0u;
+    injury[OOTP27_PLAYER_INJURY_OBJECT_DAY_TO_DAY_OFFSET] = 1u;
+    assert(kbo_foreign_injury_read_live_memory(player, &live));
+    assert(live.day_to_day == 1u);
+    assert(!kbo_foreign_injury_live_memory_has_long_term_basis(&live, 42));
+
+    injury[OOTP27_PLAYER_INJURY_OBJECT_DAY_TO_DAY_OFFSET] = 0u;
+    *(int32_t*)(injury + OOTP27_PLAYER_INJURY_OBJECT_DAYS_LEFT_OFFSET) = 41;
+    assert(kbo_foreign_injury_read_live_memory(player, &live));
+    assert(!kbo_foreign_injury_live_memory_has_long_term_basis(&live, 42));
+    *(int32_t*)(injury + OOTP27_PLAYER_INJURY_OBJECT_DAYS_LEFT_OFFSET) = 42;
+    assert(kbo_foreign_injury_read_live_memory(player, &live));
+    assert(kbo_foreign_injury_live_memory_has_long_term_basis(&live, 42));
+
+    *(int32_t*)(player + OOTP27_PLAYER_ACTIVE_INJURY_COUNT_OFFSET) = 0;
+    player[OOTP27_PLAYER_INJURY_ACTIVE_OFFSET] = 1u;
+    *(int16_t*)(player + OOTP27_PLAYER_INJURY_DAYS_LEFT_OFFSET) = 120;
+    assert(kbo_foreign_injury_read_live_memory(player, &live));
+    assert(live.active == 0u);
+    assert(!kbo_foreign_injury_live_memory_has_long_term_basis(&live, 42));
+
+    *(int32_t*)(player + OOTP27_PLAYER_ACTIVE_INJURY_COUNT_OFFSET) = 1;
+    player[OOTP27_PLAYER_CAREER_ENDING_INJURY_OFFSET] = 1u;
+    *(int32_t*)(injury + OOTP27_PLAYER_INJURY_OBJECT_DAYS_LEFT_OFFSET) = -1;
+    assert(kbo_foreign_injury_read_live_memory(player, &live));
+    assert(live.career_ending == 1u);
+    assert(live.days_left == 365);
+    assert(kbo_foreign_injury_live_memory_has_long_term_basis(&live, 42));
+
+    printf("test_foreign_injury_live_memory_fields: PASS\n");
 }
 
 static void test_foreign_injury_foreign_count_exclusion(void)
@@ -2297,6 +2417,7 @@ int main(void)
     test_award_schedule_policy_parse_event_types();
     test_news_template_render();
     test_news_related_link_parse();
+    test_news_strip_link_markup();
     test_date_serial();
     test_current_date_tick_consumer_retries_save_enter_until_date_ready();
     test_current_date_tick_consumer_preserves_hooks_before_save_path_ready();
@@ -2311,6 +2432,7 @@ int main(void)
     test_military_service_team_policy_parse();
     test_team_classification_seed_parse();
     test_fa_market_independent_source_precedence();
+    test_fa_market_carryover_unsigned_metadata();
     test_allstar_csv_parse();
     test_allstar_schedule_date_slots_ignore_serializer_callbacks();
     test_foreign_replacement_seed_parse();
@@ -2334,7 +2456,8 @@ int main(void)
     test_player_is_foreign_for_kbo_rights();
     test_foreign_injury_slot_label();
     test_foreign_injury_status_label();
-    test_foreign_injury_inactive_roster_long_term_basis();
+    test_foreign_injury_policy_helpers();
+    test_foreign_injury_live_memory_fields();
     test_foreign_injury_foreign_count_exclusion();
     test_amateur_assignment_policy();
     test_independent_acquisition_score_policy();

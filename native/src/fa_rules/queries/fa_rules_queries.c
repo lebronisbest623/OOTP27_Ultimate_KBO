@@ -51,6 +51,10 @@ int kbo_fa_rules_case_is_compensable(const KboFaRules* rules, const char* case_l
         if (strcmp(rules->compensable_cases[i], case_label) == 0) {
             return 1;
         }
+        if (strcmp(case_label, "KBO_FA_CARRYOVER_UNSIGNED") == 0
+                && strcmp(rules->compensable_cases[i], "KBO_FA_BY_HISTORY_UNGRADED") == 0) {
+            return 1;
+        }
     }
     return 0;
 }

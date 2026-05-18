@@ -11,6 +11,7 @@
 #include "../../rules/cbt_rules.h"
 #include "../../../bootstrap/abi/ootp_offsets.h"
 #include "../../../core/core_flags/api/flags_api.h"
+#include "../../../core/core_league_context_parts/api/league_context_lookup.h"
 #include "../../../core/logging/core_log.h"
 #include "../../../runtime_memory/runtime_memory.h"
 #include "../../../team/lookup/team_lookup.h"
@@ -199,6 +200,28 @@ void kbo_cbt_note_draft_order_state(uintptr_t draft_state)
     InterlockedExchangePointer(
         &g_kbo_cbt_draft_order_observed_state,
         (PVOID)draft_state);
+}
+
+int kbo_cbt_apply_primary_league_draft_order_penalties(uint32_t league_id, const char* source)
+{
+    if (league_id == 0u) {
+        return 0;
+    }
+
+    uintptr_t league_ptr = kbo_find_league_ptr_from_id(league_id);
+    if (league_ptr == 0u || !memory_range_readable(
+            (void*)(league_ptr + OOTP27_LEAGUE_PRIMARY_DRAFT_STATE_OFFSET),
+            OOTP27_DRAFT_STATE_READABLE_BYTES)) {
+        kbo_log_runtimef(
+            "KBO CBT draft order primary league apply skipped source=%s league_id=%u reason=league_state_unavailable",
+            source != NULL ? source : "",
+            league_id);
+        return 0;
+    }
+
+    uintptr_t draft_state = league_ptr + OOTP27_LEAGUE_PRIMARY_DRAFT_STATE_OFFSET;
+    kbo_cbt_note_draft_order_state(draft_state);
+    return kbo_cbt_apply_draft_order_penalties(draft_state, source);
 }
 
 int kbo_cbt_apply_pending_draft_order_penalties(const char* source)

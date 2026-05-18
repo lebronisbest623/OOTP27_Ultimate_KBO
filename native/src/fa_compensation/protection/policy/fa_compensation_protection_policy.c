@@ -95,6 +95,7 @@ static BOOL CALLBACK kbo_fa_compensation_policy_init_once(PINIT_ONCE init_once, 
     p->decision_upside_bonus = kbo_fa_compensation_policy_int("decision_upside_bonus", 450, 0, 1000000);
     p->cash_only_score_threshold = kbo_fa_compensation_policy_int("cash_only_score_threshold", 65000, 0, 10000000);
     p->cash_only_extra_cash_score_threshold = kbo_fa_compensation_policy_int("cash_only_extra_cash_score_threshold", 80000, 0, 10000000);
+    p->cash_only_ab_grade_requires_no_player = kbo_fa_compensation_policy_int("cash_only_ab_grade_requires_no_player", 1, 0, 1);
     p->rookie_auto_protected_age_max = kbo_fa_compensation_policy_int("rookie_auto_protected_age_max", 23, 16, 50);
     if (p->cash_only_extra_cash_score_threshold < p->cash_only_score_threshold) {
         p->cash_only_extra_cash_score_threshold = p->cash_only_score_threshold;

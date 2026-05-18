@@ -1,6 +1,22 @@
 {
-  "independent_acquisition.open.title": "Futures Independent Club Signing Window Opens",
+  "independent_acquisition.open.title": "Futures independent signing window opens",
+  "independent_acquisition.open.title.variants": 3,
+  "independent_acquisition.open.title.v1": "Futures independent signing window opens",
+  "independent_acquisition.open.title.v2": "Independent clubs get in-season roster lane",
+  "independent_acquisition.open.title.v3": "Futures clubs can shop for midseason help",
   "independent_acquisition.open.news.body": "KBO opened the player acquisition window for independent clubs playing in the Futures League. The window remains open until the end of the KBO regular season, giving independent clubs a chance to cover roster gaps while giving standout players another path back into the league picture.\n\nDuring this period, independent Futures clubs such as the Ulsan Whales can make roster additions through a separate process before the regular season ends. Actual acquisition eligibility still depends on each player's contract status and league registration rules.",
-  "independent_acquisition.transfer.title": "{seller_team_name}'s {player_name} moves to {buyer_team_name} for ${cash_cost}",
-  "independent_acquisition.transfer.news.body": "{player_link} moved from Futures independent club {seller_team_link} to {buyer_team_link} for a ${cash_cost} transfer fee.\n\nThe move was completed through the independent-club acquisition window, with {buyer_team_link} paying {seller_team_link} to add depth during the season."
+  "independent_acquisition.open.news.body.variants": 3,
+  "independent_acquisition.open.news.body.v1": "KBO opened the player acquisition window for independent clubs playing in the Futures League. The window remains open until the end of the KBO regular season, giving independent clubs a chance to cover roster gaps while giving standout players another path back into the league picture.\n\nDuring this period, independent Futures clubs such as the Ulsan Whales can make roster additions through a separate process before the regular season ends. Actual acquisition eligibility still depends on each player's contract status and league registration rules.",
+  "independent_acquisition.open.news.body.v2": "The Futures independent-club signing period is open. Until the KBO regular season ends, those clubs can patch roster needs while players outside the main league structure get another chance to draw attention.\n\nFor front offices, the window is part depth management and part scouting report. A useful month in independent play can now turn into a concrete roster move.",
+  "independent_acquisition.open.news.body.v3": "Independent Futures clubs now have a formal route to adjust their rosters during the season. The window runs through the end of the KBO regular season and gives teams a way to react to injuries, thin positions and late-emerging players.\n\nThe names that move through this channel may not lead the market, but they can still change a depth chart.",
+  "independent_acquisition.transfer.title": "{player_link} moves from {seller_team_name} to {buyer_team_name}",
+  "independent_acquisition.transfer.title.variants": 3,
+  "independent_acquisition.transfer.title.v1": "{player_link} moves from {seller_team_name} to {buyer_team_name}",
+  "independent_acquisition.transfer.title.v2": "{buyer_team_name} adds {player_link} from independent ranks",
+  "independent_acquisition.transfer.title.v3": "{player_link} joins {buyer_team_name} for ${cash_cost}",
+  "independent_acquisition.transfer.news.body": "{player_link} moved from Futures independent club {seller_team_link} to {buyer_team_link} for a ${cash_cost} transfer fee.\n\nThe move was completed through the independent-club acquisition window, with {buyer_team_link} paying {seller_team_link} to add depth during the season.",
+  "independent_acquisition.transfer.news.body.variants": 3,
+  "independent_acquisition.transfer.news.body.v1": "{player_link} moved from Futures independent club {seller_team_link} to {buyer_team_link} for a ${cash_cost} transfer fee.\n\nThe move was completed through the independent-club acquisition window, with {buyer_team_link} paying {seller_team_link} to add depth during the season.",
+  "independent_acquisition.transfer.news.body.v2": "{buyer_team_link} reached into the independent-club market and acquired {player_link} from {seller_team_link}. The transfer fee was ${cash_cost}.\n\nFor {buyer_team_link}, the move is a midseason depth play. For {player_link}, it is a direct chance to turn independent-league work into a larger role.",
+  "independent_acquisition.transfer.news.body.v3": "{player_link} has a new club after {buyer_team_link} completed a ${cash_cost} transfer with {seller_team_link}.\n\nThe acquisition gives {buyer_team_link} another option for the remaining schedule and gives the player a fresh evaluation point inside the league structure."
 }

@@ -116,9 +116,11 @@ int create_kbo_real_add_news(
 
     char original_title[512] = {0};
     char original_body[8192] = {0};
+    char display_title[512] = {0};
     snprintf(original_title, sizeof(original_title), "%s", title);
     snprintf(original_body, sizeof(original_body), "%s", body != NULL ? body : "");
-    const char* title_for_ootp = title;
+    kbo_news_strip_link_markup(title, display_title, sizeof(display_title));
+    const char* title_for_ootp = display_title[0] != '\0' ? display_title : title;
     const char* body_for_ootp = body != NULL ? body : "";
     char* internal_title = kbo_alloc_ootp_internal_text(title_for_ootp);
     char* internal_body = kbo_alloc_ootp_internal_text(body_for_ootp);
@@ -178,7 +180,11 @@ int create_kbo_real_add_news(
     }
     int body_file_ok = 0;
     if (result != 0 && message_id != 0) {
-        body_file_ok = write_kbo_message_body_file(message_id, original_title, original_body, source);
+        body_file_ok = write_kbo_message_body_file(
+            message_id,
+            display_title[0] != '\0' ? display_title : original_title,
+            original_body,
+            source);
     }
     int source_mutated = strcmp(title, original_title) != 0
         || strcmp(body != NULL ? body : "", original_body) != 0;

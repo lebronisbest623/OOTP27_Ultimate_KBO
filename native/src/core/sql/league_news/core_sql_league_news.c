@@ -371,10 +371,13 @@ int insert_kbo_league_news_sql(
     char escaped_title[512] = {0};
     char escaped_body[8192] = {0};
     char news_date[32] = {0};
+    char display_title[512] = {0};
     const char* body_text = body != NULL ? body : "";
-    char* internal_title = kbo_alloc_ootp_internal_text(title);
+    kbo_news_strip_link_markup(title, display_title, sizeof(display_title));
+    const char* title_text = display_title[0] != '\0' ? display_title : title;
+    char* internal_title = kbo_alloc_ootp_internal_text(title_text);
     char* internal_body = kbo_alloc_ootp_internal_text(body_text);
-    const char* title_for_ootp = internal_title != NULL ? internal_title : title;
+    const char* title_for_ootp = internal_title != NULL ? internal_title : title_text;
     const char* body_for_ootp = internal_body != NULL ? internal_body : body_text;
     int uses_internal_encoding = internal_title != NULL || internal_body != NULL;
     if (!kbo_sql_escape_literal_preserve_ootp_controls(escaped_title, sizeof(escaped_title), title_for_ootp)
@@ -386,19 +389,43 @@ int insert_kbo_league_news_sql(
         return 0;
     }
 
-    uint32_t message_id = kbo_league_news_stable_message_id(year, month, day, league_id, log_title);
+    uint32_t message_id = kbo_league_news_stable_message_id(year, month, day, league_id, title_text);
     KboNewsRelatedIds related;
     kbo_news_related_ids_collect_pair(&related, title, body);
 
+    char escaped_raw_title[512] = {0};
+    char* internal_raw_title = NULL;
+    int has_raw_title_delete = strcmp(title_text, title) != 0;
+    if (has_raw_title_delete) {
+        internal_raw_title = kbo_alloc_ootp_internal_text(title);
+        const char* raw_title_for_ootp = internal_raw_title != NULL ? internal_raw_title : title;
+        has_raw_title_delete = kbo_sql_escape_literal_preserve_ootp_controls(
+            escaped_raw_title,
+            sizeof(escaped_raw_title),
+            raw_title_for_ootp);
+    }
+
     char delete_sql[1400] = {0};
-    snprintf(
-        delete_sql,
-        sizeof(delete_sql),
-        "DELETE FROM messages WHERE message_id=%u OR (subject='%s' AND date='%s' AND league_id_0=%u AND sender_type=9001);",
-        message_id,
-        escaped_title,
-        news_date,
-        league_id);
+    if (has_raw_title_delete) {
+        snprintf(
+            delete_sql,
+            sizeof(delete_sql),
+            "DELETE FROM messages WHERE message_id=%u OR ((subject='%s' OR subject='%s') AND date='%s' AND league_id_0=%u AND sender_type=9001);",
+            message_id,
+            escaped_title,
+            escaped_raw_title,
+            news_date,
+            league_id);
+    } else {
+        snprintf(
+            delete_sql,
+            sizeof(delete_sql),
+            "DELETE FROM messages WHERE message_id=%u OR (subject='%s' AND date='%s' AND league_id_0=%u AND sender_type=9001);",
+            message_id,
+            escaped_title,
+            news_date,
+            league_id);
+    }
 
     char insert_sql[12000] = {0};
     snprintf(
@@ -428,7 +455,7 @@ int insert_kbo_league_news_sql(
     int insert_result = sqlite_exec((void*)database, insert_sql, NULL, NULL, NULL) == 0 ? 1 : 0;
     int body_file = 0;
     if (insert_result != 0) {
-        body_file = write_kbo_message_body_file(message_id, title, body, source);
+        body_file = write_kbo_message_body_file(message_id, title_text, body, source);
     }
     kbo_log_runtimef(
         "league news sql insert source=%s title=%s date=%s league_id=%u type=%u message_id=%u related_players=%d related_teams=%d delete_result=%d insert_result=%d body_file=%d db=%p encoding=%s",
@@ -445,6 +472,7 @@ int insert_kbo_league_news_sql(
         body_file,
         (void*)database,
         uses_internal_encoding ? "ootp-internal" : "raw");
+    kbo_free_ootp_internal_text(internal_raw_title);
     kbo_free_ootp_internal_text(internal_title);
     kbo_free_ootp_internal_text(internal_body);
 
@@ -492,10 +520,13 @@ int insert_kbo_league_news_table_sql(
     char escaped_title[512] = {0};
     char escaped_body[7600] = {0};
     char news_date[16] = {0};
+    char display_title[512] = {0};
     const char* body_text = body != NULL ? body : "";
-    char* internal_title = kbo_alloc_ootp_internal_text(title);
+    kbo_news_strip_link_markup(title, display_title, sizeof(display_title));
+    const char* title_text = display_title[0] != '\0' ? display_title : title;
+    char* internal_title = kbo_alloc_ootp_internal_text(title_text);
     char* internal_body = kbo_alloc_ootp_internal_text(body_text);
-    const char* title_for_ootp = internal_title != NULL ? internal_title : title;
+    const char* title_for_ootp = internal_title != NULL ? internal_title : title_text;
     const char* body_for_ootp = internal_body != NULL ? internal_body : body_text;
     int uses_internal_encoding = internal_title != NULL || internal_body != NULL;
     if (!kbo_sql_escape_literal_preserve_ootp_controls(escaped_title, sizeof(escaped_title), title_for_ootp)
@@ -515,19 +546,52 @@ int insert_kbo_league_news_table_sql(
         escaped_body[0] != '\0' ? "\n\n" : "",
         escaped_body);
 
+    char escaped_raw_title[512] = {0};
+    char escaped_raw_text[8192] = {0};
+    char* internal_raw_title = NULL;
+    int has_raw_text_delete = strcmp(title_text, title) != 0;
+    if (has_raw_text_delete) {
+        internal_raw_title = kbo_alloc_ootp_internal_text(title);
+        const char* raw_title_for_ootp = internal_raw_title != NULL ? internal_raw_title : title;
+        has_raw_text_delete = kbo_sql_escape_literal_preserve_ootp_controls(
+            escaped_raw_title,
+            sizeof(escaped_raw_title),
+            raw_title_for_ootp);
+        if (has_raw_text_delete) {
+            snprintf(
+                escaped_raw_text,
+                sizeof(escaped_raw_text),
+                "%s%s%s",
+                escaped_raw_title,
+                escaped_body[0] != '\0' ? "\n\n" : "",
+                escaped_body);
+        }
+    }
+
     const char* create_sql =
         "CREATE TABLE IF NOT EXISTS league_news (news_id INTEGER PRIMARY KEY AUTOINCREMENT, league_id INTEGER, news_date VARCHAR(8), news_text TEXT, season INTEGER);"
         "CREATE INDEX IF NOT EXISTS league_news_league_id ON league_news(league_id);"
         "CREATE INDEX IF NOT EXISTS league_news_date ON league_news(news_date);";
 
-    char delete_sql[9200] = {0};
-    snprintf(
-        delete_sql,
-        sizeof(delete_sql),
-        "DELETE FROM league_news WHERE league_id=%u AND news_date='%s' AND news_text='%s';",
-        league_id,
-        news_date,
-        escaped_text);
+    char delete_sql[18000] = {0};
+    if (has_raw_text_delete) {
+        snprintf(
+            delete_sql,
+            sizeof(delete_sql),
+            "DELETE FROM league_news WHERE league_id=%u AND news_date='%s' AND (news_text='%s' OR news_text='%s');",
+            league_id,
+            news_date,
+            escaped_text,
+            escaped_raw_text);
+    } else {
+        snprintf(
+            delete_sql,
+            sizeof(delete_sql),
+            "DELETE FROM league_news WHERE league_id=%u AND news_date='%s' AND news_text='%s';",
+            league_id,
+            news_date,
+            escaped_text);
+    }
 
     char insert_sql[10000] = {0};
     snprintf(
@@ -566,6 +630,7 @@ int insert_kbo_league_news_table_sql(
         (void*)database,
         (void*)sqlite_exec,
         uses_internal_encoding ? "ootp-internal" : "raw");
+    kbo_free_ootp_internal_text(internal_raw_title);
     kbo_free_ootp_internal_text(internal_title);
     kbo_free_ootp_internal_text(internal_body);
     return insert_result != 0 || fallback_result != 0;

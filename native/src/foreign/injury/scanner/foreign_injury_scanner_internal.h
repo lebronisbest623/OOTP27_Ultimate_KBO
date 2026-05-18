@@ -5,7 +5,6 @@
 
 #define KBO_FOREIGN_INJURY_DECISION_KEEP_INJURED      1u
 #define KBO_FOREIGN_INJURY_DECISION_KEEP_REPLACEMENT  2u
-#define KBO_FOREIGN_INJURY_SQL_DISCOVERY_MAX          256
 
 typedef struct KboForeignInjuryReplacementDecision {
     uint8_t choice;
@@ -22,11 +21,15 @@ typedef struct KboForeignInjuryClosedNews {
     char phase[32];
 } KboForeignInjuryClosedNews;
 
-typedef struct KboForeignInjurySqlDiscoveryRow {
+typedef struct KboForeignInjuryPendingDiagnosis {
     uint32_t player_id;
-    uint32_t evidence_date;
-    int days;
-} KboForeignInjurySqlDiscoveryRow;
+    uint32_t team_id;
+    uint32_t league_id;
+    uint32_t first_seen_date;
+    uint32_t last_seen_date;
+    uint8_t slot_type;
+    uint8_t active;
+} KboForeignInjuryPendingDiagnosis;
 
 int kbo_foreign_injury_player_matches_team(uint8_t* player, uint32_t team_id);
 int kbo_foreign_injury_candidate_matches_slot(uint8_t* player, uint8_t slot_type);
@@ -39,43 +42,6 @@ int kbo_foreign_injury_player_on_inactive_replacement_roster(
     uint32_t player_id,
     uint32_t top_team_id,
     uint32_t today_yyyymmdd);
-int kbo_foreign_injury_recent_sql_has_long_term_injury(
-    uint32_t player_id,
-    int min_days,
-    int* out_days);
-int kbo_foreign_injury_recent_sql_has_long_term_injury_date(
-    uint32_t player_id,
-    int min_days,
-    int* out_days,
-    uint32_t* out_evidence_date);
-int kbo_foreign_injury_recent_sql_has_long_term_injury_date_on_date(
-    uint32_t player_id,
-    int min_days,
-    uint32_t game_date_yyyymmdd,
-    int* out_days,
-    uint32_t* out_evidence_date);
-int kbo_foreign_injury_recent_sql_has_long_term_injury_date_on_date_mode(
-    uint32_t player_id,
-    int min_days,
-    uint32_t game_date_yyyymmdd,
-    int allow_backdated,
-    int* out_days,
-    uint32_t* out_evidence_date);
-int kbo_foreign_injury_collect_sql_long_term_injuries_on_date(
-    uint32_t game_date_yyyymmdd,
-    int min_days,
-    KboForeignInjurySqlDiscoveryRow* out_rows,
-    int max_rows,
-    int* out_count,
-    int* out_rows_seen);
-int kbo_foreign_injury_collect_sql_long_term_injuries_on_date_mode(
-    uint32_t game_date_yyyymmdd,
-    int min_days,
-    int allow_backdated,
-    KboForeignInjurySqlDiscoveryRow* out_rows,
-    int max_rows,
-    int* out_count,
-    int* out_rows_seen);
 int kbo_foreign_injury_resolve_player_team_assignment(
     uint8_t* player,
     uint32_t player_id,
@@ -103,6 +69,29 @@ int kbo_foreign_injury_release_injured_player(uint32_t team_id, uint32_t player_
 int kbo_foreign_injury_replacement_scan_source_is_read_only(const char* source);
 int kbo_foreign_injury_same_date_idle_scan_cached(uint32_t today, const char* source);
 void kbo_foreign_injury_note_same_date_idle_scan(uint32_t today, const char* source, int idle);
+int kbo_foreign_injury_pending_diagnosis_find(
+    uint32_t player_id,
+    KboForeignInjuryPendingDiagnosis* out);
+void kbo_foreign_injury_pending_diagnosis_clear(uint32_t player_id);
+void kbo_foreign_injury_note_pending_diagnosis(
+    uint32_t player_id,
+    uint32_t team_id,
+    uint32_t league_id,
+    uint8_t slot_type,
+    uint32_t today,
+    const char* source);
+void kbo_foreign_injury_memory_probe_observe(
+    uint8_t* player,
+    uint32_t player_id,
+    uint32_t team_id,
+    uint32_t league_id,
+    uint8_t slot_type,
+    uint32_t today,
+    uint8_t injury_active,
+    int16_t injury_aux_0876,
+    int inactive_roster_present,
+    int has_assignment,
+    const char* source);
 void kbo_foreign_injury_process_existing_replacements(
     uint32_t today,
     const char* source,

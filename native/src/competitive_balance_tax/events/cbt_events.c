@@ -71,17 +71,13 @@ static int kbo_cbt_ensure_salary_snapshot_rows(
     }
 
     uint32_t opening_day = 0u;
-    uintptr_t league_ptr = kbo_find_league_ptr_from_id(league_id);
-    if (league_ptr == 0u
-            || !kbo_fa_salary_snapshot_read_opening_day(league_ptr, &opening_day)) {
-        if (!kbo_fa_salary_snapshot_load_schedule_opening_day(season, &opening_day)) {
-            kbo_log_runtimef(
-                "KBO CBT salary snapshot ensure deferred source=%s season=%u league=%u reason=opening_day_unavailable",
-                source != NULL ? source : "",
-                season,
-                league_id);
-            return 0;
-        }
+    if (!kbo_cbt_exception_resolve_opening_day(season, &opening_day)) {
+        kbo_log_runtimef(
+            "KBO CBT salary snapshot ensure deferred source=%s season=%u league=%u reason=opening_day_unavailable",
+            source != NULL ? source : "",
+            season,
+            league_id);
+        return 0;
     }
 
     if (opening_day / 10000u != season

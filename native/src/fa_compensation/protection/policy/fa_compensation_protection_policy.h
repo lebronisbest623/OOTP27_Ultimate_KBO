@@ -77,6 +77,7 @@ typedef struct KboFaCompensationProtectionPolicy {
     int32_t decision_upside_bonus;
     int32_t cash_only_score_threshold;
     int32_t cash_only_extra_cash_score_threshold;
+    int32_t cash_only_ab_grade_requires_no_player;
     int32_t rookie_auto_protected_age_max;
 } KboFaCompensationProtectionPolicy;
 

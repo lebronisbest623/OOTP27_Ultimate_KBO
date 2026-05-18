@@ -46,6 +46,7 @@ void kbo_webview_append_asian_games_tournament_row(
     const KboAsianGamesScheduleSeed* schedule,
     uint32_t today);
 void kbo_webview_append_asian_games_tournaments_view(KboWindowTextBuffer* buffer);
+const char* kbo_webview_asian_games_history_result_label(uint8_t result);
 int kbo_webview_weekday_for_yyyymmdd(uint32_t yyyymmdd);
 const char* kbo_webview_asian_games_schedule_status(
     uint32_t event_date,
@@ -67,6 +68,9 @@ void kbo_webview_append_asian_games_schedule_row(
     uint32_t league_id,
     int auto_schedule);
 void kbo_webview_append_asian_games_schedule_view(KboWindowTextBuffer* buffer);
-void kbo_webview_append_asian_games_view(KboWindowTextBuffer* buffer, int selected_agames_subview);
+void kbo_webview_append_asian_games_view(
+    KboWindowTextBuffer* buffer,
+    int selected_agames_subview,
+    uint32_t* selected_roster_year);
 
 #endif

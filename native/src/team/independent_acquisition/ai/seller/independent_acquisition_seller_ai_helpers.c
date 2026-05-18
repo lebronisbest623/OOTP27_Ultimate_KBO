@@ -337,7 +337,7 @@ int kbo_independent_acquisition_seller_abort_if_save(
 
 uint32_t kbo_independent_acquisition_seller_effective_season(uint32_t today)
 {
-    uint32_t open_date = kbo_independent_team_acquisition_window_open_date();
+    uint32_t open_date = kbo_independent_team_acquisition_window_open_date_for_date(today);
     if (open_date != 0u && today >= open_date) {
         return open_date / 10000u;
     }

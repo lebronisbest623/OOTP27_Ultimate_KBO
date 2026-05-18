@@ -199,7 +199,6 @@ int kbo_webview_handle_view_navigation_command(const char* cmd)
             } else if (view == KBO_HUB_VIEW_UPCOMING_FA) {
                 g_kbo_hub_selected_view = KBO_HUB_VIEW_FA_CASES;
                 g_kbo_hub_selected_fa_subview = KBO_HUB_FA_SUBVIEW_MARKET;
-                g_kbo_hub_fa_market_page = 0;
             } else {
                 g_kbo_hub_selected_view = view;
             }

@@ -45,6 +45,13 @@ typedef struct KboAsianGamesTournamentHistoryEntry {
     uint8_t result;
 } KboAsianGamesTournamentHistoryEntry;
 
+typedef struct KboAsianGamesRosterHistoryEntry {
+    uint32_t year;
+    uint32_t index;
+    KboAsianGamesRosterEntry entry;
+    uint8_t tournament_result;
+} KboAsianGamesRosterHistoryEntry;
+
 extern KboAsianGamesRosterEntry g_kbo_asian_games_roster[KBO_ASIAN_GAMES_ROSTER_SIZE];
 extern LONG g_kbo_asian_games_roster_count;
 extern uint32_t g_kbo_asian_games_roster_year;

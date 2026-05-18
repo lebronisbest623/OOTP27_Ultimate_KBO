@@ -121,7 +121,11 @@ int kbo_attach_foreign_injury_replacement_after_signing(
         int days_left = 0;
         uint8_t* injured = kbo_find_player_by_id(updated_rec.injured_player_id, NULL, NULL);
         if (injured != NULL && memory_range_readable(injured, OOTP27_PLAYER_SCAN_BYTES)) {
-            days_left = (int)*(int16_t*)(injured + OOTP27_PLAYER_INJURY_DAYS_LEFT_OFFSET);
+            KboForeignInjuryLiveMemory live_injury;
+            memset(&live_injury, 0, sizeof(live_injury));
+            if (kbo_foreign_injury_read_live_memory(injured, &live_injury)) {
+                days_left = (int)live_injury.days_left;
+            }
         }
         kbo_emit_foreign_injury_replacement_news_on_date(&updated_rec, days_left, "active", today);
         do {

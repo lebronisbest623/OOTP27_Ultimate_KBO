@@ -65,6 +65,8 @@ void* kbo_resolve_build_specific_rva_ptr(HMODULE exe, uint32_t steam_rva)
     uint32_t rva = 0u;
     if (kbo_ootp_build_is_steam_2026_05_04(info)) {
         rva = steam_rva;
+#if defined(KBO_SUPPORTED_OOTP_BUILD_OFFICIAL_27_2_60_TIMESTAMP) \
+    && defined(KBO_SUPPORTED_OOTP_BUILD_OFFICIAL_27_2_60_SIZE_OF_IMAGE)
     } else if (info.ok
             && info.timestamp == KBO_SUPPORTED_OOTP_BUILD_OFFICIAL_27_2_60_TIMESTAMP
             && info.size_of_image == KBO_SUPPORTED_OOTP_BUILD_OFFICIAL_27_2_60_SIZE_OF_IMAGE) {
@@ -170,6 +172,9 @@ void* kbo_resolve_build_specific_rva_ptr(HMODULE exe, uint32_t steam_rva)
             case OOTP27_FOREIGN_CALLUP_LIMIT_TOTAL_CHECK_FALLBACK_RVA: rva = 0x00F64BE4u; break;
             default: break;
         }
+#endif
+#if defined(KBO_SUPPORTED_OOTP_BUILD_OFFICIAL_27_2_59_TIMESTAMP) \
+    && defined(KBO_SUPPORTED_OOTP_BUILD_OFFICIAL_27_2_59_SIZE_OF_IMAGE)
     } else if (info.ok
             && info.timestamp == KBO_SUPPORTED_OOTP_BUILD_OFFICIAL_27_2_59_TIMESTAMP
             && info.size_of_image == KBO_SUPPORTED_OOTP_BUILD_OFFICIAL_27_2_59_SIZE_OF_IMAGE) {
@@ -186,6 +191,7 @@ void* kbo_resolve_build_specific_rva_ptr(HMODULE exe, uint32_t steam_rva)
             case OOTP27_LEAGUE_FINANCIALS_LOOKUP_RVA: rva = 0x00414330u; break;
             default: break;
         }
+#endif
     }
 
     return rva != 0u ? (void*)((uint8_t*)exe + rva) : NULL;

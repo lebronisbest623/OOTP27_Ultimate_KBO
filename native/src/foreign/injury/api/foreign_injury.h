@@ -27,6 +27,21 @@ typedef struct KboForeignInjuryReplacement {
     uint8_t  converted;
 } KboForeignInjuryReplacement;
 
+#ifndef KBO_FOREIGN_INJURY_LIVE_MEMORY_DEFINED
+#define KBO_FOREIGN_INJURY_LIVE_MEMORY_DEFINED
+typedef struct KboForeignInjuryLiveMemory {
+    uint8_t active;
+    uint8_t pending_diagnosis;
+    uint8_t day_to_day;
+    uint8_t career_ending;
+    uint32_t injury_id;
+    int32_t active_count;
+    int32_t days_left;
+    int32_t total_days;
+    uintptr_t injury_object;
+} KboForeignInjuryLiveMemory;
+#endif
+
 extern KboForeignInjuryReplacement g_kbo_foreign_injury_replacements[KBO_FOREIGN_INJURY_REPLACEMENT_MAX];
 extern int g_kbo_foreign_injury_replacement_count;
 
@@ -34,12 +49,12 @@ const char* kbo_foreign_injury_slot_label(uint8_t slot_type);
 const char* kbo_foreign_injury_status_label(uint8_t status);
 int kbo_foreign_injury_status_uses_slot(uint8_t status);
 uint8_t kbo_foreign_injury_slot_type_for_player(uint8_t* player);
-int kbo_foreign_injury_inactive_roster_has_long_term_injury_basis(
-    uint8_t injury_active,
-    int16_t days_left,
-    int min_days,
-    int inactive_roster_present);
 int kbo_foreign_injury_duration_meets_minimum(int16_t days_left, int min_days);
+int kbo_foreign_injury_read_live_memory(uint8_t* player, KboForeignInjuryLiveMemory* out);
+int kbo_foreign_injury_live_memory_has_long_term_basis(
+    const KboForeignInjuryLiveMemory* live,
+    int min_days);
+int kbo_foreign_injury_runtime_injury_present_from_memory(uint8_t* player);
 int kbo_foreign_injury_duration_text_meets_minimum(
     const char* text,
     int min_days,
@@ -53,15 +68,6 @@ int kbo_foreign_injury_expected_end_pending(
 uint32_t kbo_foreign_injury_expected_end_from_duration(
     uint32_t anchor_yyyymmdd,
     int duration_days);
-int kbo_foreign_injury_sql_evidence_date_allowed(
-    uint32_t scan_date_yyyymmdd,
-    uint32_t evidence_date_yyyymmdd,
-    int duration_days,
-    int allow_backdated);
-uint32_t kbo_foreign_injury_slot_opened_on_from_sql_evidence(
-    uint32_t scan_date_yyyymmdd,
-    uint32_t evidence_date_yyyymmdd,
-    int allow_backdated);
 int kbo_foreign_injury_replacement_phase_allows_signing(uint8_t effective_phase);
 int kbo_foreign_injury_replacement_phase_allows_close(uint8_t effective_phase);
 int kbo_foreign_injury_replacement_in_season_window(
@@ -140,9 +146,6 @@ void kbo_count_foreign_injury_replacements_for_team(
     int* out_closed);
 void kbo_foreign_injury_replacement_scan_captured_date(const char* source, uint32_t today);
 void kbo_foreign_injury_replacement_scan_discovery_for_date(const char* source, uint32_t today);
-void kbo_foreign_injury_replacement_scan_sql_settled_for_date(const char* source, uint32_t today);
-void kbo_foreign_injury_sql_cache_invalidate_all(const char* source);
 void start_kbo_foreign_injury_date_tick_thread(void);
-void start_kbo_foreign_injury_sql_watch_thread(void);
 
 #endif

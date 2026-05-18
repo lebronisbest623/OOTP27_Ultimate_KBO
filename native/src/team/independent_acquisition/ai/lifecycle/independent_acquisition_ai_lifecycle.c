@@ -109,7 +109,7 @@ int kbo_independent_acquisition_buyer_pending_request_count(
 
 uint32_t kbo_independent_acquisition_effective_season(uint32_t today)
 {
-    uint32_t open_date = kbo_independent_team_acquisition_window_open_date();
+    uint32_t open_date = kbo_independent_team_acquisition_window_open_date_for_date(today);
     if (open_date != 0u && today >= open_date) {
         return open_date / 10000u;
     }

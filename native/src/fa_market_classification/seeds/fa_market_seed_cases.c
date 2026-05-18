@@ -56,6 +56,7 @@ static int kbo_fa_market_seed_case_allowed(const char* case_label)
         || strcmp(case_label, "KBO_FA_ELIGIBLE_NOT_APPROVED") == 0
         || strcmp(case_label, "KBO_FA_DEFERRED") == 0
         || strcmp(case_label, "KBO_FA_BY_HISTORY_UNGRADED") == 0
+        || strcmp(case_label, "KBO_FA_CARRYOVER_UNSIGNED") == 0
         || strcmp(case_label, "DOMESTIC_RELEASED_NON_FA") == 0
         || strcmp(case_label, "DOMESTIC_UNDRAFTED_FREE_AGENT") == 0
         || strcmp(case_label, "DOMESTIC_INDEPENDENT_FUTURES_FA") == 0
@@ -110,7 +111,7 @@ static void kbo_ensure_fa_market_cases_seed_template(void)
     const char* header =
         "player_id,kbo_case,kbo_grade,note\r\n"
         "# Optional manual truth table for official KBO FA statuses, releases, and domestic teamless cases.\r\n"
-        "# kbo_case: KBO_FA_APPROVED,KBO_FA_ELIGIBLE_NOT_APPROVED,KBO_FA_DEFERRED,KBO_FA_BY_HISTORY_UNGRADED,DOMESTIC_RELEASED_NON_FA,DOMESTIC_UNDRAFTED_FREE_AGENT,DOMESTIC_INDEPENDENT_FUTURES_FA,DOMESTIC_INDEPENDENT_LEAGUE_FA,DOMESTIC_TEAMLESS_UNVERIFIED\r\n"
+        "# kbo_case: KBO_FA_APPROVED,KBO_FA_ELIGIBLE_NOT_APPROVED,KBO_FA_DEFERRED,KBO_FA_BY_HISTORY_UNGRADED,KBO_FA_CARRYOVER_UNSIGNED,DOMESTIC_RELEASED_NON_FA,DOMESTIC_UNDRAFTED_FREE_AGENT,DOMESTIC_INDEPENDENT_FUTURES_FA,DOMESTIC_INDEPENDENT_LEAGUE_FA,DOMESTIC_TEAMLESS_UNVERIFIED\r\n"
         "# kbo_grade: A,B,C,UNKNOWN\r\n";
     DWORD written = 0;
     WriteFile(file, header, (DWORD)strlen(header), &written, NULL);

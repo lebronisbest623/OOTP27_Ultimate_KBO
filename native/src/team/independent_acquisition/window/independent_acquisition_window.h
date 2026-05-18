@@ -10,6 +10,7 @@ int kbo_independent_team_acquisition_completion_valid(
     uint32_t league_id,
     uint32_t event_yyyymmdd);
 uint32_t kbo_independent_team_acquisition_window_open_date(void);
+uint32_t kbo_independent_team_acquisition_window_open_date_for_date(uint32_t today);
 int kbo_independent_team_acquisition_window_active(
     uint32_t today,
     uint32_t* out_open_date,

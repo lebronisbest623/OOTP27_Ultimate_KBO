@@ -80,6 +80,67 @@ int kbo_fa_market_row_is_independent_league_fa(const KboFaMarketClassification* 
         == KBO_TEAM_CLASSIFICATION_INDEPENDENT_KIND_LEAGUE;
 }
 
+uint32_t kbo_fa_market_history_date_u32(const KboFaMarketHistoryCase* history)
+{
+    if (history == NULL || history->history_date[0] == '\0') {
+        return 0u;
+    }
+    uint32_t date = 0u;
+    if (kbo_parse_yyyymmdd(history->history_date, &date)) {
+        return date;
+    }
+    return kbo_fa_filing_parse_u32(history->history_date);
+}
+
+static uint32_t kbo_fa_market_filing_season_from_date(uint32_t yyyymmdd)
+{
+    uint32_t season = yyyymmdd / 10000u;
+    uint32_t month = (yyyymmdd / 100u) % 100u;
+    uint32_t day = yyyymmdd % 100u;
+    if (season < 1982u || season > 2300u || month == 0u || month > 12u || day == 0u || day > 31u) {
+        return 0u;
+    }
+    return season;
+}
+
+void kbo_fa_market_apply_history_filing_metadata(
+    KboFaMarketClassification* row,
+    const KboFaMarketHistoryCase* history)
+{
+    if (row == NULL || history == NULL || !history->found || !history->became_free_agent) {
+        return;
+    }
+
+    uint32_t filing_date = kbo_fa_market_history_date_u32(history);
+    uint32_t filing_season = kbo_fa_market_filing_season_from_date(filing_date);
+    if (row->fa_filing_date == 0u && filing_date != 0u) {
+        row->fa_filing_date = filing_date;
+    }
+    if (row->fa_filing_season == 0u && filing_season != 0u) {
+        row->fa_filing_season = filing_season;
+    }
+}
+
+int kbo_fa_market_history_is_carryover_unsigned(
+    const KboFaMarketClassification* row,
+    const KboFaMarketHistoryCase* history,
+    uint32_t today_yyyymmdd)
+{
+    if (row == NULL || history == NULL || !history->found || !history->became_free_agent) {
+        return 0;
+    }
+
+    uint32_t filing_season = row->fa_filing_season;
+    if (filing_season == 0u) {
+        filing_season = kbo_fa_market_filing_season_from_date(kbo_fa_market_history_date_u32(history));
+    }
+    uint32_t current_year = today_yyyymmdd / 10000u;
+    if (filing_season < 1982u || filing_season > 2300u || current_year < 1982u || current_year > 2300u) {
+        return 0;
+    }
+    return filing_season < current_year;
+}
+
 void kbo_fa_market_set_history_reason(
     KboFaMarketClassification* row,
     const KboFaMarketHistoryCase* history,
@@ -122,6 +183,8 @@ int kbo_fa_market_apply_history_case(
     }
 
     if (history->became_free_agent) {
+        kbo_fa_market_apply_history_filing_metadata(row, history);
+
         int independent_kind = kbo_fa_market_row_independent_source_kind(row);
         if (independent_kind == KBO_TEAM_CLASSIFICATION_INDEPENDENT_KIND_FUTURES) {
             snprintf(row->case_label, sizeof(row->case_label), "DOMESTIC_INDEPENDENT_FUTURES_FA");
@@ -164,7 +227,8 @@ static int kbo_fa_market_case_uses_original_team(const char* case_label)
         && (strcmp(case_label, "KBO_FA_APPROVED") == 0
             || strcmp(case_label, "KBO_FA_ELIGIBLE_NOT_APPROVED") == 0
             || strcmp(case_label, "KBO_FA_DEFERRED") == 0
-            || strcmp(case_label, "KBO_FA_BY_HISTORY_UNGRADED") == 0);
+            || strcmp(case_label, "KBO_FA_BY_HISTORY_UNGRADED") == 0
+            || strcmp(case_label, "KBO_FA_CARRYOVER_UNSIGNED") == 0);
 }
 
 uint32_t kbo_fa_market_display_team_id(const KboFaMarketClassification* row)

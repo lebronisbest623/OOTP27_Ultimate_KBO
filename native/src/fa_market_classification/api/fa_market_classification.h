@@ -53,6 +53,8 @@ typedef struct KboFaMarketClassification {
     uint32_t fa_grade_snapshot_team_id;
     uint32_t fa_grade_snapshot_date;
     uint32_t fa_grade_opening_day;
+    uint32_t fa_filing_date;
+    uint32_t fa_filing_season;
     uint8_t fa_grade_auto;
     uint8_t fa_grade_team_changed_review;
     char player_name[96];

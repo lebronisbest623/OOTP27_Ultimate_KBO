@@ -51,6 +51,7 @@
 #include "../patch_installers/foreign/roster_limits/trade/patch_installers_foreign_trade_check.h"
 #include "../patch_installers/foreign/intl_established_fa/patch_installers_intl_established_fa.h"
 #include "../patch_installers/amateur_assignment/patch_installers_amateur_assignment.h"
+#include "../patch_installers/awards/patch_installers_award_schedule.h"
 #include "../patch_installers/competitive_balance_tax/patch_installers_cbt_draft_order.h"
 #include "../patch_installers/current_date/patch_installers_current_date_tick.h"
 #include "../patch_installers/hotkey_window/patch_installers_player_hover.h"

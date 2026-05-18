@@ -206,17 +206,19 @@ int scan_kbo_custom_events_once_for_date(uint32_t current_yyyymmdd, const char* 
         }
     }
 
-    if (triggered == 0 && deferred > 0 && kbo_custom_event_scan_should_log_deferred()) {
-        kbo_log_runtimef(
-            "KBO custom event scan deferred source=%s current=%04u-%02u-%02u deferred=%d count=%d manager=%p vector=%p",
-            source != NULL ? source : "",
-            current_year,
-            current_month,
-            current_day,
-            deferred,
-            event_count,
-            (void*)event_manager,
-            (void*)event_vector);
+    if (triggered == 0 && deferred > 0) {
+        if (kbo_custom_event_scan_should_log_deferred()) {
+            kbo_log_runtimef(
+                "KBO custom event scan deferred source=%s current=%04u-%02u-%02u deferred=%d count=%d manager=%p vector=%p",
+                source != NULL ? source : "",
+                current_year,
+                current_month,
+                current_day,
+                deferred,
+                event_count,
+                (void*)event_manager,
+                (void*)event_vector);
+        }
         return -1;
     }
 

@@ -16,6 +16,7 @@
 #include "../../seed/parse/military_service_seed_parse.h"
 #include "../../runtime/days_tick/military_service_tick.h"
 #include "../audit/military_selection_rule_audit.h"
+#include "../results/military_selection_results_store.h"
 #include "policy/military_selection_policy.h"
 
 static int kbo_count_players_on_team_with_military_days(uint32_t team_id)
@@ -105,6 +106,7 @@ int kbo_route_military_candidate_to_sang(
         KboMilitarySelectionNewsEntry* news_entry = &news_entries[routed];
         news_entry->player_id = candidate->player_id;
         news_entry->original_team_id = original_team_id;
+        news_entry->original_league_id = original_league_id;
         news_entry->score = score;
         news_entry->player_ptr = (uintptr_t)player;
     }
@@ -354,13 +356,23 @@ int run_kbo_custom_military_event(
         (uint16_t)event_year,
         sang_id,
         source);
-    KboMilitarySelectionNewsEntry news_entries[24] = {0};
+    KboMilitarySelectionNewsEntry news_entries[256] = {0};
     int routed = kbo_route_queued_military_draft_candidates(
         (uint16_t)event_year,
         news_entries,
         (int)(sizeof(news_entries) / sizeof(news_entries[0])),
         source);
     uint32_t news_yyyymmdd = kbo_custom_event_effective_news_date(event_yyyymmdd);
+    int results_saved = 0;
+    if (routed > 0) {
+        results_saved = kbo_append_military_selection_result_history(
+            event_year,
+            news_yyyymmdd,
+            sang_id,
+            news_entries,
+            routed,
+            source);
+    }
     int news_created = 0;
     if (routed > 0) {
         news_created = kbo_emit_military_selection_news(
@@ -370,7 +382,7 @@ int run_kbo_custom_military_event(
             source);
     }
     kbo_log_runtimef(
-        "KBO military selection reached source=%s event=%s year=%u event_date=%u news_date=%u routed=%d seeded=%d returned=%d refreshed=%d news=%d queued_left=%d",
+        "KBO military selection reached source=%s event=%s year=%u event_date=%u news_date=%u routed=%d seeded=%d returned=%d refreshed=%d results_saved=%d news=%d queued_left=%d",
         source != NULL ? source : "",
         event_name != NULL ? event_name : "",
         event_year,
@@ -380,6 +392,7 @@ int run_kbo_custom_military_event(
         seeded,
         returned,
         refreshed,
+        results_saved,
         news_created,
         kbo_count_military_draft_candidates_for_year((uint16_t)event_year));
     kbo_military_selection_audit_flow("military.selection.event", routed > 0 ? "complete_with_routes" : "complete_no_routes", "custom_event_reached", source, event_year, sang_id, 0, 0, kbo_count_military_draft_candidates_for_year((uint16_t)event_year), 0, routed, refreshed, seeded, returned, news_created, 0u);

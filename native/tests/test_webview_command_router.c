@@ -11,7 +11,6 @@
 
 uint32_t g_kbo_hub_selected_league_id = 0u;
 uint32_t g_kbo_hub_selected_team_id = 0u;
-int g_kbo_hub_fa_market_page = 0;
 int g_kbo_hub_open_dropdown = 0;
 
 static int g_navigate_current_count = 0;
@@ -77,7 +76,6 @@ static void reset_state(void)
 {
     g_kbo_hub_selected_league_id = 0u;
     g_kbo_hub_selected_team_id = 0u;
-    g_kbo_hub_fa_market_page = 7;
     g_kbo_hub_open_dropdown = 0;
     g_navigate_current_count = 0;
     g_ensure_valid_selection_count = 0;
@@ -106,7 +104,6 @@ static void test_selection_commands_are_handled(void)
     assert(kbo_webview_handle_command_uri("kbo://setleague/42", NULL));
     assert(g_kbo_hub_selected_league_id == 42u);
     assert(g_kbo_hub_selected_team_id == 0u);
-    assert(g_kbo_hub_fa_market_page == 0);
     assert(g_kbo_hub_open_dropdown == 0);
     assert(g_navigate_current_count == 1);
     assert(g_ensure_valid_selection_count == 1);

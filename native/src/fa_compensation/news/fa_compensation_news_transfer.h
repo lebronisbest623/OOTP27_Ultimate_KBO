@@ -5,6 +5,18 @@
 
 #include "../state/fa_compensation_state.h"
 
+void kbo_emit_fa_compensation_obligation_news(
+    const KboFaCompensationRecord* rec,
+    uint32_t event_yyyymmdd,
+    uint32_t protected_list_due_days);
+
+void kbo_emit_fa_compensation_protected_list_submitted_news(
+    const KboFaCompensationRecord* rec,
+    uint32_t generated_yyyymmdd,
+    uint32_t selection_due_days,
+    int protected_count,
+    int unprotected_count);
+
 void kbo_emit_fa_compensation_player_selected_news(
     const KboFaCompensationRecord* rec,
     const KboFaProtectedCandidate* selected,

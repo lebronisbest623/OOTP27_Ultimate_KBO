@@ -32,38 +32,6 @@ enum {
     KBO_FA_MARKET_POSITION_DH = 14
 };
 
-int kbo_fa_market_ui_page_count(int total_rows)
-{
-    int page_size = g_kbo_hub_fa_market_report_size;
-    if (page_size != 100 && page_size != 300 && page_size != 500) {
-        page_size = 300;
-    }
-    if (total_rows <= 0) {
-        return 1;
-    }
-    return (total_rows + page_size - 1) / page_size;
-}
-
-void kbo_webview_append_fa_market_page_button(
-    KboWindowTextBuffer* buffer,
-    const char* label,
-    int page,
-    int enabled)
-{
-    if (enabled) {
-        kbo_window_text_appendf(
-            buffer,
-            "<a class='rightsTextAction' href='kbo://fa-market/page/%d'>%s</a>",
-            page,
-            label);
-    } else {
-        kbo_window_text_appendf(
-            buffer,
-            "<span class='rightsTextAction' style='opacity:.38;cursor:default'>%s</span>",
-            label);
-    }
-}
-
 static const char* kbo_fa_market_filter_label(int filter)
 {
     switch (filter) {
@@ -105,7 +73,8 @@ static int kbo_fa_market_row_is_compensable(const KboFaMarketClassification* row
         && (strcmp(row->case_label, "KBO_FA_APPROVED") == 0
             || strcmp(row->case_label, "KBO_FA_ELIGIBLE_NOT_APPROVED") == 0
             || strcmp(row->case_label, "KBO_FA_DEFERRED") == 0
-            || strcmp(row->case_label, "KBO_FA_BY_HISTORY_UNGRADED") == 0);
+            || strcmp(row->case_label, "KBO_FA_BY_HISTORY_UNGRADED") == 0
+            || strcmp(row->case_label, "KBO_FA_CARRYOVER_UNSIGNED") == 0);
 }
 
 int kbo_fa_market_row_matches_filter(const KboFaMarketClassification* row, int filter)
@@ -208,17 +177,19 @@ void kbo_webview_append_fa_market_filter_bar(
     int filtered_rows,
     int total_rows)
 {
-    int report_size = g_kbo_hub_fa_market_report_size;
-    if (report_size != 100 && report_size != 300 && report_size != 500) {
-        report_size = 300;
-    }
     kbo_window_text_appendf(buffer,
         "<style>"
+        ".faMarketView{display:grid!important;grid-template-rows:34px minmax(0,1fr);gap:6px!important;height:100%%!important;min-height:0;overflow:visible}"
+        ".faMarketView>.faFilterBar,.faMarketView>.rosterTopBar{min-height:0;flex:none!important}"
+        ".faMarketView>.faFilterBar{position:relative;z-index:30}"
+        ".faMarketView>.rosterTopBar{height:34px;padding:0 8px;position:relative;z-index:10}"
+        ".faMarketView>.faMarketTableWrap{height:auto!important;min-height:0;margin:0!important;align-self:stretch;position:relative;z-index:1;overflow-y:auto;overflow-x:hidden}"
         ".faFilterBar{height:34px;display:flex;align-items:center;gap:8px;padding:0 7px;background:#1f1f1f;border:1px solid #303030;border-radius:4px;overflow:visible;flex:0 0 auto}"
-        ".faFilterSelect{position:relative;width:150px;height:26px;color:#f2f2f2;font-family:var(--ui-font);font-size:13px;font-weight:900;line-height:26px}.faFilterSelect.wide{width:194px}.faFilterSelect.narrow{width:124px}"
+        ".faFilterSelect{position:relative;width:150px;height:26px;color:#f2f2f2;font-family:var(--ui-font);font-size:13px;font-weight:900;line-height:26px}.faFilterSelect.wide{width:194px}"
         ".faFilterSelect summary{height:26px;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 24px 0 9px;border:1px solid #5a5f61;border-radius:3px;background:#252829;list-style:none;cursor:pointer;outline:0;text-transform:uppercase}.faFilterSelect summary::-webkit-details-marker{display:none}.faFilterSelect summary:after{content:'';position:absolute;right:9px;top:10px;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid #e6e6e6}.faFilterSelect[open] summary{background:#303436;border-color:#8a8f91}.faFilterSelect[open] summary:after{border-top:0;border-bottom:6px solid #fff}"
         ".faFilterMenu{position:absolute;left:0;right:0;top:29px;z-index:60;max-height:230px;overflow-y:auto;overflow-x:hidden;padding:3px 0;border:1px solid #42474a;border-radius:3px;background:#242729;box-shadow:0 8px 18px rgba(0,0,0,.55)}.faFilterOption{display:block;height:24px;line-height:24px;padding:0 9px;color:#efefef;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.faFilterOption:hover,.faFilterOption.selected{background:#30434b;color:#fff}"
         ".faFilterSpacer{flex:1 1 auto}.faFilterSummary{color:#f2f2f2;font-size:13px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}"
+        ".faCasesTable .roGrade{width:58px;position:relative;overflow:visible!important}.faGradeValue{display:inline-flex;align-items:center;min-width:24px;font-weight:900;color:#ffb13b}.faGradeTooltip{position:absolute;left:5px;top:24px;z-index:95;display:none;min-width:158px;padding:7px 9px;border:1px solid #454545;border-radius:3px;background:#171717;color:#f4f4f4;box-shadow:0 8px 18px rgba(0,0,0,.62);font-size:12px;font-weight:800;line-height:1.35;pointer-events:none}.faGradeTipRow{display:flex;align-items:center;justify-content:space-between;gap:14px;white-space:nowrap}.faGradeTipRow+ .faGradeTipRow{margin-top:3px}.faGradeTipLabel{color:#aaa;font-weight:800}.faGradeTipValue{color:#fff;font-weight:900}.faCasesTable .roGrade.hasHover:hover .faGradeTooltip{display:block}"
         "</style>"
         "<div class='faFilterBar'><details class='faFilterSelect'><summary>FILTER : ");
     kbo_html_append_escaped(buffer, kbo_fa_market_filter_label(g_kbo_hub_fa_market_filter));
@@ -250,11 +221,6 @@ void kbo_webview_append_fa_market_filter_bar(
     kbo_webview_append_fa_market_position_option(buffer, KBO_FA_MARKET_POSITION_CF, "CF");
     kbo_webview_append_fa_market_position_option(buffer, KBO_FA_MARKET_POSITION_RF, "RF");
     kbo_webview_append_fa_market_position_option(buffer, KBO_FA_MARKET_POSITION_DH, "DH");
-    kbo_window_text_appendf(buffer,
-        "</div></details><details class='faFilterSelect narrow'><summary>REPORT</summary><div class='faFilterMenu'>");
-    kbo_webview_append_fa_market_choice_option(buffer, "kbo://fa-market/report/100", "100 Players", report_size == 100);
-    kbo_webview_append_fa_market_choice_option(buffer, "kbo://fa-market/report/300", "300 Players", report_size == 300);
-    kbo_webview_append_fa_market_choice_option(buffer, "kbo://fa-market/report/500", "500 Players", report_size == 500);
     kbo_window_text_appendf(buffer,
         "</div></details><div class='faFilterSpacer'></div><div class='faFilterSummary'>Filter: ");
     kbo_html_append_escaped(buffer, kbo_fa_market_filter_label(g_kbo_hub_fa_market_filter));

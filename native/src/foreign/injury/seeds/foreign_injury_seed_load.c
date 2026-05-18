@@ -173,9 +173,11 @@ static int kbo_finalize_foreign_injury_replacement_seed(
     if (out->expected_end_yyyymmdd == 0u
             && injured != NULL
             && memory_range_readable(injured, OOTP27_PLAYER_SCAN_BYTES)) {
-        int16_t days_left = *(int16_t*)(injured + OOTP27_PLAYER_INJURY_DAYS_LEFT_OFFSET);
-        if (days_left > 0 && today != 0u) {
-            out->expected_end_yyyymmdd = kbo_add_days_yyyymmdd(today, (uint32_t)days_left);
+        KboForeignInjuryLiveMemory live_injury;
+        memset(&live_injury, 0, sizeof(live_injury));
+        kbo_foreign_injury_read_live_memory(injured, &live_injury);
+        if (live_injury.active != 0u && live_injury.days_left > 0 && today != 0u) {
+            out->expected_end_yyyymmdd = kbo_add_days_yyyymmdd(today, (uint32_t)live_injury.days_left);
         }
     }
     if (out->expected_end_yyyymmdd == 0u

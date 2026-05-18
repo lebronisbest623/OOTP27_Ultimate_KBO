@@ -1,14 +1,22 @@
 {
   "foreign_waiver.results.title": "외국인 시장 앞두고 붙잡을 이름 갈렸다",
-  "foreign_waiver.results.title.variants": 2,
+  "foreign_waiver.results.title.variants": 5,
   "foreign_waiver.results.title.v1": "외국인 시장 앞두고 붙잡을 이름 갈렸다",
   "foreign_waiver.results.title.v2": "외국인 보류 명단, 구단 선택 마무리",
+  "foreign_waiver.results.title.v3": "외국인 보류권 정리, 겨울 시장 첫 윤곽",
+  "foreign_waiver.results.title.v4": "구단별 외국인 보류권 정리, 겨울 시장 첫 신호",
+  "foreign_waiver.results.title.v5": "보류권 마감, 외국인 선수 겨울 이동의 출발",
   "foreign_waiver.results.body_with_breakdown": "새 외국인 시장을 앞두고 각 구단의 속내가 조금 드러났습니다. 다시 잡아둘 이름과 새 얼굴을 찾기 위해 풀어둘 자리가 갈렸습니다.\n\n이번 정리에서 보류 명단에 남은 선수는 {retained}명, 시장으로 풀린 선수는 {skipped}명입니다. 붙잡힌 선수들은 KBO 복귀를 타진할 때 원 구단과 먼저 마주하게 됩니다.\n\n현재 유효한 보류권은 {active_rights}건입니다. 당장의 잔류 확정은 아니지만, 다음 외국인 시장의 출발선은 이 숫자에서 갈립니다.",
-  "foreign_waiver.results.body_with_breakdown.variants": 2,
+  "foreign_waiver.results.body_with_breakdown.variants": 5,
   "foreign_waiver.results.body_with_breakdown.v1": "새 외국인 시장을 앞두고 각 구단의 속내가 조금 드러났습니다. 다시 잡아둘 이름과 새 얼굴을 찾기 위해 풀어둘 자리가 갈렸습니다.\n\n이번 정리에서 보류 명단에 남은 선수는 {retained}명, 시장으로 풀린 선수는 {skipped}명입니다. 붙잡힌 선수들은 KBO 복귀를 타진할 때 원 구단과 먼저 마주하게 됩니다.\n\n현재 유효한 보류권은 {active_rights}건입니다. 당장의 잔류 확정은 아니지만, 다음 외국인 시장의 출발선은 이 숫자에서 갈립니다.",
   "foreign_waiver.results.body_with_breakdown.v2": "시즌 뒤 외국인 선수판의 첫 윤곽이 나왔습니다. 구단들은 다시 보고 싶은 선수와 새 후보에게 자리를 내줄 선수를 갈랐습니다.\n\n보류 명단에 남은 선수는 {retained}명, 풀려난 선수는 {skipped}명입니다. 남은 {active_rights}건의 권리는 다음 협상 테이블에서 각 구단이 먼저 꺼낼 수 있는 카드로 남습니다.",
+  "foreign_waiver.results.body_with_breakdown.v3": "외국인 선수 보류권 정리가 끝나면서 겨울 시장의 출발선도 조금 선명해졌습니다. 각 구단은 재회 가능성을 남겨둘 선수와 새 후보를 위해 풀어줄 선수를 나눴습니다.\n\n이번 결정으로 {retained}명이 보류 명단에 남고, {skipped}명은 시장으로 나갑니다. 현재 유효한 권리는 {active_rights}건입니다. 계약 확정은 아니지만, 다음 협상에서 누가 먼저 말할 수 있는지를 정하는 숫자입니다.",
+  "foreign_waiver.results.body_with_breakdown.v4": "구단들이 선택을 마쳤습니다. 계속 보고 싶은 선수와 새 얼굴로 교체할 자리를 갈랐습니다. 보류 명단에 남은 선수 {retained}명, 시장으로 풀린 선수 {skipped}명입니다.\n\n보류권은 계약 완료가 아닙니다. 하지만 협상 테이블에서 먼저 앉을 수 있는 권리입니다. 현재 유효한 보류권 {active_rights}건이 다음 외국인 선수 시장의 출발선을 만들었습니다.",
+  "foreign_waiver.results.body_with_breakdown.v5": "보류권 정리 완료. 붙잡은 선수 {retained}명, 내보낸 자리 {skipped}명. 유효 보류권 {active_rights}건.\n\n선수를 잡아뒀다고 잔류 확정은 아닙니다. 다만 그 선수가 KBO를 다시 찾아올 때 협상 우선권은 원 구단에 있습니다.",
   "foreign_waiver.results.body_without_breakdown": "외국인 선수 시장을 앞두고 구단들의 첫 정리가 끝났습니다. 세부 명단은 공개되지 않았지만, 아직 유효한 보류권은 {active_rights}건입니다.\n\n이 숫자는 잔류 확정표가 아니라 다음 협상의 우선권에 가깝습니다. 누가 다시 KBO 문을 두드리느냐에 따라 각 구단의 겨울 움직임도 달라질 수 있습니다.",
-  "foreign_waiver.results.body_without_breakdown.variants": 2,
+  "foreign_waiver.results.body_without_breakdown.variants": 4,
   "foreign_waiver.results.body_without_breakdown.v1": "외국인 선수 시장을 앞두고 구단들의 첫 정리가 끝났습니다. 세부 명단은 공개되지 않았지만, 아직 유효한 보류권은 {active_rights}건입니다.\n\n이 숫자는 잔류 확정표가 아니라 다음 협상의 우선권에 가깝습니다. 누가 다시 KBO 문을 두드리느냐에 따라 각 구단의 겨울 움직임도 달라질 수 있습니다.",
-  "foreign_waiver.results.body_without_breakdown.v2": "겨울 외국인 시장을 앞두고 남겨둘 이름들의 윤곽이 잡혔습니다. 공개된 세부 명단은 없지만, 유효한 보류권은 {active_rights}건입니다.\n\n구단들은 이 권리를 바탕으로 재회 가능성을 붙잡아 둡니다. 시장에 어떤 이름이 다시 나오느냐가 다음 선택을 가르게 됩니다."
+  "foreign_waiver.results.body_without_breakdown.v2": "겨울 외국인 시장을 앞두고 남겨둘 이름들의 윤곽이 잡혔습니다. 공개된 세부 명단은 없지만, 유효한 보류권은 {active_rights}건입니다.\n\n구단들은 이 권리를 바탕으로 재회 가능성을 붙잡아 둡니다. 시장에 어떤 이름이 다시 나오느냐가 다음 선택을 가르게 됩니다.",
+  "foreign_waiver.results.body_without_breakdown.v3": "외국인 선수 보류권 마감이 지나갔습니다. 개별 결정표는 붙지 않았지만, 현재 장부에 남은 유효 보류권은 {active_rights}건입니다.\n\n보류권은 잔류 발표가 아닙니다. 다만 해당 선수가 다시 KBO를 바라볼 때 원 구단이 먼저 협상할 수 있는 권리이고, 그 작은 우선권이 겨울 시장의 순서를 바꿀 수 있습니다.",
+  "foreign_waiver.results.body_without_breakdown.v4": "외국인 선수 보류권 마감이 지났습니다. 구단별 세부 내역은 아직 공개되지 않았지만, 현재 장부에 남은 유효 보류권은 {active_rights}건으로 집계됐습니다.\n\n이 숫자가 겨울 외국인 시장의 첫 그림입니다. 보류권을 쥔 구단은 먼저 협상 테이블에 앉는다는 이점이 생겼습니다."
 }

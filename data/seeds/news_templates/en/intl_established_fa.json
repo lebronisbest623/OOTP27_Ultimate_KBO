@@ -1,6 +1,14 @@
 {
-  "intl_established_fa.summary.title": "{season} International FA Class Published",
+  "intl_established_fa.summary.title": "{season} international FA class published",
+  "intl_established_fa.summary.title.variants": 3,
+  "intl_established_fa.summary.title.v1": "{season} international FA class published",
+  "intl_established_fa.summary.title.v2": "KBO clubs get first look at international FA pool",
+  "intl_established_fa.summary.title.v3": "{season} international market board takes shape",
   "intl_established_fa.summary.body": "The {season} international established FA class has been generated. The current pool shows {total_count} market candidates.\n\nThis does not mean anyone has signed yet, but it gives KBO clubs a fresh group to sort for foreign-player needs as the FA filing calendar opens.\n\nNotable candidates\n{player_list}\nClubs will now weigh position, age, Asian-quota status and expected acquisition cost before deciding which names are worth early contact.",
+  "intl_established_fa.summary.body.variants": 3,
+  "intl_established_fa.summary.body.v1": "The {season} international established FA class has been generated. The current pool shows {total_count} market candidates.\n\nThis does not mean anyone has signed yet, but it gives KBO clubs a fresh group to sort for foreign-player needs as the FA filing calendar opens.\n\nNotable candidates\n{player_list}\nClubs will now weigh position, age, Asian-quota status and expected acquisition cost before deciding which names are worth early contact.",
+  "intl_established_fa.summary.body.v2": "The international FA board for {season} is open, with {total_count} candidates currently visible to the market.\n\nFor clubs reviewing foreign-player options, this is the first pass at the next shopping list rather than a signing announcement. Scouting departments can now compare position need, age, Asian-quota fit and expected price.\n\nNotable candidates\n{player_list}\nThe earliest movement will likely come from clubs with a clear roster hole and enough budget space to act.",
+  "intl_established_fa.summary.body.v3": "A fresh {season} international FA pool has been published. The generated list includes {total_count} players who may draw KBO interest.\n\nThe names are not commitments, but they give clubs a practical market map as offseason planning begins. Teams looking to change the foreign-player mix can start sorting the group by role, risk and acquisition cost.\n\nNotable candidates\n{player_list}\nThe next step is not only who is available, but which club has the need to move first.",
   "intl_established_fa.player_line": "{rank}. {player_link}, {position}, age {age}, {quota}, score {score}",
   "intl_established_fa.none": "- No notable candidates confirmed yet"
 }

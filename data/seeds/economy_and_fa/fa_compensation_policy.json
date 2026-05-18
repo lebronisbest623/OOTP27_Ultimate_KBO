@@ -72,5 +72,6 @@
   "decision_upside_bonus": 450,
   "cash_only_score_threshold": 65000,
   "cash_only_extra_cash_score_threshold": 80000,
+  "cash_only_ab_grade_requires_no_player": 1,
   "rookie_auto_protected_age_max": 23
 }

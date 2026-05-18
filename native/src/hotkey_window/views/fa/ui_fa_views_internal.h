@@ -17,6 +17,8 @@
 #include "../../../core/dates/core_current_date.h"
 #include "../../../foreign/common/dates/foreign_waiver_date.h"
 #include "../../support/assets/names/support_names.h"
+#include "../../support/assets/nations/ui_nation_helpers.h"
+#include "../../support/assets/paths/ui_asset_paths.h"
 #include "ui_fa_views.h"
 #include "../../support/roster/cells/ui_roster_cells.h"
 #include "../../support/text/buffer/ui_text_buffer.h"

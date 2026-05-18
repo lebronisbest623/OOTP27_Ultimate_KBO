@@ -344,6 +344,15 @@ uint32_t kbo_independent_team_acquisition_window_open_date(void)
     return loaded;
 }
 
+uint32_t kbo_independent_team_acquisition_window_open_date_for_date(uint32_t today)
+{
+    uint32_t open_date = kbo_independent_team_acquisition_window_open_date();
+    if (today == 0u || open_date == 0u || open_date / 10000u != today / 10000u) {
+        return 0u;
+    }
+    return open_date;
+}
+
 uint32_t kbo_independent_team_acquisition_window_planning_days(void)
 {
     return KBO_INDEPENDENT_ACQUISITION_REGULAR_SEASON_PLANNING_DAYS;
@@ -351,7 +360,7 @@ uint32_t kbo_independent_team_acquisition_window_planning_days(void)
 
 uint32_t kbo_independent_team_acquisition_window_elapsed_days(uint32_t today)
 {
-    uint32_t open_date = kbo_independent_team_acquisition_window_open_date();
+    uint32_t open_date = kbo_independent_team_acquisition_window_open_date_for_date(today);
     if (today == 0u || open_date == 0u || today < open_date) {
         return 0u;
     }
@@ -382,7 +391,7 @@ int kbo_independent_team_acquisition_window_active(
         *out_effective_phase = KBO_SEASON_PHASE_UNKNOWN;
     }
 
-    uint32_t open_date = kbo_independent_team_acquisition_window_open_date();
+    uint32_t open_date = kbo_independent_team_acquisition_window_open_date_for_date(today);
     if (out_open_date != NULL) {
         *out_open_date = open_date;
     }

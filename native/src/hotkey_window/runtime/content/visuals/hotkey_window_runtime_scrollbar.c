@@ -1,4 +1,5 @@
 #include "../hotkey_window_runtime_content_internal.h"
+#include "../../webview/hotkey_window_webview_internal.h"
 
 int kbo_hub_estimate_visible_edit_lines(void)
 {
@@ -225,6 +226,7 @@ void kbo_show_or_hide_hotkey_window(void)
     }
 
     if (IsWindowVisible(hwnd)) {
+        kbo_hide_webview_player_tooltip_popup(0u);
         kbo_hub_save_window_placement(hwnd);
         ShowWindow(hwnd, SW_HIDE);
         kbo_log_runtimef("KBO F2 hub hidden hwnd=%p", (void*)hwnd);

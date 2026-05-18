@@ -3,6 +3,8 @@ $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
 $TestSrc = Join-Path $PSScriptRoot "test_main.c"
 $TestExe = Join-Path $PSScriptRoot "tests.exe"
+$FaCompensationSelectionTestSrc = Join-Path $PSScriptRoot "test_fa_compensation_selection.c"
+$FaCompensationSelectionTestExe = Join-Path $PSScriptRoot "test_fa_compensation_selection.exe"
 $WebViewCommandRouterTestSrc = Join-Path $PSScriptRoot "test_webview_command_router.c"
 $WebViewCommandRouterTestExe = Join-Path $PSScriptRoot "test_webview_command_router.exe"
 
@@ -61,6 +63,21 @@ if ($LASTEXITCODE -ne 0) {
 & $WebViewCommandRouterTestExe
 if ($LASTEXITCODE -ne 0) {
     throw "WebView command router tests failed"
+}
+
+& $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
+    -I $Root `
+    -I (Join-Path $Root "src") `
+    -o $FaCompensationSelectionTestExe `
+    $FaCompensationSelectionTestSrc `
+    (Join-Path $Root "src\fa_compensation\selection\fa_compensation_selection.c")
+if ($LASTEXITCODE -ne 0) {
+    throw "FA compensation selection test build failed"
+}
+
+& $FaCompensationSelectionTestExe
+if ($LASTEXITCODE -ne 0) {
+    throw "FA compensation selection tests failed"
 }
 
 & $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `

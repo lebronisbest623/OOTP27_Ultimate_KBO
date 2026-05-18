@@ -10,6 +10,14 @@ void kbo_fa_market_set_history_reason(
     KboFaMarketClassification* row,
     const KboFaMarketHistoryCase* history,
     const char* prefix);
+uint32_t kbo_fa_market_history_date_u32(const KboFaMarketHistoryCase* history);
+void kbo_fa_market_apply_history_filing_metadata(
+    KboFaMarketClassification* row,
+    const KboFaMarketHistoryCase* history);
+int kbo_fa_market_history_is_carryover_unsigned(
+    const KboFaMarketClassification* row,
+    const KboFaMarketHistoryCase* history,
+    uint32_t today_yyyymmdd);
 int kbo_fa_market_apply_history_case(
     KboFaMarketClassification* row,
     const KboFaMarketHistoryCase* history);
@@ -28,7 +36,6 @@ int kbo_load_fa_market_history_cases(
     int row_count,
     KboFaMarketHistoryCase* histories,
     int max_histories);
-uint32_t kbo_fa_market_history_date_u32(const KboFaMarketHistoryCase* history);
 int kbo_fa_market_overlay_filing_history_cases(
     KboFaMarketClassification* rows,
     int row_count,

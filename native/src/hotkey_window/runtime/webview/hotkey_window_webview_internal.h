@@ -50,6 +50,9 @@ ULONG STDMETHODCALLTYPE kbo_webview_controller_addref(ICoreWebView2CreateCoreWeb
 ULONG STDMETHODCALLTYPE kbo_webview_controller_release(ICoreWebView2CreateCoreWebView2ControllerCompletedHandler* This);
 void kbo_webview_set_bounds(HWND hwnd);
 void kbo_webview_apply_ootp_like_settings(void);
+int kbo_show_webview_player_tooltip_popup(HWND owner, int screen_x, int screen_y, uint32_t hover_seq, const char* html);
+void kbo_hide_webview_player_tooltip_popup(uint32_t hover_seq);
+void kbo_destroy_webview_player_tooltip_popup(void);
 HRESULT STDMETHODCALLTYPE kbo_webview_controller_invoke(
     ICoreWebView2CreateCoreWebView2ControllerCompletedHandler* This,
     HRESULT errorCode,

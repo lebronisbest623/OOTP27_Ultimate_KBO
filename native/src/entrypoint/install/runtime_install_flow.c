@@ -193,6 +193,11 @@ void install_kbo_full_runtime_after_roster_marker(HINSTANCE instance)
     } else {
         kbo_log_runtime_line("KBO all-star flag repair skipped: single-division all-star runtime/events flag is false");
     }
+    if (!read_kbo_localappdata_flag_file("disable_kbo_award_schedule_create_event_hook.txt")) {
+        install_kbo_award_schedule_create_event_patch();
+    } else {
+        kbo_log_runtime_line("KBO award schedule create-event hook disabled: disable_kbo_award_schedule_create_event_hook is true");
+    }
 
     install_kbo_military_service_entry_patch();
     install_kbo_military_status_update_patch();
@@ -338,7 +343,6 @@ void install_kbo_full_runtime_after_roster_marker(HINSTANCE instance)
         kbo_log_runtime_line("KBO current date tick watchpoint disabled: disable_kbo_current_date_tick_watchpoint is true");
     }
     start_kbo_foreign_injury_date_tick_thread();
-    start_kbo_foreign_injury_sql_watch_thread();
     if (kbo_no_minor_contract_patch_enabled()) {
         if (!kbo_opening_day_storyline_guard_active("no_minor_contract_patch_install", NULL, NULL)) {
             install_kbo_no_minor_contract_patch_once("runtime_install");

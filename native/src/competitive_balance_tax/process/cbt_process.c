@@ -2,6 +2,7 @@
 
 #include "../audit/cbt_rule_audit.h"
 #include "../draft/order/cbt_draft_order_penalty.h"
+#include "../draft/penalty/cbt_draft_penalty.h"
 #include "payroll/cbt_payroll_compute.h"
 #include "../../hotkey_window/api/hotkey_window_refresh.h"
 
@@ -239,7 +240,18 @@ int kbo_process_competitive_balance_tax_for_date(uint32_t season, uint32_t news_
     }
 
     int records_saved = kbo_cbt_save_records(records, record_count);
-    int draft_order_moves = kbo_cbt_apply_pending_draft_order_penalties("cbt_process_post_records");
+    if (records_saved) {
+        kbo_cbt_draft_penalty_cache_clear();
+    }
+    int draft_order_moves = 0;
+    if (league_id != 0u) {
+        draft_order_moves = kbo_cbt_apply_primary_league_draft_order_penalties(
+            league_id,
+            "cbt_process_primary_league_state");
+    }
+    if (draft_order_moves <= 0) {
+        draft_order_moves = kbo_cbt_apply_pending_draft_order_penalties("cbt_process_post_records");
+    }
     if (draft_order_moves > 0) {
         kbo_log_runtimef(
             "KBO CBT draft order penalties applied after record save season=%u moves=%d source=%s",

@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "../../bootstrap/abi/ootp_offsets.h"
+#include "../../bootstrap/abi/ootp_typedefs.h"
 #include "../../core/core_flags/api/flags_api.h"
 #include "../../core/events/core_league_events.h"
 #include "../../core/core_league_context_parts/event_manager/event_manager.h"
@@ -68,6 +69,14 @@ extern volatile LONG g_kbo_award_schedule_probe_started;
 int kbo_award_schedule_load_text(char** out_text, DWORD* out_size, char* out_path, size_t out_path_size);
 int kbo_award_schedule_parse_policy(const char* json, KboAwardSchedulePolicy* out);
 void kbo_award_schedule_apply_once(uint32_t league_id, uint32_t current_date, int ensure_events);
+int kbo_award_schedule_adjust_created_event(
+    void* event_ptr,
+    uint32_t event_type_hint,
+    uint32_t league_id_hint,
+    const char* title_hint,
+    uint32_t current_date,
+    const char* source);
+void kbo_award_schedule_set_create_league_event_original(OotpCreateLeagueEventFn original_func);
 void kbo_award_schedule_log_event_inventory(uint32_t league_id, uint32_t current_date);
 
 #endif

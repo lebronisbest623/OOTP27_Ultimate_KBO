@@ -604,6 +604,11 @@ HRESULT STDMETHODCALLTYPE kbo_webview_env_invoke(
         version,
         (unsigned long)version_hr);
 
+    if (g_kbo_webview_environment == NULL) {
+        g_kbo_webview_environment = result;
+        ICoreWebView2Environment_AddRef(g_kbo_webview_environment);
+    }
+
     g_kbo_webview_controller_handler.hwnd = handler->hwnd;
     HRESULT hr = ICoreWebView2Environment_CreateCoreWebView2Controller(
         result,

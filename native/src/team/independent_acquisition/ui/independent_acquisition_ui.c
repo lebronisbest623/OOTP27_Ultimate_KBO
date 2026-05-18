@@ -42,7 +42,7 @@ static int kbo_independent_acquisition_ui_window_open(
 
 static uint32_t kbo_independent_acquisition_ui_effective_season(uint32_t today, uint32_t open_date)
 {
-    if (open_date != 0u && today >= open_date) {
+    if (open_date != 0u && today >= open_date && open_date / 10000u == today / 10000u) {
         return open_date / 10000u;
     }
     return today / 10000u;
@@ -63,8 +63,8 @@ int kbo_independent_acquisition_ui_context(
     if (kbo_get_current_yyyymmdd(&today)) {
         out_context->today = today;
     }
-    out_context->open_date = kbo_independent_team_acquisition_window_open_date();
     if (out_context->today != 0u) {
+        out_context->open_date = kbo_independent_team_acquisition_window_open_date_for_date(out_context->today);
         out_context->season = kbo_independent_acquisition_ui_effective_season(
             out_context->today,
             out_context->open_date);

@@ -25,7 +25,20 @@ static void kbo_fa_compensation_format_salary_text(int32_t salary, char* out, si
         snprintf(out, out_size, "-");
         return;
     }
-    snprintf(out, out_size, "%d", salary);
+
+    char raw[32] = {0};
+    char formatted[48] = {0};
+    snprintf(raw, sizeof(raw), "%d", salary);
+    size_t raw_len = strlen(raw);
+    size_t pos = 0u;
+    for (size_t i = 0u; i < raw_len && pos + 1u < sizeof(formatted); i++) {
+        if (i > 0u && ((raw_len - i) % 3u) == 0u && pos + 1u < sizeof(formatted)) {
+            formatted[pos++] = ',';
+        }
+        formatted[pos++] = raw[i];
+    }
+    formatted[pos] = '\0';
+    snprintf(out, out_size, "$%s", formatted);
 }
 
 static int kbo_fa_compensation_team_name_placeholder(const char* text)
@@ -77,7 +90,8 @@ static void kbo_fa_compensation_copy_team_name(uint32_t team_id, char* out, size
             snprintf(out, out_size, "SSG Landers");
             return;
         }
-        if (_stricmp(city, "Hanwha") == 0 && _stricmp(nickname, "HAN") == 0) {
+        if (_stricmp(city, "Hanwha") == 0
+                && (_stricmp(nickname, "HAN") == 0 || _stricmp(nickname, "HH") == 0)) {
             snprintf(out, out_size, "Hanwha Eagles");
             return;
         }
@@ -130,6 +144,165 @@ static void kbo_fa_compensation_copy_team_link(uint32_t team_id, char* out, size
     char team_name[96] = {0};
     kbo_fa_compensation_copy_team_name(team_id, team_name, sizeof(team_name));
     snprintf(out, out_size, "<%s:team#%u>", team_name, team_id);
+}
+
+void kbo_emit_fa_compensation_obligation_news(
+    const KboFaCompensationRecord* rec,
+    uint32_t event_yyyymmdd,
+    uint32_t protected_list_due_days)
+{
+    if (rec == NULL || rec->player_id == 0u || event_yyyymmdd == 0u
+            || !rec->requires_player_compensation) {
+        return;
+    }
+
+    uint32_t year = event_yyyymmdd / 10000u;
+    uint32_t month = (event_yyyymmdd / 100u) % 100u;
+    uint32_t day = event_yyyymmdd % 100u;
+    if (year < 1982u || month == 0u || day == 0u) {
+        return;
+    }
+
+    char fa_player_link[144] = {0};
+    char signing_team_link[96] = {0};
+    char original_team_link[96] = {0};
+    snprintf(
+        fa_player_link,
+        sizeof(fa_player_link),
+        "<%s:player#%u>",
+        rec->player_name[0] != '\0' ? rec->player_name : "FA player",
+        rec->player_id);
+    kbo_fa_compensation_copy_team_link(rec->signing_team_id, signing_team_link, sizeof(signing_team_link));
+    kbo_fa_compensation_copy_team_link(rec->original_team_id, original_team_link, sizeof(original_team_link));
+
+    char cash_with_player_text[32] = "-";
+    char cash_only_text[32] = "-";
+    char protect_count_text[16] = {0};
+    char protected_list_due_days_text[16] = {0};
+    kbo_fa_compensation_format_salary_text((int32_t)rec->cash_with_player, cash_with_player_text, sizeof(cash_with_player_text));
+    kbo_fa_compensation_format_salary_text((int32_t)rec->cash_only, cash_only_text, sizeof(cash_only_text));
+    snprintf(protect_count_text, sizeof(protect_count_text), "%u", rec->protect_count);
+    snprintf(protected_list_due_days_text, sizeof(protected_list_due_days_text), "%u", protected_list_due_days);
+
+    KboNewsTemplateVar news_vars[] = {
+        { "player_name", rec->player_name[0] != '\0' ? rec->player_name : "FA player" },
+        { "fa_player_link", fa_player_link },
+        { "original_team_link", original_team_link },
+        { "signing_team_link", signing_team_link },
+        { "grade", rec->grade },
+        { "cash_with_player_text", cash_with_player_text },
+        { "cash_only_text", cash_only_text },
+        { "protect_count", protect_count_text },
+        { "protected_list_due_days", protected_list_due_days_text },
+    };
+
+    char title[180] = {0};
+    char body[1400] = {0};
+    if (!kbo_news_template_render_key(
+            "fa_compensation.obligation.title",
+            news_vars,
+            (int)(sizeof(news_vars) / sizeof(news_vars[0])),
+            title,
+            sizeof(title),
+            "fa_compensation_obligation")
+            || !kbo_news_template_render_key(
+                "fa_compensation.obligation.body",
+                news_vars,
+                (int)(sizeof(news_vars) / sizeof(news_vars[0])),
+                body,
+                sizeof(body),
+                "fa_compensation_obligation")) {
+        kbo_log_runtimef(
+            "KBO FA compensation obligation news skipped fa_player=%u reason=template_unavailable",
+            rec->player_id);
+        return;
+    }
+
+    create_kbo_native_live_news_with_body(year, month, day, rec->league_id, 10u, title, body);
+}
+
+void kbo_emit_fa_compensation_protected_list_submitted_news(
+    const KboFaCompensationRecord* rec,
+    uint32_t generated_yyyymmdd,
+    uint32_t selection_due_days,
+    int protected_count,
+    int unprotected_count)
+{
+    if (rec == NULL || rec->player_id == 0u || generated_yyyymmdd == 0u
+            || !rec->requires_player_compensation) {
+        return;
+    }
+
+    uint32_t year = generated_yyyymmdd / 10000u;
+    uint32_t month = (generated_yyyymmdd / 100u) % 100u;
+    uint32_t day = generated_yyyymmdd % 100u;
+    if (year < 1982u || month == 0u || day == 0u) {
+        return;
+    }
+
+    if (protected_count < 0) {
+        protected_count = 0;
+    }
+    if (unprotected_count < 0) {
+        unprotected_count = 0;
+    }
+
+    char fa_player_link[144] = {0};
+    char signing_team_link[96] = {0};
+    char original_team_link[96] = {0};
+    snprintf(
+        fa_player_link,
+        sizeof(fa_player_link),
+        "<%s:player#%u>",
+        rec->player_name[0] != '\0' ? rec->player_name : "FA player",
+        rec->player_id);
+    kbo_fa_compensation_copy_team_link(rec->signing_team_id, signing_team_link, sizeof(signing_team_link));
+    kbo_fa_compensation_copy_team_link(rec->original_team_id, original_team_link, sizeof(original_team_link));
+
+    char cash_only_text[32] = "-";
+    char protected_count_text[16] = {0};
+    char unprotected_count_text[16] = {0};
+    char selection_due_days_text[16] = {0};
+    kbo_fa_compensation_format_salary_text((int32_t)rec->cash_only, cash_only_text, sizeof(cash_only_text));
+    snprintf(protected_count_text, sizeof(protected_count_text), "%d", protected_count);
+    snprintf(unprotected_count_text, sizeof(unprotected_count_text), "%d", unprotected_count);
+    snprintf(selection_due_days_text, sizeof(selection_due_days_text), "%u", selection_due_days);
+
+    KboNewsTemplateVar news_vars[] = {
+        { "player_name", rec->player_name[0] != '\0' ? rec->player_name : "FA player" },
+        { "fa_player_link", fa_player_link },
+        { "original_team_link", original_team_link },
+        { "signing_team_link", signing_team_link },
+        { "grade", rec->grade },
+        { "cash_only_text", cash_only_text },
+        { "protected_count", protected_count_text },
+        { "unprotected_count", unprotected_count_text },
+        { "selection_due_days", selection_due_days_text },
+    };
+
+    char title[180] = {0};
+    char body[1400] = {0};
+    if (!kbo_news_template_render_key(
+            "fa_compensation.protected_list_submitted.title",
+            news_vars,
+            (int)(sizeof(news_vars) / sizeof(news_vars[0])),
+            title,
+            sizeof(title),
+            "fa_compensation_protected_list")
+            || !kbo_news_template_render_key(
+                "fa_compensation.protected_list_submitted.body",
+                news_vars,
+                (int)(sizeof(news_vars) / sizeof(news_vars[0])),
+                body,
+                sizeof(body),
+                "fa_compensation_protected_list")) {
+        kbo_log_runtimef(
+            "KBO FA compensation protected-list news skipped fa_player=%u reason=template_unavailable",
+            rec->player_id);
+        return;
+    }
+
+    create_kbo_native_live_news_with_body(year, month, day, rec->league_id, 10u, title, body);
 }
 
 void kbo_emit_fa_compensation_player_selected_news(

@@ -24,6 +24,93 @@ static int kbo_cbt_exception_designation_path(char* out, size_t out_size)
     return kbo_get_save_scoped_data_file("cbt_exception_players.csv", out, out_size);
 }
 
+static int kbo_cbt_opening_day_cache_path(char* out, size_t out_size)
+{
+    return kbo_get_save_scoped_data_file("cbt_opening_days.csv", out, out_size);
+}
+
+static int kbo_cbt_opening_day_valid(uint32_t season, uint32_t opening_day)
+{
+    uint32_t year = opening_day / 10000u;
+    uint32_t month = (opening_day / 100u) % 100u;
+    uint32_t day = opening_day % 100u;
+    return season >= 1982u
+        && season <= 2200u
+        && year == season
+        && month >= 1u
+        && month <= 12u
+        && day >= 1u
+        && day <= 31u;
+}
+
+static int kbo_cbt_opening_day_cache_load(uint32_t season, uint32_t* out_opening_day)
+{
+    if (out_opening_day != NULL) {
+        *out_opening_day = 0u;
+    }
+    if (out_opening_day == NULL || season < 1982u || season > 2200u) {
+        return 0;
+    }
+
+    char path[MAX_PATH] = {0};
+    if (!kbo_cbt_opening_day_cache_path(path, sizeof(path))) {
+        return 0;
+    }
+
+    FILE* file = fopen(path, "r");
+    if (file == NULL) {
+        return 0;
+    }
+
+    char line[128] = {0};
+    uint32_t found = 0u;
+    while (fgets(line, sizeof(line), file) != NULL) {
+        unsigned int row_season = 0u;
+        unsigned int row_opening_day = 0u;
+        if (sscanf(line, "%u,%u", &row_season, &row_opening_day) == 2
+                && (uint32_t)row_season == season
+                && kbo_cbt_opening_day_valid(season, (uint32_t)row_opening_day)) {
+            found = (uint32_t)row_opening_day;
+        }
+    }
+    fclose(file);
+
+    if (found == 0u) {
+        return 0;
+    }
+    *out_opening_day = found;
+    return 1;
+}
+
+static void kbo_cbt_opening_day_cache_store(uint32_t season, uint32_t opening_day)
+{
+    if (!kbo_cbt_opening_day_valid(season, opening_day)) {
+        return;
+    }
+
+    uint32_t cached = 0u;
+    if (kbo_cbt_opening_day_cache_load(season, &cached) && cached == opening_day) {
+        return;
+    }
+
+    char path[MAX_PATH] = {0};
+    if (!kbo_cbt_opening_day_cache_path(path, sizeof(path))) {
+        return;
+    }
+
+    FILE* file = fopen(path, "a");
+    if (file == NULL) {
+        kbo_log_runtimef(
+            "KBO CBT opening day cache skipped season=%u opening_day=%u reason=open_failed path=%s",
+            season,
+            opening_day,
+            path);
+        return;
+    }
+    fprintf(file, "%u,%u\n", season, opening_day);
+    fclose(file);
+}
+
 int kbo_cbt_exception_resolve_opening_day(uint32_t season, uint32_t* out_opening_day)
 {
     if (out_opening_day != NULL) {
@@ -39,6 +126,7 @@ int kbo_cbt_exception_resolve_opening_day(uint32_t season, uint32_t* out_opening
     if (league_ptr != 0u
             && kbo_fa_salary_snapshot_read_opening_day(league_ptr, &opening_day)
             && opening_day / 10000u == season) {
+        kbo_cbt_opening_day_cache_store(season, opening_day);
         if (out_opening_day != NULL) {
             *out_opening_day = opening_day;
         }
@@ -47,6 +135,14 @@ int kbo_cbt_exception_resolve_opening_day(uint32_t season, uint32_t* out_opening
 
     if (kbo_fa_salary_snapshot_load_schedule_opening_day(season, &opening_day)
             && opening_day / 10000u == season) {
+        kbo_cbt_opening_day_cache_store(season, opening_day);
+        if (out_opening_day != NULL) {
+            *out_opening_day = opening_day;
+        }
+        return 1;
+    }
+
+    if (kbo_cbt_opening_day_cache_load(season, &opening_day)) {
         if (out_opening_day != NULL) {
             *out_opening_day = opening_day;
         }

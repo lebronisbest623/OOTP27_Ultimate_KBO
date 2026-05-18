@@ -35,13 +35,11 @@ static int32_t kbo_foreign_injury_adjusted_player_score(uint8_t* player)
     if (!kbo_player_is_foreign_for_kbo_rights(player)) {
         score -= KBO_FOREIGN_INJURY_DECISION_UNAVAILABLE_PENALTY;
     }
-    if (player[OOTP27_PLAYER_INJURY_ACTIVE_OFFSET] != 0u) {
+    KboForeignInjuryLiveMemory live_injury;
+    memset(&live_injury, 0, sizeof(live_injury));
+    kbo_foreign_injury_read_live_memory(player, &live_injury);
+    if (live_injury.active != 0u || live_injury.days_left > 0) {
         score -= KBO_FOREIGN_INJURY_DECISION_UNAVAILABLE_PENALTY;
-    } else {
-        int16_t days_left = *(int16_t*)(player + OOTP27_PLAYER_INJURY_DAYS_LEFT_OFFSET);
-        if (days_left > 0) {
-            score -= KBO_FOREIGN_INJURY_DECISION_UNAVAILABLE_PENALTY;
-        }
     }
     return score;
 }

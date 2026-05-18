@@ -42,8 +42,16 @@ static int kbo_fa_salary_snapshot_process_date_sync(uint32_t date, const char* s
     uint32_t league_id = kbo_resolve_kbo_league_id();
     uintptr_t league_ptr = kbo_find_league_ptr_from_id(league_id);
     uint32_t opening_day = 0u;
-    if (league_ptr == 0u || !kbo_fa_salary_snapshot_read_opening_day(league_ptr, &opening_day)) {
-        (void)kbo_fa_salary_snapshot_load_schedule_opening_day(year, &opening_day);
+    if (league_ptr != 0u) {
+        (void)kbo_fa_salary_snapshot_read_opening_day(league_ptr, &opening_day);
+    }
+    if (opening_day / 10000u != year) {
+        opening_day = 0u;
+        if (!kbo_fa_salary_snapshot_load_schedule_opening_day(year, &opening_day)
+                || opening_day / 10000u != year) {
+            opening_day = 0u;
+            (void)kbo_cbt_exception_resolve_opening_day(year, &opening_day);
+        }
     }
     if (opening_day == 0u) {
         if (!kbo_fa_salary_snapshot_today_has_opening_day_message(date)) {

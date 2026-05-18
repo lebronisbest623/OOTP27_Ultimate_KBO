@@ -15,6 +15,11 @@
 #include "../records/fa_compensation_records.h"
 #include "fa_compensation_selection.h"
 
+static int kbo_fa_compensation_grade_is_ab(const char* grade)
+{
+    return grade != NULL && (_stricmp(grade, "A") == 0 || _stricmp(grade, "B") == 0);
+}
+
 int kbo_select_fa_compensation_player_from_candidates(
     const KboFaCompensationRecord* rec,
     const KboFaProtectedCandidate* candidates,
@@ -93,6 +98,17 @@ int kbo_fa_compensation_ai_prefers_cash_only(
     uint32_t extra_cash = rec->cash_only > rec->cash_with_player
         ? rec->cash_only - rec->cash_with_player : 0u;
     const KboFaCompensationProtectionPolicy* policy = kbo_fa_compensation_protection_policy();
+    if (policy->cash_only_ab_grade_requires_no_player
+            && kbo_fa_compensation_grade_is_ab(rec->grade)) {
+        kbo_log_runtimef(
+            "KBO FA compensation cash-only blocked reason=ab_grade_player_priority fa_player=%u grade=%s selected=%u score=%d unprotected=%d",
+            rec->player_id,
+            rec->grade,
+            selected->player_id,
+            selected->score,
+            unprotected_count);
+        return 0;
+    }
     if (selected->score < policy->cash_only_score_threshold) {
         return 1;
     }

@@ -5,6 +5,10 @@
 #include "../../../../../foreign/common/player_eval/foreign_waiver_player_eval.h"
 #include <stdarg.h>
 
+#define KBO_PLAYER_TOOLTIP_PORTRAIT_SRC_BYTES (768u * 1024u)
+#define KBO_PLAYER_TOOLTIP_SCRIPT_BYTES       (1024u * 1024u)
+#define KBO_PLAYER_TOOLTIP_HTML_BYTES         (1152u * 1024u)
+
 static void kbo_append_rawf(char* out, size_t out_size, size_t* pos, const char* fmt, ...)
 {
     if (out == NULL || out_size == 0u || pos == NULL || *pos >= out_size) {
@@ -40,6 +44,10 @@ static void kbo_append_js_literal(char* out, size_t out_size, size_t* pos, const
         unsigned char ch = *p;
         if (ch == '\\' || ch == '\'') {
             kbo_append_rawf(out, out_size, pos, "\\%c", (int)ch);
+        } else if (ch == '<') {
+            kbo_append_rawf(out, out_size, pos, "\\x3c");
+        } else if (ch == '>') {
+            kbo_append_rawf(out, out_size, pos, "\\x3e");
         } else if (ch == '\n') {
             kbo_append_rawf(out, out_size, pos, "\\n");
         } else if (ch == '\r') {
@@ -55,6 +63,27 @@ static void kbo_append_js_literal(char* out, size_t out_size, size_t* pos, const
         }
     }
     kbo_append_rawf(out, out_size, pos, "'");
+}
+
+static void kbo_append_html_escaped(char* out, size_t out_size, size_t* pos, const char* text)
+{
+    if (out == NULL || out_size == 0u || pos == NULL || text == NULL) {
+        return;
+    }
+    for (const unsigned char* p = (const unsigned char*)text; *p != '\0' && *pos + 8u < out_size; ++p) {
+        switch (*p) {
+        case '&': kbo_append_rawf(out, out_size, pos, "&amp;"); break;
+        case '<': kbo_append_rawf(out, out_size, pos, "&lt;"); break;
+        case '>': kbo_append_rawf(out, out_size, pos, "&gt;"); break;
+        case '"': kbo_append_rawf(out, out_size, pos, "&quot;"); break;
+        case '\'': kbo_append_rawf(out, out_size, pos, "&#39;"); break;
+        default:
+            out[*pos] = (char)*p;
+            *pos += 1u;
+            out[*pos] = '\0';
+            break;
+        }
+    }
 }
 
 static int kbo_webview_execute_utf8_script(const char* script)
@@ -88,6 +117,17 @@ static int kbo_webview_execute_utf8_script(const char* script)
     return wrote > 0 && SUCCEEDED(hr);
 }
 
+static POINT kbo_player_hover_screen_point(HWND hwnd, int client_x, int client_y)
+{
+    POINT pt;
+    pt.x = client_x;
+    pt.y = client_y;
+    if (hwnd != NULL) {
+        ClientToScreen(hwnd, &pt);
+    }
+    return pt;
+}
+
 static int kbo_find_player_portrait_src(uint32_t player_id, char* out, size_t out_size)
 {
     if (out == NULL || out_size == 0u || player_id == 0u) {
@@ -117,39 +157,58 @@ static int kbo_find_player_portrait_src(uint32_t player_id, char* out, size_t ou
     }
 
     kbo_webview_copy_image_src(portrait_path, out, out_size);
-    return out[0] != '\0';
+    if (strncmp(out, "data:", 5) != 0) {
+        kbo_log_runtimef(
+            "webview player tooltip portrait skipped reason=not_embedded player=%u path=%s",
+            player_id,
+            portrait_path);
+        out[0] = '\0';
+        return 0;
+    }
+    return 1;
 }
 
-static void kbo_show_webview_player_tooltip_shell(const char* player_name, int client_x, int client_y, uint32_t hover_seq)
+static void kbo_show_webview_player_tooltip_shell(
+    HWND hwnd,
+    const char* player_name,
+    int screen_x,
+    int screen_y,
+    uint32_t hover_seq)
 {
-    char script[8192] = {0};
+    char html[8192] = {0};
     size_t pos = 0u;
     kbo_append_rawf(
-        script,
-        sizeof(script),
+        html,
+        sizeof(html),
         &pos,
-        "(function(){if(window.__kboPlayerHoverSeq!==%u){return;}var tip=document.getElementById('kboPlayerTooltip');"
-        "if(!tip){tip=document.createElement('div');tip.id='kboPlayerTooltip';document.body.appendChild(tip);}"
-        "tip.setAttribute('data-kbo-hover-seq','%u');tip.textContent=",
-        hover_seq,
-        hover_seq);
-    kbo_append_js_literal(script, sizeof(script), &pos, player_name != NULL && player_name[0] != '\0' ? player_name : "Player");
+        "<!doctype html><html><head><meta charset='utf-8'><style>"
+        "html,body{margin:0;padding:0;width:100%%;height:100%%;overflow:hidden;background:transparent}"
+        "body{font-family:var(--ui-font),'Malgun Gothic',sans-serif}"
+        "#kboPlayerTooltip{display:inline-block;box-sizing:border-box;min-width:220px;min-height:42px;"
+        "padding:10px 12px;background:#2c2d30;color:#fff;border:1px solid #f05024;"
+        "box-shadow:0 8px 22px rgba(0,0,0,.75);font-size:14px;font-weight:800;white-space:nowrap}"
+        "</style></head><body><div id='kboPlayerTooltip'>");
+    kbo_append_html_escaped(
+        html,
+        sizeof(html),
+        &pos,
+        player_name != NULL && player_name[0] != '\0' ? player_name : "Player");
     kbo_append_rawf(
-        script,
-        sizeof(script),
+        html,
+        sizeof(html),
         &pos,
-        ";tip.style.cssText='position:fixed;z-index:2147483647;left:%dpx;top:%dpx;"
-        "min-width:220px;min-height:42px;padding:10px 12px;background:#2c2d30;color:#fff;"
-        "border:1px solid #f05024;box-shadow:0 8px 22px rgba(0,0,0,.75);"
-        "font-family:var(--ui-font),\\'Malgun Gothic\\',sans-serif;font-size:14px;font-weight:800;pointer-events:none;display:block';})();",
-        client_x + 14,
-        client_y + 14);
-    if (!kbo_webview_execute_utf8_script(script)) {
-        kbo_log_runtime_line("webview player tooltip shell execute failed");
+        "</div><script>"
+        "requestAnimationFrame(function(){var r=document.getElementById('kboPlayerTooltip').getBoundingClientRect();"
+        "location.href='kbo-tooltip://resize/%u/'+Math.ceil(r.width)+'/'+Math.ceil(r.height);});"
+        "</script></body></html>",
+        hover_seq);
+    if (!kbo_show_webview_player_tooltip_popup(hwnd, screen_x, screen_y, hover_seq, html)) {
+        kbo_log_runtime_line("webview player tooltip popup shell show failed");
     }
 }
 
 static void kbo_show_webview_player_tooltip(
+    HWND hwnd,
     uint8_t* player,
     uint32_t player_id,
     uint32_t team_id,
@@ -162,40 +221,63 @@ static void kbo_show_webview_player_tooltip(
     (void)player;
     (void)league_id;
 
-    kbo_show_webview_player_tooltip_shell(player_name, client_x, client_y, hover_seq);
-
+    POINT screen_pt = kbo_player_hover_screen_point(hwnd, client_x, client_y);
+    int screen_x = screen_pt.x + 14;
+    int screen_y = screen_pt.y + 14;
     char payload[16000] = {0};
     if (!kbo_capture_ootp_player_tooltip_payload(player_id, payload, sizeof(payload))) {
+        kbo_show_webview_player_tooltip_shell(hwnd, player_name, screen_x, screen_y, hover_seq);
         kbo_log_runtimef("webview player tooltip skipped reason=capture_failed player=%u", player_id);
         return;
     }
 
-    char portrait_src[32768] = {0};
-    kbo_find_player_portrait_src(player_id, portrait_src, sizeof(portrait_src));
+    char* portrait_src = (char*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, KBO_PLAYER_TOOLTIP_PORTRAIT_SRC_BYTES);
+    if (portrait_src != NULL) {
+        kbo_find_player_portrait_src(player_id, portrait_src, KBO_PLAYER_TOOLTIP_PORTRAIT_SRC_BYTES);
+    }
     char team_primary[16] = "#f05024";
     char team_secondary[16] = "#303135";
-    kbo_hub_copy_team_bar_colors(team_id, team_primary, sizeof(team_primary), team_secondary, sizeof(team_secondary));
+    uint32_t color_team_id = g_kbo_hub_selected_team_id != 0u ? g_kbo_hub_selected_team_id : team_id;
+    kbo_hub_copy_team_bar_colors(color_team_id, team_primary, sizeof(team_primary), team_secondary, sizeof(team_secondary));
 
-    char simple_script[40000] = {0};
+    if (portrait_src != NULL && portrait_src[0] != '\0'
+            && strlen(portrait_src) + 65536u >= KBO_PLAYER_TOOLTIP_SCRIPT_BYTES) {
+        kbo_log_runtimef("webview player tooltip portrait skipped reason=script_budget player=%u", player_id);
+        portrait_src[0] = '\0';
+    }
+
+    char* simple_script = (char*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, KBO_PLAYER_TOOLTIP_SCRIPT_BYTES);
+    if (simple_script == NULL) {
+        if (portrait_src != NULL) {
+            HeapFree(GetProcessHeap(), 0, portrait_src);
+        }
+        kbo_show_webview_player_tooltip_shell(hwnd, player_name, screen_x, screen_y, hover_seq);
+        kbo_log_runtimef("webview player tooltip skipped reason=script_alloc_failed player=%u", player_id);
+        return;
+    }
     size_t simple_pos = 0u;
     kbo_append_rawf(
         simple_script,
-        sizeof(simple_script),
+        KBO_PLAYER_TOOLTIP_SCRIPT_BYTES,
         &simple_pos,
         "(function(){try{var hoverSeq=%u;if(window.__kboPlayerHoverSeq!==hoverSeq){return;}var payload=",
         hover_seq);
-    kbo_append_js_literal(simple_script, sizeof(simple_script), &simple_pos, payload);
-    kbo_append_rawf(simple_script, sizeof(simple_script), &simple_pos, ";var playerName=");
-    kbo_append_js_literal(simple_script, sizeof(simple_script), &simple_pos, player_name != NULL ? player_name : "");
-    kbo_append_rawf(simple_script, sizeof(simple_script), &simple_pos, ";var portraitSrc=");
-    kbo_append_js_literal(simple_script, sizeof(simple_script), &simple_pos, portrait_src);
-    kbo_append_rawf(simple_script, sizeof(simple_script), &simple_pos, ";var teamPrimary=");
-    kbo_append_js_literal(simple_script, sizeof(simple_script), &simple_pos, team_primary);
-    kbo_append_rawf(simple_script, sizeof(simple_script), &simple_pos, ";var teamSecondary=");
-    kbo_append_js_literal(simple_script, sizeof(simple_script), &simple_pos, team_secondary);
+    kbo_append_js_literal(simple_script, KBO_PLAYER_TOOLTIP_SCRIPT_BYTES, &simple_pos, payload);
+    kbo_append_rawf(simple_script, KBO_PLAYER_TOOLTIP_SCRIPT_BYTES, &simple_pos, ";var playerName=");
+    kbo_append_js_literal(simple_script, KBO_PLAYER_TOOLTIP_SCRIPT_BYTES, &simple_pos, player_name != NULL ? player_name : "");
+    kbo_append_rawf(simple_script, KBO_PLAYER_TOOLTIP_SCRIPT_BYTES, &simple_pos, ";var portraitSrc=");
+    kbo_append_js_literal(
+        simple_script,
+        KBO_PLAYER_TOOLTIP_SCRIPT_BYTES,
+        &simple_pos,
+        portrait_src != NULL ? portrait_src : "");
+    kbo_append_rawf(simple_script, KBO_PLAYER_TOOLTIP_SCRIPT_BYTES, &simple_pos, ";var teamPrimary=");
+    kbo_append_js_literal(simple_script, KBO_PLAYER_TOOLTIP_SCRIPT_BYTES, &simple_pos, team_primary);
+    kbo_append_rawf(simple_script, KBO_PLAYER_TOOLTIP_SCRIPT_BYTES, &simple_pos, ";var teamSecondary=");
+    kbo_append_js_literal(simple_script, KBO_PLAYER_TOOLTIP_SCRIPT_BYTES, &simple_pos, team_secondary);
     kbo_append_rawf(
         simple_script,
-        sizeof(simple_script),
+        KBO_PLAYER_TOOLTIP_SCRIPT_BYTES,
         &simple_pos,
         ";var playerId=%u;function esc(s){return String(s==null?'':s).replace(/[&<>\\\"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','\\\"':'&quot;'}[c]||c;});}"
         "function section(name,next){var a=payload.indexOf(name);if(a<0){return '';}a+=name.length;var b=next?payload.indexOf(next,a):-1;return (b>=0?payload.slice(a,b):payload.slice(a)).trim();}"
@@ -205,10 +287,10 @@ static void kbo_show_webview_player_tooltip(
         "function statWidth(h){return {Year:47,TM:43,LG:44,G:30,AB:35,HR:30,RBI:34,AVG:45,OBP:45,SLG:45,W:31,L:31,SV:34,IP:47,BB:35,K:35,ERA:48}[h]||34;}"
         "function statTable(lines){var statHeaders={Year:1,TM:1,LG:1,G:1,AB:1,HR:1,RBI:1,AVG:1,OBP:1,SLG:1,W:1,L:1,SV:1,IP:1,BB:1,K:1,ERA:1};function isYear(s){return /^\\d{4}$/.test(s);}function isOrg(s){return /^[A-Za-z0-9]{2,6}$/.test(s)&&/[A-Za-z]/.test(s)&&!statHeaders[s];}function isNum(s){return /^\\d+$/.test(s)||/^\\.\\d+$/.test(s)||/^\\d+\\.\\d+$/.test(s);}function dedupeDecimalStats(nums,need){if(nums.length<=need){return nums;}var out=[];for(var n=0;n<nums.length;n++){var v=nums[n];out.push(v);if(String(v).indexOf('.')>=0&&n+1<nums.length&&nums[n+1]===v){n++;}}return out;}var hi=lines.indexOf('Year');if(hi<0){return '';}var headers=[];var i=hi;for(;i<lines.length;i++){if(isYear(lines[i])){break;}if(statHeaders[lines[i]]){headers.push(lines[i]);}}var rows=[];while(i<lines.length){if(!isYear(lines[i])){i++;continue;}var year=lines[i++];var seg=[];while(i<lines.length&&!isYear(lines[i])){seg.push(lines[i++]);}var org=[];var j=0;for(;j<seg.length;j++){if(!isOrg(seg[j])){break;}if(org.indexOf(seg[j])<0){org.push(seg[j]);}}var nums=[];for(;j<seg.length;j++){var t=seg[j];if(t==='.'&&nums.length&&j+1<seg.length&&/^\\d+$/.test(seg[j+1])){nums[nums.length-1]+='.'+seg[j+1];j++;continue;}if(t==='.'&&j+1<seg.length&&/^\\d+$/.test(seg[j+1])){nums.push('.'+seg[j+1]);j++;continue;}if(isNum(t)){nums.push(t);}}var need=Math.max(0,headers.length-3);nums=dedupeDecimalStats(nums,need);var r=[year,org[0]||'-',org[1]||'-'].concat(nums.slice(0,need));while(r.length<headers.length){r.push('');}if(r.length>3){rows.push(r);}}rows=rows.slice(-3);if(!headers.length||!rows.length){return '';}return '<table><colgroup>'+headers.map(function(h){return '<col style=\"width:'+statWidth(h)+'px\">';}).join('')+'</colgroup><thead><tr>'+headers.map(function(h){return '<th>'+esc(h)+'</th>';}).join('')+'</tr></thead><tbody>'+rows.map(function(r){return '<tr>'+headers.map(function(h,idx){return '<td>'+esc(r[idx]||'')+'</td>';}).join('')+'</tr>';}).join('')+'</tbody></table>';}"
         "function maxRating(rows){var m=0;for(var i=0;i<rows.length;i++){m=Math.max(m,+rows[i][1]||0,+rows[i][2]||0);}return m>100?250:100;}"
-        "function norm(v){return Math.max(0,Math.min(100,((+v||0)/ratingScale)*100));}"
-        "function ratingColor(v){var n=norm(v);return n>=90?'#00a8ff':n>=80?'#13b7c9':n>=50?'#2fc51a':n>=35?'#ffd22d':n>=20?'#f08a1f':'#d84a35';}"
-        "function overallColor(v){var n=norm(v);return n>=70?'#00a8ff':n>=50?'#2fc51a':n>=40?'#ffd22d':n>=25?'#f08a1f':'#d84a35';}"
-        "function barPct(v){return Math.max(4,Math.min(100,Math.round(norm(v))));}"
+        "function visualRating(v){return Math.max(0,Math.min(100,+v||0));}"
+        "function ratingColor(v){var n=visualRating(v);return n>=90?'#00a8ff':n>=80?'#13b7c9':n>=50?'#2fc51a':n>=35?'#ffd22d':n>=20?'#f08a1f':'#d84a35';}"
+        "function overallColor(v){var n=visualRating(v);return n>=70?'#00a8ff':n>=50?'#2fc51a':n>=40?'#ffd22d':n>=25?'#f08a1f':'#d84a35';}"
+        "function barPct(v){return Math.max(4,Math.min(100,Math.round(visualRating(v))));}"
         "function valueHtml(r){var ca=ratingColor(r[1]);if(r[2]){var cb=ratingColor(r[2]);return '<b><span style=\"color:'+ca+'\">'+esc(r[1])+'</span><i> / </i><span style=\"color:'+cb+'\">'+esc(r[2])+'</span></b>';}return '<b><span style=\"color:'+ca+'\">'+esc(r[1])+'</span></b>';}"
         "function barHtml(r){var a=barPct(r[1]);var ca=ratingColor(r[1]);if(r[2]){var b=barPct(r[2]);var cb=ratingColor(r[2]);var max=Math.max(a,b);return '<div class=\"kboBar\"><em class=\"kboBarFill kboBarPotential\" style=\"width:'+max+'%%;background:'+cb+'\"></em><em class=\"kboBarFill\" style=\"width:'+a+'%%;background:'+ca+'\"></em></div>';}return '<div class=\"kboBar\"><em class=\"kboBarFill\" style=\"width:'+a+'%%;background:'+ca+'\"></em></div>';}"
         "function row(r){return '<div class=\"kboRatingRow\"><span>'+esc(r[0])+'</span>'+valueHtml(r)+barHtml(r)+'</div>';}"
@@ -218,19 +300,58 @@ static void kbo_show_webview_player_tooltip(
         "var cap=section('render text append capture','memory display ratings');var mem=section('memory display ratings','');var lines=clean(cap);var allRatings=ratingRows(lines,mem);var ratingScale=maxRating(allRatings);var grouped=overallRow(allRatings);var ratings=grouped.rest.slice(0,4);var stats=statTable(lines);var title=titleLine(lines);"
         "var meta='';for(var i=0;i<lines.length;i++){if(lines[i].indexOf('| Age ')>=0||lines[i].indexOf('Age ')===0){meta=lines[i];break;}}"
         "if(window.__kboPlayerHoverSeq!==hoverSeq){return;}var tip=document.getElementById('kboPlayerTooltip');if(!tip){tip=document.createElement('div');tip.id='kboPlayerTooltip';document.body.appendChild(tip);}tip.setAttribute('data-kbo-hover-seq',String(hoverSeq));"
-        "var portrait=portraitSrc?'<img class=\"kboPortrait\" src=\"'+esc(portraitSrc)+'\">':'<div class=\"kboPortrait\"></div>';"
+        "var portrait=portraitSrc?'<img class=\"kboPortrait\" decoding=\"async\" src=\"'+esc(portraitSrc)+'\" onerror=\\'this.style.visibility=\"hidden\"\\'>':'<div class=\"kboPortrait\"></div>';"
         "tip.innerHTML='<div class=\"kboTop\">'+portrait+'<div class=\"kboInfo\"><div class=\"kboName\">'+esc(title)+'</div>'+grouped.html+'<div class=\"kboRatings\">'+ratings.map(row).join('')+'</div></div></div><div class=\"kboMeta\">'+esc(meta)+'</div>'+stats;"
-        "var barCount=tip.querySelectorAll('.kboBar').length;var fillCount=tip.querySelectorAll('.kboBarFill').length;var firstPct=ratings.length?barPct(ratings[0][1]):0;setTimeout(function(){if(window.__kboPlayerHoverSeq===hoverSeq){location.href='kbo://player-hover/debug/'+hoverSeq+'/'+playerId+'/'+ratings.length+'/'+barCount+'/'+fillCount+'/'+ratingScale+'/'+firstPct;}},0);"
-        "tip.style.cssText='position:fixed;z-index:2147483647;left:%dpx;top:%dpx;width:430px;height:auto;max-width:calc(100vw - 16px);background:#303135;color:#f3f3f3;border:1px solid #151515;box-shadow:0 8px 22px rgba(0,0,0,.72);font-family:var(--ui-font),\\'Malgun Gothic\\',sans-serif;font-size:13px;pointer-events:none;text-align:left;display:block;overflow:hidden';"
+        "var barCount=tip.querySelectorAll('.kboBar').length;var fillCount=tip.querySelectorAll('.kboBarFill').length;var firstPct=ratings.length?barPct(ratings[0][1]):0;"
+        "tip.style.cssText='position:absolute;z-index:1;left:%dpx;top:%dpx;width:430px;height:auto;background:#303135;color:#f3f3f3;border:1px solid #151515;box-shadow:0 8px 22px rgba(0,0,0,.72);font-family:var(--ui-font),\\'Malgun Gothic\\',sans-serif;font-size:13px;pointer-events:none;text-align:left;display:block;overflow:hidden';"
+        "requestAnimationFrame(function(){var r=tip.getBoundingClientRect();location.href='kbo-tooltip://resize/'+hoverSeq+'/'+Math.ceil(r.width)+'/'+Math.ceil(r.height)+'/'+playerId+'/'+ratings.length+'/'+barCount+'/'+fillCount+'/'+ratingScale+'/'+firstPct;});"
         "var css=document.getElementById('kboPlayerTipStyle');if(!css){css=document.createElement('style');css.id='kboPlayerTipStyle';document.head.appendChild(css);}css.textContent='#kboPlayerTooltip *{box-sizing:border-box}#kboPlayerTooltip .kboTop{display:grid;grid-template-columns:106px 1fr;gap:8px;height:137px;padding:7px 7px 0;background:linear-gradient(#3c3d41,#333438)}#kboPlayerTooltip .kboPortrait{width:98px;height:106px;object-fit:contain;object-position:center bottom;align-self:end;background:transparent}#kboPlayerTooltip .kboInfo{min-width:0;padding-right:3px;overflow:hidden}#kboPlayerTooltip .kboName{text-align:center;color:#aeb1b8;font-weight:800;font-size:14px;height:20px;line-height:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#kboPlayerTooltip .kboOverall{height:19px;display:grid;grid-template-columns:32px 54px 32px 1fr;gap:6px;align-items:center;color:#a8abb0;font-weight:800}#kboPlayerTooltip .kboOverall b{text-align:right;font-weight:900}#kboPlayerTooltip .kboRatings{display:grid;grid-template-rows:repeat(4,19px);gap:2px;margin-top:1px;overflow:hidden}#kboPlayerTooltip .kboRatingRow{height:19px;display:grid;grid-template-columns:36px 58px minmax(132px,1fr);gap:6px;align-items:center;color:#b8bac0;font-weight:800}#kboPlayerTooltip .kboRatingRow b{text-align:right;font-weight:900;white-space:nowrap;overflow:hidden}#kboPlayerTooltip .kboRatingRow b i{font-style:normal;color:#d9d9d9;font-weight:800}#kboPlayerTooltip .kboBar{position:relative;display:block!important;width:100%%;height:8px;background:#292a2d!important;border-radius:5px;overflow:hidden;box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}#kboPlayerTooltip .kboBarFill{position:absolute;left:0;top:0;display:block!important;height:100%%;min-width:4px;border-radius:5px;box-shadow:inset 0 1px 0 rgba(255,255,255,.18)}#kboPlayerTooltip .kboBarPotential{z-index:1}#kboPlayerTooltip .kboBarFill:not(.kboBarPotential){z-index:2}#kboPlayerTooltip .kboMeta{height:25px;line-height:25px;text-align:center;background:#303135;color:#fff;font-weight:800;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#kboPlayerTooltip table{width:100%%;border-collapse:collapse;table-layout:fixed;font-size:13px;line-height:1}#kboPlayerTooltip th{height:22px;background:'+teamPrimary+';color:#fff;text-align:left;padding:0 3px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:clip}#kboPlayerTooltip td{height:22px;background:#303135;color:#f4f4f4;padding:0 3px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:clip}#kboPlayerTooltip tbody tr:nth-child(even) td{background:#393a3e}#kboPlayerTooltip th:nth-child(n+4),#kboPlayerTooltip td:nth-child(n+4){text-align:right}';"
         "}catch(e){var tip=document.getElementById('kboPlayerTooltip');if(tip){tip.textContent='tooltip render error: '+e.message;tip.style.background='#4b1f1f';}}})();",
         player_id,
-        client_x,
-        client_y);
+        0,
+        0);
 
-    if (!kbo_webview_execute_utf8_script(simple_script)) {
-        kbo_log_runtimef("webview player tooltip card execute failed player=%u", player_id);
+    if (simple_pos + 1u >= KBO_PLAYER_TOOLTIP_SCRIPT_BYTES) {
+        if (portrait_src != NULL) {
+            HeapFree(GetProcessHeap(), 0, portrait_src);
+        }
+        HeapFree(GetProcessHeap(), 0, simple_script);
+        kbo_show_webview_player_tooltip_shell(hwnd, player_name, screen_x, screen_y, hover_seq);
+        kbo_log_runtimef("webview player tooltip skipped reason=script_full player=%u", player_id);
+        return;
     }
+
+    char* html = (char*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, KBO_PLAYER_TOOLTIP_HTML_BYTES);
+    if (html == NULL) {
+        if (portrait_src != NULL) {
+            HeapFree(GetProcessHeap(), 0, portrait_src);
+        }
+        HeapFree(GetProcessHeap(), 0, simple_script);
+        kbo_show_webview_player_tooltip_shell(hwnd, player_name, screen_x, screen_y, hover_seq);
+        kbo_log_runtimef("webview player tooltip skipped reason=html_alloc_failed player=%u", player_id);
+        return;
+    }
+    size_t html_pos = 0u;
+    kbo_append_rawf(
+        html,
+        KBO_PLAYER_TOOLTIP_HTML_BYTES,
+        &html_pos,
+        "<!doctype html><html><head><meta charset='utf-8'><style>"
+        "html,body{margin:0;padding:0;width:100%%;height:100%%;overflow:hidden;background:transparent}"
+        "body{font-family:var(--ui-font),'Malgun Gothic',sans-serif}"
+        "</style></head><body><script>window.__kboPlayerHoverSeq=%u;",
+        hover_seq);
+    kbo_append_rawf(html, KBO_PLAYER_TOOLTIP_HTML_BYTES, &html_pos, "%s", simple_script);
+    kbo_append_rawf(html, KBO_PLAYER_TOOLTIP_HTML_BYTES, &html_pos, "</script></body></html>");
+
+    if (!kbo_show_webview_player_tooltip_popup(hwnd, screen_x, screen_y, hover_seq, html)) {
+        kbo_log_runtimef("webview player tooltip popup card show failed player=%u", player_id);
+    }
+    if (portrait_src != NULL) {
+        HeapFree(GetProcessHeap(), 0, portrait_src);
+    }
+    HeapFree(GetProcessHeap(), 0, simple_script);
+    HeapFree(GetProcessHeap(), 0, html);
 }
 
 static void kbo_hide_webview_player_tooltip(void)
@@ -287,12 +408,15 @@ static void kbo_request_player_hover_payload(HWND hwnd, uint32_t player_id, int 
         client_x,
         client_y,
         (void*)kbo_player_hover_manager_ptr());
-    kbo_show_webview_player_tooltip(player, player_id, team_id, league_id, player_name, client_x, client_y, hover_seq);
+
+    kbo_show_webview_player_tooltip(hwnd, player, player_id, team_id, league_id, player_name, client_x, client_y, hover_seq);
 }
 
 static void kbo_hide_player_hover_payload(HWND hwnd, uint32_t player_id)
 {
     (void)hwnd;
+    kbo_clear_ootp_player_hover_popup(player_id);
+    kbo_hide_webview_player_tooltip_popup(0u);
     kbo_hide_webview_player_tooltip();
     kbo_log_runtimef("webview player hover hide player=%u", player_id);
 }

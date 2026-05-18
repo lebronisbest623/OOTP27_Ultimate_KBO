@@ -19,6 +19,7 @@
 #include "../../../team/lookup/team_lookup.h"
 #include "../../common/dates/foreign_waiver_date.h"
 #include "../../common/player_eval/foreign_waiver_player_eval.h"
+#include "../../common/policy/foreign_player_policy.h"
 #define KBO_INTL_ESTABLISHED_FA_POSTSCAN_DELAY_MS ((ULONGLONG)kbo_runtime_tuning_policy()->intl_established_fa_postscan_delay_ms)
 #define KBO_INTL_ESTABLISHED_FA_POSTSCAN_RETRY_MS ((ULONGLONG)kbo_runtime_tuning_policy()->intl_established_fa_postscan_retry_ms)
 #define KBO_INTL_ESTABLISHED_FA_POSTSCAN_MAX_RETRIES (kbo_runtime_tuning_policy()->intl_established_fa_postscan_max_retries)
@@ -37,6 +38,32 @@ typedef struct KboIntlEstablishedFaPostscanState {
     ULONGLONG due_tick;
     int attempts;
 } KboIntlEstablishedFaPostscanState;
+
+typedef struct KboIntlEstablishedFaMarketNormalization {
+    uint32_t before_original_league_id;
+    uint32_t before_draft_league_id;
+    uint8_t before_draft_class;
+    uint8_t before_draft_subtype;
+    uint8_t before_draft_eligible;
+    uint8_t before_draft_extra;
+    uint8_t before_contract_level;
+    int32_t before_fa_demand;
+    uint32_t after_original_league_id;
+    uint32_t after_draft_league_id;
+    uint8_t after_draft_class;
+    uint8_t after_draft_subtype;
+    uint8_t after_draft_eligible;
+    uint8_t after_draft_extra;
+    uint8_t after_contract_level;
+    int32_t after_fa_demand;
+    int changed;
+    int original_league_seeded;
+    int draft_league_cleared;
+    int draft_fields_cleared;
+    int contract_level_cleared;
+    int demand_initialized;
+    int market_ready;
+} KboIntlEstablishedFaMarketNormalization;
 
 extern KboIntlEstablishedFaPostscanState g_kbo_intl_established_fa_postscan;
 extern volatile LONG g_kbo_intl_established_fa_postscan_worker_started;
@@ -93,6 +120,13 @@ int kbo_intl_established_fa_postscan_candidate_matches(
     int32_t index,
     int32_t player_count,
     uint8_t* player);
+int kbo_intl_established_fa_normalize_market_state(
+    uint8_t* player,
+    uint32_t primary_league_id,
+    uint32_t fallback_league_id,
+    int asian_quota,
+    int32_t value_score,
+    KboIntlEstablishedFaMarketNormalization* out);
 void kbo_intl_established_fa_postscan_run(const KboIntlEstablishedFaPostscanState* batch);
 void kbo_intl_established_fa_postscan_try_run(void);
 DWORD WINAPI kbo_intl_established_fa_postscan_thread(LPVOID parameter);

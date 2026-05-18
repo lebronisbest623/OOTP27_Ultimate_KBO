@@ -102,18 +102,6 @@ int kbo_load_fa_market_history_cases(
     return found;
 }
 
-uint32_t kbo_fa_market_history_date_u32(const KboFaMarketHistoryCase* history)
-{
-    if (history == NULL || history->history_date[0] == '\0') {
-        return 0u;
-    }
-    uint32_t date = 0u;
-    if (kbo_parse_yyyymmdd(history->history_date, &date)) {
-        return date;
-    }
-    return kbo_fa_filing_parse_u32(history->history_date);
-}
-
 int kbo_fa_market_overlay_filing_history_cases(
     KboFaMarketClassification* rows,
     int row_count,
@@ -160,6 +148,8 @@ int kbo_fa_market_overlay_filing_history_cases(
             if (rows[i].original_team_id == 0u && filing->original_team_id != 0u) {
                 rows[i].original_team_id = filing->original_team_id;
             }
+            rows[i].fa_filing_date = filing->filing_date;
+            rows[i].fa_filing_season = filing->season;
             applied++;
             break;
         }
@@ -227,6 +217,20 @@ void kbo_classify_fa_market_row(
         return;
     }
 
+    if (history_case != NULL && history_case->found && history_case->became_free_agent) {
+        kbo_fa_market_apply_history_filing_metadata(row, history_case);
+        int independent_kind = kbo_fa_market_row_independent_source_kind(row);
+        if (independent_kind == KBO_TEAM_CLASSIFICATION_INDEPENDENT_KIND_NONE
+                && kbo_fa_market_history_is_carryover_unsigned(row, history_case, today_yyyymmdd)) {
+            snprintf(row->case_label, sizeof(row->case_label), "KBO_FA_CARRYOVER_UNSIGNED");
+            kbo_fa_market_set_history_reason(
+                row,
+                history_case,
+                "player remains unsigned from prior FA filing; eligibility carried over");
+            return;
+        }
+    }
+
     if (kbo_fa_market_apply_history_case(row, history_case)) {
         return;
     }
@@ -286,6 +290,7 @@ int kbo_fa_market_case_rank(const char* case_label)
     if (strcmp(case_label, "KBO_FA_ELIGIBLE_NOT_APPROVED") == 0) { return 11; }
     if (strcmp(case_label, "KBO_FA_DEFERRED") == 0) { return 12; }
     if (strcmp(case_label, "KBO_FA_BY_HISTORY_UNGRADED") == 0) { return 13; }
+    if (strcmp(case_label, "KBO_FA_CARRYOVER_UNSIGNED") == 0) { return 14; }
     if (strcmp(case_label, "DOMESTIC_RELEASED_NON_FA") == 0) { return 30; }
     if (strcmp(case_label, "DOMESTIC_UNDRAFTED_FREE_AGENT") == 0) { return 31; }
     if (strcmp(case_label, "DOMESTIC_INDEPENDENT_FUTURES_FA") == 0) { return 32; }

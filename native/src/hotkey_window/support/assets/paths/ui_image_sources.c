@@ -93,6 +93,15 @@ void kbo_webview_append_image_src(KboWindowTextBuffer* buffer, const char* path)
         fclose(file);
         return;
     }
+
+    size_t encoded_size = (((size_t)file_size + 2u) / 3u) * 4u;
+    size_t prefix_size = strlen("data:") + strlen(mime) + strlen(";base64,");
+    size_t available = buffer->capacity > buffer->length ? buffer->capacity - buffer->length : 0u;
+    if (prefix_size + encoded_size >= available) {
+        fclose(file);
+        return;
+    }
+
     rewind(file);
 
     unsigned char* data = (unsigned char*)HeapAlloc(GetProcessHeap(), 0, (SIZE_T)file_size);

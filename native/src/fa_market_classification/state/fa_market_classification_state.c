@@ -167,6 +167,7 @@ const char* kbo_fa_market_display_case_label(const char* case_label)
     if (strcmp(case_label, "KBO_FA_ELIGIBLE_NOT_APPROVED") == 0) { return "Eligible FA"; }
     if (strcmp(case_label, "KBO_FA_DEFERRED") == 0) { return "Deferred FA"; }
     if (strcmp(case_label, "KBO_FA_BY_HISTORY_UNGRADED") == 0) { return "FA"; }
+    if (strcmp(case_label, "KBO_FA_CARRYOVER_UNSIGNED") == 0) { return "Carryover FA"; }
     if (strcmp(case_label, "DOMESTIC_RELEASED_NON_FA") == 0) { return "Released"; }
     if (strcmp(case_label, "DOMESTIC_UNDRAFTED_FREE_AGENT") == 0) { return "Undrafted"; }
     if (strcmp(case_label, "DOMESTIC_INDEPENDENT_FUTURES_FA") == 0) { return "Futures Indy FA"; }

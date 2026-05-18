@@ -6,22 +6,6 @@
       "timestamp": "0x69F75E6B",
       "sizeOfImage": "0x03919000",
       "nativePatchesSupported": true
-    },
-    {
-      "id": "official_27_2_59",
-      "label": "27.2.59 Official experimental signature",
-      "timestamp": "0x69F1E677",
-      "sizeOfImage": "0x0350C000",
-      "experimentalSignature": true,
-      "nativePatchesSupported": false
-    },
-    {
-      "id": "official_27_2_60",
-      "label": "27.2.60 Official experimental signature",
-      "timestamp": "0x69F7605B",
-      "sizeOfImage": "0x034FB000",
-      "experimentalSignature": true,
-      "nativePatchesSupported": true
     }
   ]
 }

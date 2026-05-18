@@ -7,6 +7,7 @@
 typedef struct KboMilitarySelectionNewsEntry {
     uint32_t player_id;
     uint32_t original_team_id;
+    uint32_t original_league_id;
     int32_t score;
     uintptr_t player_ptr;
 } KboMilitarySelectionNewsEntry;

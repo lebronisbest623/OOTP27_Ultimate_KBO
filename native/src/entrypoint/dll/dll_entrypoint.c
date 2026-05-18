@@ -37,6 +37,12 @@ DWORD WINAPI patch_thread(LPVOID parameter)
         return 0;
     }
 
+    if (!read_kbo_localappdata_flag_file("disable_kbo_award_schedule_create_event_hook.txt")) {
+        install_kbo_award_schedule_create_event_patch();
+    } else {
+        kbo_log_runtime_line("KBO award schedule create-event hook disabled: disable_kbo_award_schedule_create_event_hook is true");
+    }
+
     if (!read_kbo_localappdata_flag_file("disable_kbo_player_hover_manager_probe.txt")) {
         install_kbo_player_hover_manager_probe_patch();
     } else {
@@ -128,7 +134,6 @@ DWORD WINAPI patch_thread(LPVOID parameter)
     start_kbo_fa_salary_snapshot_thread();
     start_kbo_domestic_fa_market_investigation_thread();
     start_kbo_captain_preseason_selection_thread();
-    start_kbo_foreign_injury_sql_watch_thread();
 
     if (read_kbo_localappdata_flag_file("enable_single_division_allstar_runtime_patches.txt")) {
         kbo_log_runtime_line("KBO all-star presave bootstrap install started");
@@ -194,6 +199,12 @@ static DWORD WINAPI kbo_hot_reinject_ai_roster_management_thread(LPVOID paramete
     InterlockedExchange(&g_kbo_runtime_date_stable_ready, 1);
     kbo_log_runtime_line("KBO hot reinject runtime date stable ready set");
 
+    if (!read_kbo_localappdata_flag_file("disable_kbo_award_schedule_create_event_hook.txt")) {
+        install_kbo_award_schedule_create_event_patch();
+    } else {
+        kbo_log_runtime_line("KBO hot reinject award schedule create-event hook disabled: disable_kbo_award_schedule_create_event_hook is true");
+    }
+
     if (!read_kbo_localappdata_flag_file("disable_kbo_current_date_tick_watchpoint.txt")) {
         kbo_log_runtime_line("KBO hot reinject current date tick watchpoint requested");
         start_kbo_current_date_tick_watchpoint_thread();
@@ -203,7 +214,6 @@ static DWORD WINAPI kbo_hot_reinject_ai_roster_management_thread(LPVOID paramete
 
     kbo_log_runtime_line("KBO hot reinject current-date consumers requested");
     start_kbo_foreign_injury_date_tick_thread();
-    start_kbo_foreign_injury_sql_watch_thread();
     start_kbo_foreign_waiver_scanner_thread();
     if (!read_kbo_localappdata_flag_file("disable_kbo_fa_salary_opening_day_snapshot.txt")) {
         start_kbo_fa_salary_snapshot_thread();

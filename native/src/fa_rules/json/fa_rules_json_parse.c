@@ -74,6 +74,7 @@ void kbo_fa_rules_init_defaults(KboFaRules* rules)
     kbo_fa_rules_add_case(rules, "KBO_FA_ELIGIBLE_NOT_APPROVED");
     kbo_fa_rules_add_case(rules, "KBO_FA_DEFERRED");
     kbo_fa_rules_add_case(rules, "KBO_FA_BY_HISTORY_UNGRADED");
+    kbo_fa_rules_add_case(rules, "KBO_FA_CARRYOVER_UNSIGNED");
 }
 
 int kbo_fa_rules_find_json_value_span(

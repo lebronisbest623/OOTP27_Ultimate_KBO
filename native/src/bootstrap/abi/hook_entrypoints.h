@@ -61,6 +61,13 @@ __declspec(noinline) void ootp_kbo_cbt_draft_order_create_wrapper(
     uintptr_t draft_state,
     uint8_t random_flag,
     uintptr_t original_func_ptr);
+__declspec(noinline) void* ootp_kbo_award_schedule_create_league_event_wrapper(
+    void* event_manager,
+    void* date,
+    uint32_t event_type,
+    uint32_t league_id,
+    const char* title,
+    uint16_t aux_id);
 __declspec(noinline) int ootp_kbo_player_team_signability_wrapper(
     uintptr_t player_ptr, int32_t team_id, uint16_t year_hint, uintptr_t original_func_ptr);
 __declspec(noinline) uint8_t ootp_kbo_player_offer_eligibility_wrapper(

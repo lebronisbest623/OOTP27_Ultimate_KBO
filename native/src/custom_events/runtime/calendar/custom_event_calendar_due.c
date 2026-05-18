@@ -163,6 +163,7 @@ int kbo_process_custom_events_due_through(uint32_t today_yyyymmdd, const char* s
     int scanned = kbo_custom_event_calendar_scan_until_idle(today_yyyymmdd, source);
 
     int critical_schedule_deferred = asian_schedule < 0
+        || cbt_schedule < 0
         || independent_schedule < 0;
     int schedule_blocked = critical_schedule_deferred
         || (foreign_schedule < 0

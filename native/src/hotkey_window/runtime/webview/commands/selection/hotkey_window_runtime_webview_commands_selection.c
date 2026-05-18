@@ -11,7 +11,6 @@ int kbo_webview_handle_selection_dropdown_command(const char* cmd, HWND hwnd)
         if (league_id != 0u) {
             g_kbo_hub_selected_league_id = league_id;
             g_kbo_hub_selected_team_id = 0;
-            g_kbo_hub_fa_market_page = 0;
             g_kbo_hub_open_dropdown = 0;
             kbo_hub_ensure_valid_selection();
         }

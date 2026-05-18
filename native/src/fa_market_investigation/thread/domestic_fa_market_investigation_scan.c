@@ -71,7 +71,8 @@ int kbo_domestic_fa_case_is_market_relevant(const char* case_label)
     return strcmp(case_label, "KBO_FA_APPROVED") == 0
         || strcmp(case_label, "KBO_FA_ELIGIBLE_NOT_APPROVED") == 0
         || strcmp(case_label, "KBO_FA_DEFERRED") == 0
-        || strcmp(case_label, "KBO_FA_BY_HISTORY_UNGRADED") == 0;
+        || strcmp(case_label, "KBO_FA_BY_HISTORY_UNGRADED") == 0
+        || strcmp(case_label, "KBO_FA_CARRYOVER_UNSIGNED") == 0;
 }
 
 int kbo_domestic_fa_case_is_official_or_probable(const char* case_label)
@@ -80,7 +81,8 @@ int kbo_domestic_fa_case_is_official_or_probable(const char* case_label)
         return 0;
     }
     return strcmp(case_label, "KBO_FA_APPROVED") == 0
-        || strcmp(case_label, "KBO_FA_BY_HISTORY_UNGRADED") == 0;
+        || strcmp(case_label, "KBO_FA_BY_HISTORY_UNGRADED") == 0
+        || strcmp(case_label, "KBO_FA_CARRYOVER_UNSIGNED") == 0;
 }
 
 static int kbo_domestic_fa_grade_is_quality(const char* grade)

@@ -44,39 +44,23 @@ static int kbo_foreign_injury_replacement_unavailable_by_long_injury(
         return 0;
     }
 
+    KboForeignInjuryLiveMemory live_injury;
+    memset(&live_injury, 0, sizeof(live_injury));
     int min_days = kbo_foreign_player_policy()->injury_replacement_min_days;
-    int16_t days_left = *(int16_t*)(replacement + OOTP27_PLAYER_INJURY_DAYS_LEFT_OFFSET);
-    if (kbo_foreign_injury_duration_meets_minimum(days_left, min_days)) {
+    if (kbo_foreign_injury_read_live_memory(replacement, &live_injury)
+            && kbo_foreign_injury_live_memory_has_long_term_basis(&live_injury, min_days)) {
         return 1;
-    }
-
-    int sql_days = 0;
-    uint32_t sql_date = 0u;
-    if (kbo_foreign_injury_recent_sql_has_long_term_injury_date_on_date(
-            rec->replacement_player_id,
-            min_days,
-            today,
-            &sql_days,
-            &sql_date)) {
-        if (sql_date == 0u || !kbo_foreign_injury_expected_end_reached(
-                today,
-                kbo_foreign_injury_expected_end_from_duration(sql_date, sql_days))) {
-            return 1;
-        }
     }
 
     (void)team_id;
     (void)league_id;
+    (void)today;
     return 0;
 }
 
 static int kbo_foreign_injury_runtime_injury_present(uint8_t* player)
 {
-    if (player == NULL || !memory_range_readable(player, OOTP27_PLAYER_SCAN_BYTES)) {
-        return 0;
-    }
-    return player[OOTP27_PLAYER_INJURY_ACTIVE_OFFSET] != 0u
-        || *(int16_t*)(player + OOTP27_PLAYER_INJURY_DAYS_LEFT_OFFSET) > 0;
+    return kbo_foreign_injury_runtime_injury_present_from_memory(player);
 }
 
 static int kbo_foreign_injury_roster_hold_flags_present(uint8_t* player)
@@ -130,12 +114,15 @@ void kbo_foreign_injury_process_existing_replacements(
                     ? kbo_foreign_injury_team_active_roster_contains_player(top_team, rec->injured_player_id)
                     : 0;
                 uint8_t* injured = kbo_find_player_by_id(rec->injured_player_id, NULL, NULL);
+                KboForeignInjuryLiveMemory live_injury;
+                memset(&live_injury, 0, sizeof(live_injury));
+                kbo_foreign_injury_read_live_memory(injured, &live_injury);
                 int runtime_injury_present = kbo_foreign_injury_runtime_injury_present(injured);
                 int roster_hold_flags_present = kbo_foreign_injury_roster_hold_flags_present(injured);
                 int return_close_allowed = injured != NULL && memory_range_readable(injured, OOTP27_PLAYER_SCAN_BYTES)
                     ? kbo_foreign_injury_return_state_allows_close(
-                        injured[OOTP27_PLAYER_INJURY_ACTIVE_OFFSET],
-                        *(int16_t*)(injured + OOTP27_PLAYER_INJURY_DAYS_LEFT_OFFSET),
+                        live_injury.active,
+                        (int16_t)live_injury.days_left,
                         injured[OOTP27_PLAYER_LOAN_ACTIVE_FLAG_OFFSET],
                         active_roster_present,
                         inactive_roster_present,
@@ -173,6 +160,9 @@ void kbo_foreign_injury_process_existing_replacements(
         if (injured == NULL || !memory_range_readable(injured, OOTP27_PLAYER_SCAN_BYTES)) {
             continue;
         }
+        KboForeignInjuryLiveMemory live_injury;
+        memset(&live_injury, 0, sizeof(live_injury));
+        kbo_foreign_injury_read_live_memory(injured, &live_injury);
         uint8_t* top_team = kbo_foreign_injury_cached_team_lookup(
             rec->team_id,
             team_cache,
@@ -349,8 +339,8 @@ void kbo_foreign_injury_process_existing_replacements(
                     *(uint32_t*)(injured + OOTP27_PLAYER_CURRENT_LEAGUE_ID_OFFSET),
                     rec->league_id,
                     (uint32_t)injured[OOTP27_PLAYER_LOAN_ACTIVE_FLAG_OFFSET],
-                    (uint32_t)injured[OOTP27_PLAYER_INJURY_ACTIVE_OFFSET],
-                    (int)*(int16_t*)(injured + OOTP27_PLAYER_INJURY_DAYS_LEFT_OFFSET),
+                    (uint32_t)live_injury.active,
+                    (int)live_injury.days_left,
                     inactive_roster_present,
                     today,
                     rec->expected_end_yyyymmdd);
@@ -375,8 +365,8 @@ void kbo_foreign_injury_process_existing_replacements(
         int returned_to_org_roster = (close_decision_allowed
             && kbo_foreign_injury_injured_player_returned_to_org_roster(rec, injured))
             || kbo_foreign_injury_return_state_allows_close(
-                injured[OOTP27_PLAYER_INJURY_ACTIVE_OFFSET],
-                *(int16_t*)(injured + OOTP27_PLAYER_INJURY_DAYS_LEFT_OFFSET),
+                live_injury.active,
+                (int16_t)live_injury.days_left,
                 injured[OOTP27_PLAYER_LOAN_ACTIVE_FLAG_OFFSET],
                 active_roster_present,
                 inactive_roster_present,
@@ -406,8 +396,8 @@ void kbo_foreign_injury_process_existing_replacements(
                     *(uint32_t*)(injured + OOTP27_PLAYER_CURRENT_LEAGUE_ID_OFFSET),
                     rec->league_id,
                     (uint32_t)injured[OOTP27_PLAYER_LOAN_ACTIVE_FLAG_OFFSET],
-                    (uint32_t)injured[OOTP27_PLAYER_INJURY_ACTIVE_OFFSET],
-                    (int)*(int16_t*)(injured + OOTP27_PLAYER_INJURY_DAYS_LEFT_OFFSET),
+                    (uint32_t)live_injury.active,
+                    (int)live_injury.days_left,
                     active_roster_present,
                     inactive_roster_present,
                     roster_hold_flags_present,
@@ -429,8 +419,8 @@ void kbo_foreign_injury_process_existing_replacements(
                     *(uint32_t*)(injured + OOTP27_PLAYER_CURRENT_LEAGUE_ID_OFFSET),
                     rec->league_id,
                     (uint32_t)injured[OOTP27_PLAYER_LOAN_ACTIVE_FLAG_OFFSET],
-                    (uint32_t)injured[OOTP27_PLAYER_INJURY_ACTIVE_OFFSET],
-                    (int)*(int16_t*)(injured + OOTP27_PLAYER_INJURY_DAYS_LEFT_OFFSET),
+                    (uint32_t)live_injury.active,
+                    (int)live_injury.days_left,
                     active_roster_present,
                     inactive_roster_present,
                     today,
@@ -440,7 +430,7 @@ void kbo_foreign_injury_process_existing_replacements(
         int expected_end_reached = close_decision_allowed
             && kbo_foreign_injury_expected_end_reached(today, rec->expected_end_yyyymmdd);
         if (!returned_to_org_roster && (inactive_roster_present || roster_hold_flags_present)) {
-            if (injured[OOTP27_PLAYER_INJURY_ACTIVE_OFFSET] == 0u) {
+            if (live_injury.active == 0u) {
                 LONG log_slot = InterlockedIncrement(&g_kbo_foreign_injury_return_wait_log_count);
                 if (log_slot <= 80 || (log_slot % 100) == 0) {
                     kbo_log_runtimef(
@@ -454,8 +444,8 @@ void kbo_foreign_injury_process_existing_replacements(
                         *(uint32_t*)(injured + OOTP27_PLAYER_CURRENT_LEAGUE_ID_OFFSET),
                         rec->league_id,
                         (uint32_t)injured[OOTP27_PLAYER_LOAN_ACTIVE_FLAG_OFFSET],
-                        (uint32_t)injured[OOTP27_PLAYER_INJURY_ACTIVE_OFFSET],
-                        (int)*(int16_t*)(injured + OOTP27_PLAYER_INJURY_DAYS_LEFT_OFFSET),
+                        (uint32_t)live_injury.active,
+                        (int)live_injury.days_left,
                         active_roster_present,
                         inactive_roster_present,
                         roster_hold_flags_present,
@@ -467,7 +457,7 @@ void kbo_foreign_injury_process_existing_replacements(
             continue;
         }
         if (!returned_to_org_roster) {
-            if (injured[OOTP27_PLAYER_INJURY_ACTIVE_OFFSET] == 0u) {
+            if (live_injury.active == 0u) {
                 LONG log_slot = InterlockedIncrement(&g_kbo_foreign_injury_return_wait_log_count);
                 if (log_slot <= 80 || (log_slot % 100) == 0) {
                     kbo_log_runtimef(
@@ -481,8 +471,8 @@ void kbo_foreign_injury_process_existing_replacements(
                         *(uint32_t*)(injured + OOTP27_PLAYER_CURRENT_LEAGUE_ID_OFFSET),
                         rec->league_id,
                         (uint32_t)injured[OOTP27_PLAYER_LOAN_ACTIVE_FLAG_OFFSET],
-                        (uint32_t)injured[OOTP27_PLAYER_INJURY_ACTIVE_OFFSET],
-                        (int)*(int16_t*)(injured + OOTP27_PLAYER_INJURY_DAYS_LEFT_OFFSET),
+                        (uint32_t)live_injury.active,
+                        (int)live_injury.days_left,
                         active_roster_present,
                         inactive_roster_present,
                         roster_hold_flags_present,

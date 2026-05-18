@@ -261,7 +261,12 @@ int kbo_record_fa_compensation_signing(
         KBO_PROFILE_BEGIN(profile_fa_comp_history);
         kbo_fa_compensation_record_history(&recorded);
         KBO_PROFILE_END(profile_fa_comp_history, "fa_comp.record_signing.history");
-        if (!recorded.requires_player_compensation) {
+        if (recorded.requires_player_compensation) {
+            kbo_emit_fa_compensation_obligation_news(
+                &recorded,
+                recorded.signed_on_yyyymmdd,
+                fa_rules.protected_list_due_days);
+        } else {
             kbo_apply_fa_compensation_cash_transfer(
                 &recorded,
                 recorded.cash_only,

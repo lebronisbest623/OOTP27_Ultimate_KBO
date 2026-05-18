@@ -12,7 +12,8 @@
       "KBO_FA_APPROVED",
       "KBO_FA_ELIGIBLE_NOT_APPROVED",
       "KBO_FA_DEFERRED",
-      "KBO_FA_BY_HISTORY_UNGRADED"
+      "KBO_FA_BY_HISTORY_UNGRADED",
+      "KBO_FA_CARRYOVER_UNSIGNED"
     ],
     "grades": {
       "A": {

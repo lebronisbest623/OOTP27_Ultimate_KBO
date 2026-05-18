@@ -19,6 +19,7 @@
 #include "../../../../military_service/selection/draft/military_draft_queue.h"
 #include "../../../../military_service/players/state/military_player_state.h"
 #include "../../../../military_service/selection/events/military_selection_event.h"
+#include "../../../../military_service/selection/results/military_selection_results_store.h"
 #include "../../../../runtime_memory/runtime_memory.h"
 #include "../../../../team/lookup/team_lookup.h"
 #include "../../../support/assets/names/support_names.h"

@@ -1,0 +1,6 @@
+#ifndef KBOFIX_SRC_PATCH_INSTALLERS_AWARDS_PATCH_INSTALLERS_AWARD_SCHEDULE_H_
+#define KBOFIX_SRC_PATCH_INSTALLERS_AWARDS_PATCH_INSTALLERS_AWARD_SCHEDULE_H_
+
+int install_kbo_award_schedule_create_event_patch(void);
+
+#endif

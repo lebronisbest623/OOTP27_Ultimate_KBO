@@ -308,7 +308,6 @@ void kbo_webview_append_fa_compensation_view(
             "<th class='faCompRank' data-sort-type='number'>순위</th>"
             "<th class='roName' data-sort-type='text'>선수</th>"
             "<th class='faCompAge' data-sort-type='number'>나이</th>"
-            "<th class='faCompScore' data-sort-type='number'>점수</th>"
             "<th class='roAction' data-sort-type='text'>결정</th>"
             "</tr></thead><tbody>");
 
@@ -334,11 +333,9 @@ void kbo_webview_append_fa_compensation_view(
                 kbo_webview_append_player_name_cell(buffer, row->player_name, row->player_id);
                 kbo_window_text_appendf(
                     buffer,
-                    "<td class='faCompAge' data-sort-value='%u'>%u</td><td class='faCompScore' data-sort-value='%d'>%d</td><td class='roAction'>",
+                    "<td class='faCompAge' data-sort-value='%u'>%u</td><td class='roAction'>",
                     (uint32_t)row->age,
-                    (uint32_t)row->age,
-                    row->score,
-                    row->score);
+                    (uint32_t)row->age);
                 if (selected_player) {
                     kbo_window_text_appendf(buffer, "<span class='faCompPick'>선택됨</span>");
                 } else if (!is_final && strcmp(row->list_type, "unprotected") == 0) {
@@ -355,7 +352,7 @@ void kbo_webview_append_fa_compensation_view(
             }
         }
         if (rendered == 0) {
-            kbo_window_text_appendf(buffer, "<tr><td colspan='6' class='roEmptyMessage'>보호 명단이 아직 제출되지 않았습니다.</td></tr>");
+            kbo_window_text_appendf(buffer, "<tr><td colspan='5' class='roEmptyMessage'>보호 명단이 아직 제출되지 않았습니다.</td></tr>");
         }
         kbo_window_text_appendf(buffer, "</tbody></table></section>");
     } else if (selected_compensation_subview == KBO_HUB_FA_COMP_SUBVIEW_CANDIDATES) {

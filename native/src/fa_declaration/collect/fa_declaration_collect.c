@@ -33,6 +33,13 @@ int kbo_fa_declaration_add_market_candidate(
             || row->player_id == 0u) {
         return 0;
     }
+    if (strcmp(row->case_label, "KBO_FA_CARRYOVER_UNSIGNED") == 0
+            || (strcmp(row->case_label, "KBO_FA_BY_HISTORY_UNGRADED") == 0
+                && row->fa_filing_season != 0u
+                && season != 0u
+                && row->fa_filing_season < season)) {
+        return 0;
+    }
     if (kbo_fa_declaration_find_candidate(candidates, *candidate_count, row->player_id) >= 0) {
         return 0;
     }
