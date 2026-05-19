@@ -179,6 +179,11 @@ static int kbo_resolve_human_controlled_team_ids(uint32_t* out_team_ids, int max
     return copy_count;
 }
 
+int kbo_collect_human_controlled_team_ids(uint32_t* out_team_ids, int max_team_ids, const char* source)
+{
+    return kbo_resolve_human_controlled_team_ids(out_team_ids, max_team_ids, source);
+}
+
 int kbo_team_is_human_controlled(uint32_t team_id, const char* source)
 {
     if (team_id == 0) {

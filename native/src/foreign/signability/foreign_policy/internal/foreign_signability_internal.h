@@ -12,6 +12,7 @@
 #include "../../../../core/core_flags/api/flags_api.h"
 #include "../../../../core/logging/core_log.h"
 #include "../../../../runtime_memory/runtime_memory.h"
+#include "../../../../team/control/team_human_control.h"
 #include "../../../../team/lookup/team_lookup.h"
 #include "../../../common/dates/foreign_waiver_date.h"
 #include "../../../common/player_eval/foreign_waiver_player_eval.h"

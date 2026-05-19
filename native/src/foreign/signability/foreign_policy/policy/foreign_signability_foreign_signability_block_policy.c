@@ -47,6 +47,113 @@ static int kbo_foreign_reserve_high_value_retention_visible_to_ai(
     return score >= threshold;
 }
 
+static int kbo_custom_foreign_policy_adjust_signability_for_team(
+    uint8_t* player,
+    uint32_t player_id,
+    uint32_t team_id,
+    int original_signability,
+    uint32_t today,
+    uintptr_t caller_rva,
+    int record_block,
+    int record_allow,
+    const char* source,
+    int* out_adjusted)
+{
+    if (out_adjusted != NULL) { *out_adjusted = original_signability; }
+    if (team_id == 0u || player == NULL || !kbo_custom_foreign_policy_enabled()
+            || !kbo_player_is_foreign_for_kbo_rights(player)) {
+        return 0;
+    }
+
+    uint32_t effective_before = 0u;
+    uint32_t effective_after = 0u;
+    uint32_t effective_limit = KBO_CUSTOM_FOREIGN_BASE_EFFECTIVE_LIMIT;
+    uint8_t slot_type = 0u;
+    uint32_t injured_player_id = 0u;
+    int allowed = kbo_custom_foreign_policy_team_allows_candidate(
+        team_id,
+        player,
+        &effective_before,
+        &effective_after,
+        &effective_limit,
+        &slot_type,
+        &injured_player_id);
+    int override_original_block = kbo_custom_foreign_policy_can_override_original_block(player, team_id);
+    int adjusted = allowed ? original_signability : 0;
+    if (allowed && original_signability == 0 && override_original_block) {
+        adjusted = 4;
+    }
+    adjusted = kbo_no_minor_contract_signability_floor(adjusted);
+
+    static volatile LONG custom_policy_signability_log_count = 0;
+    LONG slot = InterlockedIncrement(&custom_policy_signability_log_count);
+    if (slot <= 240) {
+        kbo_log_runtimef(
+            "custom foreign policy signability source=%s player=%u requester_team=%u original=%d adjusted=%d allowed=%d override=%d effective_before=%u effective_after=%u limit=%u injury_slot=%s injured=%u today=%u caller_rva=0x%llx",
+            source != NULL ? source : "",
+            player_id,
+            team_id,
+            original_signability,
+            adjusted,
+            allowed,
+            override_original_block,
+            effective_before,
+            effective_after,
+            effective_limit,
+            slot_type != 0u ? kbo_foreign_injury_slot_label(slot_type) : "none",
+            injured_player_id,
+            today,
+            (unsigned long long)caller_rva);
+    }
+
+    if (!allowed) {
+        if (record_block) {
+            kbo_record_recent_custom_foreign_policy_block(player_id, team_id, today);
+        }
+    } else if (adjusted != 0 && record_allow) {
+        kbo_record_recent_custom_foreign_policy_allow(player_id, team_id, today);
+    }
+    if (out_adjusted != NULL) { *out_adjusted = adjusted; }
+    return 1;
+}
+
+static int kbo_custom_foreign_policy_adjust_generic_signability(
+    uint8_t* player,
+    uint32_t player_id,
+    int original_signability,
+    uint32_t today,
+    uintptr_t caller_rva,
+    int* out_adjusted)
+{
+    if (out_adjusted != NULL) { *out_adjusted = original_signability; }
+    uint32_t team_ids[16] = {0};
+    int team_count = kbo_collect_human_controlled_team_ids(
+        team_ids,
+        (int)(sizeof(team_ids) / sizeof(team_ids[0])),
+        "foreign_signability_generic");
+    for (int i = 0; i < team_count; i++) {
+        int adjusted = original_signability;
+        if (!kbo_custom_foreign_policy_adjust_signability_for_team(
+                player,
+                player_id,
+                team_ids[i],
+                original_signability,
+                today,
+                caller_rva,
+                0,
+                1,
+                "generic_display",
+                &adjusted)) {
+            continue;
+        }
+        if (adjusted != 0) {
+            if (out_adjusted != NULL) { *out_adjusted = adjusted; }
+            return 1;
+        }
+    }
+    return 0;
+}
+
 int kbo_enforce_foreign_waiver_signability(
     uintptr_t player_ptr,
     int32_t requesting_team_id,
@@ -249,53 +356,35 @@ int kbo_enforce_foreign_waiver_signability(
     if (requesting_team_id > 0
             && kbo_custom_foreign_policy_enabled()
             && kbo_player_is_foreign_for_kbo_rights(player)) {
-        uint32_t effective_before = 0u;
-        uint32_t effective_after = 0u;
-        uint32_t effective_limit = KBO_CUSTOM_FOREIGN_BASE_EFFECTIVE_LIMIT;
-        uint8_t slot_type = 0u;
-        uint32_t injured_player_id = 0u;
-        int allowed = kbo_custom_foreign_policy_team_allows_candidate(
-            (uint32_t)requesting_team_id,
-            player,
-            &effective_before,
-            &effective_after,
-            &effective_limit,
-            &slot_type,
-            &injured_player_id);
-        int override_original_block = kbo_custom_foreign_policy_can_override_original_block(
-            player,
-            (uint32_t)requesting_team_id);
-        int adjusted = allowed ? original_signability : 0;
-        if (allowed && original_signability == 0 && override_original_block) {
-            adjusted = 4;
-        }
-        adjusted = kbo_no_minor_contract_signability_floor(adjusted);
-
-        static volatile LONG custom_policy_signability_log_count = 0;
-        LONG slot = InterlockedIncrement(&custom_policy_signability_log_count);
-        if (slot <= 200) {
-            kbo_log_runtimef(
-                "custom foreign policy signability player=%u requester_team=%d original=%d adjusted=%d allowed=%d override=%d effective_before=%u effective_after=%u limit=%u injury_slot=%s injured=%u today=%u caller_rva=0x%llx",
+        int adjusted = original_signability;
+        if (kbo_custom_foreign_policy_adjust_signability_for_team(
+                player,
                 player_id,
-                requesting_team_id,
+                (uint32_t)requesting_team_id,
                 original_signability,
-                adjusted,
-                allowed,
-                override_original_block,
-                effective_before,
-                effective_after,
-                effective_limit,
-                slot_type != 0u ? kbo_foreign_injury_slot_label(slot_type) : "none",
-                injured_player_id,
                 today,
-                (unsigned long long)caller_rva);
+                caller_rva,
+                1,
+                1,
+                "explicit_team",
+                &adjusted)) {
+            return adjusted;
         }
-        if (!allowed) {
-            kbo_record_recent_custom_foreign_policy_block(player_id, (uint32_t)requesting_team_id, today);
-        } else if (adjusted != 0) {
-            kbo_record_recent_custom_foreign_policy_allow(player_id, (uint32_t)requesting_team_id, today);
+    }
+
+    if (requesting_team_id <= 0
+            && kbo_custom_foreign_policy_enabled()
+            && kbo_player_is_foreign_for_kbo_rights(player)) {
+        int adjusted = original_signability;
+        if (kbo_custom_foreign_policy_adjust_generic_signability(
+                player,
+                player_id,
+                original_signability,
+                today,
+                caller_rva,
+                &adjusted)) {
+            return adjusted;
         }
-        return adjusted;
     }
 
     if (requesting_team_id > 0) {
