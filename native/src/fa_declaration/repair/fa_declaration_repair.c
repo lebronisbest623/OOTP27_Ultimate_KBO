@@ -132,11 +132,27 @@ int kbo_fa_declaration_repair_retained_contract_salary(
     int32_t before_season_salary = salaries[season_index];
     uint8_t* contract_level_ptr = player + OOTP27_PLAYER_CONTRACT_LEVEL_FLAG_OFFSET;
     uint8_t before_contract_level = *contract_level_ptr;
+    uint8_t* contract_total_years_ptr = player + OOTP27_PLAYER_CONTRACT_TOTAL_YEARS_OFFSET;
+    uint8_t* contract_current_year_ptr = player + OOTP27_PLAYER_CONTRACT_CURRENT_YEAR_OFFSET;
+    uint8_t before_contract_total_years = *contract_total_years_ptr;
+    uint8_t before_contract_current_year = *contract_current_year_ptr;
+    uint8_t* arbitration_status_ptr = player + OOTP27_PLAYER_ARBITRATION_STATUS_OFFSET;
+    uint8_t* arbitration_tender_ptr = player + OOTP27_PLAYER_ARBITRATION_TENDER_FLAG_OFFSET;
+    uint8_t before_arbitration_status = *arbitration_status_ptr;
+    uint8_t before_arbitration_tender = *arbitration_tender_ptr;
     if (*contract_level_ptr == 0u) {
         uint8_t retained_level = decision != NULL && decision->contract_level != 0u
             ? decision->contract_level
             : 1u;
         *contract_level_ptr = retained_level;
+        changed = 1;
+    }
+    if (*contract_total_years_ptr == 0u) {
+        *contract_total_years_ptr = 1u;
+        changed = 1;
+    }
+    if (*contract_current_year_ptr > *contract_total_years_ptr) {
+        *contract_current_year_ptr = *contract_total_years_ptr;
         changed = 1;
     }
 
@@ -146,13 +162,27 @@ int kbo_fa_declaration_repair_retained_contract_salary(
         *offer = repair_salary;
         changed = 1;
     }
+    int32_t* request = (int32_t*)(player + OOTP27_PLAYER_ARBITRATION_REQUEST_OFFSET);
+    int32_t before_request = *request;
+    if (*request != repair_salary) {
+        *request = repair_salary;
+        changed = 1;
+    }
+    if (*arbitration_status_ptr == 0u) {
+        *arbitration_status_ptr = 1u;
+        changed = 1;
+    }
+    if (*arbitration_tender_ptr == 0u) {
+        *arbitration_tender_ptr = 1u;
+        changed = 1;
+    }
 
     if (changed) {
         static LONG repair_log_count = 0;
         LONG slot = InterlockedIncrement(&repair_log_count);
         if (slot <= 160) {
             kbo_log_runtimef(
-                "KBO FA declaration deferred arbitration offer repaired source=%s player=%u season=%u team=%u decision_date=%u start_year=%d->%d slot=%u salary_slot=%d->%d y1=%d->%d contract_level=%u->%u offer=%d->%d repair_salary=%d decision_salary=%d demand=%d minimum=%d",
+                "KBO FA declaration deferred arbitration state repaired source=%s player=%u season=%u team=%u decision_date=%u start_year=%d->%d slot=%u salary_slot=%d->%d y1=%d->%d contract_level=%u->%u years=%u->%u current_year=%u->%u offer=%d->%d request=%d->%d arb_status=%u->%u tender=%u->%u repair_salary=%d decision_salary=%d demand=%d minimum=%d",
                 source != NULL ? source : "",
                 player_id,
                 season,
@@ -167,8 +197,18 @@ int kbo_fa_declaration_repair_retained_contract_salary(
                 salaries[0],
                 (unsigned)before_contract_level,
                 (unsigned)*contract_level_ptr,
+                (unsigned)before_contract_total_years,
+                (unsigned)*contract_total_years_ptr,
+                (unsigned)before_contract_current_year,
+                (unsigned)*contract_current_year_ptr,
                 before_offer,
                 *offer,
+                before_request,
+                *request,
+                (unsigned)before_arbitration_status,
+                (unsigned)*arbitration_status_ptr,
+                (unsigned)before_arbitration_tender,
+                (unsigned)*arbitration_tender_ptr,
                 repair_salary,
                 decision != NULL ? decision->salary : 0,
                 decision != NULL ? decision->fa_demand : 0,

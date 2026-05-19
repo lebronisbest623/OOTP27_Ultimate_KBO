@@ -109,40 +109,52 @@ __declspec(noinline) void ootp_kbo_salary_arbitration_non_tender_wrapper(
         }
         fa_declaration_decision_found = declaration_season != 0u
             && kbo_fa_declaration_find_latest_decision(player_id, declaration_season, &decision);
+        if (!fa_declaration_decision_found && declaration_season > 1982u) {
+            fa_declaration_decision_found =
+                kbo_fa_declaration_find_latest_decision(player_id, declaration_season - 1u, &decision);
+        }
 
         if (fa_declaration_decision_found && decision.declared == 0u) {
             uint32_t floor_league_id = original_team_league_id != 0u
                 ? original_team_league_id
                 : (player_league_id != 0u ? player_league_id : player_draft_league_id);
             int32_t salary_floor = kbo_salary_arbitration_resolve_minimum_salary(floor_league_id);
-            int32_t arbitration_offer = old_offer;
-            if (decision.salary > arbitration_offer) {
-                arbitration_offer = decision.salary;
+            uint32_t retained_season = kbo_fa_declaration_retained_contract_season(decision.season);
+            if (retained_season == 0u) {
+                retained_season = decision.season != 0u ? decision.season : declaration_season;
             }
-            if (salary_floor > arbitration_offer) {
-                arbitration_offer = salary_floor;
-            }
-            if (arbitration_offer > 0) {
-                *(int32_t*)(player + OOTP27_PLAYER_ARBITRATION_OFFER_OFFSET) = arbitration_offer;
-            }
+            int repaired = kbo_fa_declaration_repair_retained_contract_salary(
+                player,
+                retained_season,
+                &decision,
+                salary_floor,
+                "fa_declaration_transition_non_tender");
             int32_t new_offer = *(int32_t*)(player + OOTP27_PLAYER_ARBITRATION_OFFER_OFFSET);
+            int32_t new_request = *(int32_t*)(player + OOTP27_PLAYER_ARBITRATION_REQUEST_OFFSET);
+            uint8_t arbitration_status = *(uint8_t*)(player + OOTP27_PLAYER_ARBITRATION_STATUS_OFFSET);
+            uint8_t arbitration_tender = *(uint8_t*)(player + OOTP27_PLAYER_ARBITRATION_TENDER_FLAG_OFFSET);
 
             static LONG fa_declaration_skip_log_count = 0;
             LONG slot = InterlockedIncrement(&fa_declaration_skip_log_count);
             if (slot <= 120) {
                 kbo_log_runtimef(
-                    "KBO FA declaration transition kept arbitration player=%u original_team=%u team_league=%u declaration_date=%u declaration_season=%u today=%u declared_salary=%d demand=%d old_offer=%d new_offer=%d floor=%d caller_rva=0x%llx",
+                    "KBO FA declaration transition kept arbitration player=%u original_team=%u team_league=%u declaration_date=%u declaration_season=%u retained_season=%u today=%u declared_salary=%d demand=%d old_offer=%d new_offer=%d request=%d arb_status=%u tender=%u floor=%d repaired=%d caller_rva=0x%llx",
                     player_id,
                     original_team_id,
                     original_team_league_id,
                     decision.declaration_date,
                     decision.season,
+                    retained_season,
                     today,
                     decision.salary,
                     decision.fa_demand,
                     old_offer,
                     new_offer,
+                    new_request,
+                    (unsigned)arbitration_status,
+                    (unsigned)arbitration_tender,
                     salary_floor,
+                    repaired ? 1 : 0,
                     (unsigned long long)caller_rva);
             }
             KBO_HOOK_PROFILE_RETURN_VOID(profile_hook, "arbitration.non_tender");
