@@ -274,38 +274,33 @@ static void kbo_webview_append_asian_games_roster_view(
     kbo_window_text_appendf(buffer, "<div class='rosterTopBar'><div class='rosterTopText'>");
     kbo_html_append_escaped(buffer, summary_text);
 
-    char selected_year_label[32] = "-";
-    if (selected_year != 0u) {
-        snprintf(selected_year_label, sizeof(selected_year_label), "%u (%d명)", selected_year, selected_count);
-    }
     kbo_window_text_appendf(
         buffer,
         "</div><div class='rosterTopControls'><span class='rosterTopLabel'>로스터:</span>"
-        "<div class='rosterYearChoice asianGamesRosterYearChoice'>");
-    kbo_webview_begin_ootp_choice(buffer, "asianGamesRosterYearSelect", selected_year_label);
+        "<select id='asianGamesRosterYearSelect' class='rosterYearSelect' "
+        "onchange=\"location.href='kbo://agames/roster/year/'+this.value\">");
     if (year_count > 0) {
         for (int i = 0; i < year_count; i++) {
             uint32_t year = (uint32_t)years[i];
-            int count_for_year = (current_roster_count > 0 && g_kbo_asian_games_roster_year == year)
-                ? (int)current_roster_count
-                : kbo_webview_asian_games_history_count_for_year(history, history_count, year);
-            char href[96] = {0};
-            char label[32] = {0};
-            snprintf(href, sizeof(href), "kbo://agames/roster/year/%u", year);
-            snprintf(label, sizeof(label), "%u (%d명)", year, count_for_year);
-            kbo_webview_append_ootp_choice_option(buffer, href, label, year == selected_year);
+            kbo_window_text_appendf(
+                buffer,
+                "<option value='%u'%s>%u</option>",
+                year,
+                year == selected_year ? " selected" : "",
+                year);
         }
     } else {
         if (selected_year != 0u) {
-            char href[96] = {0};
-            snprintf(href, sizeof(href), "kbo://agames/roster/year/%u", selected_year);
-            kbo_webview_append_ootp_choice_option(buffer, href, selected_year_label, 1);
+            kbo_window_text_appendf(
+                buffer,
+                "<option value='%u' selected>%u</option>",
+                selected_year,
+                selected_year);
         } else {
-            kbo_webview_append_ootp_choice_option(buffer, "kbo://agames/roster/year/0", "-", 1);
+            kbo_window_text_appendf(buffer, "<option value='0' selected>-</option>");
         }
     }
-    kbo_webview_end_ootp_choice(buffer);
-    kbo_window_text_appendf(buffer, "</div></div></div>");
+    kbo_window_text_appendf(buffer, "</select></div></div>");
 
     kbo_window_text_appendf(
         buffer,

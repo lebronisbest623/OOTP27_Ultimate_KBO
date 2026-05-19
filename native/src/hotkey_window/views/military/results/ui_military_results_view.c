@@ -285,37 +285,34 @@ void kbo_webview_append_military_results_view(KboWindowTextBuffer* buffer, uint3
     kbo_window_text_appendf(buffer, "<div class='rosterTopBar'><div class='rosterTopText'>");
     kbo_html_append_escaped(buffer, summary_text);
 
-    char selected_year_label[32] = "-";
-    if (selected_year != 0u) {
-        snprintf(selected_year_label, sizeof(selected_year_label), "%u (%d명)", selected_year, selected_in_year);
-    }
     kbo_window_text_appendf(
         buffer,
         "</div><div class='rosterTopControls'><span class='rosterTopLabel'>발표:</span>"
-        "<div class='rosterYearChoice militaryResultsYearChoice'>");
-    kbo_webview_begin_ootp_choice(buffer, "militaryResultsYearSelect", selected_year_label);
+        "<select id='militaryResultsYearSelect' class='rosterYearSelect' "
+        "onchange=\"location.href='kbo://military/results/year/'+this.value\">");
     if (year_count > 0) {
         for (int y = 0; y < year_count; y++) {
             uint32_t year = (uint32_t)years[y];
             int year_selected = year == selected_year;
-            int year_result_count = kbo_military_results_count_for_year(history, history_count, year);
-            char href[96] = {0};
-            char label[32] = {0};
-            snprintf(href, sizeof(href), "kbo://military/results/year/%u", year);
-            snprintf(label, sizeof(label), "%u (%d명)", year, year_result_count);
-            kbo_webview_append_ootp_choice_option(buffer, href, label, year_selected);
+            kbo_window_text_appendf(
+                buffer,
+                "<option value='%u'%s>%u</option>",
+                year,
+                year_selected ? " selected" : "",
+                year);
         }
     } else {
         if (selected_year != 0u) {
-            char href[96] = {0};
-            snprintf(href, sizeof(href), "kbo://military/results/year/%u", selected_year);
-            kbo_webview_append_ootp_choice_option(buffer, href, selected_year_label, 1);
+            kbo_window_text_appendf(
+                buffer,
+                "<option value='%u' selected>%u</option>",
+                selected_year,
+                selected_year);
         } else {
-            kbo_webview_append_ootp_choice_option(buffer, "kbo://military/results/year/0", "-", 1);
+            kbo_window_text_appendf(buffer, "<option value='0' selected>-</option>");
         }
     }
-    kbo_webview_end_ootp_choice(buffer);
-    kbo_window_text_appendf(buffer, "</div></div></div>");
+    kbo_window_text_appendf(buffer, "</select></div></div>");
     kbo_window_text_appendf(
         buffer,
         "<section class='tablewrap rosterTableWrap'><table class='ootpRosterTable resultRosterTable'><thead><tr>"

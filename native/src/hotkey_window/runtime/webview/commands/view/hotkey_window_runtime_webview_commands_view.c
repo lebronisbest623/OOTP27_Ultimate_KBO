@@ -263,7 +263,7 @@ int kbo_webview_handle_view_navigation_command(const char* cmd)
             return 1;
         }
         uint32_t year = (uint32_t)strtoul(cmd + 22, NULL, 10);
-        if (year >= 1982u && year <= 2300u) {
+        if (year == 0u || (year >= 1982u && year <= 2300u)) {
             g_kbo_hub_selected_military_results_year = year;
         }
         g_kbo_hub_selected_view = KBO_HUB_VIEW_MILITARY;
