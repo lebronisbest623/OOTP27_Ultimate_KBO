@@ -1,0 +1,8 @@
+#ifndef KBOFIX_SRC_CUSTOM_EVENTS_DIAGNOSTICS_LEAGUE_EVENT_TYPE_INVENTORY_H_
+#define KBOFIX_SRC_CUSTOM_EVENTS_DIAGNOSTICS_LEAGUE_EVENT_TYPE_INVENTORY_H_
+
+#include <stdint.h>
+
+void kbo_log_league_event_type_inventory_once(uint32_t current_date);
+
+#endif

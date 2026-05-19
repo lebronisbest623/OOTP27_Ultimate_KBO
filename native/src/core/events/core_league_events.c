@@ -281,8 +281,14 @@ int create_kbo_league_event(
         title_for_ootp,
         aux_id);
 
+    uint32_t stored_league_id = 0u;
+    uint32_t stored_type = 0u;
+    if (event != NULL && memory_range_readable(event, 0x48)) {
+        stored_league_id = *(uint32_t*)((uint8_t*)event + OOTP27_LEAGUE_EVENT_LEAGUE_ID_OFFSET);
+        stored_type = *(uint16_t*)((uint8_t*)event + OOTP27_LEAGUE_EVENT_TYPE_OFFSET);
+    }
     kbo_log_runtimef(
-        "league event create source=%s title=%s date=%04u-%02u-%02u league_id=%u type=%u aux=%u manager=%p event=%p",
+        "league event create source=%s title=%s date=%04u-%02u-%02u league_id=%u type=%u aux=%u manager=%p event=%p stored_league_id=%u stored_type=%u",
         source != NULL ? source : "",
         title,
         year,
@@ -292,7 +298,9 @@ int create_kbo_league_event(
         event_type,
         (uint32_t)aux_id,
         (void*)event_manager,
-        event);
+        event,
+        stored_league_id,
+        stored_type);
     kbo_log_runtimef(
         "league event verify source=%s title=%s date=%04u-%02u-%02u league_id=%u type=%u present=%d",
         source != NULL ? source : "",

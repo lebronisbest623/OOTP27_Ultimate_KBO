@@ -120,16 +120,26 @@ int kbo_fa_declaration_repair_retained_contract_salary(
     int32_t before_start_year = *start_year_ptr;
     int32_t start_year = before_start_year;
 
-    uint32_t season_index = 0u;
+    int season_valid = season >= 1982u && season <= 2200u;
+    int start_year_valid = start_year >= 1982 && start_year <= 2200;
+    uint32_t original_season_index = 0u;
+    int original_season_index_valid = 0;
     if (start_year >= 1982 && start_year <= 2200 && season >= (uint32_t)start_year) {
         uint32_t index = season - (uint32_t)start_year;
         if (index < OOTP27_PLAYER_CONTRACT_SALARY_YEARS) {
-            season_index = index;
+            original_season_index = index;
+            original_season_index_valid = 1;
         }
     }
 
     int32_t before_y1 = salaries[0];
-    int32_t before_season_salary = salaries[season_index];
+    int32_t before_season_salary = original_season_index_valid
+        ? salaries[original_season_index]
+        : salaries[0];
+    uint32_t season_index = original_season_index;
+    int season_index_valid = original_season_index_valid;
+    int normalized_contract = 0;
+    int future_slots_cleared = 0;
     uint8_t* contract_level_ptr = player + OOTP27_PLAYER_CONTRACT_LEVEL_FLAG_OFFSET;
     uint8_t before_contract_level = *contract_level_ptr;
     uint8_t* contract_total_years_ptr = player + OOTP27_PLAYER_CONTRACT_TOTAL_YEARS_OFFSET;
@@ -147,11 +157,39 @@ int kbo_fa_declaration_repair_retained_contract_salary(
         *contract_level_ptr = retained_level;
         changed = 1;
     }
-    if (*contract_total_years_ptr == 0u) {
+    if (season_valid && (!start_year_valid || start_year == (int32_t)season || original_season_index_valid)) {
+        if (*start_year_ptr != (int32_t)season) {
+            *start_year_ptr = (int32_t)season;
+            normalized_contract = 1;
+            changed = 1;
+        }
+        season_index = 0u;
+        season_index_valid = 1;
+    }
+    if (season_index_valid && *contract_total_years_ptr != 1u) {
         *contract_total_years_ptr = 1u;
         changed = 1;
     }
-    if (*contract_current_year_ptr > *contract_total_years_ptr) {
+    if (season_index_valid && *contract_current_year_ptr != 0u) {
+        *contract_current_year_ptr = 0u;
+        changed = 1;
+    }
+    if (season_index_valid) {
+        for (uint32_t i = 0u; i < OOTP27_PLAYER_CONTRACT_SALARY_YEARS; i++) {
+            int32_t target_salary = i == season_index ? repair_salary : 0;
+            if (salaries[i] != target_salary) {
+                if (i != season_index) {
+                    future_slots_cleared++;
+                }
+                salaries[i] = target_salary;
+                changed = 1;
+            }
+        }
+    } else if (*contract_total_years_ptr == 0u) {
+        *contract_total_years_ptr = 1u;
+        changed = 1;
+    }
+    if (!season_index_valid && *contract_current_year_ptr > *contract_total_years_ptr) {
         *contract_current_year_ptr = *contract_total_years_ptr;
         changed = 1;
     }
@@ -182,7 +220,7 @@ int kbo_fa_declaration_repair_retained_contract_salary(
         LONG slot = InterlockedIncrement(&repair_log_count);
         if (slot <= 160) {
             kbo_log_runtimef(
-                "KBO FA declaration deferred arbitration state repaired source=%s player=%u season=%u team=%u decision_date=%u start_year=%d->%d slot=%u salary_slot=%d->%d y1=%d->%d contract_level=%u->%u years=%u->%u current_year=%u->%u offer=%d->%d request=%d->%d arb_status=%u->%u tender=%u->%u repair_salary=%d decision_salary=%d demand=%d minimum=%d",
+                "KBO FA declaration deferred arbitration state repaired source=%s player=%u season=%u team=%u decision_date=%u start_year=%d->%d slot=%u slot_valid=%d normalized=%d future_cleared=%d salary_slot=%d->%d y1=%d->%d contract_level=%u->%u years=%u->%u current_year=%u->%u offer=%d->%d request=%d->%d arb_status=%u->%u tender=%u->%u repair_salary=%d decision_salary=%d demand=%d minimum=%d",
                 source != NULL ? source : "",
                 player_id,
                 season,
@@ -191,6 +229,9 @@ int kbo_fa_declaration_repair_retained_contract_salary(
                 before_start_year,
                 *start_year_ptr,
                 season_index,
+                season_index_valid,
+                normalized_contract,
+                future_slots_cleared,
                 before_season_salary,
                 salaries[season_index],
                 before_y1,

@@ -328,6 +328,11 @@
       "lifecycle": "Diagnostic"
     },
     {
+      "key": "enable_kbo_league_event_type_inventory",
+      "defaultValue": false,
+      "lifecycle": "Diagnostic"
+    },
+    {
       "key": "enable_kbo_fix",
       "defaultValue": null,
       "lifecycle": "Recovery"

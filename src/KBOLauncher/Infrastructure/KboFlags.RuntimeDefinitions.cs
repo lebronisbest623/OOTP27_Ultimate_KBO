@@ -54,6 +54,7 @@ internal static partial class KboFlags
         new("enable_kbo_cbt_service_time_probe", false, RuntimeFlagLifecycle.Diagnostic),
         new("enable_kbo_custom_foreign_offer_logs", null, RuntimeFlagLifecycle.Diagnostic),
         new("enable_kbo_diagnostic_minimal_runtime", null, RuntimeFlagLifecycle.Diagnostic),
+        new("enable_kbo_league_event_type_inventory", false, RuntimeFlagLifecycle.Diagnostic),
         new("enable_kbo_fix", null, RuntimeFlagLifecycle.Recovery),
         new("enable_kbo_foreign_trade_check_patch", true, RuntimeFlagLifecycle.Recovery),
         new("enable_kbo_offer_eligibility_patch", true, RuntimeFlagLifecycle.Recovery),

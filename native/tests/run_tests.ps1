@@ -13,6 +13,8 @@ $ForeignOfferAttachHookPolicyTestSrc = Join-Path $PSScriptRoot "test_foreign_off
 $ForeignOfferAttachHookPolicyTestExe = Join-Path $PSScriptRoot "test_foreign_offer_attach_hook_policy.exe"
 $IntlEstablishedFaMarketNormalizeTestSrc = Join-Path $PSScriptRoot "test_intl_established_fa_market_normalize.c"
 $IntlEstablishedFaMarketNormalizeTestExe = Join-Path $PSScriptRoot "test_intl_established_fa_market_normalize.exe"
+$FaDeclarationRepairTestSrc = Join-Path $PSScriptRoot "test_fa_declaration_repair.c"
+$FaDeclarationRepairTestExe = Join-Path $PSScriptRoot "test_fa_declaration_repair.exe"
 $WebViewCommandRouterTestSrc = Join-Path $PSScriptRoot "test_webview_command_router.c"
 $WebViewCommandRouterTestExe = Join-Path $PSScriptRoot "test_webview_command_router.exe"
 
@@ -146,6 +148,22 @@ if ($LASTEXITCODE -ne 0) {
 & $IntlEstablishedFaMarketNormalizeTestExe
 if ($LASTEXITCODE -ne 0) {
     throw "International established FA market normalization tests failed"
+}
+
+& $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
+    -I $Root `
+    -I (Join-Path $Root "src") `
+    -o $FaDeclarationRepairTestExe `
+    $FaDeclarationRepairTestSrc `
+    (Join-Path $Root "src\fa_declaration\repair\fa_declaration_repair.c") `
+    (Join-Path $Root "src\core\csv\core_csv.c")
+if ($LASTEXITCODE -ne 0) {
+    throw "FA declaration repair test build failed"
+}
+
+& $FaDeclarationRepairTestExe
+if ($LASTEXITCODE -ne 0) {
+    throw "FA declaration repair tests failed"
 }
 
 & $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
