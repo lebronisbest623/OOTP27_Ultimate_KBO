@@ -57,6 +57,7 @@ typedef struct KboIndependentAcquisitionUiTeamMatch {
 typedef struct KboIndependentAcquisitionUiSellerMatch {
     KboIndependentFuturesTeamLeague seller;
     KboIndependentAcquisitionUiTeamMatch match;
+    int transfer_blocked;
 } KboIndependentAcquisitionUiSellerMatch;
 
 typedef struct KboIndependentAcquisitionUiPlayerAssignmentSnapshot {
@@ -490,12 +491,10 @@ int kbo_independent_acquisition_ui_collect_offer_rows(
     int available_seller_count = 0;
     for (int i = 0; i < seller_count; i++) {
         int transfers = kbo_independent_acquisition_transferred_count(context.season, sellers[i].team_id);
-        if (transfers >= seller_transfer_limit) {
-            continue;
-        }
         seller_matches[available_seller_count].seller = sellers[i];
         seller_matches[available_seller_count].match =
             kbo_independent_acquisition_ui_team_match(sellers[i].team_id, &team_org_cache);
+        seller_matches[available_seller_count].transfer_blocked = transfers >= seller_transfer_limit;
         available_seller_count++;
     }
     seller_count = available_seller_count;
@@ -585,6 +584,7 @@ int kbo_independent_acquisition_ui_collect_offer_rows(
             continue;
         }
         int no_cash = buyer.cash_available < cash_cost;
+        int seller_transfer_blocked = seller->transfer_blocked;
 
         uint32_t effective_before = buyer.effective_foreign_count;
         uint32_t effective_after = buyer.effective_foreign_count;
@@ -624,7 +624,7 @@ int kbo_independent_acquisition_ui_collect_offer_rows(
         row.foreign_player = foreign_player ? 1u : 0u;
         row.asian_quota = asian_quota ? 1u : 0u;
         row.slot_type = slot_type;
-        row.offer_blocked = (no_cash || policy_blocked) ? 1u : 0u;
+        row.offer_blocked = (no_cash || policy_blocked || seller_transfer_blocked) ? 1u : 0u;
         row.already_requested = kbo_independent_acquisition_ui_request_row_exists(
             requests,
             request_count,
@@ -651,7 +651,9 @@ int kbo_independent_acquisition_ui_collect_offer_rows(
             row.asian_quota,
             row.slot_label,
             sizeof(row.slot_label));
-        if (no_cash) {
+        if (seller_transfer_blocked) {
+            snprintf(row.status_label, sizeof(row.status_label), "한도 도달");
+        } else if (no_cash) {
             snprintf(row.status_label, sizeof(row.status_label), "자금 부족");
         } else if (policy_blocked) {
             snprintf(row.status_label, sizeof(row.status_label), "영입 불가");

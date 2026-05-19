@@ -191,7 +191,7 @@ int kbo_no_minor_scan_and_floor_teamless_fa_demands(const char* source)
         if (no_minor_candidate && old_contract_level != 1u) {
             level_observed_nonmajor++;
         }
-        if (no_minor_candidate && old_demand < salary_floor) {
+        if (no_minor_candidate && !foreign_candidate && old_demand < salary_floor) {
             if (kbo_no_minor_write_player_i32(player_ptr, OOTP27_PLAYER_FA_DEMAND_SALARY_OFFSET, salary_floor)) {
                 demand_fixed++;
                 player_changed = 1;

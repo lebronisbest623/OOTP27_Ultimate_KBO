@@ -172,7 +172,7 @@ int kbo_enforce_foreign_waiver_signability(
             }
 
             uint32_t team_id = (uint32_t)requesting_team_id;
-            if (caller_rva == 0x1b0e3e9u) {
+            if (caller_rva == 0x1b0e3e9u && team_id != holder_team_id) {
                 static LONG display_block_log_count = 0;
                 LONG display_slot = InterlockedIncrement(&display_block_log_count);
                 if (display_slot <= 120) {

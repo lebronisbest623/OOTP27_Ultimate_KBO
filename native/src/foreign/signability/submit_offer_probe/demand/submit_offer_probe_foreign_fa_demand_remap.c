@@ -277,7 +277,7 @@ int kbo_apply_foreign_contract_demand_floor(uintptr_t player_ptr, uint32_t today
         &score,
         &index,
         &asian_quota);
-    if (demand_floor <= 0) {
+    if (demand_floor <= 0 || holder_team_id == 0u) {
         return 0;
     }
 

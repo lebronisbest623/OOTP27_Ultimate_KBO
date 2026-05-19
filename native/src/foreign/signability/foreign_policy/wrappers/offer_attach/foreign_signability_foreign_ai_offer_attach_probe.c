@@ -180,160 +180,6 @@ static uint8_t kbo_foreign_ai_fast_fill_offer_final_gate(
     return 1u;
 }
 
-static int kbo_foreign_ai_offer_target_is_kbo_org(
-    uint32_t team_id,
-    uint32_t* out_team_league_id,
-    uint32_t* out_parent_team_id)
-{
-    if (out_team_league_id != NULL) { *out_team_league_id = 0u; }
-    if (out_parent_team_id != NULL) { *out_parent_team_id = 0u; }
-    if (team_id == 0u) {
-        return 0;
-    }
-
-    uint32_t kbo_league_id = kbo_resolve_kbo_league_id();
-    if (kbo_league_id == 0u) {
-        return 0;
-    }
-
-    uint8_t* team = find_kbo_team_by_numeric_id_any_league(team_id, 1);
-    if (team == NULL || !memory_range_readable(team, OOTP27_KBO_TEAM_READABLE_BYTES)) {
-        return 0;
-    }
-
-    uint32_t team_league_id = *(uint32_t*)(team + OOTP27_KBO_TEAM_LEAGUE_ID_OFFSET);
-    uint32_t parent_team_id = memory_range_readable(team + OOTP27_KBO_TEAM_PARENT_TEAM_ID_OFFSET, sizeof(uint32_t))
-        ? *(uint32_t*)(team + OOTP27_KBO_TEAM_PARENT_TEAM_ID_OFFSET)
-        : 0u;
-    if (out_team_league_id != NULL) { *out_team_league_id = team_league_id; }
-    if (out_parent_team_id != NULL) { *out_parent_team_id = parent_team_id; }
-    if (team_league_id == kbo_league_id) {
-        return 1;
-    }
-
-    if (parent_team_id == 0u) {
-        return 0;
-    }
-
-    uint8_t* parent_team = find_kbo_team_by_numeric_id_any_league(parent_team_id, 1);
-    return parent_team != NULL
-        && memory_range_readable(parent_team, OOTP27_KBO_TEAM_READABLE_BYTES)
-        && *(uint32_t*)(parent_team + OOTP27_KBO_TEAM_LEAGUE_ID_OFFSET) == kbo_league_id;
-}
-
-static int kbo_force_foreign_ai_offer_major_terms(
-    uintptr_t player_ptr,
-    int32_t team_id_arg,
-    uintptr_t offer_ptr,
-    const char* source,
-    int32_t* out_salary_floor)
-{
-    if (out_salary_floor != NULL) { *out_salary_floor = 0; }
-    if (!kbo_fix_enabled()
-            || !kbo_custom_foreign_policy_enabled()
-            || offer_ptr == 0
-            || !memory_range_readable((void*)offer_ptr, KBO_OFFER_READABLE_BYTES)
-            || !kbo_player_pointer_plausible(player_ptr)) {
-        return 0;
-    }
-
-    uint8_t* player = (uint8_t*)player_ptr;
-    if (!kbo_player_is_foreign_for_kbo_rights(player)) {
-        return 0;
-    }
-
-    uint32_t team_id = team_id_arg > 0 ? (uint32_t)team_id_arg : 0u;
-    uint32_t offer_team_id = (uint32_t)kbo_offer_read_i32(offer_ptr, KBO_OFFER_TEAM_ID_OFFSET);
-    uint32_t checked_team_id = team_id != 0u ? team_id : offer_team_id;
-    uint32_t team_league_id = 0u;
-    uint32_t parent_team_id = 0u;
-    if (!kbo_foreign_ai_offer_target_is_kbo_org(checked_team_id, &team_league_id, &parent_team_id)) {
-        if (offer_team_id == 0u
-                || offer_team_id == checked_team_id
-                || !kbo_foreign_ai_offer_target_is_kbo_org(offer_team_id, &team_league_id, &parent_team_id)) {
-            return 0;
-        }
-        checked_team_id = offer_team_id;
-    }
-
-    uint32_t today = 0u;
-    if (!kbo_get_foreign_waiver_current_yyyymmdd(&today)) {
-        today = 0u;
-    }
-
-    uint32_t holder_team_id = 0u;
-    int32_t score = 0;
-    int index = 0;
-    int asian_quota = 0;
-    int32_t salary_floor = kbo_foreign_contract_salary_floor_for_player(
-        player,
-        today,
-        &holder_team_id,
-        &score,
-        &index,
-        &asian_quota);
-    if (out_salary_floor != NULL) { *out_salary_floor = salary_floor; }
-
-    uint8_t old_major = kbo_offer_read_u8(offer_ptr, KBO_OFFER_MAJOR_FLAG_OFFSET);
-    uint8_t old_minor = kbo_offer_read_u8(offer_ptr, KBO_OFFER_MINOR_FLAG_OFFSET);
-    int32_t old_salary_primary = kbo_offer_read_i32(offer_ptr, KBO_OFFER_SALARY_PRIMARY_OFFSET);
-    int32_t old_salary_first = kbo_offer_read_i32(offer_ptr, KBO_OFFER_SALARY_FIRST_YEAR_OFFSET);
-    int changed = 0;
-
-    if (old_major != 1u && kbo_offer_write_u8(offer_ptr, KBO_OFFER_MAJOR_FLAG_OFFSET, 1u)) {
-        changed++;
-    }
-    if (old_minor != 0u && kbo_offer_write_u8(offer_ptr, KBO_OFFER_MINOR_FLAG_OFFSET, 0u)) {
-        changed++;
-    }
-    if (salary_floor > 0) {
-        if (old_salary_primary <= 0 || old_salary_primary < salary_floor) {
-            if (kbo_offer_write_i32(offer_ptr, KBO_OFFER_SALARY_PRIMARY_OFFSET, salary_floor)) {
-                changed++;
-            }
-        }
-        if (old_salary_first <= 0 || old_salary_first < salary_floor) {
-            if (kbo_offer_write_i32(offer_ptr, KBO_OFFER_SALARY_FIRST_YEAR_OFFSET, salary_floor)) {
-                changed++;
-            }
-        }
-    }
-
-    if (changed == 0) {
-        return 0;
-    }
-
-    static volatile LONG force_log_count = 0;
-    LONG slot = InterlockedIncrement(&force_log_count);
-    if (slot <= 300) {
-        kbo_log_runtimef(
-            "foreign ai offer major terms forced source=%s player=%u team_arg=%d checked_team=%u offer_team=%u team_league=%u parent_team=%u offer=%p old_major=%u new_major=%u old_minor=%u new_minor=%u old_salary24=%d new_salary24=%d old_salary38=%d new_salary38=%d floor=%d holder_team=%u score=%d index=%d asian_quota=%d today=%u",
-            source != NULL ? source : "",
-            *(uint32_t*)(player + OOTP27_PLAYER_ID_OFFSET),
-            team_id_arg,
-            checked_team_id,
-            offer_team_id,
-            team_league_id,
-            parent_team_id,
-            (void*)offer_ptr,
-            (uint32_t)old_major,
-            (uint32_t)kbo_offer_read_u8(offer_ptr, KBO_OFFER_MAJOR_FLAG_OFFSET),
-            (uint32_t)old_minor,
-            (uint32_t)kbo_offer_read_u8(offer_ptr, KBO_OFFER_MINOR_FLAG_OFFSET),
-            old_salary_primary,
-            kbo_offer_read_i32(offer_ptr, KBO_OFFER_SALARY_PRIMARY_OFFSET),
-            old_salary_first,
-            kbo_offer_read_i32(offer_ptr, KBO_OFFER_SALARY_FIRST_YEAR_OFFSET),
-            salary_floor,
-            holder_team_id,
-            score,
-            index,
-            asian_quota,
-            today);
-    }
-    return changed;
-}
-
 static void kbo_log_foreign_ai_offer_attach(
     uintptr_t player_ptr,
     uintptr_t offer_slot_ptr,
@@ -595,12 +441,6 @@ __declspec(noinline) uintptr_t ootp_kbo_foreign_ai_offer_build_probe_wrapper(
         KBO_HOOK_PROFILE_PAUSE(profile_hook);
         offer_ptr = original_func(player_ptr, team_id, zero_arg, flag_ptr, 0u);
         KBO_HOOK_PROFILE_RESUME(profile_hook);
-        kbo_force_foreign_ai_offer_major_terms(
-            player_ptr,
-            team_id,
-            offer_ptr,
-            "ai_offer_build",
-            NULL);
         kbo_restore_foreign_fa_demand_salary_ladder("ai_offer_build");
     }
     if (read_kbo_localappdata_flag_file("enable_foreign_ai_roster_research_hooks.txt")
@@ -621,26 +461,15 @@ __declspec(noinline) uint8_t ootp_kbo_foreign_ai_offer_final_gate_probe_wrapper(
         (KboOotpForeignAiOfferFinalGateFn)kbo_offer_probe_resolve_rva(OOTP27_AI_FA_OFFER_FINAL_GATE_FUNC_RVA);
 
     uint8_t result = 0u;
-    int32_t adjusted_salary = salary;
     if (original_func != NULL) {
-        int32_t salary_floor = 0;
-        kbo_force_foreign_ai_offer_major_terms(
-            player_ptr,
-            (int32_t)kbo_offer_probe_team_id_from_ptr(team_ptr),
-            offer_ptr,
-            "ai_offer_final_gate",
-            &salary_floor);
-        if (salary_floor > 0 && adjusted_salary < salary_floor) {
-            adjusted_salary = salary_floor;
-        }
         KBO_HOOK_PROFILE_PAUSE(profile_hook);
-        result = original_func(team_ptr, player_ptr, adjusted_salary);
+        result = original_func(team_ptr, player_ptr, salary);
         KBO_HOOK_PROFILE_RESUME(profile_hook);
     }
-    result = kbo_foreign_ai_fast_fill_offer_final_gate(team_ptr, player_ptr, adjusted_salary, offer_ptr, result);
+    result = kbo_foreign_ai_fast_fill_offer_final_gate(team_ptr, player_ptr, salary, offer_ptr, result);
     if (read_kbo_localappdata_flag_file("enable_foreign_ai_roster_research_hooks.txt")
             || read_kbo_localappdata_flag_file("enable_kbo_foreign_ai_offer_attach_probe.txt")) {
-        kbo_log_foreign_ai_offer_final_gate(team_ptr, player_ptr, adjusted_salary, offer_ptr, result);
+        kbo_log_foreign_ai_offer_final_gate(team_ptr, player_ptr, salary, offer_ptr, result);
     }
     KBO_HOOK_PROFILE_RETURN(profile_hook, "foreign.ai_offer_final_gate", result);
 }
