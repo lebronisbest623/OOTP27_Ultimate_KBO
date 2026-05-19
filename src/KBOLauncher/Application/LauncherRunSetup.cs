@@ -19,6 +19,7 @@ internal static partial class LauncherApp
         EnsureBundledKboDataManifest();
         EnsureKboScheduleAllstarGameLines(exePath);
         EnsureDefaultKboRuntimeFlags();
+        MigrateLegacyKboSettingsFromFlags();
     }
 
     private static DefaultRunOptions ApplyDefaultRunOptions(

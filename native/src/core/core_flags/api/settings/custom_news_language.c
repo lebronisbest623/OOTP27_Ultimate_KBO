@@ -14,7 +14,7 @@ static int kbo_clamp_custom_news_language_setting(int language)
 int kbo_get_custom_news_language_setting(void)
 {
     int value = KBO_CUSTOM_NEWS_LANGUAGE_KO;
-    if (!kbo_read_localappdata_json_int_value(KBO_CUSTOM_NEWS_LANGUAGE_KEY, &value)) {
+    if (!kbo_read_localappdata_setting_int_value(KBO_CUSTOM_NEWS_LANGUAGE_KEY, &value)) {
         value = KBO_CUSTOM_NEWS_LANGUAGE_KO;
     }
     return kbo_clamp_custom_news_language_setting(value);
@@ -22,7 +22,7 @@ int kbo_get_custom_news_language_setting(void)
 
 int kbo_set_custom_news_language_setting(int language)
 {
-    return kbo_write_localappdata_json_int_value(
+    return kbo_write_localappdata_setting_int_value(
         KBO_CUSTOM_NEWS_LANGUAGE_KEY,
         kbo_clamp_custom_news_language_setting(language));
 }

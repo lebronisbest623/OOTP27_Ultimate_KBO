@@ -11,6 +11,41 @@ internal static partial class KboFlags
         "enable_kbo_current_date_tick_watchpoint",
     ];
 
+    private static readonly string[] SettingsKeysMigratedFromFlags =
+    [
+        "allow_all_ui_team_actions",
+        "asian_games_no_gold_odds_denominator",
+        "asian_quota_fa_demand_above_average_salary",
+        "asian_quota_fa_demand_average_salary",
+        "asian_quota_fa_demand_below_average_salary",
+        "asian_quota_fa_demand_fair_salary",
+        "asian_quota_fa_demand_good_salary",
+        "asian_quota_fa_demand_minimum_salary",
+        "asian_quota_fa_demand_poor_salary",
+        "asian_quota_fa_demand_star_salary",
+        "asian_quota_fa_demand_superstar_salary",
+        "asian_quota_salary_limit",
+        "custom_news_language",
+        "foreign_fa_demand_above_average_salary",
+        "foreign_fa_demand_average_salary",
+        "foreign_fa_demand_below_average_salary",
+        "foreign_fa_demand_fair_salary",
+        "foreign_fa_demand_good_salary",
+        "foreign_fa_demand_minimum_salary",
+        "foreign_fa_demand_poor_salary",
+        "foreign_fa_demand_star_salary",
+        "foreign_fa_demand_superstar_salary",
+        "foreign_fa_non_asian_bullpen_quality_cap",
+        "foreign_fa_non_asian_catcher_quality_cap",
+        "foreign_fa_non_asian_hitter_quality_cap",
+        "foreign_fa_non_asian_pitcher_quality_cap",
+        "foreign_fa_non_asian_starter_quality_cap",
+        "foreign_fa_quality_cap_enabled",
+        "independent_acquisition_domestic_cash_cost",
+        "independent_acquisition_foreign_cash_cost",
+        "intl_established_fa_multiplier",
+    ];
+
     public static void WriteKboFlag(string fileName, string label, bool enabled)
     {
         var key = NormalizeKboFlagKey(fileName);
@@ -40,6 +75,53 @@ internal static partial class KboFlags
     public static void EnsureDefaultKboRuntimeFlags()
     {
         EnsureDefaultKboRuntimeFlags(GetKboFlagConfigPath());
+    }
+
+    public static void MigrateLegacyKboSettingsFromFlags()
+    {
+        MigrateLegacyKboSettingsFromFlags(GetKboFlagConfigPath(), GetKboSettingsConfigPath());
+    }
+
+    internal static void MigrateLegacyKboSettingsFromFlags(string flagsPath, string settingsPath)
+    {
+        lock (ConfigWriteLock)
+        {
+            var flags = ReadKboRawConfig(flagsPath);
+            if (flags.Count == 0)
+            {
+                return;
+            }
+
+            var settings = ReadKboRawConfig(settingsPath);
+            var flagsChanged = false;
+            var settingsChanged = false;
+
+            foreach (var rawKey in SettingsKeysMigratedFromFlags)
+            {
+                var key = NormalizeKboFlagKey(rawKey);
+                if (!flags.TryGetValue(key, out var value))
+                {
+                    continue;
+                }
+
+                if (!settings.ContainsKey(key))
+                {
+                    settings[key] = value?.DeepClone();
+                    settingsChanged = true;
+                }
+                flags.Remove(key);
+                flagsChanged = true;
+            }
+
+            if (settingsChanged)
+            {
+                WriteRawConfigAtomically(settingsPath, settings);
+            }
+            if (flagsChanged)
+            {
+                WriteRawConfigAtomically(flagsPath, flags);
+            }
+        }
     }
 
     internal static void EnsureDefaultKboRuntimeFlags(string configPath)
@@ -258,7 +340,13 @@ internal static partial class KboFlags
     public static int ReadKboIntlEstablishedFaMultiplier()
     {
         var defaultValue = ReadKboSeedIntDefault("economic_defaults.json", "intl_established_fa_multiplier", fallback: 20);
-        return ReadKboIntSetting(GetKboFlagConfigPath(), "intl_established_fa_multiplier", defaultValue, minValue: 1, maxValue: 20);
+        return ReadKboIntSetting(
+            GetKboSettingsConfigPath(),
+            GetKboFlagConfigPath(),
+            "intl_established_fa_multiplier",
+            defaultValue,
+            minValue: 1,
+            maxValue: 20);
     }
 
     private static int ReadKboSeedIntDefault(string fileName, string key, int fallback)
@@ -289,9 +377,37 @@ internal static partial class KboFlags
 
     internal static int ReadKboIntSetting(string configPath, string key, int defaultValue, int minValue, int maxValue)
     {
+        return TryReadKboIntSetting(configPath, key, minValue, maxValue, out var value)
+            ? value
+            : defaultValue;
+    }
+
+    internal static int ReadKboIntSetting(
+        string configPath,
+        string legacyConfigPath,
+        string key,
+        int defaultValue,
+        int minValue,
+        int maxValue)
+    {
+        if (TryReadKboIntSetting(configPath, key, minValue, maxValue, out var value))
+        {
+            return value;
+        }
+        if (!string.Equals(configPath, legacyConfigPath, StringComparison.OrdinalIgnoreCase)
+                && TryReadKboIntSetting(legacyConfigPath, key, minValue, maxValue, out value))
+        {
+            return value;
+        }
+        return defaultValue;
+    }
+
+    private static bool TryReadKboIntSetting(string configPath, string key, int minValue, int maxValue, out int result)
+    {
+        result = 0;
         if (!File.Exists(configPath))
         {
-            return defaultValue;
+            return false;
         }
 
         try
@@ -306,7 +422,7 @@ internal static partial class KboFlags
             }
             if (root.ValueKind != JsonValueKind.Object)
             {
-                return defaultValue;
+                return false;
             }
 
             foreach (var property in root.EnumerateObject())
@@ -314,16 +430,17 @@ internal static partial class KboFlags
                 if (NormalizeKboFlagKey(property.Name).Equals(key, StringComparison.OrdinalIgnoreCase)
                         && TryReadJsonInt(property.Value, out var value))
                 {
-                    return Math.Clamp(value, minValue, maxValue);
+                    result = Math.Clamp(value, minValue, maxValue);
+                    return true;
                 }
             }
         }
         catch
         {
-            return defaultValue;
+            return false;
         }
 
-        return defaultValue;
+        return false;
     }
 
     internal static void WriteKboIntSetting(string configPath, string key, int value, int minValue, int maxValue)

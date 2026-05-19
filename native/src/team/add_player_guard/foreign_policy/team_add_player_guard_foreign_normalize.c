@@ -6,93 +6,12 @@
 #include "../../../bootstrap/abi/ootp_offsets.h"
 #include "../../../core/core_league_context_parts/api/league_context_lookup.h"
 #include "../../../core/core_flags/api/flags_api.h"
-#include "../../../core/dates/tick/current_date_tick_capture.h"
 #include "../../../core/logging/core_log.h"
 #include "../../../foreign/common/policy/foreign_waiver_policy.h"
 #include "../../../foreign/common/player_eval/foreign_waiver_player_eval.h"
 #include "../../../runtime_memory/runtime_memory.h"
-#include "../../../foreign/signability/api/foreign_signability_salary_floor.h"
 #include "../../assignment/roster_arrays/team_roster_arrays.h"
 #include "../../lookup/team_lookup.h"
-
-static int kbo_team_add_clamp_foreign_contract_salary(
-    uint8_t* player,
-    uint32_t team_id,
-    uint32_t team_league_id,
-    uint32_t caller_rva)
-{
-    if (player == NULL
-            || !memory_range_readable(player, OOTP27_PLAYER_SCAN_BYTES)
-            || !memory_range_readable(
-                player + OOTP27_PLAYER_CONTRACT_SALARY_Y1_OFFSET,
-                OOTP27_PLAYER_CONTRACT_SALARY_YEARS * sizeof(int32_t))) {
-        return 0;
-    }
-
-    uint32_t today = 0u;
-    kbo_current_date_tick_latest_published_date(&today);
-
-    uint32_t holder_team_id = 0u;
-    int32_t score = 0;
-    int index = 0;
-    int asian_quota = 0;
-    int32_t salary_floor = kbo_foreign_contract_salary_floor_for_player(
-        player,
-        today,
-        &holder_team_id,
-        &score,
-        &index,
-        &asian_quota);
-    if (salary_floor <= 0) {
-        return 0;
-    }
-
-    int32_t* years = (int32_t*)(player + OOTP27_PLAYER_CONTRACT_SALARY_Y1_OFFSET);
-    int32_t before_y1 = years[0];
-    int changed = 0;
-    for (uint32_t year = 0u; year < OOTP27_PLAYER_CONTRACT_SALARY_YEARS; year++) {
-        int force_first_year = year == 0u;
-        if ((force_first_year || years[year] > 0) && years[year] < salary_floor) {
-            years[year] = salary_floor;
-            changed++;
-        }
-    }
-
-    if (changed == 0) {
-        return 0;
-    }
-
-    static volatile LONG clamp_log_count = 0;
-    LONG slot = InterlockedIncrement(&clamp_log_count);
-    if (slot <= 200) {
-        uint32_t player_id = *(uint32_t*)(player + OOTP27_PLAYER_ID_OFFSET);
-        uint32_t contract_status = memory_range_readable(player + OOTP27_PLAYER_CONTRACT_STATUS_OFFSET, sizeof(uint32_t))
-            ? *(uint32_t*)(player + OOTP27_PLAYER_CONTRACT_STATUS_OFFSET)
-            : 0u;
-        uint32_t contract_start_year = memory_range_readable(player + OOTP27_PLAYER_CONTRACT_START_YEAR_OFFSET, sizeof(uint32_t))
-            ? *(uint32_t*)(player + OOTP27_PLAYER_CONTRACT_START_YEAR_OFFSET)
-            : 0u;
-        kbo_log_runtimef(
-            "foreign contract salary floor applied source=team_add_success player=%u team=%u league=%u caller_rva=0x%x today=%u old_y1=%d new_y1=%d floor=%d changed_years=%d contract_status=%u contract_start_year=%u holder_team=%u score=%d index=%d asian_quota=%d",
-            player_id,
-            team_id,
-            team_league_id,
-            caller_rva,
-            today,
-            before_y1,
-            years[0],
-            salary_floor,
-            changed,
-            contract_status,
-            contract_start_year,
-            holder_team_id,
-            score,
-            index,
-            asian_quota);
-    }
-
-    return changed;
-}
 
 void kbo_team_add_normalize_foreign_retention_contract_success(
     uint32_t caller_rva,
@@ -186,9 +105,6 @@ void kbo_team_add_normalize_foreign_retention_contract_success(
     if (old_default_team_id == 0u
             && memory_range_readable(player + OOTP27_PLAYER_DEFAULT_TEAM_ID_OFFSET, sizeof(uint32_t))) {
         *(uint32_t*)(player + OOTP27_PLAYER_DEFAULT_TEAM_ID_OFFSET) = team_id;
-        changed = 1;
-    }
-    if (kbo_team_add_clamp_foreign_contract_salary(player, team_id, team_league_id, caller_rva) > 0) {
         changed = 1;
     }
     kbo_add_player_id_to_team_assignment_arrays(team, player_id);

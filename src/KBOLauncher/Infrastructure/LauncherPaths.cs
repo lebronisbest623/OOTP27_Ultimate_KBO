@@ -258,4 +258,9 @@ internal static class LauncherPaths
     {
         return GetKboLocalDataPath("kbo_flags.json");
     }
+
+    public static string GetKboSettingsConfigPath()
+    {
+        return GetKboLocalDataPath("kbo_settings.json");
+    }
 }

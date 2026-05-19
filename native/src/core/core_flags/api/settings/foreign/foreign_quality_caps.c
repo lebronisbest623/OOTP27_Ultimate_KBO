@@ -31,7 +31,7 @@ int32_t kbo_get_foreign_fa_non_asian_quality_cap_value(int index)
     }
 
     int value = kbo_economic_default_non_asian_quality_cap(index);
-    if (!kbo_read_localappdata_json_int_value(
+    if (!kbo_read_localappdata_setting_int_value(
             KBO_FOREIGN_FA_NON_ASIAN_QUALITY_CAP_KEYS[index],
             &value)) {
         value = kbo_economic_default_non_asian_quality_cap(index);
@@ -44,7 +44,7 @@ int kbo_set_foreign_fa_non_asian_quality_cap_value(int index, int32_t value)
     if (index < 0 || index >= KBO_FOREIGN_FA_NON_ASIAN_QUALITY_CAP_COUNT) {
         return 0;
     }
-    return kbo_write_localappdata_json_int_value(
+    return kbo_write_localappdata_setting_int_value(
         KBO_FOREIGN_FA_NON_ASIAN_QUALITY_CAP_KEYS[index],
         kbo_clamp_foreign_fa_quality_cap_value(value));
 }

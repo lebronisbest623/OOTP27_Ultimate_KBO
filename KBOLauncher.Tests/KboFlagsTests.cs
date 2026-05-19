@@ -134,6 +134,41 @@ public sealed class KboFlagsTests : IDisposable
         global::KboFlags.ReadKboIntSetting(ConfigPath, "intl_established_fa_multiplier", 1, 1, 20).Should().Be(20);
     }
 
+    [Fact]
+    public void MigrateLegacyKboSettingsFromFlags_MovesSettingsOutOfFlagConfig()
+    {
+        Directory.CreateDirectory(tempDir);
+        var settingsPath = Path.Combine(tempDir, "kbo_settings.json");
+        File.WriteAllText(ConfigPath, """
+        {
+          "enable_launcher_injection": true,
+          "enable_kbo_profiler": true,
+          "foreign_fa_demand_minimum_salary": 700000,
+          "foreign_fa_demand_average_salary": 1050000,
+          "intl_established_fa_multiplier": 18
+        }
+        """);
+        File.WriteAllText(settingsPath, """
+        {
+          "foreign_fa_demand_average_salary": 900000
+        }
+        """);
+
+        global::KboFlags.MigrateLegacyKboSettingsFromFlags(ConfigPath, settingsPath);
+
+        var flags = global::KboFlags.ReadKboRawConfig(ConfigPath);
+        flags.Keys.Should().Contain(["enable_launcher_injection", "enable_kbo_profiler"]);
+        flags.Keys.Should().NotContain([
+            "foreign_fa_demand_minimum_salary",
+            "foreign_fa_demand_average_salary",
+            "intl_established_fa_multiplier"]);
+
+        using var settingsDoc = JsonDocument.Parse(File.ReadAllText(settingsPath));
+        settingsDoc.RootElement.GetProperty("foreign_fa_demand_minimum_salary").GetInt32().Should().Be(700000);
+        settingsDoc.RootElement.GetProperty("foreign_fa_demand_average_salary").GetInt32().Should().Be(900000);
+        settingsDoc.RootElement.GetProperty("intl_established_fa_multiplier").GetInt32().Should().Be(18);
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
@@ -293,6 +328,51 @@ public sealed class KboFlagsTests : IDisposable
         """);
 
         global::KboFlags.ReadKboIntSetting(ConfigPath, "intl_established_fa_multiplier", 7, 1, 20).Should().Be(7);
+    }
+
+    [Fact]
+    public void ReadKboIntSetting_PrefersSettingsFileOverLegacyFlags()
+    {
+        Directory.CreateDirectory(tempDir);
+        var settingsPath = Path.Combine(tempDir, "kbo_settings.json");
+        File.WriteAllText(settingsPath, """
+        {
+          "intl_established_fa_multiplier": 8
+        }
+        """);
+        File.WriteAllText(ConfigPath, """
+        {
+          "intl_established_fa_multiplier": 12
+        }
+        """);
+
+        global::KboFlags.ReadKboIntSetting(
+            settingsPath,
+            ConfigPath,
+            "intl_established_fa_multiplier",
+            1,
+            1,
+            20).Should().Be(8);
+    }
+
+    [Fact]
+    public void ReadKboIntSetting_FallsBackToLegacyFlagsWhenSettingsMissing()
+    {
+        Directory.CreateDirectory(tempDir);
+        var settingsPath = Path.Combine(tempDir, "kbo_settings.json");
+        File.WriteAllText(ConfigPath, """
+        {
+          "intl_established_fa_multiplier": 12
+        }
+        """);
+
+        global::KboFlags.ReadKboIntSetting(
+            settingsPath,
+            ConfigPath,
+            "intl_established_fa_multiplier",
+            1,
+            1,
+            20).Should().Be(12);
     }
 
     [Theory]

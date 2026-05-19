@@ -11,7 +11,7 @@
 int kbo_get_foreign_fa_quality_cap_enabled_setting(void)
 {
     int value = kbo_economic_default_foreign_fa_quality_cap_enabled();
-    if (!kbo_read_localappdata_json_flag_value(
+    if (!kbo_read_localappdata_setting_flag_value(
             KBO_FOREIGN_FA_QUALITY_CAP_ENABLED_KEY,
             &value)) {
         if (read_kbo_localappdata_flag_file("disable_intl_established_fa_quality_shaping.txt")) {
@@ -25,7 +25,7 @@ int kbo_get_foreign_fa_quality_cap_enabled_setting(void)
 
 int kbo_set_foreign_fa_quality_cap_enabled_setting(int enabled)
 {
-    return kbo_write_localappdata_json_int_value(
+    return kbo_write_localappdata_setting_int_value(
         KBO_FOREIGN_FA_QUALITY_CAP_ENABLED_KEY,
         enabled ? 1 : 0);
 }
@@ -46,7 +46,7 @@ int kbo_clamp_asian_games_no_gold_odds_denominator(int value)
 int kbo_get_asian_games_no_gold_odds_denominator(void)
 {
     int value = kbo_economic_default_asian_games_no_gold_odds_denominator();
-    if (!kbo_read_localappdata_json_int_value(
+    if (!kbo_read_localappdata_setting_int_value(
             KBO_ASIAN_GAMES_NO_GOLD_ODDS_DENOMINATOR_KEY,
             &value)) {
         value = kbo_economic_default_asian_games_no_gold_odds_denominator();
@@ -56,7 +56,7 @@ int kbo_get_asian_games_no_gold_odds_denominator(void)
 
 int kbo_set_asian_games_no_gold_odds_denominator(int value)
 {
-    return kbo_write_localappdata_json_int_value(
+    return kbo_write_localappdata_setting_int_value(
         KBO_ASIAN_GAMES_NO_GOLD_ODDS_DENOMINATOR_KEY,
         kbo_clamp_asian_games_no_gold_odds_denominator(value));
 }
@@ -80,7 +80,7 @@ int kbo_set_profiler_enabled_setting(int enabled)
 int kbo_get_allow_all_ui_team_actions_setting(void)
 {
     int value = 1;
-    if (!kbo_read_localappdata_json_flag_value(
+    if (!kbo_read_localappdata_setting_flag_value(
             KBO_ALLOW_ALL_UI_TEAM_ACTIONS_KEY,
             &value)) {
         value = 1;
@@ -90,7 +90,7 @@ int kbo_get_allow_all_ui_team_actions_setting(void)
 
 int kbo_set_allow_all_ui_team_actions_setting(int enabled)
 {
-    return kbo_write_localappdata_json_int_value(KBO_ALLOW_ALL_UI_TEAM_ACTIONS_KEY, enabled ? 1 : 0);
+    return kbo_write_localappdata_setting_int_value(KBO_ALLOW_ALL_UI_TEAM_ACTIONS_KEY, enabled ? 1 : 0);
 }
 
 #define KBO_INDEPENDENT_ACQUISITION_FOREIGN_CASH_COST_KEY "independent_acquisition_foreign_cash_cost"
@@ -111,7 +111,7 @@ int32_t kbo_get_independent_acquisition_foreign_cash_cost(void)
 {
     int default_value = kbo_economic_default_independent_acquisition_foreign_cash_cost();
     int value = default_value;
-    if (!kbo_read_localappdata_json_int_value(
+    if (!kbo_read_localappdata_setting_int_value(
             KBO_INDEPENDENT_ACQUISITION_FOREIGN_CASH_COST_KEY,
             &value)
             || value <= 0) {
@@ -124,7 +124,7 @@ int32_t kbo_get_independent_acquisition_domestic_cash_cost(void)
 {
     int default_value = kbo_economic_default_independent_acquisition_domestic_cash_cost();
     int value = default_value;
-    if (!kbo_read_localappdata_json_int_value(
+    if (!kbo_read_localappdata_setting_int_value(
             KBO_INDEPENDENT_ACQUISITION_DOMESTIC_CASH_COST_KEY,
             &value)
             || value <= 0) {
@@ -135,14 +135,14 @@ int32_t kbo_get_independent_acquisition_domestic_cash_cost(void)
 
 int kbo_set_independent_acquisition_foreign_cash_cost(int32_t value)
 {
-    return kbo_write_localappdata_json_int_value(
+    return kbo_write_localappdata_setting_int_value(
         KBO_INDEPENDENT_ACQUISITION_FOREIGN_CASH_COST_KEY,
         kbo_clamp_independent_acquisition_cash_cost(value));
 }
 
 int kbo_set_independent_acquisition_domestic_cash_cost(int32_t value)
 {
-    return kbo_write_localappdata_json_int_value(
+    return kbo_write_localappdata_setting_int_value(
         KBO_INDEPENDENT_ACQUISITION_DOMESTIC_CASH_COST_KEY,
         kbo_clamp_independent_acquisition_cash_cost(value));
 }

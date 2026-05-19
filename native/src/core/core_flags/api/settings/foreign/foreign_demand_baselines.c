@@ -48,7 +48,7 @@ int32_t kbo_get_foreign_fa_demand_baseline_value(int index)
         return 0;
     }
     int value = kbo_economic_default_foreign_fa_demand_baseline(index);
-    if (!kbo_read_localappdata_json_int_value(KBO_FOREIGN_FA_DEMAND_BASELINE_KEYS[index], &value)) {
+    if (!kbo_read_localappdata_setting_int_value(KBO_FOREIGN_FA_DEMAND_BASELINE_KEYS[index], &value)) {
         value = kbo_economic_default_foreign_fa_demand_baseline(index);
     }
     return kbo_clamp_foreign_fa_demand_baseline_value(value);
@@ -60,7 +60,7 @@ int32_t kbo_get_asian_quota_fa_demand_baseline_value(int index)
         return 0;
     }
     int value = kbo_economic_default_asian_quota_fa_demand_baseline(index);
-    if (!kbo_read_localappdata_json_int_value(KBO_ASIAN_QUOTA_FA_DEMAND_BASELINE_KEYS[index], &value)) {
+    if (!kbo_read_localappdata_setting_int_value(KBO_ASIAN_QUOTA_FA_DEMAND_BASELINE_KEYS[index], &value)) {
         value = kbo_economic_default_asian_quota_fa_demand_baseline(index);
     }
     return kbo_clamp_foreign_fa_demand_baseline_value(value);
@@ -78,7 +78,7 @@ int kbo_set_foreign_fa_demand_baseline_value(int index, int32_t value)
     if (index < 0 || index >= 9) {
         return 0;
     }
-    return kbo_write_localappdata_json_int_value(
+    return kbo_write_localappdata_setting_int_value(
         KBO_FOREIGN_FA_DEMAND_BASELINE_KEYS[index],
         kbo_clamp_foreign_fa_demand_baseline_value(value));
 }
@@ -88,7 +88,7 @@ int kbo_set_asian_quota_fa_demand_baseline_value(int index, int32_t value)
     if (index < 0 || index >= 9) {
         return 0;
     }
-    return kbo_write_localappdata_json_int_value(
+    return kbo_write_localappdata_setting_int_value(
         KBO_ASIAN_QUOTA_FA_DEMAND_BASELINE_KEYS[index],
         kbo_clamp_foreign_fa_demand_baseline_value(value));
 }
@@ -107,7 +107,7 @@ int32_t kbo_clamp_asian_quota_salary_limit_value(int32_t value)
 int32_t kbo_get_asian_quota_salary_limit(void)
 {
     int value = kbo_economic_default_asian_quota_salary_limit();
-    if (!kbo_read_localappdata_json_int_value(KBO_ASIAN_QUOTA_SALARY_LIMIT_KEY, &value)) {
+    if (!kbo_read_localappdata_setting_int_value(KBO_ASIAN_QUOTA_SALARY_LIMIT_KEY, &value)) {
         value = kbo_economic_default_asian_quota_salary_limit();
     }
     return kbo_clamp_asian_quota_salary_limit_value(value);
@@ -115,7 +115,7 @@ int32_t kbo_get_asian_quota_salary_limit(void)
 
 int kbo_set_asian_quota_salary_limit(int32_t value)
 {
-    return kbo_write_localappdata_json_int_value(
+    return kbo_write_localappdata_setting_int_value(
         KBO_ASIAN_QUOTA_SALARY_LIMIT_KEY,
         kbo_clamp_asian_quota_salary_limit_value(value));
 }
