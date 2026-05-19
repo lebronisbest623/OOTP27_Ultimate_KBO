@@ -9,13 +9,9 @@
 #include "../../core/files/save_paths/core_save_paths.h"
 #include "../../core/logging/core_log.h"
 #include "../../core/optimizer/kbo_optimizer.h"
-#include "../../bootstrap/profiling/profiler.h"
 #include "../decisions/fa_compensation_decisions.h"
 #include "../protection/fa_compensation_protection_score.h"
 #include "fa_compensation_due_ortools.h"
-
-#define KBO_FA_COMPENSATION_ORTOOLS_SCORE_WEIGHT 1000
-#define KBO_FA_COMPENSATION_ORTOOLS_ROLE_BONUS 25
 
 static int kbo_fa_compensation_write_ortools_request(
     const char* path,
@@ -75,50 +71,6 @@ static int kbo_fa_compensation_candidate_index_by_player_id(
     return -1;
 }
 
-static int kbo_fa_compensation_order_has_unique_score_frontier(
-    const KboFaProtectedCandidate* candidates,
-    int candidate_count,
-    uint32_t protect_count)
-{
-    if (candidates == NULL || candidate_count <= 0 || protect_count == 0u) {
-        return 0;
-    }
-    if (protect_count >= (uint32_t)candidate_count) {
-        return 1;
-    }
-    for (int i = 1; i < candidate_count; i++) {
-        if (candidates[i - 1].score < candidates[i].score) {
-            return 0;
-        }
-    }
-
-    uint8_t seen_roles[256] = {0};
-    int distinct_roles = 0;
-    for (int i = 0; i < candidate_count; i++) {
-        uint8_t role = candidates[i].role;
-        if (!seen_roles[role]) {
-            seen_roles[role] = 1u;
-            distinct_roles++;
-        }
-    }
-    if (distinct_roles * KBO_FA_COMPENSATION_ORTOOLS_ROLE_BONUS >= KBO_FA_COMPENSATION_ORTOOLS_SCORE_WEIGHT) {
-        return 0;
-    }
-
-    int32_t boundary_score = candidates[protect_count - 1u].score;
-    int above_boundary = 0;
-    int at_boundary = 0;
-    for (int i = 0; i < candidate_count; i++) {
-        if (candidates[i].score > boundary_score) {
-            above_boundary++;
-        } else if (candidates[i].score == boundary_score) {
-            at_boundary++;
-        }
-    }
-    int needed_at_boundary = (int)protect_count - above_boundary;
-    return needed_at_boundary == at_boundary;
-}
-
 int kbo_fa_compensation_apply_ortools_order(
     KboFaCompensationRecord* rec,
     KboFaProtectedCandidate* candidates,
@@ -128,10 +80,6 @@ int kbo_fa_compensation_apply_ortools_order(
     if (read_kbo_localappdata_flag_file("disable_fa_compensation_ortools.txt")
             || rec == NULL || candidates == NULL || candidate_count <= 0 || rec->protect_count == 0u) {
         return 0;
-    }
-    if (kbo_fa_compensation_order_has_unique_score_frontier(candidates, candidate_count, rec->protect_count)) {
-        kbo_profiler_record_us("fa_compensation.ortools.skip_unique_frontier", 0);
-        return 1;
     }
 
     char request_path[MAX_PATH * 3] = {0};

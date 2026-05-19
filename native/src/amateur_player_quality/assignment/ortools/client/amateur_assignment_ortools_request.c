@@ -1,57 +1,5 @@
 #include "..\amateur_assignment_ortools_internal.h"
 
-int kbo_amateur_ortools_get_tool_path(char* out, size_t out_size, int* out_is_python_script)
-{
-    if (out == NULL || out_size == 0) {
-        return 0;
-    }
-    out[0] = '\0';
-    if (out_is_python_script != NULL) {
-        *out_is_python_script = 0;
-    }
-
-    HMODULE module = NULL;
-    if (!GetModuleHandleExA(
-            GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-            (LPCSTR)&kbo_amateur_ortools_get_tool_path,
-            &module)) {
-        return 0;
-    }
-
-    char module_path[MAX_PATH * 3] = {0};
-    DWORD len = GetModuleFileNameA(module, module_path, (DWORD)sizeof(module_path));
-    if (len == 0 || len >= sizeof(module_path)) {
-        return 0;
-    }
-    char* slash = strrchr(module_path, '\\');
-    if (slash == NULL) {
-        return 0;
-    }
-    slash[1] = '\0';
-
-    snprintf(out, out_size, "%stools\\kbo_optimizer.exe", module_path);
-    if (GetFileAttributesA(out) != INVALID_FILE_ATTRIBUTES) {
-        return 1;
-    }
-
-    snprintf(out, out_size, "%stools\\kbo_optimizer.py", module_path);
-    if (GetFileAttributesA(out) != INVALID_FILE_ATTRIBUTES) {
-        if (out_is_python_script != NULL) {
-            *out_is_python_script = 1;
-        }
-        return 1;
-    }
-
-    static volatile LONG missing_log_count = 0;
-    if (InterlockedIncrement(&missing_log_count) <= 5) {
-        kbo_log_runtimef(
-            "amateur OR-Tools optimizer missing exe=%stools\\kbo_optimizer.exe script=%stools\\kbo_optimizer.py",
-            module_path,
-            module_path);
-    }
-    return 0;
-}
-
 int kbo_amateur_ortools_write_request(
     const char* path,
     uint8_t* player,

@@ -96,13 +96,6 @@ int kbo_amateur_assignment_find_candidate_info(
     int* out_tier,
     int32_t* out_player_count,
     int32_t* out_hitter_count);
-uint8_t* kbo_choose_amateur_assignment_team(
-    uint8_t* player,
-    uint32_t league_id,
-    uint32_t current_team_id,
-    uint8_t current_reputation,
-    int32_t quality_score,
-    uint8_t* out_target_reputation);
 uint8_t* kbo_choose_amateur_assignment_team_ortools(
     uint8_t* player,
     uint32_t league_id,

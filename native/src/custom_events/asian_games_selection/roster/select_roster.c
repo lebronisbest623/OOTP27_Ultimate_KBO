@@ -9,10 +9,7 @@
 #include "../../../foreign/common/policy/foreign_waiver_policy.h"
 #include "../../../team/lookup/team_lookup.h"
 #include "../../asian_games/roster/asian_games_roster_store.h"
-#include "../missing_org/missing_org.h"
-#include "../pick/selection_pick.h"
 #include "select_roster_ortools.h"
-#include "../wildcards/wildcards.h"
 
 int kbo_select_asian_games_roster(uint32_t event_yyyymmdd, const char* source)
 {
@@ -150,13 +147,7 @@ int kbo_select_asian_games_roster(uint32_t event_yyyymmdd, const char* source)
     int infielder_count = 0;
     int outfielder_count = 0;
     int wildcard_count = 0;
-    int wildcard_fills = 0;
-    int flex_fills = 0;
-    int required_org_repairs = 0;
-    int wildcard_replacements = 0;
-    int used_ortools = 0;
 
-    int required_org_initial_selected = 0;
     if (kbo_select_asian_games_roster_ortools(
             candidates,
             candidate_count,
@@ -168,139 +159,25 @@ int kbo_select_asian_games_roster(uint32_t event_yyyymmdd, const char* source)
             &infielder_count,
             &outfielder_count,
             &wildcard_count,
-            source) > 0) {
-        used_ortools = 1;
-    }
-
-    const KboAsianGamesRosterPolicy* policy = kbo_asian_games_roster_policy();
-    int roster_size = kbo_asian_games_policy_roster_size();
-    for (int org_index = 0; !used_ortools && org_index < required_org_count && selected_count < roster_size; org_index++) {
-        int best_index = -1;
-        for (int i = 0; i < candidate_count; i++) {
-            if (candidates[i].selected
-                    || candidates[i].org_team_id != required_orgs[org_index]
-                    || kbo_asian_games_policy_is_wildcard_age(candidates[i].entry.age)) {
-                continue;
-            }
-            best_index = i;
-            if (kbo_asian_games_try_select_candidate(
-                    candidates,
-                    candidate_count,
-                    i,
-                    &selected_count,
-                    &pitcher_count,
-                    &catcher_count,
-                    &infielder_count,
-                    &outfielder_count,
-                    &wildcard_count,
-                    1)) {
-                required_org_initial_selected++;
-                break;
-            }
-        }
-        if (best_index >= 0 && kbo_asian_games_roster_org_count(required_orgs[org_index], selected_count) == 0) {
-            kbo_log_runtimef(
-                "KBO Asian Games team-min initial select deferred org=%u best_player=%u best_role=%u reason=position_full_or_team_max",
-                required_orgs[org_index],
-                candidates[best_index].entry.player_id,
-                (uint32_t)candidates[best_index].entry.role);
-        }
-    }
-
-    for (int i = 0; !used_ortools && i < candidate_count && selected_count < roster_size; i++) {
-        if (kbo_asian_games_policy_is_wildcard_age(candidates[i].entry.age)) {
-            continue;
-        }
-        kbo_asian_games_try_select_candidate(
-            candidates,
+            source) <= 0) {
+        kbo_log_runtimef(
+            "KBO Asian Games roster selection skipped source=%s year=%u reason=optimizer_unavailable scanned=%d candidates=%d required_orgs=%d allowed_leagues=%u/%u vector_offset=0x%x rejected_nation=%d rejected_status=%d rejected_league=%d rejected_team=%d rejected_service_team=%d rejected_parentless_affiliate=%d",
+            source != NULL ? source : "",
+            year,
+            scanned,
             candidate_count,
-            i,
-            &selected_count,
-            &pitcher_count,
-            &catcher_count,
-            &infielder_count,
-            &outfielder_count,
-            &wildcard_count,
-            1);
-    }
-
-    for (int i = 0; !used_ortools && i < candidate_count && selected_count < roster_size; i++) {
-        int before_selected = selected_count;
-        int before_wildcards = wildcard_count;
-        if (!kbo_asian_games_policy_is_wildcard_age(candidates[i].entry.age)) {
-            continue;
-        }
-        kbo_asian_games_try_select_candidate(
-            candidates,
-            candidate_count,
-            i,
-            &selected_count,
-            &pitcher_count,
-            &catcher_count,
-            &infielder_count,
-            &outfielder_count,
-            &wildcard_count,
-            1);
-        if (selected_count > before_selected && wildcard_count > before_wildcards) {
-            wildcard_fills++;
-        }
-    }
-
-    for (int i = 0; !used_ortools && i < candidate_count && selected_count < roster_size; i++) {
-        int before_selected = selected_count;
-        if (kbo_asian_games_policy_is_wildcard_age(candidates[i].entry.age)) {
-            continue;
-        }
-        kbo_asian_games_try_select_candidate_flex_position(
-            candidates,
-            candidate_count,
-            i,
-            &selected_count,
-            &pitcher_count,
-            &catcher_count,
-            &infielder_count,
-            &outfielder_count,
-            &wildcard_count,
-            1);
-        if (selected_count > before_selected) {
-            flex_fills++;
-        }
-    }
-
-    for (int i = 0; !used_ortools && i < candidate_count && selected_count < roster_size; i++) {
-        int before_selected = selected_count;
-        if (!kbo_asian_games_policy_is_wildcard_age(candidates[i].entry.age)) {
-            continue;
-        }
-        kbo_asian_games_try_select_candidate_flex_position(
-            candidates,
-            candidate_count,
-            i,
-            &selected_count,
-            &pitcher_count,
-            &catcher_count,
-            &infielder_count,
-            &outfielder_count,
-            &wildcard_count,
-            1);
-        if (selected_count > before_selected) {
-            flex_fills++;
-        }
-    }
-
-    for (int org_index = 0; !used_ortools && org_index < required_org_count; org_index++) {
-        if (kbo_asian_games_roster_org_count(required_orgs[org_index], selected_count) > 0) {
-            continue;
-        }
-        if (kbo_asian_games_replace_for_missing_org(
-                candidates,
-                candidate_count,
-                required_orgs[org_index],
-                selected_count,
-                required_orgs,
-                required_org_count)) {
-            required_org_repairs++;
-        }
+            required_org_count,
+            allowed_league_count > 0 ? allowed_leagues[0] : 0u,
+            allowed_league_count > 1 ? allowed_leagues[1] : 0u,
+            vector_offset,
+            rejected_nation,
+            rejected_status,
+            rejected_league,
+            rejected_team,
+            rejected_service_team,
+            rejected_parentless_affiliate);
+        HeapFree(GetProcessHeap(), 0, candidates);
+        return 0;
     }
 
     int required_org_missing = 0;
@@ -310,26 +187,11 @@ int kbo_select_asian_games_roster(uint32_t event_yyyymmdd, const char* source)
         }
     }
 
-    if (!used_ortools) {
-        wildcard_replacements = kbo_asian_games_apply_wildcard_replacements(
-            candidates,
-            candidate_count,
-            selected_count,
-            &wildcard_count,
-            &pitcher_count,
-            &catcher_count,
-            &infielder_count,
-            &outfielder_count,
-            required_orgs,
-            required_org_count);
-    }
-
     g_kbo_asian_games_roster_count = selected_count;
     kbo_log_runtimef(
-        "KBO Asian Games roster selected source=%s year=%u method=%s scanned=%d candidates=%d selected=%d pitchers=%d catchers=%d infielders=%d outfielders=%d wildcards=%d wildcard_fills=%d flex_fills=%d wildcard_replacements=%d required_orgs=%d required_initial=%d required_repairs=%d required_missing=%d team_max=%d allowed_leagues=%u/%u vector_offset=0x%x rejected_nation=%d rejected_status=%d rejected_league=%d rejected_team=%d rejected_service_team=%d rejected_parentless_affiliate=%d",
+        "KBO Asian Games roster selected source=%s year=%u method=optimizer scanned=%d candidates=%d selected=%d pitchers=%d catchers=%d infielders=%d outfielders=%d wildcards=%d required_orgs=%d required_missing=%d allowed_leagues=%u/%u vector_offset=0x%x rejected_nation=%d rejected_status=%d rejected_league=%d rejected_team=%d rejected_service_team=%d rejected_parentless_affiliate=%d",
         source != NULL ? source : "",
         year,
-        used_ortools ? "ortools" : "greedy",
         scanned,
         candidate_count,
         selected_count,
@@ -338,14 +200,8 @@ int kbo_select_asian_games_roster(uint32_t event_yyyymmdd, const char* source)
         infielder_count,
         outfielder_count,
         wildcard_count,
-        wildcard_fills,
-        flex_fills,
-        wildcard_replacements,
         required_org_count,
-        required_org_initial_selected,
-        required_org_repairs,
         required_org_missing,
-        policy->team_max_players,
         allowed_league_count > 0 ? allowed_leagues[0] : 0u,
         allowed_league_count > 1 ? allowed_leagues[1] : 0u,
         vector_offset,

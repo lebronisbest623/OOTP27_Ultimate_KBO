@@ -1,5 +1,6 @@
 #include "..\amateur_assignment_ortools_internal.h"
 #include "../../policy/amateur_assignment_policy_values.h"
+#include "../../../../core/optimizer/kbo_optimizer.h"
 #include "../../../../core/logging/rule_audit.h"
 
 static void kbo_amateur_audit_ortools_batch(
@@ -168,12 +169,9 @@ int kbo_amateur_flush_league_batch_ortools(const char* reason, int force)
         return 0;
     }
 
-    char tool_path[MAX_PATH * 3] = {0};
     char request_path[MAX_PATH * 3] = {0};
     char result_path[MAX_PATH * 3] = {0};
-    int is_python_script = 0;
-    if (!kbo_amateur_ortools_get_tool_path(tool_path, sizeof(tool_path), &is_python_script)
-            || !kbo_get_save_scoped_data_file("amateur_assignment_ortools_batch_request.csv", request_path, sizeof(request_path))
+    if (!kbo_get_save_scoped_data_file("amateur_assignment_ortools_batch_request.csv", request_path, sizeof(request_path))
             || !kbo_get_save_scoped_data_file("amateur_assignment_ortools_batch_result.csv", result_path, sizeof(result_path))) {
         kbo_amateur_audit_ortools_batch(
             "fallback", "path_unavailable", reason, league_id,
@@ -197,7 +195,7 @@ int kbo_amateur_flush_league_batch_ortools(const char* reason, int force)
         kbo_amateur_apply_deferred_original_fallback(deferred_team_adds, deferred_count, league_id, "write_failed");
         return 0;
     }
-    if (!kbo_amateur_ortools_run(tool_path, is_python_script, request_path, result_path)) {
+    if (!kbo_optimizer_run_mode("amateur_assignment", request_path, result_path, 8000u)) {
         kbo_amateur_audit_ortools_batch(
             "fallback", "ortools_failed", reason, league_id,
             optimizer_player_count, accumulated_teams, count, -1, deferred_count, -1, 0u);

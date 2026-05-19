@@ -187,69 +187,16 @@ static int kbo_route_queued_military_draft_candidates(
         return routed;
     }
 
-    for (;;) {
-        int best_index = -1;
-        int best_score = INT32_MIN;
-        LONG count = g_kbo_military_draft_candidate_count;
-        if (count < 0) { count = 0; }
-        if (count > OOTP27_KBO_MAX_SPECIAL_HISTORY_KEYS) { count = OOTP27_KBO_MAX_SPECIAL_HISTORY_KEYS; }
-        for (LONG i = 0; i < count; i++) {
-            KboMilitaryDraftCandidate* candidate = &g_kbo_military_draft_candidates[i];
-            if (candidate->player_id == 0u || candidate->entry_year != entry_year || candidate->selected != 0u) {
-                continue;
-            }
-            considered++;
-            uintptr_t player_ptr = candidate->player_ptr;
-            if (!kbo_player_pointer_plausible(player_ptr)) {
-                player_ptr = (uintptr_t)kbo_military_find_player_by_id(candidate->player_id);
-                candidate->player_ptr = player_ptr;
-            }
-            if (!kbo_player_pointer_plausible(player_ptr)) {
-                continue;
-            }
-            uint8_t* player = (uint8_t*)player_ptr;
-            if (player[OOTP27_PLAYER_MILITARY_ACTIVE_OFFSET] == 0u
-                    || kbo_military_effective_days_left(player) <= 0
-                    || *(uint32_t*)(player + OOTP27_PLAYER_CURRENT_TEAM_ID_OFFSET) == sang_id) {
-                continue;
-            }
-            int score = kbo_military_draft_candidate_score(player);
-            if (score > best_score) {
-                best_score = score;
-                best_index = (int)i;
-            }
-        }
-        if (best_index < 0 || routed >= slots) {
-            break;
-        }
-
-        KboMilitaryDraftCandidate* candidate = &g_kbo_military_draft_candidates[best_index];
-        uint8_t* player = (uint8_t*)candidate->player_ptr;
-        routed += kbo_route_military_candidate_to_sang(
-            candidate,
-            player,
-            sang,
-            sang_id,
-            sang_league_id,
-            best_score,
-            news_entries,
-            max_news_entries,
-            routed,
-            entry_year,
-            source) ? 1 : 0;
-    }
-
     kbo_log_runtimef(
-        "KBO military selection processed source=%s year=%u method=greedy queued=%d considered=%d routed=%d active_before=%d slots=%d",
+        "KBO military selection skipped source=%s year=%u reason=optimizer_no_routes queued=%d considered=%d active_before=%d slots=%d",
         source != NULL ? source : "",
         entry_year,
         kbo_count_military_draft_candidates_for_year(entry_year),
         considered,
-        routed,
         on_roster,
         slots);
-    kbo_military_selection_audit_flow("military.selection.routing", routed > 0 ? "route_candidates" : "skip", routed > 0 ? "greedy_selected" : "no_eligible_candidates", source, entry_year, sang_id, on_roster, slots, kbo_count_military_draft_candidates_for_year(entry_year), considered, routed, 0, 0, 0, 0, 0u);
-    return routed;
+    kbo_military_selection_audit_flow("military.selection.routing", "skip", "optimizer_no_routes", source, entry_year, sang_id, on_roster, slots, kbo_count_military_draft_candidates_for_year(entry_year), considered, 0, 0, 0, 0, 0, 0u);
+    return 0;
 }
 
 int kbo_refresh_military_selection_candidates_from_memory(

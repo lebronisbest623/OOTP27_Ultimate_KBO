@@ -58,7 +58,6 @@ uintptr_t kbo_amateur_candidate_team_ptr_by_id(
     uint32_t team_id);
 uint32_t kbo_amateur_batch_resolve_source_team_id(uint8_t* player, uintptr_t source_team_ptr);
 int kbo_amateur_batch_source_index(uint32_t* team_ids, int count, uint32_t team_id);
-int kbo_amateur_ortools_get_tool_path(char* out, size_t out_size, int* out_is_python_script);
 int kbo_amateur_ortools_write_request(
     const char* path,
     uint8_t* player,
@@ -79,7 +78,6 @@ int kbo_amateur_ortools_write_batch_request(
     KboAmateurAssignmentCandidate* candidates,
     int count,
     int incoming_batch);
-int kbo_amateur_ortools_run(const char* tool_path, int is_python_script, const char* request_path, const char* result_path);
 uint32_t kbo_amateur_ortools_read_result(const char* result_path);
 int kbo_amateur_ortools_read_batch_result(const char* result_path, uint32_t league_id);
 void kbo_amateur_apply_deferred_original_fallback(

@@ -66,7 +66,16 @@ static int kbo_submit_fa_compensation_protected_list_record(
             && auto_protected[auto_protected_count].player_id != 0u) {
         auto_protected_count++;
     }
-    kbo_fa_compensation_apply_ortools_order(rec, candidates, candidate_count, source);
+    if (!kbo_fa_compensation_apply_ortools_order(rec, candidates, candidate_count, source)) {
+        kbo_log_runtimef(
+            "KBO FA protected list deferred reason=optimizer_failed fa_player=%u signing_team=%u due=%u candidates=%d protect=%u",
+            rec->player_id,
+            rec->signing_team_id,
+            due,
+            candidate_count,
+            rec->protect_count);
+        return 0;
+    }
     kbo_persist_fa_compensation_protection_debug(
         rec,
         due,

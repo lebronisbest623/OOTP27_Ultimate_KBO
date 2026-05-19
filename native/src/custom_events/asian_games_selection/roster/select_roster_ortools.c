@@ -7,8 +7,8 @@
 #include "../../../core/files/save_paths/core_save_paths.h"
 #include "../../../core/logging/core_log.h"
 #include "../../../core/optimizer/kbo_optimizer.h"
+#include "../../asian_games/player_eval/asian_games_player_eval.h"
 #include "../../asian_games/roster/asian_games_roster_store.h"
-#include "../missing_org/missing_org.h"
 
 static const char* kbo_asian_games_role_bucket_code(uint8_t role)
 {

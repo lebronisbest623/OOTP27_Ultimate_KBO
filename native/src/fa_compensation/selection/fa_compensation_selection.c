@@ -52,29 +52,20 @@ int kbo_select_fa_compensation_player_from_candidates(
         return 0;
     }
 
-    int best_index = -1;
-    int32_t best_score = -2147483647;
-    char best_reason[96] = {0};
-    for (int i = protected_count; i < candidate_count; i++) {
-        char reason[96] = {0};
-        int32_t score = kbo_fa_compensation_player_decision_score(rec, &candidates[i], reason, sizeof(reason));
-        if (best_index < 0
-                || score > best_score
-                || (score == best_score && candidates[i].age < candidates[best_index].age)
-                || (score == best_score && candidates[i].age == candidates[best_index].age
-                    && candidates[i].player_id < candidates[best_index].player_id)) {
-            best_index = i;
-            best_score = score;
-            snprintf(best_reason, sizeof(best_reason), "%s", reason);
-        }
-    }
-    if (best_index < 0) {
+    int selected_index = protected_count;
+    if (selected_index >= candidate_count || candidates[selected_index].player_id == 0u) {
         return 0;
     }
 
-    *out_selected = candidates[best_index];
-    out_selected->score = best_score;
-    snprintf(out_selected->reason, sizeof(out_selected->reason), "%s", best_reason[0] != '\0' ? best_reason : "decision_score");
+    char reason[96] = {0};
+    int32_t score = kbo_fa_compensation_player_decision_score(
+        rec,
+        &candidates[selected_index],
+        reason,
+        sizeof(reason));
+    *out_selected = candidates[selected_index];
+    out_selected->score = score;
+    snprintf(out_selected->reason, sizeof(out_selected->reason), "%s", reason[0] != '\0' ? reason : "optimizer_order");
     return out_selected->player_id != 0u;
 }
 

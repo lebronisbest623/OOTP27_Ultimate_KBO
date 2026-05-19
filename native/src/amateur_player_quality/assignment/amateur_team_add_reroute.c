@@ -193,15 +193,6 @@ uintptr_t kbo_amateur_team_add_player_reroute_before_original(uintptr_t team_ptr
         current_reputation,
         quality_score,
         &target_reputation);
-    if (target_team == NULL) {
-        target_team = kbo_choose_amateur_assignment_team(
-            player,
-            team_league_id,
-            source_team_id,
-            current_reputation,
-            quality_score,
-            &target_reputation);
-    }
     if (target_team == NULL || target_team == team) {
         uint8_t* source_team = kbo_amateur_assignment_candidate_team_ptr(team_league_id, source_team_id);
         int from_tier = kbo_amateur_assignment_team_tier(team_league_id, current_reputation);

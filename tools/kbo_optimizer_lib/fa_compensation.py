@@ -8,6 +8,13 @@ from ortools.sat.python import cp_model
 from .constants import FA_PROTECTION_ROLE_BONUS
 from .csv_io import to_int
 
+
+def _unprotected_decision_key(row):
+    if row.get("decision_score") not in (None, ""):
+        return (-to_int(row, "decision_score"), to_int(row, "age"), to_int(row, "player_id"))
+    return (-to_int(row, "score"), to_int(row, "age"), to_int(row, "player_id"))
+
+
 def optimize_fa_compensation(request_path, result_path):
     with open(request_path, newline="", encoding="utf-8") as handle:
         rows = [row for row in csv.DictReader(handle) if to_int(row, "player_id") != 0]
@@ -50,7 +57,7 @@ def optimize_fa_compensation(request_path, result_path):
     protected_rows = [row for row in rows if to_int(row, "player_id") in selected_ids]
     unprotected_rows = [row for row in rows if to_int(row, "player_id") not in selected_ids]
     protected_rows.sort(key=lambda row: (-to_int(row, "score"), to_int(row, "player_id")))
-    unprotected_rows.sort(key=lambda row: (-to_int(row, "score"), to_int(row, "player_id")))
+    unprotected_rows.sort(key=_unprotected_decision_key)
 
     with open(result_path, "w", newline="", encoding="utf-8") as handle:
         writer = csv.writer(handle)

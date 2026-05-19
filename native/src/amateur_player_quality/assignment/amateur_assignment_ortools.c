@@ -1,4 +1,5 @@
 #include "ortools/amateur_assignment_ortools_internal.h"
+#include "../../core/optimizer/kbo_optimizer.h"
 
 KboAmateurBatchAssignment g_kbo_amateur_batch_assignments[KBO_AMATEUR_LEAGUE_BATCH_PLAYER_MAX];
 LONG g_kbo_amateur_batch_assignment_count = 0;
@@ -129,13 +130,8 @@ uint8_t* kbo_choose_amateur_assignment_team_ortools(
     }
     int player_tier = kbo_amateur_assignment_player_tier(league_id, quality_score);
 
-    char tool_path[MAX_PATH * 3] = {0};
     char request_path[MAX_PATH * 3] = {0};
     char result_path[MAX_PATH * 3] = {0};
-    int is_python_script = 0;
-    if (!kbo_amateur_ortools_get_tool_path(tool_path, sizeof(tool_path), &is_python_script)) {
-        return NULL;
-    }
     if (!kbo_get_save_scoped_data_file("amateur_assignment_ortools_request.csv", request_path, sizeof(request_path))
             || !kbo_get_save_scoped_data_file("amateur_assignment_ortools_result.csv", result_path, sizeof(result_path))) {
         static volatile LONG path_fail_log_count = 0;
@@ -158,7 +154,7 @@ uint8_t* kbo_choose_amateur_assignment_team_ortools(
             count)) {
         return NULL;
     }
-    if (!kbo_amateur_ortools_run(tool_path, is_python_script, request_path, result_path)) {
+    if (!kbo_optimizer_run_mode("amateur_assignment", request_path, result_path, 5000u)) {
         return NULL;
     }
 
