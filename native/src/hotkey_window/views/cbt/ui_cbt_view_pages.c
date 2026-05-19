@@ -102,6 +102,7 @@ static void kbo_webview_append_cbt_exception_css(KboWindowTextBuffer* buffer)
         ".cbtExceptionView{display:flex;flex-direction:column;gap:4px;height:100%%;min-height:0}"
         ".cbtExceptionTable .roAction{width:42px;text-align:center}.cbtExceptionTable .roRank{width:54px;text-align:right}.cbtExceptionTable .roName{width:260px}.cbtExceptionTable .roSalary{width:104px;text-align:right}.cbtExceptionTable .roCredit{width:104px;text-align:right}.cbtExceptionTable .roYears{width:84px;text-align:right}.cbtExceptionTable .roStatus{width:108px}.cbtExceptionTable .roWindow{width:96px}.cbtExceptionTable tr.selected td{color:#d6a44b!important}"
         ".cbtIconAction{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border:0;border-radius:0;background-color:transparent;background-repeat:no-repeat;background-position:center center;background-size:24px 24px;color:transparent;font-size:0;line-height:0;text-decoration:none;cursor:pointer}"
+        ".cbtIconAction.disabled,.cbtIconAction.disabled:hover,.cbtIconAction.disabled:active{opacity:.38;cursor:default;pointer-events:none}"
         ".cbtProtectAction{background-image:url('%s')}.cbtProtectAction:hover{background-image:url('%s')}.cbtProtectAction:active{background-image:url('%s')}"
         ".cbtClearAction{background-image:url('%s')}.cbtClearAction:hover{background-image:url('%s')}.cbtClearAction:active{background-image:url('%s')}"
         ".cbtActionMuted{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;color:#8c8c8c;font-size:12px;font-weight:900}"
@@ -129,6 +130,7 @@ void kbo_webview_append_cbt_exceptions_view(KboWindowTextBuffer* buffer, uint32_
         : 0;
 
     int window_open = kbo_cbt_exception_designation_window_open(year, current_date);
+    int action_available = kbo_hub_ui_team_action_available(selected_team_id, "hub_cbt_exception_render");
 
     const KboCbtExceptionDesignation* current = NULL;
     for (int i = 0; i < designation_count; i++) {
@@ -178,7 +180,7 @@ void kbo_webview_append_cbt_exceptions_view(KboWindowTextBuffer* buffer, uint32_
             buffer,
             "<tr%s><td class='roAction'>",
             designated ? " class='selected'" : "");
-        if (window_open) {
+        if (window_open && action_available) {
             if (designated) {
                 kbo_window_text_appendf(
                     buffer,
@@ -194,8 +196,18 @@ void kbo_webview_append_cbt_exceptions_view(KboWindowTextBuffer* buffer, uint32_
                 kbo_html_append_escaped(buffer, grade->player_key);
                 kbo_window_text_appendf(buffer, "'>지정</a>");
             }
+        } else if (window_open) {
+            kbo_window_text_appendf(
+                buffer,
+                "<span class='cbtIconAction %s disabled' title='내가 맡은 구단이 아닙니다'>%s</span>",
+                designated ? "cbtClearAction" : "cbtProtectAction",
+                designated ? "해제" : "지정");
         } else {
-            kbo_window_text_appendf(buffer, "<span class='cbtActionMuted'>-</span>");
+            kbo_window_text_appendf(
+                buffer,
+                "<span class='cbtIconAction %s disabled' title='지정 기간이 아닙니다'>%s</span>",
+                designated ? "cbtClearAction" : "cbtProtectAction",
+                designated ? "해제" : "지정");
         }
         kbo_window_text_appendf(buffer, "</td><td class='roRank'>%u</td><td class='roName'>", grade->team_rank);
         kbo_html_append_escaped(buffer, grade->player_name[0] != '\0' ? grade->player_name : grade->player_key);

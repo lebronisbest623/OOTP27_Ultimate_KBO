@@ -1,13 +1,9 @@
 #include "../hotkey_window_webview_internal.h"
+#include "../../../support/actions/ui_team_actions.h"
 
 int kbo_webview_team_action_allowed(uint32_t team_id, const char* source)
 {
-    if (kbo_hub_current_mode_is_developer()
-            && kbo_get_allow_all_ui_team_actions_setting()) {
-        return 1;
-    }
-
-    if (team_id != 0 && kbo_team_is_human_controlled(team_id, source)) {
+    if (kbo_hub_ui_team_action_available(team_id, source)) {
         return 1;
     }
 

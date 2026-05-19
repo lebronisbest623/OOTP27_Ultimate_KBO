@@ -3,6 +3,26 @@
 #include "../../../../captain/api/captain_selection.h"
 
 static volatile LONG g_kbo_webview_navigate_current_pending = 0;
+static ICoreWebView2* g_kbo_webview_last_html_target = NULL;
+static uint64_t g_kbo_webview_last_html_hash = 0u;
+static int g_kbo_webview_last_html_chars = 0;
+
+static uint64_t kbo_webview_hash_html(const WCHAR* html, int chars)
+{
+    uint64_t hash = 1469598103934665603ull;
+    if (html == NULL || chars <= 0) {
+        return hash;
+    }
+
+    for (int i = 0; i < chars; i++) {
+        uint16_t value = (uint16_t)html[i];
+        hash ^= (uint64_t)(value & 0xffu);
+        hash *= 1099511628211ull;
+        hash ^= (uint64_t)(value >> 8);
+        hash *= 1099511628211ull;
+    }
+    return hash;
+}
 
 WCHAR* kbo_build_webview_hub_html(void)
 {
@@ -375,7 +395,27 @@ void kbo_webview_navigate_current_immediate(void)
     WCHAR* html = kbo_build_webview_hub_html();
     if (html != NULL) {
         int wide_chars = lstrlenW(html);
+        uint64_t html_hash = kbo_webview_hash_html(html, wide_chars);
+        if (g_kbo_webview_last_html_target == g_kbo_webview
+                && g_kbo_webview_last_html_chars == wide_chars
+                && g_kbo_webview_last_html_hash == html_hash) {
+            kbo_profiler_record_us("webview.navigate_current.unchanged", 0);
+            kbo_log_runtimef(
+                "WebView2 NavigateToString current skipped reason=unchanged view=%d mod=%d wide_chars=%d",
+                g_kbo_hub_selected_view,
+                g_kbo_hub_selected_mod_subview,
+                wide_chars);
+            HeapFree(GetProcessHeap(), 0, html);
+            KBO_PROFILE_END(profile_webview_navigate, "webview.navigate_current");
+            return;
+        }
+
         HRESULT hr = ICoreWebView2_NavigateToString(g_kbo_webview, html);
+        if (SUCCEEDED(hr)) {
+            g_kbo_webview_last_html_target = g_kbo_webview;
+            g_kbo_webview_last_html_hash = html_hash;
+            g_kbo_webview_last_html_chars = wide_chars;
+        }
         kbo_log_runtimef(
             "WebView2 NavigateToString current view=%d mod=%d wide_chars=%d hr=0x%08lx",
             g_kbo_hub_selected_view,
@@ -413,7 +453,6 @@ void kbo_webview_navigate_current(void)
         (void*)hwnd,
         g_kbo_hub_selected_view,
         g_kbo_hub_selected_mod_subview);
-    kbo_webview_navigate_loading();
     PostMessageA(hwnd, KBO_WM_SHOW_HUB_CONTENT, 0, 0);
 }
 

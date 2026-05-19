@@ -71,6 +71,43 @@ static void kbo_webview_append_fa_compensation_subtabs(KboWindowTextBuffer* buff
     kbo_window_text_appendf(buffer, "</nav>");
 }
 
+static void kbo_webview_append_fa_compensation_text_action(
+    KboWindowTextBuffer* buffer,
+    int enabled,
+    const char* class_name,
+    const char* title,
+    const char* href,
+    const char* label)
+{
+    if (enabled) {
+        kbo_window_text_appendf(buffer, "<a class='rightsTextAction");
+        if (class_name != NULL && class_name[0] != '\0') {
+            kbo_window_text_appendf(buffer, " ");
+            kbo_html_append_escaped(buffer, class_name);
+        }
+        kbo_window_text_appendf(buffer, "'");
+        if (title != NULL && title[0] != '\0') {
+            kbo_window_text_appendf(buffer, " title='");
+            kbo_html_append_escaped(buffer, title);
+            kbo_window_text_appendf(buffer, "'");
+        }
+        kbo_window_text_appendf(buffer, " href='");
+        kbo_html_append_escaped(buffer, href);
+        kbo_window_text_appendf(buffer, "'>");
+        kbo_html_append_escaped(buffer, label);
+        kbo_window_text_appendf(buffer, "</a>");
+    } else {
+        kbo_window_text_appendf(buffer, "<span class='rightsTextAction disabled");
+        if (class_name != NULL && class_name[0] != '\0') {
+            kbo_window_text_appendf(buffer, " ");
+            kbo_html_append_escaped(buffer, class_name);
+        }
+        kbo_window_text_appendf(buffer, "' title='내가 맡은 구단이 아닙니다'>");
+        kbo_html_append_escaped(buffer, label);
+        kbo_window_text_appendf(buffer, "</span>");
+    }
+}
+
 void kbo_webview_append_fa_compensation_view(
     KboWindowTextBuffer* buffer,
     int selected_compensation_subview,
@@ -212,9 +249,25 @@ void kbo_webview_append_fa_compensation_view(
         if (board_is_final) {
             kbo_window_text_appendf(buffer, "<span class='faCompFinal'>완료</span>");
         } else if (board_detail_rows <= 0) {
-            kbo_window_text_appendf(buffer, "<a class='rightsTextAction' href='kbo://fa-comp/submit/%u'>명단 제출</a>", detail_rec->player_id);
+            char href[80];
+            snprintf(href, sizeof(href), "kbo://fa-comp/submit/%u", detail_rec->player_id);
+            kbo_webview_append_fa_compensation_text_action(
+                buffer,
+                kbo_hub_ui_team_action_available(detail_rec->signing_team_id, "hub_protected_list_submit_render"),
+                "",
+                "",
+                href,
+                "명단 제출");
         } else {
-            kbo_window_text_appendf(buffer, "<a class='rightsTextAction cashOnly' href='kbo://fa-comp/cash-only/%u'>현금 보상</a>", detail_rec->player_id);
+            char href[80];
+            snprintf(href, sizeof(href), "kbo://fa-comp/cash-only/%u", detail_rec->player_id);
+            kbo_webview_append_fa_compensation_text_action(
+                buffer,
+                kbo_hub_ui_team_action_available(detail_rec->original_team_id, "hub_cash_only_select_render"),
+                "cashOnly",
+                "",
+                href,
+                "현금 보상");
         }
         kbo_window_text_appendf(buffer, "</div></div></section>");
     } else if (selected_compensation_subview == KBO_HUB_FA_COMP_SUBVIEW_BOARD) {
@@ -279,7 +332,15 @@ void kbo_webview_append_fa_compensation_view(
         if (rec->requires_player_compensation && rec->protect_count > 0u) {
             if (rec->status == KBO_FA_COMPENSATION_STATUS_PENDING
                     || rec->status == KBO_FA_COMPENSATION_STATUS_RECORDED) {
-                kbo_window_text_appendf(buffer, "<a class='rightsTextAction' title='보호 명단 제출' href='kbo://fa-comp/submit/%u'>제출</a>", rec->player_id);
+                char href[80];
+                snprintf(href, sizeof(href), "kbo://fa-comp/submit/%u", rec->player_id);
+                kbo_webview_append_fa_compensation_text_action(
+                    buffer,
+                    kbo_hub_ui_team_action_available(rec->signing_team_id, "hub_protected_list_submit_render"),
+                    "",
+                    "보호 명단 제출",
+                    href,
+                    "제출");
             } else {
                 kbo_window_text_appendf(buffer, "<a class='rightsTextAction' title='보상 보드 열기' href='kbo://fa-comp/detail/%u'>열기</a>", rec->player_id);
             }
@@ -339,11 +400,15 @@ void kbo_webview_append_fa_compensation_view(
                 if (selected_player) {
                     kbo_window_text_appendf(buffer, "<span class='faCompPick'>선택됨</span>");
                 } else if (!is_final && strcmp(row->list_type, "unprotected") == 0) {
-                    kbo_window_text_appendf(
+                    char href[96];
+                    snprintf(href, sizeof(href), "kbo://fa-comp/select/%u/%u", detail_rec->player_id, row->player_id);
+                    kbo_webview_append_fa_compensation_text_action(
                         buffer,
-                        "<a class='rightsTextAction' href='kbo://fa-comp/select/%u/%u'>선택</a>",
-                        detail_rec->player_id,
-                        row->player_id);
+                        kbo_hub_ui_team_action_available(detail_rec->original_team_id, "hub_manual_compensation_select_render"),
+                        "",
+                        "",
+                        href,
+                        "선택");
                 } else {
                     kbo_html_append_escaped(buffer, "-");
                 }

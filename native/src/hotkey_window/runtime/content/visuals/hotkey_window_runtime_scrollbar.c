@@ -266,9 +266,6 @@ void kbo_show_or_hide_hotkey_window(int requested_mode)
 
     kbo_hub_queue_league_display_cache_prewarm();
     kbo_layout_hotkey_window(hwnd);
-    if (InterlockedCompareExchange(&g_kbo_webview_ready, 0, 0) != 0) {
-        kbo_webview_navigate_loading();
-    }
     kbo_hub_apply_fixed_window_placement(hwnd, 0);
     ShowWindow(hwnd, SW_SHOWNORMAL);
     SetForegroundWindow(hwnd);

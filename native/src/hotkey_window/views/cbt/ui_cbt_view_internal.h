@@ -19,6 +19,7 @@
 #include "../../support/assets/paths/ui_asset_paths.h"
 #include "../../support/assets/paths/ui_image_sources.h"
 #include "../../support/assets/names/support_names.h"
+#include "../../support/actions/ui_team_actions.h"
 #include "../../support/roster/cells/ui_roster_cells.h"
 #include "../../support/text/buffer/ui_text_buffer.h"
 #include "ui_cbt_view.h"

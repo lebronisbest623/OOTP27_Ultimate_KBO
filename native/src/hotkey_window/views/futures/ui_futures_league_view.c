@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "../../runtime/hotkey_window_runtime_shared.h"
+#include "../../support/actions/ui_team_actions.h"
 #include "ui_futures_league_view_helpers.h"
 #include "../../../team/independent_acquisition/ui/independent_acquisition_ui.h"
 
@@ -61,6 +62,9 @@ static void kbo_futures_ui_append_offer_view(KboWindowTextBuffer* buffer, uint32
         rows,
         KBO_INDEPENDENT_ACQUISITION_UI_MAX_OFFERS,
         &context);
+    int action_available = kbo_hub_ui_team_action_available(
+        buyer_team_id,
+        "hub_independent_acquisition_offer_render");
 
     kbo_window_text_appendf(buffer, "<div class='rights rosterRights futuresRights'>");
     kbo_futures_ui_append_context_bar(buffer, &context, count, "제안");
@@ -102,10 +106,13 @@ static void kbo_futures_ui_append_offer_view(KboWindowTextBuffer* buffer, uint32
             snprintf(status, sizeof(status), "대기");
         } else if (!context.window_open) {
             snprintf(status, sizeof(status), "마감");
+        } else if (!action_available) {
+            snprintf(status, sizeof(status), "권한 없음");
         }
 
         kbo_window_text_appendf(buffer, "<tr><td class='roAction'><span class='rightsActions'>");
         if (context.window_open
+                && action_available
                 && !row->offer_blocked
                 && !row->already_requested
                 && !row->already_decided) {
@@ -149,6 +156,9 @@ static void kbo_futures_ui_append_pending_view(KboWindowTextBuffer* buffer, uint
     KboIndependentAcquisitionUiRequestRow rows[KBO_INDEPENDENT_ACQUISITION_UI_MAX_ROWS];
     KboIndependentAcquisitionUiContext context;
     kbo_independent_acquisition_ui_context(buyer_team_id, &context);
+    int action_available = kbo_hub_ui_team_action_available(
+        buyer_team_id,
+        "hub_independent_acquisition_cancel_render");
     int count = kbo_independent_acquisition_ui_load_pending_rows(
         buyer_team_id,
         rows,
@@ -183,12 +193,22 @@ static void kbo_futures_ui_append_pending_view(KboWindowTextBuffer* buffer, uint
 
         kbo_window_text_appendf(
             buffer,
-            "<tr><td class='roAction'><span class='rightsActions'>"
-            "<a class='rightsAction rightsCancel' title='영입 제안 취소' href='kbo://futures-offer/cancel/%u/%u/%u'>취소</a>"
+            "<tr><td class='roAction'><span class='rightsActions'>");
+        if (action_available) {
+            kbo_window_text_appendf(
+                buffer,
+                "<a class='rightsAction rightsCancel' title='영입 제안 취소' href='kbo://futures-offer/cancel/%u/%u/%u'>취소</a>",
+                buyer_team_id,
+                row->seller_team_id,
+                row->player_id);
+        } else {
+            kbo_window_text_appendf(
+                buffer,
+                "<span class='rightsAction rightsCancel disabled' title='내가 맡은 구단이 아닙니다'>취소</span>");
+        }
+        kbo_window_text_appendf(
+            buffer,
             "</span></td><td class='roDate' data-sort-value='%u'>",
-            buyer_team_id,
-            row->seller_team_id,
-            row->player_id,
             row->date);
         kbo_html_append_escaped(buffer, date_text);
         kbo_window_text_appendf(buffer, "</td><td class='roPo'>%s</td>", kbo_futures_ui_position_label(row->player_ptr));

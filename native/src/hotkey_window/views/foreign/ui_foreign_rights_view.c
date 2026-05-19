@@ -19,6 +19,7 @@
 #include "../../support/roster/cells/ui_roster_cells.h"
 #include "../../support/text/buffer/ui_text_buffer.h"
 #include "../../support/assets/names/ui_uniform_numbers.h"
+#include "../../support/actions/ui_team_actions.h"
 #include "../../ui_html_helpers/position_helpers.h"
 
 static void kbo_webview_append_candidate_card(
@@ -30,7 +31,9 @@ static void kbo_webview_append_candidate_card(
     const char* flags,
     uint32_t retained_on,
     uint32_t expires_on,
-    uint32_t selected_foreign_player_id)
+    uint32_t selected_foreign_player_id,
+    int action_available,
+    int window_open)
 {
     char player_name[96] = {0};
     char team_abbrev[16] = {0};
@@ -48,14 +51,24 @@ static void kbo_webview_append_candidate_card(
 
     kbo_window_text_appendf(
         buffer,
-        "<tr%s><td class='roAction'><span class='rightsActions'>"
-        "<a class='rightsAction rightsRelease' title='보류권 해제' href='kbo://release/%u' data-player='",
-        player_id == selected_foreign_player_id ? " class='selected'" : "",
-        player_id);
+        "<tr%s><td class='roAction'><span class='rightsActions'>",
+        player_id == selected_foreign_player_id ? " class='selected'" : "");
+    if (action_available && window_open) {
+        kbo_window_text_appendf(
+            buffer,
+            "<a class='rightsAction rightsRelease' title='보류권 해제' href='kbo://release/%u' data-player='",
+            player_id);
+    } else {
+        kbo_window_text_appendf(
+            buffer,
+            "<span class='rightsAction rightsRelease disabled' title='%s' data-player='",
+            window_open ? "내가 맡은 구단이 아닙니다" : "보류권 처리 기간이 아닙니다");
+    }
     kbo_html_append_escaped(buffer, player_name[0] != '\0' ? player_name : "알 수 없는 선수");
     kbo_window_text_appendf(
         buffer,
-        "'>-</a></span></td><td class='roPo'>%s</td><td class='roNum'>",
+        "'>-</%s></span></td><td class='roPo'>%s</td><td class='roNum'>",
+        action_available && window_open ? "a" : "span",
         kbo_webview_player_position_label(player, 0u));
     kbo_html_append_escaped(buffer, uniform_number);
     kbo_window_text_appendf(buffer, "</td>");
@@ -109,6 +122,10 @@ void kbo_webview_append_foreign_rights_view(
             uint32_t today = 0u;
             kbo_current_foreign_waiver_window_dates(&window_start, &window_end);
             kbo_get_foreign_waiver_current_yyyymmdd(&today);
+            int window_open = kbo_is_foreign_waiver_negotiation_window_open();
+            int action_available = kbo_hub_ui_team_action_available(
+                selected_team_id,
+                "hub_foreign_rights_render");
             if (selected_foreign_player_id != NULL
                     && *selected_foreign_player_id == 0u
                     && kbo_resolve_foreign_waiver_top_candidate_for_team(selected_team_id, &top_player_id, &top_current_team_id)) {
@@ -156,7 +173,9 @@ void kbo_webview_append_foreign_rights_view(
                         flags,
                         retained_on,
                         expires_on,
-                        selected_foreign_player_id != NULL ? *selected_foreign_player_id : 0u);
+                        selected_foreign_player_id != NULL ? *selected_foreign_player_id : 0u,
+                        action_available,
+                        window_open);
                     rendered++;
                 }
             }
