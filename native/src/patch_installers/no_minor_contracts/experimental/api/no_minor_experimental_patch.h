@@ -1,7 +1,0 @@
-#ifndef KBOFIX_SRC_PATCH_INSTALLERS_NO_MINOR_CONTRACTS_NO_MINOR_EXPERIMENTAL_PATCH_H_
-#define KBOFIX_SRC_PATCH_INSTALLERS_NO_MINOR_CONTRACTS_NO_MINOR_EXPERIMENTAL_PATCH_H_
-
-int install_kbo_no_minor_contract_patch(void);
-int install_kbo_no_minor_contract_experimental_patch(void);
-
-#endif

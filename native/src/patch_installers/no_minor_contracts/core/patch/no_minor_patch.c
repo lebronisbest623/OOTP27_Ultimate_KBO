@@ -1,4 +1,4 @@
-#include "../internal/no_minor_experimental_patch_internal.h"
+#include "../internal/no_minor_patch_internal.h"
 #include "../../../common/patch_host.h"
 
 int install_kbo_no_minor_contract_patch(void)
@@ -24,9 +24,4 @@ int install_kbo_no_minor_contract_patch(void)
 
     kbo_log_runtimef("KBO no-minor-contract patch complete installed_any=%d", ok);
     return ok;
-}
-
-int install_kbo_no_minor_contract_experimental_patch(void)
-{
-    return install_kbo_no_minor_contract_patch();
 }

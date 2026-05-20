@@ -26,7 +26,7 @@
 #include "../../military_service/calendar/military_service_date.h"
 #include "../../military_service/players/team_policy/military_service_team_policy.h"
 #include "../../patch_installers/arbitration/no_withdraw/arbitration_no_withdraw_patch.h"
-#include "../../patch_installers/no_minor_contracts/experimental/api/no_minor_experimental_patch.h"
+#include "../../patch_installers/no_minor_contracts/core/api/no_minor_patch.h"
 #include "../../patch_installers/allstar/candidate/patch_installers_allstar_candidate.h"
 #include "../../patch_installers/allstar/events/patch_installers_allstar_events.h"
 #include "../../patch_installers/allstar/settings/patch_installers_allstar_settings.h"
@@ -50,8 +50,6 @@ volatile LONG g_kbo_sangmu_fa_hooks_install_started = 0;
 volatile LONG g_kbo_full_runtime_install_started = 0;
 volatile LONG g_kbo_full_runtime_marker_wait_started = 0;
 volatile LONG g_kbo_runtime_date_stable_ready = 0;
-
-#define KBO_REQUIRED_ROSTER_MARKER_URL "https://github.com/lebronisbest623/OOTP27_Ultimate_KBO"
 
 typedef struct KboSangmuFaHookInstallRequest {
     int enable_signability;

@@ -1,4 +1,4 @@
-#include "../internal/no_minor_experimental_patch_internal.h"
+#include "../internal/no_minor_patch_internal.h"
 
 int install_kbo_no_minor_contract_offer_major_flag_patches(HMODULE exe)
 {

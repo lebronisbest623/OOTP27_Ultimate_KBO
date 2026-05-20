@@ -17,6 +17,7 @@
 #include "../core/runtime_tuning/runtime_tuning_policy.h"
 #include "../core/logging/core_log.h"
 #include "../core/files/save_paths/core_save_paths.h"
+#include "../core/product/ootp_product.h"
 #include "../custom_events/asian_games/player_eval/asian_games_player_eval.h"
 #include "../custom_events/diagnostics/cbt_service_time/cbt_service_time_probe.h"
 #include "../custom_events/runtime/monitor/custom_event_monitor.h"
@@ -37,7 +38,7 @@
 #include "../military_service/calendar/military_service_date.h"
 #include "../military_service/players/team_policy/military_service_team_policy.h"
 #include "../patch_installers/arbitration/no_withdraw/arbitration_no_withdraw_patch.h"
-#include "../patch_installers/no_minor_contracts/experimental/api/no_minor_experimental_patch.h"
+#include "../patch_installers/no_minor_contracts/core/api/no_minor_patch.h"
 #include "../patch_installers/allstar/candidate/patch_installers_allstar_candidate.h"
 #include "../patch_installers/allstar/events/patch_installers_allstar_events.h"
 #include "../patch_installers/allstar/settings/patch_installers_allstar_settings.h"
@@ -60,7 +61,6 @@
 #include "../patch_installers/season_phase/patch_installers_season_phase_probe.h"
 #include "../awards/schedule/award_schedule_probe.h"
 #include "../season_phase_monitor/season_phase_monitor.h"
-#define KBO_REQUIRED_ROSTER_MARKER_URL "https://github.com/lebronisbest623/OOTP27_Ultimate_KBO"
 typedef struct KboSangmuFaHookInstallRequest {
     int enable_signability;
     int enable_offer;

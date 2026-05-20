@@ -171,7 +171,7 @@
 #include "src/patch_installers/no_minor_contracts/demand_floors/write/no_minor_demand_write_floor_patches.h"
 #include "src/patch_installers/no_minor_contracts/demand_floors/baseline/no_minor_foreign_fa_baseline_patch.h"
 #include "src/patch_installers/no_minor_contracts/demand_floors/submit/no_minor_submit_salary_floor_patch.h"
-#include "src/patch_installers/no_minor_contracts/experimental/api/no_minor_experimental_patch.h"
+#include "src/patch_installers/no_minor_contracts/core/api/no_minor_patch.h"
 #include "src/patch_installers/arbitration/no_withdraw/arbitration_no_withdraw_patch.h"
 #include "src/patch_installers/foreign/intl_established_fa/patch_installers_intl_established_fa.h"
 #include "src/patch_installers/foreign/roster_limits/counts/patch_installers_foreign_counts.h"
