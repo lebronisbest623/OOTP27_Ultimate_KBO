@@ -17,7 +17,7 @@ int kbo_persist_foreign_injury_replacements_locked(void)
     }
 
     DWORD written = 0;
-    const char* header = "team_id,league_id,injured_player_id,replacement_player_id,opened_on,expected_end,slot_type,status,converted\r\n";
+    const char* header = "team_id,league_id,injured_player_id,replacement_player_id,opened_on,expected_end,slot_type,status,converted,injury_id,closed_on,close_choice\r\n";
     WriteFile(file, header, (DWORD)strlen(header), &written, NULL);
 
     for (int i = 0; i < g_kbo_foreign_injury_replacement_count; i++) {
@@ -26,7 +26,7 @@ int kbo_persist_foreign_injury_replacements_locked(void)
         int len = snprintf(
             line,
             sizeof(line),
-            "%u,%u,%u,%u,%u,%u,%u,%u,%u\r\n",
+            "%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u\r\n",
             rec->team_id,
             rec->league_id,
             rec->injured_player_id,
@@ -35,7 +35,10 @@ int kbo_persist_foreign_injury_replacements_locked(void)
             rec->expected_end_yyyymmdd,
             (uint32_t)rec->slot_type,
             (uint32_t)rec->status,
-            (uint32_t)rec->converted);
+            (uint32_t)rec->converted,
+            rec->injury_id,
+            rec->closed_on_yyyymmdd,
+            (uint32_t)rec->close_choice);
         if (len > 0 && len < (int)sizeof(line)) {
             written = 0;
             WriteFile(file, line, (DWORD)len, &written, NULL);
@@ -139,8 +142,7 @@ int kbo_foreign_injury_replacement_player_reserved_locked(
             continue;
         }
         if (kbo_foreign_injury_status_uses_slot(rec->status)
-                || rec->status == KBO_FOREIGN_INJURY_STATUS_PENDING
-                || (rec->status == KBO_FOREIGN_INJURY_STATUS_CLOSED && rec->converted != 0u)) {
+                || rec->status == KBO_FOREIGN_INJURY_STATUS_PENDING) {
             return 1;
         }
     }
@@ -207,7 +209,11 @@ int kbo_foreign_injury_record_has_minimum_injury_basis_on_date(
     memset(&live_injury, 0, sizeof(live_injury));
     int min_days = kbo_foreign_player_policy()->injury_replacement_min_days;
     if (kbo_foreign_injury_read_live_memory(injured, &live_injury)
-            && kbo_foreign_injury_live_memory_has_long_term_basis(&live_injury, min_days)) {
+            && kbo_foreign_injury_live_memory_has_long_term_basis(&live_injury, min_days)
+            && kbo_foreign_injury_live_memory_matches_record_episode(rec, &live_injury)) {
+        return 1;
+    }
+    if (kbo_foreign_injury_live_memory_has_record_continuation_basis(rec, &live_injury, today)) {
         return 1;
     }
 
@@ -225,9 +231,6 @@ int kbo_foreign_injury_record_has_minimum_injury_basis_on_date(
     }
     if (inactive_roster_present
             && kbo_foreign_injury_expected_end_pending(today, rec->expected_end_yyyymmdd)) {
-        return 1;
-    }
-    if (rec->expected_end_yyyymmdd != 0u && live_injury.active != 0u) {
         return 1;
     }
     if (live_injury.active != 0u || live_injury.days_left > 0) {

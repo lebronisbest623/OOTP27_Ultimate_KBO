@@ -21,11 +21,10 @@ int kbo_foreign_injury_restore_active_replacement_player(const KboForeignInjuryR
     if (memory_range_readable(player + OOTP27_PLAYER_ORIGINAL_TEAM_ID_OFFSET, sizeof(uint32_t))) {
         original_team_id = *(uint32_t*)(player + OOTP27_PLAYER_ORIGINAL_TEAM_ID_OFFSET);
     }
-    if (current_team_id == rec->team_id && active_team_id == rec->team_id) {
+    if (kbo_foreign_injury_replacement_player_attached_to_record(rec, player)) {
         return 0;
     }
-    if (current_team_id != 0u || active_team_id != 0u
-            || (original_team_id != 0u && original_team_id != rec->team_id)) {
+    if (!kbo_foreign_injury_replacement_player_can_restore_to_record(rec, player)) {
         return 0;
     }
 

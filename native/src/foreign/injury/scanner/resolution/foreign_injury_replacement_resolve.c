@@ -6,7 +6,10 @@ uint32_t kbo_foreign_injury_resolve_replacement_for_record(const KboForeignInjur
         return 0u;
     }
     if (rec->replacement_player_id != 0u) {
-        return rec->replacement_player_id;
+        uint8_t* replacement = kbo_find_player_by_id(rec->replacement_player_id, NULL, NULL);
+        return kbo_foreign_injury_replacement_player_attached_to_record(rec, replacement)
+            ? rec->replacement_player_id
+            : 0u;
     }
 
     uintptr_t player_vector = 0;

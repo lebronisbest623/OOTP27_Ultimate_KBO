@@ -87,6 +87,16 @@ int kbo_foreign_injury_choose_returning_player(
             "replacement_unavailable");
         return 1;
     }
+    if (!kbo_foreign_injury_replacement_player_attached_to_record(rec, replacement)) {
+        kbo_foreign_injury_decision_set(
+            out,
+            KBO_FOREIGN_INJURY_DECISION_KEEP_INJURED,
+            injured_score,
+            replacement_score,
+            required_margin,
+            "replacement_detached");
+        return 1;
+    }
     if (injured == NULL || !memory_range_readable(injured, OOTP27_PLAYER_SCAN_BYTES)) {
         kbo_foreign_injury_decision_set(
             out,

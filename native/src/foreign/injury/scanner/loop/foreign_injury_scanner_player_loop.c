@@ -7,6 +7,36 @@
 static LONG g_kbo_foreign_injury_non_roster_log_count = 0;
 static LONG g_kbo_foreign_injury_below_min_log_count = 0;
 
+static int kbo_foreign_injury_closed_record_should_repair_locked(
+    uint32_t injured_player_id,
+    const KboForeignInjuryLiveMemory* live_injury,
+    uint32_t today,
+    int inactive_roster_present,
+    int roster_hold_flags_present)
+{
+    if (injured_player_id == 0u) {
+        return 0;
+    }
+    for (int i = 0; i < g_kbo_foreign_injury_replacement_count; i++) {
+        KboForeignInjuryReplacement* rec = &g_kbo_foreign_injury_replacements[i];
+        if (rec->injured_player_id != injured_player_id
+                || !kbo_foreign_injury_closed_record_can_repair_on_date(
+                    rec,
+                    live_injury,
+                    today,
+                    inactive_roster_present,
+                    roster_hold_flags_present)) {
+            continue;
+        }
+        uint8_t* replacement = kbo_find_player_by_id(rec->replacement_player_id, NULL, NULL);
+        if (kbo_foreign_injury_replacement_player_attached_to_record(rec, replacement)
+                || kbo_foreign_injury_replacement_player_can_restore_to_record(rec, replacement)) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 KboForeignInjuryScannerPlayerLoopResult kbo_foreign_injury_scan_player_loop(
     uintptr_t player_vector,
     int32_t player_count,
@@ -216,41 +246,34 @@ KboForeignInjuryScannerPlayerLoopResult kbo_foreign_injury_scan_player_loop(
             ? kbo_foreign_injury_expected_end_from_duration(today, effective_days_left)
             : 0u;
         uint32_t candidate_opened_on = today;
+        int roster_hold_flags_present = player[OOTP27_PLAYER_RESTRICTED_FLAG_OFFSET] != 0u
+            || player[OOTP27_PLAYER_SECONDARY_RESTRICTED_FLAG_OFFSET] != 0u
+            || player[OOTP27_PLAYER_DFA_FLAG_OFFSET] != 0u;
         kbo_lock_foreign_injury_replacements();
         int existing = kbo_find_foreign_injury_replacement_locked(player_id, 0);
-        int closed_existing = existing < 0 ? kbo_find_foreign_injury_replacement_locked(player_id, 1) : -1;
-        if (existing < 0 && closed_existing >= 0) {
-            KboForeignInjuryReplacement* rec = &g_kbo_foreign_injury_replacements[closed_existing];
-            if (rec->status == KBO_FOREIGN_INJURY_STATUS_CLOSED) {
-                if (!direct_injury_eligible) {
-                    kbo_unlock_foreign_injury_replacements();
-                    continue;
-                }
-                existing = closed_existing;
-            }
+        if (existing < 0
+                && kbo_foreign_injury_closed_record_should_repair_locked(
+                    player_id,
+                    &live_injury,
+                    today,
+                    inactive_roster_present,
+                    roster_hold_flags_present)) {
+            kbo_unlock_foreign_injury_replacements();
+            continue;
         }
         if (existing >= 0 && direct_injury_eligible && candidate_expected_end != 0u) {
             KboForeignInjuryReplacement* rec = &g_kbo_foreign_injury_replacements[existing];
             if (rec->status != KBO_FOREIGN_INJURY_STATUS_CLOSED
-                    && rec->expected_end_yyyymmdd != candidate_expected_end) {
-                rec->expected_end_yyyymmdd = candidate_expected_end;
+                    && (rec->expected_end_yyyymmdd != candidate_expected_end
+                        || (rec->injury_id == 0u && live_injury.injury_id != 0u))) {
+                if (rec->expected_end_yyyymmdd != candidate_expected_end) {
+                    rec->expected_end_yyyymmdd = candidate_expected_end;
+                }
+                if (rec->injury_id == 0u && live_injury.injury_id != 0u) {
+                    rec->injury_id = live_injury.injury_id;
+                }
                 updated_rec = *rec;
                 updated_expected_end = kbo_persist_foreign_injury_replacements_locked();
-            }
-        }
-        if (existing >= 0) {
-            KboForeignInjuryReplacement* rec = &g_kbo_foreign_injury_replacements[existing];
-            if (rec->status == KBO_FOREIGN_INJURY_STATUS_CLOSED && direct_injury_eligible) {
-                rec->team_id = team_id;
-                rec->league_id = league_id != 0u ? league_id : configured_league_id;
-                rec->replacement_player_id = 0u;
-                rec->opened_on_yyyymmdd = candidate_opened_on;
-                rec->expected_end_yyyymmdd = candidate_expected_end;
-                rec->slot_type = kbo_foreign_injury_slot_type_for_player(player);
-                rec->status = KBO_FOREIGN_INJURY_STATUS_OPEN;
-                rec->converted = 0u;
-                created_rec = *rec;
-                created = kbo_persist_foreign_injury_replacements_locked();
             }
         }
         if (existing < 0 && g_kbo_foreign_injury_replacement_count < KBO_FOREIGN_INJURY_REPLACEMENT_MAX) {
@@ -261,9 +284,12 @@ KboForeignInjuryScannerPlayerLoopResult kbo_foreign_injury_scan_player_loop(
             rec->replacement_player_id = 0u;
             rec->opened_on_yyyymmdd = candidate_opened_on;
             rec->expected_end_yyyymmdd = candidate_expected_end;
+            rec->injury_id = live_injury.injury_id;
+            rec->closed_on_yyyymmdd = 0u;
             rec->slot_type = kbo_foreign_injury_slot_type_for_player(player);
             rec->status = KBO_FOREIGN_INJURY_STATUS_OPEN;
             rec->converted = 0u;
+            rec->close_choice = 0u;
             created_rec = *rec;
             created = kbo_persist_foreign_injury_replacements_locked();
         }

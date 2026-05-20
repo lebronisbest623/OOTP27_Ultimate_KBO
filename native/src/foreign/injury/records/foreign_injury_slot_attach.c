@@ -104,6 +104,19 @@ int kbo_attach_foreign_injury_replacement_after_signing(
         rec->replacement_player_id = replacement_player_id;
         rec->status = KBO_FOREIGN_INJURY_STATUS_ACTIVE;
         rec->converted = 0u;
+        rec->closed_on_yyyymmdd = 0u;
+        rec->close_choice = 0u;
+        if (rec->injury_id == 0u) {
+            uint8_t* injured = kbo_find_player_by_id(rec->injured_player_id, NULL, NULL);
+            if (injured != NULL && memory_range_readable(injured, OOTP27_PLAYER_SCAN_BYTES)) {
+                KboForeignInjuryLiveMemory live_injury;
+                memset(&live_injury, 0, sizeof(live_injury));
+                if (kbo_foreign_injury_read_live_memory(injured, &live_injury)
+                        && live_injury.injury_id != 0u) {
+                    rec->injury_id = live_injury.injury_id;
+                }
+            }
+        }
         updated_rec = *rec;
         changed = 1;
         break;

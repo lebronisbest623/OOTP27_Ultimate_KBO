@@ -40,6 +40,8 @@
 #define KBO_FOREIGN_INJURY_STATUS_ACTIVE        2
 #define KBO_FOREIGN_INJURY_STATUS_PENDING       3
 #define KBO_FOREIGN_INJURY_STATUS_CLOSED        4
+#define KBO_FOREIGN_INJURY_CLOSE_KEEP_INJURED      1u
+#define KBO_FOREIGN_INJURY_CLOSE_KEEP_REPLACEMENT  2u
 typedef struct KboForeignInjuryReplacement {
     uint32_t team_id;
     uint32_t league_id;
@@ -47,9 +49,12 @@ typedef struct KboForeignInjuryReplacement {
     uint32_t replacement_player_id;
     uint32_t opened_on_yyyymmdd;
     uint32_t expected_end_yyyymmdd;
+    uint32_t injury_id;
+    uint32_t closed_on_yyyymmdd;
     uint8_t  slot_type;
     uint8_t  status;
     uint8_t  converted;
+    uint8_t  close_choice;
 } KboForeignInjuryReplacement;
 
 #ifndef KBO_FOREIGN_INJURY_LIVE_MEMORY_DEFINED
@@ -113,6 +118,25 @@ int kbo_foreign_injury_active_record_has_roster_basis(
     uint8_t status,
     uint32_t replacement_player_id,
     int inactive_roster_present);
+int kbo_foreign_injury_live_memory_matches_record_episode(
+    const KboForeignInjuryReplacement* rec,
+    const KboForeignInjuryLiveMemory* live);
+int kbo_foreign_injury_live_memory_has_record_continuation_basis(
+    const KboForeignInjuryReplacement* rec,
+    const KboForeignInjuryLiveMemory* live,
+    uint32_t today_yyyymmdd);
+int kbo_foreign_injury_closed_record_can_repair_on_date(
+    const KboForeignInjuryReplacement* rec,
+    const KboForeignInjuryLiveMemory* live,
+    uint32_t today_yyyymmdd,
+    int inactive_roster_present,
+    int roster_hold_flags_present);
+int kbo_foreign_injury_replacement_player_attached_to_record(
+    const KboForeignInjuryReplacement* rec,
+    uint8_t* replacement);
+int kbo_foreign_injury_replacement_player_can_restore_to_record(
+    const KboForeignInjuryReplacement* rec,
+    uint8_t* replacement);
 int kbo_foreign_injury_return_state_allows_close(
     uint8_t injury_active,
     int16_t days_left,

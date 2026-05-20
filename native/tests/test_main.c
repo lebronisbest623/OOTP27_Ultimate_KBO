@@ -2431,6 +2431,64 @@ static void test_foreign_injury_live_memory_fields(void)
     printf("test_foreign_injury_live_memory_fields: PASS\n");
 }
 
+static void test_foreign_injury_episode_policy(void)
+{
+    KboForeignInjuryReplacement rec;
+    KboForeignInjuryLiveMemory live;
+    memset(&rec, 0, sizeof(rec));
+    memset(&live, 0, sizeof(live));
+
+    rec.team_id = 8u;
+    rec.injured_player_id = 1001u;
+    rec.replacement_player_id = 2001u;
+    rec.expected_end_yyyymmdd = 20260627u;
+    rec.injury_id = 500u;
+    rec.slot_type = KBO_FOREIGN_INJURY_SLOT_REGULAR;
+    rec.status = KBO_FOREIGN_INJURY_STATUS_CLOSED;
+    rec.converted = 0u;
+
+    live.active = 1u;
+    live.day_to_day = 1u;
+    live.injury_id = 777u;
+    assert(!kbo_foreign_injury_closed_record_can_repair_on_date(&rec, &live, 20260724u, 0, 0));
+    assert(!kbo_foreign_injury_live_memory_has_record_continuation_basis(&rec, &live, 20260724u));
+
+    live.day_to_day = 0u;
+    live.injury_object = 0x12345678u;
+    live.injury_id = 500u;
+    live.days_left = 60;
+    assert(kbo_foreign_injury_closed_record_can_repair_on_date(&rec, &live, 20260724u, 0, 0));
+    rec.converted = 1u;
+    assert(!kbo_foreign_injury_closed_record_can_repair_on_date(&rec, &live, 20260724u, 0, 0));
+
+    rec.converted = 0u;
+    rec.status = KBO_FOREIGN_INJURY_STATUS_ACTIVE;
+    rec.injury_id = 0u;
+    rec.expected_end_yyyymmdd = 20260701u;
+    live.days_left = 10;
+    assert(kbo_foreign_injury_live_memory_has_record_continuation_basis(&rec, &live, 20260620u));
+    assert(!kbo_foreign_injury_live_memory_has_record_continuation_basis(&rec, &live, 20260702u));
+
+    uint8_t replacement[OOTP27_PLAYER_SCAN_BYTES];
+    memset(replacement, 0, sizeof(replacement));
+    *(uint32_t*)(replacement + OOTP27_PLAYER_ID_OFFSET) = 2001u;
+    *(uint32_t*)(replacement + OOTP27_PLAYER_NATION_ID_OFFSET) = 206u;
+    *(uint32_t*)(replacement + OOTP27_PLAYER_ORIGINAL_TEAM_ID_OFFSET) = 4u;
+    assert(!kbo_foreign_injury_replacement_player_attached_to_record(&rec, replacement));
+    assert(!kbo_foreign_injury_replacement_player_can_restore_to_record(&rec, replacement));
+
+    *(uint32_t*)(replacement + OOTP27_PLAYER_ORIGINAL_TEAM_ID_OFFSET) = 8u;
+    assert(kbo_foreign_injury_replacement_player_can_restore_to_record(&rec, replacement));
+
+    test_configure_team_org_lookup();
+    *(uint32_t*)(replacement + OOTP27_PLAYER_ORIGINAL_TEAM_ID_OFFSET) = 0u;
+    *(uint32_t*)(replacement + OOTP27_PLAYER_CURRENT_TEAM_ID_OFFSET) = 11u;
+    assert(kbo_foreign_injury_replacement_player_attached_to_record(&rec, replacement));
+    g_test_team_lookup_enabled = 0;
+
+    printf("test_foreign_injury_episode_policy: PASS\n");
+}
+
 static void test_foreign_injury_foreign_count_exclusion(void)
 {
     test_configure_team_org_lookup();
@@ -3019,6 +3077,7 @@ int main(void)
     test_foreign_injury_status_label();
     test_foreign_injury_policy_helpers();
     test_foreign_injury_live_memory_fields();
+    test_foreign_injury_episode_policy();
     test_foreign_injury_foreign_count_exclusion();
     test_foreign_org_snapshot_updates_on_assignment_change();
     test_foreign_org_snapshot_observed_assignment_invalidates();
