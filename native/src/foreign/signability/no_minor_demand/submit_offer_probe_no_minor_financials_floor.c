@@ -1,4 +1,4 @@
-#include "../submit_offer_probe/internal/submit_offer_probe_internal.h"
+#include "../submit_offer_probe/submit_offer_probe.h"
 
 int32_t kbo_no_minor_resolve_current_league_id(void)
 {

@@ -1,4 +1,4 @@
-#include "../internal/submit_offer_probe_internal.h"
+#include "../submit_offer_probe.h"
 
 static int kbo_no_minor_force_contract_offer_major_terms(
     uintptr_t offer_ptr,

@@ -1,4 +1,4 @@
-#include "../internal/submit_offer_probe_internal.h"
+#include "../submit_offer_probe.h"
 
 #include <stdio.h>
 #include <string.h>

@@ -1,4 +1,4 @@
-#include "../internal/submit_offer_probe_internal.h"
+#include "../submit_offer_probe.h"
 #include "../../../common/policy/foreign_player_policy.h"
 
 int kbo_foreign_fa_demand_remap_already_applied(uint32_t player_id, int32_t demand)

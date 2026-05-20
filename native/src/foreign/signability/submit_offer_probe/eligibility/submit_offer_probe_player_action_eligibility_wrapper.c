@@ -1,4 +1,4 @@
-#include "../internal/submit_offer_probe_internal.h"
+#include "../submit_offer_probe.h"
 
 __declspec(noinline) uint8_t ootp_kbo_player_action_eligibility_wrapper(
     uintptr_t action_context,

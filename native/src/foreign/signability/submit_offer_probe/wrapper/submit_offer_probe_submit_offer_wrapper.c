@@ -1,4 +1,4 @@
-#include "../internal/submit_offer_probe_internal.h"
+#include "../submit_offer_probe.h"
 
 __declspec(noinline) void ootp_kbo_fa_submit_offer_probe_wrapper(
     uintptr_t screen_ptr,

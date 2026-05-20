@@ -1,7 +1,7 @@
 #ifndef KBOFIX_SUBMIT_OFFER_PROBE_NO_MINOR_DEMAND_INTERNAL_H_
 #define KBOFIX_SUBMIT_OFFER_PROBE_NO_MINOR_DEMAND_INTERNAL_H_
 
-#include "../submit_offer_probe/internal/submit_offer_probe_internal.h"
+#include "../submit_offer_probe/submit_offer_probe.h"
 
 #define KBO_NO_MINOR_SCAN_PREFILTER_BYTES (OOTP27_PLAYER_DRAFT_ELIGIBLE_OFFSET + 1u)
 

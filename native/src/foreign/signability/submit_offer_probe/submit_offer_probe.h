@@ -1,5 +1,5 @@
-#ifndef NATIVE_SRC_FOREIGN_SIGNABILITY_SUBMIT_OFFER_PROBE_C_INTERNAL_H
-#define NATIVE_SRC_FOREIGN_SIGNABILITY_SUBMIT_OFFER_PROBE_C_INTERNAL_H
+#ifndef KBOFIX_SRC_FOREIGN_SIGNABILITY_SUBMIT_OFFER_PROBE_SUBMIT_OFFER_PROBE_H_
+#define KBOFIX_SRC_FOREIGN_SIGNABILITY_SUBMIT_OFFER_PROBE_SUBMIT_OFFER_PROBE_H_
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -8,24 +8,24 @@
 #include <string.h>
 #include <limits.h>
 
-#include "../../../../bootstrap/abi/ootp_offsets.h"
-#include "../../../../bootstrap/abi/hook_entrypoints.h"
-#include "../../../../build_verify/build_verify.h"
-#include "../../../../bootstrap/profiling/profiler.h"
-#include "../../../../core/core_flags/api/flags_api.h"
-#include "../../../../core/core_league_context_parts/api/league_context_lookup.h"
-#include "../../../../core/logging/core_log.h"
-#include "../../../../runtime_memory/runtime_memory.h"
-#include "../../../../team/lookup/team_lookup.h"
-#include "../../../common/dates/foreign_waiver_date.h"
-#include "../../../common/player_eval/foreign_waiver_player_eval.h"
-#include "../../../common/policy/foreign_waiver_policy.h"
-#include "../../../injury/api/foreign_injury.h"
-#include "../../../rights/query/foreign_waiver_rights_query.h"
-#include "../../api/foreign_signability_salary_floor.h"
-#include "../../../../military_service/military_service.h"
-#include "../../state/foreign_fa_block_state.h"
-#include "../../state/submit_offer_probe_state.h"
+#include "../../../bootstrap/abi/ootp_offsets.h"
+#include "../../../bootstrap/abi/hook_entrypoints.h"
+#include "../../../build_verify/build_verify.h"
+#include "../../../bootstrap/profiling/profiler.h"
+#include "../../../core/core_flags/api/flags_api.h"
+#include "../../../core/core_league_context_parts/api/league_context_lookup.h"
+#include "../../../core/logging/core_log.h"
+#include "../../../runtime_memory/runtime_memory.h"
+#include "../../../team/lookup/team_lookup.h"
+#include "../../common/dates/foreign_waiver_date.h"
+#include "../../common/player_eval/foreign_waiver_player_eval.h"
+#include "../../common/policy/foreign_waiver_policy.h"
+#include "../../injury/api/foreign_injury.h"
+#include "../../rights/query/foreign_waiver_rights_query.h"
+#include "../api/foreign_signability_salary_floor.h"
+#include "../../../military_service/military_service.h"
+#include "../state/foreign_fa_block_state.h"
+#include "../state/submit_offer_probe_state.h"
 
 #define WIN32_LEAN_AND_MEAN
 typedef void (__fastcall *OotpFaSubmitOfferProbeFn)(void* screen);

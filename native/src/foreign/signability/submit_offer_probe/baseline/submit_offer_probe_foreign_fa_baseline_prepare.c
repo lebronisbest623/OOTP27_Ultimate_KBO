@@ -1,4 +1,4 @@
-#include "../internal/submit_offer_probe_internal.h"
+#include "../submit_offer_probe.h"
 
 static int kbo_foreign_fa_player_has_active_reserve_right(
     uint8_t* player,
