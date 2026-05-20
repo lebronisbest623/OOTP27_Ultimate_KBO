@@ -5,6 +5,7 @@
 
 #include "../../../bootstrap/abi/hook_entrypoints.h"
 #include "../../../bootstrap/abi/ootp_offsets.h"
+#include "../../../build_verify/build_verify.h"
 #include "../../../core/logging/core_log.h"
 #include "../../../hook_stubs/allstar/candidate/hook_stubs_allstar_candidate.h"
 #include "../../../patch_helpers/patch_helpers.h"
@@ -48,7 +49,15 @@ static int ranked_player_push_bytes_match(uint8_t* target, int vector_base_in_ra
 
 static int install_ranked_player_push_filter_site(HMODULE exe, const AllstarRankedCandidatePushSite* site)
 {
-    uint8_t* target = (uint8_t*)exe + site->site_rva;
+    uint8_t* target = (uint8_t*)kbo_resolve_build_specific_rva_ptr(exe, site->site_rva);
+    if (target == NULL) {
+        kbo_log_runtimef(
+            "KBO all-star ranked candidate player push filter hook target unresolved label=%s rva=0x%08X",
+            site->label,
+            site->site_rva);
+        return 0;
+    }
+
     if (memory_range_readable(target, OOTP27_ALLSTAR_CANDIDATE_RANKED_PLAYER_PUSH_STOLEN_LEN)
             && (is_rip_absolute_jump_patch(target) || is_rax_absolute_jump_patch(target))) {
         kbo_log_runtimef(
@@ -89,7 +98,15 @@ static int install_ranked_player_push_filter_site(HMODULE exe, const AllstarRank
     }
 
     void* return_address = target + OOTP27_ALLSTAR_CANDIDATE_RANKED_PLAYER_PUSH_STOLEN_LEN;
-    void* skip_address = (uint8_t*)exe + site->skip_rva;
+    void* skip_address = kbo_resolve_build_specific_rva_ptr(exe, site->skip_rva);
+    if (skip_address == NULL) {
+        kbo_log_runtimef(
+            "KBO all-star ranked candidate player push filter hook skip target unresolved label=%s rva=0x%08X",
+            site->label,
+            site->skip_rva);
+        return 0;
+    }
+
     uint8_t* stub = build_allstar_candidate_ranked_player_push_filter_stub(
         return_address,
         skip_address,
