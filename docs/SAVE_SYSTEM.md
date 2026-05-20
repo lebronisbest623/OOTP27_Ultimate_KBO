@@ -70,6 +70,12 @@ The first migrated subsystems are:
   decision ledger, formerly `independent_acquisition_decisions.jsonl`.
 - `foreign_roster_daily_audit_state`: daily foreign-roster audit cursor,
   formerly `kbo_daily_audit_state.json`.
+- `cbt_records`: competitive-balance tax season/team ledger, formerly
+  `cbt_records.csv`.
+- `cbt_exception_players`: CBT exception designation rows, formerly
+  `cbt_exception_players.csv`.
+- `cbt_cash_charges`: CBT offseason cash-charge idempotency and audit ledger,
+  formerly `cbt_cash_charges.csv`.
 
 The shared SQLite opener lives in:
 
@@ -108,8 +114,11 @@ the old CSV/TXT/JSONL names retired for new saves:
 - FA state: `fa_declarations.csv`, `fa_filing.csv`, `fa_compensation.csv`,
   `fa_compensation_decisions.csv`, `fa_compensation_cash_transfers.csv`,
   `fa_salary_opening_day_snapshot_YYYY.csv`.
-- CBT state: `cbt_records.csv`, `cbt_exception_players.csv`,
-  `cbt_cash_charges.csv`, `cbt_opening_days.csv`.
+- CBT state: `cbt_records.csv` now lives in `cbt_records`;
+  `cbt_exception_players.csv` now lives in `cbt_exception_players`;
+  `cbt_cash_charges.csv` now lives in `cbt_cash_charges`;
+  `cbt_opening_days.csv` is retired for new saves because opening days resolve
+  through `season_calendar` or the FA salary snapshot.
 - National-team and service state: `asian_games_roster.csv`,
   `asian_games_roster_history.csv`, `asian_games_tournament_history.csv`,
   `military_service_resolved.csv`, `military_selection_results.csv`.

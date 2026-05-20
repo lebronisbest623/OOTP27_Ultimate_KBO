@@ -2,21 +2,17 @@
 #include <windows.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "cbt_cash_charge.h"
+#include "sql/cbt_cash_charge_sql_store.h"
 #include "../records/cbt_records.h"
 #include "../../bootstrap/abi/ootp_offsets.h"
 #include "../../core/core_flags/api/flags_api.h"
-#include "../../core/csv/core_csv.h"
-#include "../../core/files/save_paths/core_save_paths.h"
 #include "../../core/logging/core_log.h"
 #include "../../runtime_memory/runtime_memory.h"
 #include "../../team/lookup/team_lookup.h"
 #include "../../core/core_flags/keys/runtime_flag_keys.generated.h"
-
-#define KBO_CBT_CASH_CHARGE_LEDGER_FILE "cbt_cash_charges.csv"
 
 /*
  * The team object embeds its current financials block. These field offsets were
@@ -33,11 +29,6 @@
 #define KBO_CBT_FINANCIAL_FIELD_ABS_LIMIT 2000000000
 
 static volatile LONG g_kbo_cbt_cash_charge_busy = 0;
-
-static int kbo_cbt_cash_charge_path(char* out, size_t out_size)
-{
-    return kbo_get_save_scoped_data_file(KBO_CBT_CASH_CHARGE_LEDGER_FILE, out, out_size);
-}
 
 static int kbo_cbt_abs_i32_plausible(int32_t value)
 {
@@ -110,55 +101,7 @@ static int kbo_cbt_cash_charge_already_applied(uint32_t season, uint32_t team_id
     if (season == 0u || team_id == 0u) {
         return 0;
     }
-
-    char path[MAX_PATH] = {0};
-    if (!kbo_cbt_cash_charge_path(path, sizeof(path))) {
-        return 0;
-    }
-
-    KboCsvReader* reader = kbo_csv_reader_open(path);
-    if (reader == NULL) {
-        return 0;
-    }
-
-    int found = 0;
-    while (kbo_csv_reader_next_row(reader)) {
-        char fields[10][128];
-        int field_count = kbo_csv_reader_read_trimmed_fields(reader, (char*)fields, sizeof(fields[0]), 10);
-        if (field_count < 2 || fields[0][0] < '0' || fields[0][0] > '9') {
-            continue;
-        }
-        uint32_t row_season = (uint32_t)strtoul(fields[0], NULL, 10);
-        uint32_t row_team_id = (uint32_t)strtoul(fields[1], NULL, 10);
-        if (row_season == season && row_team_id == team_id) {
-            found = 1;
-            break;
-        }
-    }
-
-    kbo_csv_reader_close(reader);
-    return found;
-}
-
-static void kbo_cbt_cash_charge_copy_csv_text(const char* in, char* out, size_t out_size)
-{
-    if (out == NULL || out_size == 0u) {
-        return;
-    }
-    out[0] = '\0';
-    if (in == NULL) {
-        return;
-    }
-
-    size_t used = 0u;
-    for (const char* p = in; *p != '\0' && used + 1u < out_size; p++) {
-        char ch = *p;
-        if (ch == ',' || ch == '\r' || ch == '\n') {
-            ch = ' ';
-        }
-        out[used++] = ch;
-    }
-    out[used] = '\0';
+    return kbo_cbt_cash_charge_sql_already_applied(season, team_id);
 }
 
 static int kbo_cbt_cash_charge_append_ledger(
@@ -171,71 +114,7 @@ static int kbo_cbt_cash_charge_append_ledger(
     if (rec == NULL || rec->season == 0u || rec->team_id == 0u) {
         return 0;
     }
-
-    char path[MAX_PATH] = {0};
-    if (!kbo_cbt_cash_charge_path(path, sizeof(path))) {
-        kbo_log_runtimef(
-            "KBO CBT cash charge ledger skipped season=%u team=%u reason=path_unavailable",
-            rec->season,
-            rec->team_id);
-        return 0;
-    }
-
-    HANDLE file = CreateFileA(
-        path,
-        GENERIC_READ | FILE_APPEND_DATA,
-        FILE_SHARE_READ | FILE_SHARE_WRITE,
-        NULL,
-        OPEN_ALWAYS,
-        FILE_ATTRIBUTE_NORMAL,
-        NULL);
-    if (file == INVALID_HANDLE_VALUE) {
-        kbo_log_runtimef(
-            "KBO CBT cash charge ledger open failed season=%u team=%u gle=%lu path=%s",
-            rec->season,
-            rec->team_id,
-            (unsigned long)GetLastError(),
-            path);
-        return 0;
-    }
-
-    DWORD high = 0u;
-    DWORD size = GetFileSize(file, &high);
-    int needs_header = (size == 0u && high == 0u);
-    DWORD written = 0u;
-    if (needs_header) {
-        const char* header =
-            "season,team_id,tax_amount,old_cash,new_cash,applied_date,processed_date,source,team_name\r\n";
-        WriteFile(file, header, (DWORD)strlen(header), &written, NULL);
-    }
-
-    char team_name[96] = {0};
-    char safe_source[128] = {0};
-    kbo_cbt_cash_charge_copy_csv_text(rec->team_name, team_name, sizeof(team_name));
-    kbo_cbt_cash_charge_copy_csv_text(source != NULL ? source : "", safe_source, sizeof(safe_source));
-
-    char line[512] = {0};
-    int len = snprintf(
-        line,
-        sizeof(line),
-        "%u,%u,%d,%d,%d,%u,%u,%s,%s\r\n",
-        rec->season,
-        rec->team_id,
-        rec->tax_amount,
-        old_cash,
-        new_cash,
-        applied_yyyymmdd,
-        rec->processed_date,
-        safe_source,
-        team_name);
-    if (len <= 0) {
-        CloseHandle(file);
-        return 0;
-    }
-
-    int ok = WriteFile(file, line, (DWORD)len, &written, NULL) && written == (DWORD)len;
-    CloseHandle(file);
-    return ok;
+    return kbo_cbt_cash_charge_sql_append_ledger(rec, old_cash, new_cash, applied_yyyymmdd, source);
 }
 
 static int32_t kbo_cbt_cash_after_charge(int32_t old_cash, int32_t tax_amount)
