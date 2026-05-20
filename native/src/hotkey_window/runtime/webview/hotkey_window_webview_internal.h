@@ -2,6 +2,7 @@
 #define KBOFIX_SRC_HOTKEY_WINDOW_RUNTIME_WEBVIEW_HOTKEY_WINDOW_WEBVIEW_INTERNAL_H_
 
 #include "../content/hotkey_window_runtime_content_internal.h"
+#include "player_tooltip/hotkey_window_player_tooltip.h"
 
 typedef HRESULT (STDAPICALLTYPE *KboCreateCoreWebView2EnvironmentWithOptionsFn)(
     PCWSTR,
@@ -50,11 +51,6 @@ ULONG STDMETHODCALLTYPE kbo_webview_controller_addref(ICoreWebView2CreateCoreWeb
 ULONG STDMETHODCALLTYPE kbo_webview_controller_release(ICoreWebView2CreateCoreWebView2ControllerCompletedHandler* This);
 void kbo_webview_set_bounds(HWND hwnd);
 void kbo_webview_apply_ootp_like_settings(void);
-#define KBO_PLAYER_TOOLTIP_ASSET_HOST "ootp-kbo-player-tooltip.local"
-void kbo_set_webview_player_tooltip_asset_folder(const char* folder_path);
-int kbo_show_webview_player_tooltip_popup(HWND owner, int screen_x, int screen_y, uint32_t hover_seq, const char* html);
-void kbo_hide_webview_player_tooltip_popup(uint32_t hover_seq);
-void kbo_destroy_webview_player_tooltip_popup(void);
 HRESULT STDMETHODCALLTYPE kbo_webview_controller_invoke(
     ICoreWebView2CreateCoreWebView2ControllerCompletedHandler* This,
     HRESULT errorCode,
