@@ -20,9 +20,16 @@ typedef LONG (WINAPI* KboNtQuerySystemInformationFn)(ULONG, PVOID, ULONG, PULONG
 #define KBO_SYSTEM_HANDLE_TABLE_ENTRY_SIZE 40u
 #define KBO_SYSTEM_HANDLE_TABLE_ENTRY_PID_OFFSET 8u
 #define KBO_SYSTEM_HANDLE_TABLE_ENTRY_HANDLE_OFFSET 16u
+#define KBO_CURRENT_SAVE_CACHE_TTL_MS 1000ull
+#define KBO_CURRENT_SAVE_STALE_GRACE_MS 3000ull
+#define KBO_CURRENT_SAVE_HANDLE_PROBE_MIN_INTERVAL_MS 2000ull
 
 static char g_kbo_cached_current_save_path[KBO_UTF8_PATH_BYTES] = {0};
 static volatile LONG64 g_kbo_cached_current_save_path_tick = 0;
+static volatile LONG64 g_kbo_last_current_save_handle_probe_tick = 0;
+static volatile LONG g_kbo_current_save_handle_probe_active = 0;
+static char g_kbo_last_logged_current_save_path[KBO_UTF8_PATH_BYTES] = {0};
+static char g_kbo_last_logged_current_save_source[32] = {0};
 
 static void kbo_cache_current_save_path(const char* path)
 {
@@ -33,14 +40,14 @@ static void kbo_cache_current_save_path(const char* path)
     InterlockedExchange64(&g_kbo_cached_current_save_path_tick, (LONG64)GetTickCount64());
 }
 
-static int kbo_get_cached_current_save_path(char* out, size_t out_size)
+static int kbo_get_cached_current_save_path_with_max_age(char* out, size_t out_size, ULONGLONG max_age_ms)
 {
     if (out == NULL || out_size == 0 || g_kbo_cached_current_save_path[0] == '\0') {
         return 0;
     }
     LONG64 cached_tick = InterlockedCompareExchange64(&g_kbo_cached_current_save_path_tick, 0, 0);
     ULONGLONG now = GetTickCount64();
-    if (cached_tick <= 0 || now < (ULONGLONG)cached_tick || now - (ULONGLONG)cached_tick > 5000ull) {
+    if (cached_tick <= 0 || now < (ULONGLONG)cached_tick || now - (ULONGLONG)cached_tick > max_age_ms) {
         return 0;
     }
     if (!kbo_path_looks_like_absolute_save_path(g_kbo_cached_current_save_path)) {
@@ -49,6 +56,66 @@ static int kbo_get_cached_current_save_path(char* out, size_t out_size)
     }
     snprintf(out, out_size, "%s", g_kbo_cached_current_save_path);
     return out[0] != '\0';
+}
+
+static int kbo_get_cached_current_save_path(char* out, size_t out_size)
+{
+    return kbo_get_cached_current_save_path_with_max_age(out, out_size, KBO_CURRENT_SAVE_CACHE_TTL_MS);
+}
+
+static int kbo_get_stale_current_save_path(char* out, size_t out_size)
+{
+    return kbo_get_cached_current_save_path_with_max_age(out, out_size, KBO_CURRENT_SAVE_STALE_GRACE_MS);
+}
+
+static int kbo_begin_current_save_handle_probe(void)
+{
+    ULONGLONG now = GetTickCount64();
+    LONG64 last_tick = InterlockedCompareExchange64(&g_kbo_last_current_save_handle_probe_tick, 0, 0);
+    if (last_tick > 0
+            && now >= (ULONGLONG)last_tick
+            && now - (ULONGLONG)last_tick < KBO_CURRENT_SAVE_HANDLE_PROBE_MIN_INTERVAL_MS) {
+        return 0;
+    }
+
+    if (InterlockedCompareExchange(&g_kbo_current_save_handle_probe_active, 1, 0) != 0) {
+        return 0;
+    }
+
+    now = GetTickCount64();
+    last_tick = InterlockedCompareExchange64(&g_kbo_last_current_save_handle_probe_tick, 0, 0);
+    if (last_tick > 0
+            && now >= (ULONGLONG)last_tick
+            && now - (ULONGLONG)last_tick < KBO_CURRENT_SAVE_HANDLE_PROBE_MIN_INTERVAL_MS) {
+        InterlockedExchange(&g_kbo_current_save_handle_probe_active, 0);
+        return 0;
+    }
+
+    InterlockedExchange64(&g_kbo_last_current_save_handle_probe_tick, (LONG64)now);
+    return 1;
+}
+
+static void kbo_end_current_save_handle_probe(void)
+{
+    InterlockedExchange(&g_kbo_current_save_handle_probe_active, 0);
+}
+
+static void kbo_log_current_save_path_resolved(const char* source, const char* path, const char* detail)
+{
+    if (source == NULL || source[0] == '\0' || path == NULL || path[0] == '\0') {
+        return;
+    }
+    if (strcmp(g_kbo_last_logged_current_save_path, path) == 0
+            && strcmp(g_kbo_last_logged_current_save_source, source) == 0) {
+        return;
+    }
+    snprintf(g_kbo_last_logged_current_save_path, sizeof(g_kbo_last_logged_current_save_path), "%s", path);
+    snprintf(g_kbo_last_logged_current_save_source, sizeof(g_kbo_last_logged_current_save_source), "%s", source);
+    if (detail != NULL && detail[0] != '\0') {
+        kbo_log_runtimef("KBO save path resolved by %s path=%s source=%s", source, path, detail);
+    } else {
+        kbo_log_runtimef("KBO save path resolved by %s path=%s", source, path);
+    }
 }
 
 static int kbo_extract_lg_save_path_from_file_path(const char* path, char* out, size_t out_size)
@@ -165,7 +232,7 @@ static int kbo_get_current_save_path_from_own_file_handles(char* out, size_t out
         char save_path[KBO_UTF8_PATH_BYTES] = {0};
         if (kbo_extract_lg_save_path_from_file_path(path, save_path, sizeof(save_path))) {
             snprintf(out, out_size, "%s", save_path);
-            kbo_log_runtimef("KBO save path resolved by own file handle path=%s source=%s", out, path);
+            kbo_log_current_save_path_resolved("own file handle", out, path);
             found = 1;
             break;
         }
@@ -192,7 +259,7 @@ static int kbo_get_current_save_path_from_ootp_global(char* out, size_t out_size
         return 0;
     }
 
-    kbo_log_runtimef("KBO save path resolved by OOTP global path=%s", out);
+    kbo_log_current_save_path_resolved("OOTP global", out, NULL);
     return 1;
 }
 
@@ -239,7 +306,7 @@ static int kbo_get_current_save_path_from_launcher_cache_file(char* out, size_t 
     CloseHandle(file);
 
     if (found) {
-        kbo_log_runtimef("KBO save path resolved by launcher cache path=%s", out);
+        kbo_log_current_save_path_resolved("launcher cache", out, NULL);
     }
     return found;
 }
@@ -256,12 +323,21 @@ int kbo_get_current_save_path(char* out, size_t out_size)
         return 1;
     }
 
-    if (kbo_get_current_save_path_from_own_file_handles(out, out_size)) {
-        kbo_cache_current_save_path(out);
+    if (kbo_get_cached_current_save_path(out, out_size)) {
         return 1;
     }
 
-    if (kbo_get_cached_current_save_path(out, out_size)) {
+    if (kbo_begin_current_save_handle_probe()) {
+        int found = kbo_get_current_save_path_from_own_file_handles(out, out_size);
+        kbo_end_current_save_handle_probe();
+        if (found) {
+            kbo_cache_current_save_path(out);
+            return 1;
+        }
+        if (kbo_get_stale_current_save_path(out, out_size)) {
+            return 1;
+        }
+    } else if (kbo_get_stale_current_save_path(out, out_size)) {
         return 1;
     }
 
