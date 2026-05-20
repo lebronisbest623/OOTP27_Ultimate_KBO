@@ -13,7 +13,7 @@ static KboRuntimeTuningPolicy g_kbo_runtime_tuning_policy;
 
 static int32_t kbo_runtime_tuning_policy_int(const char* key, int32_t fallback, int32_t min_value, int32_t max_value)
 {
-    return kbo_read_clamped_policy_int(KBO_RUNTIME_TUNING_POLICY_FILE, key, fallback, min_value, max_value);
+    return kbo_read_clamped_global_policy_int(KBO_RUNTIME_TUNING_POLICY_FILE, key, fallback, min_value, max_value);
 }
 
 static void kbo_runtime_tuning_policy_log_attempts(

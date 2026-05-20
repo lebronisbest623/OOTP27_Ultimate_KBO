@@ -68,6 +68,21 @@ static int kbo_read_policy_scoped_value(
     return 0;
 }
 
+static int kbo_read_policy_global_value(
+    const char* file_name,
+    const char* key,
+    int* out_value,
+    int flag_value)
+{
+    if (file_name == NULL || file_name[0] == '\0' || key == NULL || key[0] == '\0' || out_value == NULL) {
+        return 0;
+    }
+
+    char path[KBO_UTF8_PATH_BYTES] = {0};
+    return kbo_get_global_data_file(file_name, path, sizeof(path))
+        && kbo_read_policy_file_value(path, key, out_value, flag_value);
+}
+
 int kbo_read_policy_int_value(const char* file_name, const char* key, int* out_value)
 {
     return kbo_read_policy_scoped_value(file_name, key, out_value, 0);
@@ -76,6 +91,11 @@ int kbo_read_policy_int_value(const char* file_name, const char* key, int* out_v
 int kbo_read_policy_flag_value(const char* file_name, const char* key, int* out_value)
 {
     return kbo_read_policy_scoped_value(file_name, key, out_value, 1);
+}
+
+int kbo_read_global_policy_int_value(const char* file_name, const char* key, int* out_value)
+{
+    return kbo_read_policy_global_value(file_name, key, out_value, 0);
 }
 
 int32_t kbo_read_clamped_policy_int(
@@ -87,6 +107,22 @@ int32_t kbo_read_clamped_policy_int(
 {
     int value = (int)fallback;
     if (kbo_read_policy_int_value(file_name, key, &value)
+            && value >= min_value
+            && value <= max_value) {
+        return (int32_t)value;
+    }
+    return fallback;
+}
+
+int32_t kbo_read_clamped_global_policy_int(
+    const char* file_name,
+    const char* key,
+    int32_t fallback,
+    int32_t min_value,
+    int32_t max_value)
+{
+    int value = (int)fallback;
+    if (kbo_read_global_policy_int_value(file_name, key, &value)
             && value >= min_value
             && value <= max_value) {
         return (int32_t)value;
