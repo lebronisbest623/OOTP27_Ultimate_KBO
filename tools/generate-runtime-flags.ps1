@@ -179,7 +179,7 @@ $NativeUiHeaderLines = @(
     "",
     "#include <stddef.h>",
     "",
-    "#include `"../info/ui_mod_info_views_internal.h`"",
+    "#include `"../info/ui_mod_info_views.h`"",
     "",
     "extern const KboModRuntimeFlagSetting KBO_MOD_RUNTIME_FLAG_SETTINGS[];",
     "extern const size_t KBO_MOD_RUNTIME_FLAG_SETTINGS_COUNT;",
