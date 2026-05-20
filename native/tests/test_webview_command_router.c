@@ -15,6 +15,8 @@ int g_kbo_hub_open_dropdown = 0;
 
 static int g_navigate_current_count = 0;
 static int g_ensure_valid_selection_count = 0;
+static int g_player_hover_command_count = 0;
+static char g_last_player_hover_command[128] = {0};
 
 void kbo_webview_navigate_current(void)
 {
@@ -64,8 +66,12 @@ int kbo_webview_handle_settings_command(const char* cmd)
 
 int kbo_webview_handle_player_hover_command(const char* cmd, HWND hwnd)
 {
-    (void)cmd;
     (void)hwnd;
+    if (cmd != NULL && strncmp(cmd, "player-hover/", 13) == 0) {
+        g_player_hover_command_count++;
+        snprintf(g_last_player_hover_command, sizeof(g_last_player_hover_command), "%s", cmd);
+        return 1;
+    }
     return 0;
 }
 
@@ -79,6 +85,8 @@ static void reset_state(void)
     g_kbo_hub_open_dropdown = 0;
     g_navigate_current_count = 0;
     g_ensure_valid_selection_count = 0;
+    g_player_hover_command_count = 0;
+    g_last_player_hover_command[0] = '\0';
 }
 
 static void test_unknown_commands_are_not_handled(void)
@@ -123,10 +131,26 @@ static void test_selection_commands_are_handled(void)
     printf("test_selection_commands_are_handled: PASS\n");
 }
 
+static void test_player_hover_commands_are_routed(void)
+{
+    reset_state();
+
+    assert(kbo_webview_handle_command_uri("kbo://player-hover/show/123/10/20/1", NULL));
+    assert(g_player_hover_command_count == 1);
+    assert(strcmp(g_last_player_hover_command, "player-hover/show/123/10/20/1") == 0);
+
+    assert(kbo_webview_handle_command_uri("kbo://player-hover/hide/123/2", NULL));
+    assert(g_player_hover_command_count == 2);
+    assert(strcmp(g_last_player_hover_command, "player-hover/hide/123/2") == 0);
+
+    printf("test_player_hover_commands_are_routed: PASS\n");
+}
+
 int main(void)
 {
     test_unknown_commands_are_not_handled();
     test_selection_commands_are_handled();
+    test_player_hover_commands_are_routed();
     printf("All webview command router tests passed.\n");
     return 0;
 }
