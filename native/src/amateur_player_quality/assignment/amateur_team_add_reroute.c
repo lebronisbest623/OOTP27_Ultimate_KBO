@@ -1,5 +1,6 @@
 #include "../internal/amateur_assignment_internal.h"
 #include "../../bootstrap/profiling/profiler.h"
+#include <string.h>
 static volatile LONG g_kbo_amateur_reroute_disable_cached = -1;
 static volatile LONG g_kbo_amateur_reroute_disable_tick = 0;
 static volatile LONG g_kbo_amateur_reroute_verbose_cached = -1;
@@ -115,6 +116,19 @@ uintptr_t kbo_amateur_team_add_player_reroute_before_original(uintptr_t team_ptr
             || player_ptr == 0
             || !memory_range_readable((void*)team_ptr, OOTP27_KBO_TEAM_READABLE_BYTES)
             || !kbo_player_pointer_plausible(player_ptr)) {
+        return team_ptr;
+    }
+
+    if (source != NULL && strcmp(source, "team_add_player_before_original") == 0) {
+        static volatile LONG post_add_log_count = 0;
+        LONG post_add_slot = InterlockedIncrement(&post_add_log_count);
+        if (post_add_slot <= 5 || kbo_amateur_reroute_verbose_log_enabled_cached()) {
+            kbo_log_runtimef(
+                "amateur assignment pre-reroute skipped source=%s reason=post_original_batch_reassignment",
+                source);
+        } else if (post_add_slot == 6) {
+            kbo_log_runtime_line("amateur assignment pre-reroute skip log suppressed after 5 calls; create enable_amateur_assignment_verbose_log.txt for full logging");
+        }
         return team_ptr;
     }
 
