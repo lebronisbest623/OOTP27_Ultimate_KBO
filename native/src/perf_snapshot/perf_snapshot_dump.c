@@ -44,7 +44,7 @@ static int kbo_perf_snapshot_write_meta(
     (void)snapshot_path;
 
     char path[MAX_PATH] = {0};
-    if (!kbo_get_save_scoped_data_file(KBO_PERF_SNAPSHOT_META_FILE, path, sizeof(path))) {
+    if (!kbo_get_save_scoped_data_file(KBO_PERF_SNAPSHOT_META_PATH, path, sizeof(path))) {
         return 0;
     }
 
@@ -142,7 +142,7 @@ int kbo_dump_perf_player_snapshot(const char* source, char* out_path, size_t out
     }
 
     char path[MAX_PATH] = {0};
-    if (!kbo_get_save_scoped_data_file(KBO_PERF_SNAPSHOT_PLAYER_FILE, path, sizeof(path))) {
+    if (!kbo_get_save_scoped_data_file(KBO_PERF_SNAPSHOT_PLAYER_PATH, path, sizeof(path))) {
         HeapFree(GetProcessHeap(), 0, snapshot);
         kbo_log_runtime_line("perf snapshot skipped reason=path_unavailable");
         return 0;

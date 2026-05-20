@@ -9,11 +9,10 @@
 #include "fa_declaration.h"
 #include "fa_declaration_internal.h"
 #include "news/fa_declaration_news.h"
+#include "sql/fa_declaration_sql_store.h"
 #include "../bootstrap/abi/ootp_offsets.h"
 #include "../core/core_flags/api/flags_api.h"
 #include "../core/core_league_context_parts/api/league_context_lookup.h"
-#include "../core/files/save_paths/core_save_paths.h"
-#include "../core/csv/core_csv.h"
 #include "../core/dates/constants/kbo_date_constants.h"
 #include "../core/league_roles/kbo_league_roles.h"
 #include "../core/logging/core_log.h"
@@ -35,7 +34,7 @@ int kbo_get_fa_declaration_csv_path(char* out, size_t out_size)
     if (out == NULL || out_size == 0u) {
         return 0;
     }
-    return kbo_get_save_scoped_data_file("fa_declarations.csv", out, out_size);
+    return kbo_fa_declaration_sql_path(out, out_size);
 }
 
 int kbo_fa_declaration_find_latest_decision(
@@ -50,40 +49,7 @@ int kbo_fa_declaration_find_latest_decision(
         return 0;
     }
 
-    char path[MAX_PATH] = {0};
-    if (!kbo_get_fa_declaration_csv_path(path, sizeof(path))) {
-        return 0;
-    }
-
-    KboCsvReader* reader = kbo_csv_reader_open(path);
-    if (reader == NULL) {
-        return 0;
-    }
-
-    int found = 0;
-    uint32_t best_date = 0u;
-    while (kbo_csv_reader_next_row(reader)) {
-        char fields[13][128];
-        int field_count = kbo_csv_reader_read_trimmed_fields(reader, (char*)fields, sizeof(fields[0]), 13);
-        if (field_count < 7 || fields[0][0] < '0' || fields[0][0] > '9') {
-            continue;
-        }
-
-        KboFaDeclarationDecision row;
-        if (!kbo_fa_declaration_parse_decision_fields(&row, fields, field_count)) {
-            continue;
-        }
-        if (row.player_id == player_id
-                && (season == 0u || row.season == season)
-                && row.declaration_date >= best_date) {
-            found = 1;
-            best_date = row.declaration_date;
-            *out_decision = row;
-        }
-    }
-
-    kbo_csv_reader_close(reader);
-    return found;
+    return kbo_fa_declaration_sql_find_latest_decision(player_id, season, out_decision);
 }
 
 uint32_t kbo_fa_declaration_retained_contract_season(uint32_t declaration_season)

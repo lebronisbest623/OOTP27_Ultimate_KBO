@@ -4,6 +4,7 @@
 #include "../../bootstrap/abi/ootp_offsets.h"
 #include "../../core/logging/core_log.h"
 #include "../../core/files/save_paths/core_save_paths.h"
+#include "../../core/sql/save_state/save_state_sqlite.h"
 #include "../../core/dates/core_text_date.h"
 #include "../../core/core_flags/api/flags_api.h"
 #include "../../runtime_memory/runtime_memory.h"
@@ -14,7 +15,7 @@ int kbo_get_fa_compensation_path(char* out, size_t out_size)
         return 0;
     }
     out[0] = '\0';
-    return kbo_get_save_scoped_data_file("fa_compensation.csv", out, out_size);
+    return kbo_save_state_db_path(out, out_size);
 }
 
 int kbo_get_fa_compensation_protected_lists_path(char* out, size_t out_size)
@@ -23,7 +24,7 @@ int kbo_get_fa_compensation_protected_lists_path(char* out, size_t out_size)
         return 0;
     }
     out[0] = '\0';
-    return kbo_get_save_scoped_data_file("fa_compensation_protected_lists.csv", out, out_size);
+    return kbo_save_state_db_path(out, out_size);
 }
 
 int kbo_get_fa_compensation_decisions_path(char* out, size_t out_size)
@@ -32,7 +33,7 @@ int kbo_get_fa_compensation_decisions_path(char* out, size_t out_size)
         return 0;
     }
     out[0] = '\0';
-    return kbo_get_save_scoped_data_file("fa_compensation_decisions.csv", out, out_size);
+    return kbo_save_state_db_path(out, out_size);
 }
 
 int kbo_get_fa_compensation_protection_debug_path(char* out, size_t out_size)

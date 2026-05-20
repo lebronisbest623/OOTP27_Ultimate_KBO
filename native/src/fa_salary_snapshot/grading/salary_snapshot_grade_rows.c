@@ -4,9 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../../core/csv/core_csv.h"
-#include "../csv/salary_snapshot_csv_parse.h"
 #include "../paths/salary_snapshot_paths_dates.h"
+#include "../sql/fa_salary_snapshot_sql_store.h"
 #include "../../fa_market_classification/policy/fa_market_policy.h"
 #include "../../core/dates/constants/kbo_date_constants.h"
 
@@ -159,43 +158,11 @@ int kbo_fa_salary_snapshot_load_grade_rows(
         snprintf(out_path, out_path_size, "%s", path);
     }
 
-    KboCsvReader* reader = kbo_csv_reader_open(path);
-    if (reader == NULL) {
+    int count = 0;
+    if (!kbo_fa_salary_snapshot_sql_load_grade_rows(season, rows, max_rows, &count)) {
         return 0;
     }
 
-    int count = 0;
-    while (count < max_rows && kbo_csv_reader_next_row(reader)) {
-        char fields[35][128];
-        int field_count = kbo_csv_reader_read_trimmed_fields(reader, (char*)fields, sizeof(fields[0]), 35);
-        if (field_count < 22 || fields[0][0] < '0' || fields[0][0] > '9') {
-            continue;
-        }
-
-        KboFaSalarySnapshotGrade grade_row;
-        memset(&grade_row, 0, sizeof(grade_row));
-        grade_row.snapshot_date = kbo_fa_salary_snapshot_parse_u32(fields[0]);
-        grade_row.season = kbo_fa_salary_snapshot_parse_u32(fields[1]);
-        grade_row.opening_day = kbo_fa_salary_snapshot_parse_u32(fields[2]);
-        grade_row.player_id = kbo_fa_salary_snapshot_parse_u32(fields[5]);
-        snprintf(grade_row.player_name, sizeof(grade_row.player_name), "%.*s", (int)sizeof(grade_row.player_name) - 1, fields[6]);
-        grade_row.ranking_team_id = kbo_fa_salary_snapshot_parse_u32(fields[10]);
-        grade_row.foreign_flag = kbo_fa_salary_snapshot_parse_u32(fields[16]) != 0u ? 1u : 0u;
-        grade_row.salary = kbo_fa_salary_snapshot_parse_i32(fields[17]);
-        grade_row.overall_rank = kbo_fa_salary_snapshot_parse_u32(fields[18]);
-        grade_row.overall_ordinal = kbo_fa_salary_snapshot_parse_u32(fields[19]);
-        grade_row.team_rank = kbo_fa_salary_snapshot_parse_u32(fields[20]);
-        grade_row.team_ordinal = kbo_fa_salary_snapshot_parse_u32(fields[21]);
-        if (field_count > 34) {
-            snprintf(grade_row.player_key, sizeof(grade_row.player_key), "%.*s", (int)sizeof(grade_row.player_key) - 1, fields[34]);
-        }
-
-        if (grade_row.player_id != 0u && grade_row.season == season) {
-            rows[count++] = grade_row;
-        }
-    }
-
-    kbo_csv_reader_close(reader);
     kbo_fa_salary_snapshot_assign_grade_overall_ranks(rows, count);
     kbo_fa_salary_snapshot_assign_grade_team_ranks(rows, count);
     for (int i = 0; i < count; i++) {

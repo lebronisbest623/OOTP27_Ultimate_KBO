@@ -7,12 +7,14 @@
 
 #include "../../bootstrap/abi/ootp_offsets.h"
 #include "../../core/files/save_paths/core_save_paths.h"
+#include "../../core/sql/save_state/save_state_sqlite.h"
 #include "../../core/dates/core_text_date.h"
 #include "../../core/runtime_tuning/runtime_tuning_policy.h"
 #include "../../core/season/season_calendar.h"
 #include "../../runtime_memory/runtime_memory.h"
 #include "../../team/lookup/team_lookup.h"
 #include "../state/salary_snapshot_state.h"
+#include "../sql/fa_salary_snapshot_sql_store.h"
 #include "../../core/dates/constants/kbo_date_constants.h"
 
 int kbo_fa_salary_snapshot_path(uint32_t season, char* out, size_t out_size)
@@ -21,9 +23,7 @@ int kbo_fa_salary_snapshot_path(uint32_t season, char* out, size_t out_size)
         return 0;
     }
 
-    char file_name[96] = {0};
-    snprintf(file_name, sizeof(file_name), "fa_salary_opening_day_snapshot_%04u.csv", season);
-    return kbo_get_save_scoped_data_file(file_name, out, out_size);
+    return kbo_save_state_db_path(out, out_size);
 }
 
 int kbo_fa_salary_snapshot_file_exists(uint32_t season)
@@ -34,19 +34,7 @@ int kbo_fa_salary_snapshot_file_exists(uint32_t season)
         return cached_value == 1;
     }
 
-    char path[MAX_PATH] = {0};
-    if (!kbo_fa_salary_snapshot_path(season, path, sizeof(path))) {
-        return 0;
-    }
-
-    WIN32_FILE_ATTRIBUTE_DATA attrs;
-    if (!GetFileAttributesExA(path, GetFileExInfoStandard, &attrs)) {
-        InterlockedExchange(&g_kbo_fa_salary_snapshot_cached_exists_season, (LONG)season);
-        InterlockedExchange(&g_kbo_fa_salary_snapshot_cached_exists_value, 0);
-        return 0;
-    }
-
-    int exists = attrs.nFileSizeHigh != 0u || attrs.nFileSizeLow != 0u;
+    int exists = kbo_fa_salary_snapshot_sql_exists(season);
     InterlockedExchange(&g_kbo_fa_salary_snapshot_cached_exists_season, (LONG)season);
     InterlockedExchange(&g_kbo_fa_salary_snapshot_cached_exists_value, exists ? 1 : 0);
     return exists;

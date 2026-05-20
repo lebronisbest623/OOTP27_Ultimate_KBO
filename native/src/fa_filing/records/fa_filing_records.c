@@ -1,7 +1,6 @@
 #include "../fa_filing_internal.h"
 #include "../../build_verify/build_verify.h"
-#include "../../core/csv/core_csv.h"
-#include "../../core/files/atomic/core_atomic_file.h"
+#include "sql/fa_filing_sql_store.h"
 
 int kbo_fa_filing_negative_cache_contains(uint32_t player_id)
 {
@@ -36,7 +35,7 @@ int kbo_get_fa_filing_csv_path(char* out, size_t out_size)
     if (out == NULL || out_size < 2) {
         return 0;
     }
-    return kbo_get_save_scoped_data_file("fa_filing.csv", out, out_size);
+    return kbo_fa_filing_sql_path(out, out_size);
 }
 
 void kbo_fa_filing_enter_lock(void)
@@ -63,49 +62,14 @@ int kbo_load_fa_filing_records_unlocked(
     }
     memset(rows, 0, (SIZE_T)max_rows * sizeof(rows[0]));
 
-    char path[MAX_PATH] = {0};
-    if (!kbo_get_fa_filing_csv_path(path, sizeof(path))) {
-        return 0;
-    }
     if (out_path != NULL && out_path_size > 0) {
-        snprintf(out_path, out_path_size, "%s", path);
-    }
-
-    KboCsvReader* reader = kbo_csv_reader_open(path);
-    if (reader == NULL) {
-        return 0;
+        (void)kbo_get_fa_filing_csv_path(out_path, out_path_size);
     }
 
     int count = 0;
-    while (count < max_rows && kbo_csv_reader_next_row(reader)) {
-        char fields[10][128];
-        int field_count = kbo_csv_reader_read_trimmed_fields(reader, (char*)fields, sizeof(fields[0]), 10);
-        if (field_count < 8 || fields[0][0] < '0' || fields[0][0] > '9') {
-            continue;
-        }
-
-        KboFaFilingRecord row;
-        memset(&row, 0, sizeof(row));
-        row.player_id = kbo_fa_filing_parse_u32(fields[0]);
-        row.filing_date = kbo_fa_filing_parse_u32(fields[1]);
-        row.season = kbo_fa_filing_parse_u32(fields[2]);
-        row.original_team_id = kbo_fa_filing_parse_u32(fields[3]);
-        row.league_id = kbo_fa_filing_parse_u32(fields[4]);
-        row.source_caller_rva = kbo_fa_filing_parse_u32(fields[5]);
-        row.notify = (uint8_t)(kbo_fa_filing_parse_u32(fields[6]) & 0xffu);
-        row.contract_level = (uint8_t)(kbo_fa_filing_parse_u32(fields[7]) & 0xffu);
-        if (field_count >= 9) {
-            kbo_fa_filing_copy_text(row.player_name, sizeof(row.player_name), fields[8]);
-        }
-        if (field_count >= 10) {
-            kbo_fa_filing_copy_text(row.source, sizeof(row.source), fields[9]);
-        }
-        if (row.player_id != 0u && row.filing_date != 0u && row.season != 0u) {
-            rows[count++] = row;
-        }
+    if (!kbo_fa_filing_sql_load(rows, max_rows, &count)) {
+        return 0;
     }
-
-    kbo_csv_reader_close(reader);
     return count;
 }
 
@@ -122,52 +86,10 @@ int kbo_write_fa_filing_records_unlocked(
         return 0;
     }
 
-    char path[MAX_PATH] = {0};
-    if (!kbo_get_fa_filing_csv_path(path, sizeof(path))) {
-        return 0;
-    }
     if (out_path != NULL && out_path_size > 0) {
-        snprintf(out_path, out_path_size, "%s", path);
+        (void)kbo_get_fa_filing_csv_path(out_path, out_path_size);
     }
-
-    char tmp_path[MAX_PATH] = {0};
-    HANDLE file = kbo_atomic_open_tmp(path, tmp_path, sizeof(tmp_path));
-    if (file == INVALID_HANDLE_VALUE) {
-        kbo_log_runtimef("KBO FA filing csv open failed path=%s gle=%lu", path, GetLastError());
-        return 0;
-    }
-
-    kbo_fa_filing_write_raw(
-        file,
-        "player_id,filing_date,season,original_team_id,league_id,source_caller_rva,notify,contract_level,name,source\r\n");
-
-    for (int i = 0; i < row_count; i++) {
-        const KboFaFilingRecord* row = &rows[i];
-        char prefix[192] = {0};
-        snprintf(
-            prefix,
-            sizeof(prefix),
-            "%u,%u,%u,%u,%u,%u,%u,%u,",
-            row->player_id,
-            row->filing_date,
-            row->season,
-            row->original_team_id,
-            row->league_id,
-            row->source_caller_rva,
-            (uint32_t)row->notify,
-            (uint32_t)row->contract_level);
-        kbo_fa_filing_write_raw(file, prefix);
-        kbo_fa_filing_write_csv_text(file, row->player_name);
-        kbo_fa_filing_write_raw(file, ",");
-        kbo_fa_filing_write_csv_text(file, row->source);
-        kbo_fa_filing_write_raw(file, "\r\n");
-    }
-
-    if (!kbo_atomic_commit(file, tmp_path, path)) {
-        kbo_log_runtimef("KBO FA filing csv atomic commit failed path=%s gle=%lu", path, GetLastError());
-        return 0;
-    }
-    return 1;
+    return kbo_fa_filing_sql_replace_all(rows, row_count);
 }
 
 int kbo_load_fa_filing_records(

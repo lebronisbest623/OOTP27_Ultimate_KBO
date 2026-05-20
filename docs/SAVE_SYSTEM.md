@@ -76,6 +76,37 @@ The first migrated subsystems are:
   `cbt_exception_players.csv`.
 - `cbt_cash_charges`: CBT offseason cash-charge idempotency and audit ledger,
   formerly `cbt_cash_charges.csv`.
+- `cbt_draft_order_penalties`: CBT draft-order penalty ledger, formerly
+  `cbt_draft_order_penalties.csv`.
+- `fa_filing`: FA filing records, formerly `fa_filing.csv`.
+- `fa_declarations`: FA declaration decision ledger, formerly
+  `fa_declarations.csv`.
+- `fa_compensation_records`: FA compensation records, formerly
+  `fa_compensation.csv`.
+- `fa_compensation_decisions`: FA compensation decision ledger, formerly
+  `fa_compensation_decisions.csv`.
+- `fa_compensation_protected_lists`: FA compensation protection lists, formerly
+  `fa_compensation_protected_lists.csv`.
+- `fa_compensation_cash_transfers`: FA compensation cash-transfer ledger,
+  formerly `fa_compensation_cash_transfers.csv`.
+- `fa_salary_opening_day_snapshots`: FA/CBT opening-day salary snapshot rows,
+  formerly `fa_salary_opening_day_snapshot_YYYY.csv`.
+- `asian_games_roster`: Asian Games active roster rows, formerly
+  `asian_games_roster.csv`.
+- `asian_games_roster_history`: Asian Games roster history rows, formerly
+  `asian_games_roster_history.csv`.
+- `asian_games_tournament_history`: Asian Games tournament history rows,
+  formerly `asian_games_tournament_history.csv`.
+- `military_service_resolved`: resolved military-service seed rows, formerly
+  `military_service_resolved.csv`.
+- `military_selection_results`: military selection result rows, formerly
+  `military_selection_results.csv`.
+- `foreign_injury_replacements`: foreign-player injury replacement slots,
+  formerly `foreign_injury_replacements.csv`.
+- `captain_selections`: season captain selections, formerly
+  `captains_YYYY.csv`.
+- `intl_established_fa_postscan_state`: small international established FA
+  postscan state, formerly `intl_established_fa_postscan_state.txt`.
 
 The shared SQLite opener lives in:
 
@@ -111,19 +142,32 @@ the old CSV/TXT/JSONL names retired for new saves:
   `foreign_waiver_decisions`; `foreign_waiver_negotiation_window.txt` now lives
   in `foreign_waiver_window`; `foreign_waiver_announcements.txt` now lives in
   `foreign_waiver_announcements`.
-- FA state: `fa_declarations.csv`, `fa_filing.csv`, `fa_compensation.csv`,
-  `fa_compensation_decisions.csv`, `fa_compensation_cash_transfers.csv`,
-  `fa_salary_opening_day_snapshot_YYYY.csv`.
+- FA state: `fa_declarations.csv` now lives in `fa_declarations`;
+  `fa_filing.csv` now lives in `fa_filing`; `fa_compensation.csv` now lives in
+  `fa_compensation_records`; `fa_compensation_decisions.csv` now lives in
+  `fa_compensation_decisions`; `fa_compensation_protected_lists.csv` now lives
+  in `fa_compensation_protected_lists`; `fa_compensation_cash_transfers.csv`
+  now lives in `fa_compensation_cash_transfers`;
+  `fa_salary_opening_day_snapshot_YYYY.csv` now lives in
+  `fa_salary_opening_day_snapshots`.
 - CBT state: `cbt_records.csv` now lives in `cbt_records`;
   `cbt_exception_players.csv` now lives in `cbt_exception_players`;
   `cbt_cash_charges.csv` now lives in `cbt_cash_charges`;
+  `cbt_draft_order_penalties.csv` now lives in
+  `cbt_draft_order_penalties`;
   `cbt_opening_days.csv` is retired for new saves because opening days resolve
   through `season_calendar` or the FA salary snapshot.
 - National-team and service state: `asian_games_roster.csv`,
   `asian_games_roster_history.csv`, `asian_games_tournament_history.csv`,
-  `military_service_resolved.csv`, `military_selection_results.csv`.
+  `military_service_resolved.csv`, and `military_selection_results.csv` now
+  live in `asian_games_roster`, `asian_games_roster_history`,
+  `asian_games_tournament_history`, `military_service_resolved`, and
+  `military_selection_results`.
 - Other durable gameplay state: `captains_YYYY.csv`,
-  `foreign_injury_replacements.csv`.
+  `foreign_injury_replacements.csv`, and
+  `intl_established_fa_postscan_state.txt` now live in `captain_selections`,
+  `foreign_injury_replacements`, and
+  `intl_established_fa_postscan_state`.
   `amateur_reputation_history.csv` is retired for new saves and now lives in
   `amateur_reputation_history`; `season_calendar.csv` now lives in
   `season_calendar`.
@@ -136,7 +180,7 @@ the old CSV/TXT/JSONL names retired for new saves:
   now lives in `independent_acquisition_decisions`;
   `kbo_daily_audit_state.json` now lives in
   `foreign_roster_daily_audit_state`; `*_state.txt` and other small state JSON
-  files still need table owners.
+  files should get explicit table owners before they are introduced.
 
 ### Move Under `logs\`
 
@@ -169,6 +213,8 @@ These files are derived or copied from OOTP data and can be regenerated:
   `cache\foreign_roster_snapshot.csv`.
 - `foreign_replacement_players_resolved.csv` now writes to
   `cache\foreign_replacement_players_resolved.csv`.
+- `perf_snapshot_players.bin` and `perf_snapshot_meta.json` now write under
+  `cache\`.
 
 ### Move Under `work\`
 
@@ -197,3 +243,5 @@ remain file-based unless the UI becomes their editor:
 - News/text template overrides now resolve under `config\news_templates\...`.
 - `allstar_teams.csv` first resolves under `config\allstar_teams.csv` for
   save-specific team-split rules.
+- `foreign_waiver_commands.txt` now resolves under
+  `config\foreign_waiver_commands.txt` as a user-editable command input.

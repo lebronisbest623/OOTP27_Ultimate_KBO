@@ -19,7 +19,7 @@
 #include "../internal/foreign_waiver_decisions_state_internal.h"
 #include "../internal/foreign_waiver_decisions_team_internal.h"
 
-#define KBO_FOREIGN_WAIVER_COMMAND_FILE "foreign_waiver_commands.txt"
+#define KBO_FOREIGN_WAIVER_COMMAND_FILE "config\\foreign_waiver_commands.txt"
 
 static void kbo_audit_foreign_waiver_command(
     const char* decision,

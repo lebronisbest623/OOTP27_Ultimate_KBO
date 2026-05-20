@@ -7,7 +7,6 @@
 
 #include "../../bootstrap/abi/ootp_offsets.h"
 #include "../../bootstrap/profiling/profiler.h"
-#include "../../core/files/atomic/core_atomic_file.h"
 #include "../../core/logging/core_log.h"
 #include "../../fa_market_classification/policy/fa_market_policy.h"
 #include "../../runtime_memory/runtime_memory.h"
@@ -16,6 +15,7 @@
 #include "../audit/salary_snapshot_rule_audit.h"
 #include "../csv/salary_snapshot_csv_parse.h"
 #include "../paths/salary_snapshot_paths_dates.h"
+#include "../sql/fa_salary_snapshot_sql_store.h"
 #include "salary_snapshot_memory_key.h"
 #include "../ranking/salary_snapshot_row_ranking.h"
 
@@ -88,74 +88,15 @@ int kbo_fa_salary_snapshot_write_csv(
         return 0;
     }
 
-    char tmp_path[MAX_PATH] = {0};
-    HANDLE file = kbo_atomic_open_tmp(path, tmp_path, sizeof(tmp_path));
-    if (file == INVALID_HANDLE_VALUE) {
-        kbo_log_runtimef("KBO FA salary snapshot failed open path=%s gle=%lu", path, GetLastError());
-        return 0;
-    }
-
-    DWORD written = 0;
-    const char* header =
-        "date,season,opening_day,source,league_id,player_id,name,nation_id,current_team_id,active_team_id,ranking_team_id,current_league_id,draft_league_id,age,retired_flag,contract_level,foreign_flag,salary,overall_rank,overall_ordinal,team_rank,team_ordinal,contract_status,contract_start_year,contract_y1,contract_y2,contract_y3,contract_y4,contract_y5,contract_y6,contract_y7,contract_y8,contract_y9,contract_y10,player_key\r\n";
-    WriteFile(file, header, (DWORD)strlen(header), &written, NULL);
-
-    for (int i = 0; i < row_count; i++) {
-        const KboFaSalarySnapshotRow* row = &rows[i];
-        char prefix[512] = {0};
-        int prefix_len = snprintf(
-            prefix,
-            sizeof(prefix),
-            "%u,%u,%u,",
+    if (!kbo_fa_salary_snapshot_sql_replace(
+            rows,
+            row_count,
             date,
             season,
-            opening_day);
-        if (prefix_len > 0) {
-            WriteFile(file, prefix, (DWORD)prefix_len, &written, NULL);
-        }
-        kbo_fa_salary_snapshot_write_csv_text(file, source != NULL ? source : "");
-        snprintf(
-            prefix,
-            sizeof(prefix),
-            ",%u,%u,",
+            opening_day,
             league_id,
-            row->player_id);
-        WriteFile(file, prefix, (DWORD)strlen(prefix), &written, NULL);
-        kbo_fa_salary_snapshot_write_csv_text(file, row->player_name);
-        snprintf(
-            prefix,
-            sizeof(prefix),
-            ",%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%d,%u,%u,%u,%u,%d,%d",
-            row->nation_id,
-            row->current_team_id,
-            row->active_team_id,
-            row->ranking_team_id,
-            row->current_league_id,
-            row->draft_league_id,
-            (uint32_t)row->age,
-            (uint32_t)row->retired_flag,
-            (uint32_t)row->contract_level,
-            (uint32_t)row->foreign_flag,
-            row->salary,
-            row->overall_rank,
-            row->overall_ordinal,
-            row->team_rank,
-            row->team_ordinal,
-            row->contract_status,
-            row->contract_start_year);
-        WriteFile(file, prefix, (DWORD)strlen(prefix), &written, NULL);
-        for (uint32_t y = 0; y < OOTP27_PLAYER_CONTRACT_SALARY_YEARS; y++) {
-            char salary_text[32] = {0};
-            snprintf(salary_text, sizeof(salary_text), ",%d", row->contract_years[y]);
-            WriteFile(file, salary_text, (DWORD)strlen(salary_text), &written, NULL);
-        }
-        WriteFile(file, ",", 1, &written, NULL);
-        kbo_fa_salary_snapshot_write_csv_text(file, row->player_key);
-        WriteFile(file, "\r\n", 2, &written, NULL);
-    }
-
-    if (!kbo_atomic_commit(file, tmp_path, path)) {
-        kbo_log_runtimef("KBO FA salary snapshot atomic commit failed path=%s gle=%lu", path, GetLastError());
+            source)) {
+        kbo_log_runtimef("KBO FA salary snapshot sqlite write failed path=%s", path);
         return 0;
     }
     if (out_path != NULL && out_path_size > 0) {

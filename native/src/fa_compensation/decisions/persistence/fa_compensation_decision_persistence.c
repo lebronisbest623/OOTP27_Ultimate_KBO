@@ -1,23 +1,6 @@
 #include "../fa_compensation_decisions_internal.h"
 #include "../../../core/csv/core_csv.h"
-
-void kbo_fa_compensation_write_csv_text(HANDLE file, const char* text)
-{
-    DWORD written = 0;
-    WriteFile(file, "\"", 1, &written, NULL);
-    if (text != NULL) {
-        const char* p = text;
-        while (*p != '\0') {
-            if (*p == '"') {
-                WriteFile(file, "\"\"", 2, &written, NULL);
-            } else {
-                WriteFile(file, p, 1, &written, NULL);
-            }
-            p++;
-        }
-    }
-    WriteFile(file, "\"", 1, &written, NULL);
-}
+#include "../sql/fa_compensation_decisions_sql_store.h"
 
 int kbo_load_fa_compensation_protection_debug_rows(
     KboFaCompensationProtectionDebugRow* rows,
@@ -86,68 +69,22 @@ int kbo_persist_fa_compensation_player_decision(
     }
 
     char path[MAX_PATH] = {0};
-    if (!kbo_get_fa_compensation_decisions_path(path, sizeof(path))) {
+    if (!kbo_fa_compensation_decisions_sql_path(path, sizeof(path))) {
         return 0;
     }
-    char dir[MAX_PATH] = {0};
-    snprintf(dir, sizeof(dir), "%s", path);
-    char* slash = strrchr(dir, '\\');
-    if (slash != NULL) {
-        *slash = '\0';
-        CreateDirectoryA(dir, NULL);
-    }
-
-    WIN32_FILE_ATTRIBUTE_DATA attrs;
-    int exists = GetFileAttributesExA(path, GetFileExInfoStandard, &attrs);
-    HANDLE file = CreateFileA(path, FILE_APPEND_DATA, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (file == INVALID_HANDLE_VALUE) {
-        kbo_log_runtimef("KBO FA compensation decision persist failed reason=open gle=%lu path=%s", GetLastError(), path);
+    if (!kbo_fa_compensation_decisions_sql_append_player_decision(
+            rec,
+            due_yyyymmdd,
+            decided_yyyymmdd,
+            selected,
+            unprotected_candidate_count,
+            source)) {
+        kbo_log_runtimef(
+            "KBO FA compensation decision persist failed reason=sqlite player=%u path=%s",
+            rec->player_id,
+            path);
         return 0;
     }
-
-    DWORD written = 0;
-    if (!exists || (attrs.nFileSizeHigh == 0u && attrs.nFileSizeLow == 0u)) {
-        const char* header =
-            "fa_player_id,season,grade,original_team_id,signing_team_id,signed_on,due_on,decided_on,"
-            "action,selected_player_id,selected_player_name,selected_player_score,unprotected_candidate_count,"
-            "cash_with_player,cash_only,source\r\n";
-        WriteFile(file, header, (DWORD)strlen(header), &written, NULL);
-    }
-
-    char prefix[256] = {0};
-    int len = snprintf(
-        prefix,
-        sizeof(prefix),
-        "%u,%u,%s,%u,%u,%u,%u,%u,PLAYER,%u,",
-        rec->player_id,
-        rec->season,
-        rec->grade,
-        rec->original_team_id,
-        rec->signing_team_id,
-        rec->signed_on_yyyymmdd,
-        due_yyyymmdd,
-        decided_yyyymmdd,
-        selected->player_id);
-    if (len > 0 && len < (int)sizeof(prefix)) {
-        WriteFile(file, prefix, (DWORD)len, &written, NULL);
-    }
-    kbo_fa_compensation_write_csv_text(file, selected->player_name);
-
-    char suffix[160] = {0};
-    len = snprintf(
-        suffix,
-        sizeof(suffix),
-        ",%d,%d,%u,%u,",
-        selected->score,
-        unprotected_candidate_count,
-        rec->cash_with_player,
-        rec->cash_only);
-    if (len > 0 && len < (int)sizeof(suffix)) {
-        WriteFile(file, suffix, (DWORD)len, &written, NULL);
-    }
-    kbo_fa_compensation_write_csv_text(file, source != NULL ? source : "fa_compensation_player_ai");
-    WriteFile(file, "\r\n", 2, &written, NULL);
-    CloseHandle(file);
 
     kbo_log_runtimef(
         "KBO FA compensation player selected fa_player=%u original_team=%u signing_team=%u selected=%u name=%s score=%d unprotected=%d decision=%s",
@@ -173,55 +110,20 @@ int kbo_persist_fa_compensation_cash_only_decision(
     }
 
     char path[MAX_PATH] = {0};
-    if (!kbo_get_fa_compensation_decisions_path(path, sizeof(path))) {
+    if (!kbo_fa_compensation_decisions_sql_path(path, sizeof(path))) {
         return 0;
     }
-    char dir[MAX_PATH] = {0};
-    snprintf(dir, sizeof(dir), "%s", path);
-    char* slash = strrchr(dir, '\\');
-    if (slash != NULL) {
-        *slash = '\0';
-        CreateDirectoryA(dir, NULL);
-    }
-
-    WIN32_FILE_ATTRIBUTE_DATA attrs;
-    int exists = GetFileAttributesExA(path, GetFileExInfoStandard, &attrs);
-    HANDLE file = CreateFileA(path, FILE_APPEND_DATA, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (file == INVALID_HANDLE_VALUE) {
-        kbo_log_runtimef("KBO FA compensation cash-only decision persist failed reason=open gle=%lu path=%s", GetLastError(), path);
+    if (!kbo_fa_compensation_decisions_sql_append_cash_only_decision(
+            rec,
+            due_yyyymmdd,
+            decided_yyyymmdd,
+            source)) {
+        kbo_log_runtimef(
+            "KBO FA compensation cash-only decision persist failed reason=sqlite player=%u path=%s",
+            rec->player_id,
+            path);
         return 0;
     }
-
-    DWORD written = 0;
-    if (!exists || (attrs.nFileSizeHigh == 0u && attrs.nFileSizeLow == 0u)) {
-        const char* header =
-            "fa_player_id,season,grade,original_team_id,signing_team_id,signed_on,due_on,decided_on,"
-            "action,selected_player_id,selected_player_name,selected_player_score,unprotected_candidate_count,"
-            "cash_with_player,cash_only,source\r\n";
-        WriteFile(file, header, (DWORD)strlen(header), &written, NULL);
-    }
-
-    char row[512] = {0};
-    int len = snprintf(
-        row,
-        sizeof(row),
-        "%u,%u,%s,%u,%u,%u,%u,%u,CASH_ONLY,0,\"\",0,0,%u,%u,",
-        rec->player_id,
-        rec->season,
-        rec->grade,
-        rec->original_team_id,
-        rec->signing_team_id,
-        rec->signed_on_yyyymmdd,
-        due_yyyymmdd,
-        decided_yyyymmdd,
-        rec->cash_with_player,
-        rec->cash_only);
-    if (len > 0 && len < (int)sizeof(row)) {
-        WriteFile(file, row, (DWORD)len, &written, NULL);
-    }
-    kbo_fa_compensation_write_csv_text(file, source != NULL ? source : "fa_compensation_cash_only_ai");
-    WriteFile(file, "\r\n", 2, &written, NULL);
-    CloseHandle(file);
 
     kbo_log_runtimef(
         "KBO FA compensation cash-only selected fa_player=%u original_team=%u signing_team=%u cash_only=%u decision=%s",

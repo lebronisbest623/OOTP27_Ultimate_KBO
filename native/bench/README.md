@@ -27,8 +27,8 @@ want to stress the runtime-style readability checks.
 
 To create a real-save snapshot, open the in-game KBO hub, go to
 `모드 정보 > 설정`, then press `성능 스냅샷 / 덤프`. The DLL writes
-`perf_snapshot_players.bin` and `perf_snapshot_meta.json` under the current
-save-scoped data directory in `%LOCALAPPDATA%\OOTP-KBO\saves\...`.
+`perf_snapshot_players.bin` and `perf_snapshot_meta.json` under `cache\` inside
+the current save-scoped data directory in `%LOCALAPPDATA%\OOTP-KBO\saves\...`.
 
 The benchmark executable builds a synthetic OOTP-like player vector, wires the
 same lightweight stubs used by native tests, then records per-function timings

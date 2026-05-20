@@ -7,6 +7,7 @@
 #include "../../core/logging/core_log.h"
 #include "../state/fa_compensation_paths_parse.h"
 #include "fa_compensation_protected_lists.h"
+#include "sql/fa_compensation_protected_lists_sql_store.h"
 
 static void kbo_fa_compensation_write_csv_text(HANDLE file, const char* text)
 {
@@ -39,73 +40,27 @@ int kbo_persist_fa_compensation_protected_list(
     }
 
     char path[MAX_PATH] = {0};
-    if (!kbo_get_fa_compensation_protected_lists_path(path, sizeof(path))) {
+    if (!kbo_fa_compensation_protected_lists_sql_path(path, sizeof(path))) {
         return 0;
-    }
-    char dir[MAX_PATH] = {0};
-    snprintf(dir, sizeof(dir), "%s", path);
-    char* slash = strrchr(dir, '\\');
-    if (slash != NULL) {
-        *slash = '\0';
-        CreateDirectoryA(dir, NULL);
-    }
-
-    WIN32_FILE_ATTRIBUTE_DATA attrs;
-    int exists = GetFileAttributesExA(path, GetFileExInfoStandard, &attrs);
-    HANDLE file = CreateFileA(path, FILE_APPEND_DATA, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (file == INVALID_HANDLE_VALUE) {
-        kbo_log_runtimef("KBO FA protected list persist failed reason=open gle=%lu path=%s", GetLastError(), path);
-        return 0;
-    }
-
-    DWORD written = 0;
-    if (!exists || (attrs.nFileSizeHigh == 0u && attrs.nFileSizeLow == 0u)) {
-        const char* header =
-            "fa_player_id,season,grade,original_team_id,signing_team_id,signed_on,due_on,generated_on,"
-            "protect_count,protected_count,protected_player_ids,protected_player_names,source\r\n";
-        WriteFile(file, header, (DWORD)strlen(header), &written, NULL);
     }
 
     int protected_count = candidate_count;
     if (protected_count > (int)rec->protect_count) {
         protected_count = (int)rec->protect_count;
     }
-    char prefix[256] = {0};
-    int len = snprintf(
-        prefix,
-        sizeof(prefix),
-        "%u,%u,%s,%u,%u,%u,%u,%u,%u,%d,",
-        rec->player_id,
-        rec->season,
-        rec->grade,
-        rec->original_team_id,
-        rec->signing_team_id,
-        rec->signed_on_yyyymmdd,
-        due_yyyymmdd,
-        generated_yyyymmdd,
-        rec->protect_count,
-        protected_count);
-    if (len > 0 && len < (int)sizeof(prefix)) {
-        WriteFile(file, prefix, (DWORD)len, &written, NULL);
+    if (!kbo_fa_compensation_protected_lists_sql_append(
+            rec,
+            due_yyyymmdd,
+            generated_yyyymmdd,
+            candidates,
+            candidate_count,
+            source)) {
+        kbo_log_runtimef(
+            "KBO FA protected list persist failed reason=sqlite player=%u path=%s",
+            rec->player_id,
+            path);
+        return 0;
     }
-
-    char ids[1024] = {0};
-    char names[4096] = {0};
-    for (int i = 0; i < protected_count; i++) {
-        char chunk[32] = {0};
-        snprintf(chunk, sizeof(chunk), "%s%u", i == 0 ? "" : ";", candidates[i].player_id);
-        strncat(ids, chunk, sizeof(ids) - strlen(ids) - 1u);
-        snprintf(chunk, sizeof(chunk), "%s", i == 0 ? "" : ";");
-        strncat(names, chunk, sizeof(names) - strlen(names) - 1u);
-        strncat(names, candidates[i].player_name, sizeof(names) - strlen(names) - 1u);
-    }
-    kbo_fa_compensation_write_csv_text(file, ids);
-    WriteFile(file, ",", 1, &written, NULL);
-    kbo_fa_compensation_write_csv_text(file, names);
-    WriteFile(file, ",", 1, &written, NULL);
-    kbo_fa_compensation_write_csv_text(file, source != NULL ? source : "fa_compensation_protected_list_ai");
-    WriteFile(file, "\r\n", 2, &written, NULL);
-    CloseHandle(file);
 
     kbo_log_runtimef(
         "KBO FA protected list generated fa_player=%u signing_team=%u original_team=%u grade=%s protected=%d/%u due=%u path=%s",

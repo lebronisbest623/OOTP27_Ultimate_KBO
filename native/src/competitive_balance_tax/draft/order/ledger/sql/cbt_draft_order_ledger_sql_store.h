@@ -1,0 +1,8 @@
+#ifndef KBOFIX_SRC_COMPETITIVE_BALANCE_TAX_DRAFT_ORDER_LEDGER_SQL_CBT_DRAFT_ORDER_LEDGER_SQL_STORE_H_
+#define KBOFIX_SRC_COMPETITIVE_BALANCE_TAX_DRAFT_ORDER_LEDGER_SQL_CBT_DRAFT_ORDER_LEDGER_SQL_STORE_H_
+
+#include "../cbt_draft_order_ledger.h"
+
+int kbo_cbt_draft_order_ledger_sql_append(const KboCbtDraftOrderMove* move, const char* source);
+
+#endif

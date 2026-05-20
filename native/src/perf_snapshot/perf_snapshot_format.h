@@ -7,6 +7,8 @@
 #define KBO_PERF_SNAPSHOT_MAGIC_BYTES 8u
 #define KBO_PERF_SNAPSHOT_PLAYER_FILE "perf_snapshot_players.bin"
 #define KBO_PERF_SNAPSHOT_META_FILE "perf_snapshot_meta.json"
+#define KBO_PERF_SNAPSHOT_PLAYER_PATH "cache\\perf_snapshot_players.bin"
+#define KBO_PERF_SNAPSHOT_META_PATH "cache\\perf_snapshot_meta.json"
 
 #pragma pack(push, 1)
 typedef struct KboPerfSnapshotHeader {

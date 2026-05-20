@@ -2,6 +2,7 @@
 #include "../../../core/csv/core_csv.h"
 #include "../../../core/dates/core_text_date.h"
 #include "../../../core/core_flags/keys/runtime_flag_keys.generated.h"
+#include "../records/sql/foreign_injury_replacements_sql_store.h"
 
 static int kbo_foreign_injury_persisted_date_span_plausible(
     uint32_t opened_on,
@@ -83,80 +84,57 @@ int kbo_load_foreign_injury_replacements_locked(const char* path)
     }
     snprintf(g_kbo_foreign_injury_replacement_loaded_path, sizeof(g_kbo_foreign_injury_replacement_loaded_path), "%s", path);
 
-    KboCsvReader* reader = kbo_csv_reader_open(path);
-    if (reader == NULL) {
+    KboForeignInjuryReplacement loaded_records[KBO_FOREIGN_INJURY_REPLACEMENT_MAX];
+    memset(loaded_records, 0, sizeof(loaded_records));
+    int loaded_count = 0;
+    if (!kbo_foreign_injury_replacements_sql_load(
+            loaded_records,
+            KBO_FOREIGN_INJURY_REPLACEMENT_MAX,
+            &loaded_count)) {
         return 0;
     }
 
     int loaded = 0;
     int invalid_date_span = 0;
-    while (g_kbo_foreign_injury_replacement_count < KBO_FOREIGN_INJURY_REPLACEMENT_MAX
-            && kbo_csv_reader_next_row(reader)) {
-        char fields[12][96];
-        int field_count = kbo_csv_reader_read_trimmed_fields(reader, (char*)fields, sizeof(fields[0]), 12);
-        if (field_count < 9 || fields[0][0] < '0' || fields[0][0] > '9') {
+    for (int i = 0; i < loaded_count && g_kbo_foreign_injury_replacement_count < KBO_FOREIGN_INJURY_REPLACEMENT_MAX; i++) {
+        KboForeignInjuryReplacement rec = loaded_records[i];
+        if (rec.team_id == 0u
+                || rec.injured_player_id == 0u
+                || rec.slot_type < KBO_FOREIGN_INJURY_SLOT_REGULAR
+                || rec.slot_type > KBO_FOREIGN_INJURY_SLOT_ASIAN_QUOTA
+                || rec.status < KBO_FOREIGN_INJURY_STATUS_OPEN
+                || rec.status > KBO_FOREIGN_INJURY_STATUS_CLOSED) {
             continue;
         }
-
-        uint32_t team_id = kbo_csv_parse_u32_text(fields[0], 10);
-        uint32_t league_id = kbo_csv_parse_u32_text(fields[1], 10);
-        uint32_t injured_player_id = kbo_csv_parse_u32_text(fields[2], 10);
-        uint32_t replacement_player_id = kbo_csv_parse_u32_text(fields[3], 10);
-        uint32_t opened_on = kbo_csv_parse_u32_text(fields[4], 10);
-        uint32_t expected_end = kbo_csv_parse_u32_text(fields[5], 10);
-        uint32_t slot_type = kbo_csv_parse_u32_text(fields[6], 10);
-        uint32_t status = kbo_csv_parse_u32_text(fields[7], 10);
-        uint32_t converted = kbo_csv_parse_u32_text(fields[8], 10);
-        uint32_t injury_id = field_count >= 10 ? kbo_csv_parse_u32_text(fields[9], 10) : 0u;
-        uint32_t closed_on = field_count >= 11 ? kbo_csv_parse_u32_text(fields[10], 10) : 0u;
-        uint32_t close_choice = field_count >= 12 ? kbo_csv_parse_u32_text(fields[11], 10) : 0u;
-        if (team_id != 0u
-                && injured_player_id != 0u
-                && slot_type >= KBO_FOREIGN_INJURY_SLOT_REGULAR
-                && slot_type <= KBO_FOREIGN_INJURY_SLOT_ASIAN_QUOTA
-                && status >= KBO_FOREIGN_INJURY_STATUS_OPEN
-                && status <= KBO_FOREIGN_INJURY_STATUS_CLOSED) {
-            if (!kbo_foreign_injury_persisted_date_span_plausible(opened_on, expected_end)) {
-                invalid_date_span++;
-                if (invalid_date_span <= 20) {
-                    kbo_log_runtimef(
-                        "foreign injury replacement: discarded persisted record with invalid date span team=%u injured=%u opened=%u expected_end=%u status=%u path=%s",
-                        team_id,
-                        injured_player_id,
-                        opened_on,
-                        expected_end,
-                        status,
-                        path);
-                }
-                continue;
+        if (!kbo_foreign_injury_persisted_date_span_plausible(
+                rec.opened_on_yyyymmdd,
+                rec.expected_end_yyyymmdd)) {
+            invalid_date_span++;
+            if (invalid_date_span <= 20) {
+                kbo_log_runtimef(
+                    "foreign injury replacement: discarded persisted record with invalid date span team=%u injured=%u opened=%u expected_end=%u status=%u path=%s",
+                    rec.team_id,
+                    rec.injured_player_id,
+                    rec.opened_on_yyyymmdd,
+                    rec.expected_end_yyyymmdd,
+                    (uint32_t)rec.status,
+                    path);
             }
-            KboForeignInjuryReplacement* rec = &g_kbo_foreign_injury_replacements[g_kbo_foreign_injury_replacement_count++];
-            rec->team_id = team_id;
-            rec->league_id = league_id;
-            rec->injured_player_id = injured_player_id;
-            rec->replacement_player_id = replacement_player_id;
-            rec->opened_on_yyyymmdd = opened_on;
-            rec->expected_end_yyyymmdd = expected_end;
-            rec->slot_type = (uint8_t)slot_type;
-            rec->status = (uint8_t)status;
-            rec->converted = converted ? 1u : 0u;
-            rec->injury_id = injury_id;
-            rec->closed_on_yyyymmdd = closed_on;
-            rec->close_choice = (uint8_t)close_choice;
-            if (rec->status != KBO_FOREIGN_INJURY_STATUS_CLOSED) {
-                rec->closed_on_yyyymmdd = 0u;
-                rec->close_choice = 0u;
-            } else if (rec->close_choice == 0u) {
-                rec->close_choice = rec->converted
-                    ? KBO_FOREIGN_INJURY_CLOSE_KEEP_REPLACEMENT
-                    : KBO_FOREIGN_INJURY_CLOSE_KEEP_INJURED;
-            }
-            kbo_foreign_injury_normalize_record_org_team(rec);
-            loaded++;
+            continue;
         }
+        if (rec.status != KBO_FOREIGN_INJURY_STATUS_CLOSED) {
+            rec.closed_on_yyyymmdd = 0u;
+            rec.close_choice = 0u;
+        } else if (rec.close_choice == 0u) {
+            rec.close_choice = rec.converted
+                ? KBO_FOREIGN_INJURY_CLOSE_KEEP_REPLACEMENT
+                : KBO_FOREIGN_INJURY_CLOSE_KEEP_INJURED;
+        }
+        kbo_foreign_injury_normalize_record_org_team(&rec);
+        g_kbo_foreign_injury_replacements[g_kbo_foreign_injury_replacement_count++] = rec;
+        loaded++;
     }
 
-    kbo_csv_reader_close(reader);
     kbo_log_runtimef(
         "foreign injury replacement: loaded=%d invalid_date_span=%d path=%s",
         loaded,

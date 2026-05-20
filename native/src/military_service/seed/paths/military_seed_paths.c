@@ -4,6 +4,7 @@
 #include "../../../bootstrap/abi/ootp_offsets.h"
 #include "../../../core/logging/core_log.h"
 #include "../../../core/files/save_paths/core_save_paths.h"
+#include "../../../core/sql/save_state/save_state_sqlite.h"
 #include "../../../core/dates/core_text_date.h"
 #include "../../../core/core_flags/api/flags_api.h"
 #include "../../../runtime_memory/runtime_memory.h"
@@ -34,7 +35,7 @@ int kbo_get_save_military_service_resolved_path(char* out, size_t out_size)
         return 0;
     }
     out[0] = '\0';
-    return kbo_get_save_scoped_data_file("military_service_resolved.csv", out, out_size);
+    return kbo_save_state_db_path(out, out_size);
 }
 
 int kbo_get_current_players_dat_path_for_military_seed(char* out, size_t out_size)

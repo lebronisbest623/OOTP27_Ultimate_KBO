@@ -169,9 +169,9 @@ Runtime booleans live in:
 
 Native callers read canonical JSON keys from `kbo_flags.json`; callers may pass
 old `.txt`-shaped names only as a local normalization convenience.
-Status files, command files, seeds, CSVs, and save-scoped persistence remain
-separate files. New save-scoped gameplay state should move toward the
-mod-owned `kbo_state.sqlite3` described in `docs/SAVE_SYSTEM.md`.
+Save-specific config, seed, and command inputs remain editable files. Durable
+save-scoped gameplay state should use the mod-owned `kbo_state.sqlite3`
+described in `docs/SAVE_SYSTEM.md`.
 
 The F2 hub intentionally exposes recovery flags so users can disable risky
 runtime paths without editing JSON by hand. Runtime flag metadata is sourced
