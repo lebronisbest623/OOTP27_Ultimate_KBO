@@ -20,11 +20,19 @@ int kbo_independent_acquisition_seller_apply_transfer(
     int* out_cash_charged,
     int32_t* out_old_cash,
     int32_t* out_new_cash,
+    int* out_seller_cash_credited,
+    int32_t* out_seller_old_cash,
+    int32_t* out_seller_new_cash,
+    int32_t* out_seller_transfer_fee,
     int32_t* out_cash_cost)
 {
     if (out_cash_charged != NULL) { *out_cash_charged = 0; }
     if (out_old_cash != NULL) { *out_old_cash = 0; }
     if (out_new_cash != NULL) { *out_new_cash = 0; }
+    if (out_seller_cash_credited != NULL) { *out_seller_cash_credited = 0; }
+    if (out_seller_old_cash != NULL) { *out_seller_old_cash = 0; }
+    if (out_seller_new_cash != NULL) { *out_seller_new_cash = 0; }
+    if (out_seller_transfer_fee != NULL) { *out_seller_transfer_fee = 0; }
     if (out_cash_cost != NULL) { *out_cash_cost = 0; }
     if (selected == NULL) {
         return 0;
@@ -36,10 +44,17 @@ int kbo_independent_acquisition_seller_apply_transfer(
     int cash_charged = 0;
     int32_t old_cash = 0;
     int32_t new_cash = 0;
+    int seller_cash_credited = 0;
+    int32_t seller_old_cash = 0;
+    int32_t seller_new_cash = 0;
+    int32_t seller_transfer_fee = 0;
     int32_t cash_cost = selected->cash_cost;
     if (cash_cost <= 0 && player != NULL) {
         cash_cost = kbo_independent_acquisition_cash_cost_for_player(player);
         selected->cash_cost = cash_cost;
+    }
+    if (player != NULL) {
+        seller_transfer_fee = kbo_independent_acquisition_seller_transfer_fee_for_player(player);
     }
 
     if (!seller_limit_reached
@@ -72,6 +87,21 @@ int kbo_independent_acquisition_seller_apply_transfer(
                     selected->player_id,
                     cash_cost);
             }
+            if (cash_charged && seller_team != NULL && seller_transfer_fee > 0) {
+                seller_cash_credited = kbo_independent_acquisition_credit_team_cash(
+                    seller_team,
+                    seller_transfer_fee,
+                    &seller_old_cash,
+                    &seller_new_cash);
+                if (!seller_cash_credited) {
+                    kbo_log_runtimef(
+                        "independent acquisition seller AI seller cash credit failed source=%s seller=%u player=%u transfer_fee=%d",
+                        source != NULL ? source : "",
+                        selected->seller_team_id,
+                        selected->player_id,
+                        seller_transfer_fee);
+                }
+            }
         }
     }
     if (moved && cash_charged) {
@@ -90,6 +120,10 @@ int kbo_independent_acquisition_seller_apply_transfer(
     if (out_cash_charged != NULL) { *out_cash_charged = cash_charged; }
     if (out_old_cash != NULL) { *out_old_cash = old_cash; }
     if (out_new_cash != NULL) { *out_new_cash = new_cash; }
+    if (out_seller_cash_credited != NULL) { *out_seller_cash_credited = seller_cash_credited; }
+    if (out_seller_old_cash != NULL) { *out_seller_old_cash = seller_old_cash; }
+    if (out_seller_new_cash != NULL) { *out_seller_new_cash = seller_new_cash; }
+    if (out_seller_transfer_fee != NULL) { *out_seller_transfer_fee = seller_transfer_fee; }
     if (out_cash_cost != NULL) { *out_cash_cost = cash_cost; }
     return moved;
 }

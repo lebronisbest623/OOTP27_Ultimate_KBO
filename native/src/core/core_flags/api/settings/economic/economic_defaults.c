@@ -78,6 +78,12 @@ static int32_t kbo_economic_default_positive_int(const char* key, int32_t fallba
     return value > 0 ? value : fallback;
 }
 
+static int32_t kbo_economic_default_nonnegative_int(const char* key, int32_t fallback)
+{
+    int32_t value = kbo_economic_default_int(key, fallback);
+    return value >= 0 ? value : fallback;
+}
+
 static int32_t kbo_economic_default_indexed(
     int index,
     const char* const* keys,
@@ -164,5 +170,19 @@ int32_t kbo_economic_default_independent_acquisition_domestic_cash_cost(void)
 {
     return kbo_economic_default_positive_int(
         "independent_acquisition_domestic_cash_cost",
+        KBO_ECONOMIC_INDEPENDENT_ACQUISITION_DOMESTIC_CASH_COST_FALLBACK);
+}
+
+int32_t kbo_economic_default_independent_acquisition_foreign_seller_transfer_fee(void)
+{
+    return kbo_economic_default_nonnegative_int(
+        "independent_acquisition_foreign_seller_transfer_fee",
+        KBO_ECONOMIC_INDEPENDENT_ACQUISITION_FOREIGN_CASH_COST_FALLBACK);
+}
+
+int32_t kbo_economic_default_independent_acquisition_domestic_seller_transfer_fee(void)
+{
+    return kbo_economic_default_nonnegative_int(
+        "independent_acquisition_domestic_seller_transfer_fee",
         KBO_ECONOMIC_INDEPENDENT_ACQUISITION_DOMESTIC_CASH_COST_FALLBACK);
 }

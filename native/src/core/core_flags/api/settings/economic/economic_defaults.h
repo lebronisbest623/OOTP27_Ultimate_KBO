@@ -13,5 +13,7 @@ int kbo_economic_default_intl_established_fa_multiplier(void);
 int kbo_economic_default_asian_games_no_gold_odds_denominator(void);
 int32_t kbo_economic_default_independent_acquisition_foreign_cash_cost(void);
 int32_t kbo_economic_default_independent_acquisition_domestic_cash_cost(void);
+int32_t kbo_economic_default_independent_acquisition_foreign_seller_transfer_fee(void);
+int32_t kbo_economic_default_independent_acquisition_domestic_seller_transfer_fee(void);
 
 #endif

@@ -145,6 +145,7 @@ public sealed class KboFlagsTests : IDisposable
           "enable_kbo_profiler": true,
           "foreign_fa_demand_minimum_salary": 700000,
           "foreign_fa_demand_average_salary": 1050000,
+          "independent_acquisition_foreign_seller_transfer_fee": 80000,
           "intl_established_fa_multiplier": 18
         }
         """);
@@ -161,11 +162,13 @@ public sealed class KboFlagsTests : IDisposable
         flags.Keys.Should().NotContain([
             "foreign_fa_demand_minimum_salary",
             "foreign_fa_demand_average_salary",
+            "independent_acquisition_foreign_seller_transfer_fee",
             "intl_established_fa_multiplier"]);
 
         using var settingsDoc = JsonDocument.Parse(File.ReadAllText(settingsPath));
         settingsDoc.RootElement.GetProperty("foreign_fa_demand_minimum_salary").GetInt32().Should().Be(700000);
         settingsDoc.RootElement.GetProperty("foreign_fa_demand_average_salary").GetInt32().Should().Be(900000);
+        settingsDoc.RootElement.GetProperty("independent_acquisition_foreign_seller_transfer_fee").GetInt32().Should().Be(80000);
         settingsDoc.RootElement.GetProperty("intl_established_fa_multiplier").GetInt32().Should().Be(18);
     }
 

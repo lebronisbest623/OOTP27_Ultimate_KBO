@@ -95,6 +95,8 @@ int kbo_set_allow_all_ui_team_actions_setting(int enabled)
 
 #define KBO_INDEPENDENT_ACQUISITION_FOREIGN_CASH_COST_KEY "independent_acquisition_foreign_cash_cost"
 #define KBO_INDEPENDENT_ACQUISITION_DOMESTIC_CASH_COST_KEY "independent_acquisition_domestic_cash_cost"
+#define KBO_INDEPENDENT_ACQUISITION_FOREIGN_SELLER_TRANSFER_FEE_KEY "independent_acquisition_foreign_seller_transfer_fee"
+#define KBO_INDEPENDENT_ACQUISITION_DOMESTIC_SELLER_TRANSFER_FEE_KEY "independent_acquisition_domestic_seller_transfer_fee"
 
 int32_t kbo_clamp_independent_acquisition_cash_cost(int32_t value)
 {
@@ -133,6 +135,30 @@ int32_t kbo_get_independent_acquisition_domestic_cash_cost(void)
     return kbo_clamp_independent_acquisition_cash_cost(value);
 }
 
+int32_t kbo_get_independent_acquisition_foreign_seller_transfer_fee(void)
+{
+    int default_value = kbo_economic_default_independent_acquisition_foreign_seller_transfer_fee();
+    int value = default_value;
+    if (!kbo_read_localappdata_setting_int_value(
+            KBO_INDEPENDENT_ACQUISITION_FOREIGN_SELLER_TRANSFER_FEE_KEY,
+            &value)) {
+        value = default_value;
+    }
+    return kbo_clamp_independent_acquisition_cash_cost(value);
+}
+
+int32_t kbo_get_independent_acquisition_domestic_seller_transfer_fee(void)
+{
+    int default_value = kbo_economic_default_independent_acquisition_domestic_seller_transfer_fee();
+    int value = default_value;
+    if (!kbo_read_localappdata_setting_int_value(
+            KBO_INDEPENDENT_ACQUISITION_DOMESTIC_SELLER_TRANSFER_FEE_KEY,
+            &value)) {
+        value = default_value;
+    }
+    return kbo_clamp_independent_acquisition_cash_cost(value);
+}
+
 int kbo_set_independent_acquisition_foreign_cash_cost(int32_t value)
 {
     return kbo_write_localappdata_setting_int_value(
@@ -144,6 +170,20 @@ int kbo_set_independent_acquisition_domestic_cash_cost(int32_t value)
 {
     return kbo_write_localappdata_setting_int_value(
         KBO_INDEPENDENT_ACQUISITION_DOMESTIC_CASH_COST_KEY,
+        kbo_clamp_independent_acquisition_cash_cost(value));
+}
+
+int kbo_set_independent_acquisition_foreign_seller_transfer_fee(int32_t value)
+{
+    return kbo_write_localappdata_setting_int_value(
+        KBO_INDEPENDENT_ACQUISITION_FOREIGN_SELLER_TRANSFER_FEE_KEY,
+        kbo_clamp_independent_acquisition_cash_cost(value));
+}
+
+int kbo_set_independent_acquisition_domestic_seller_transfer_fee(int32_t value)
+{
+    return kbo_write_localappdata_setting_int_value(
+        KBO_INDEPENDENT_ACQUISITION_DOMESTIC_SELLER_TRANSFER_FEE_KEY,
         kbo_clamp_independent_acquisition_cash_cost(value));
 }
 

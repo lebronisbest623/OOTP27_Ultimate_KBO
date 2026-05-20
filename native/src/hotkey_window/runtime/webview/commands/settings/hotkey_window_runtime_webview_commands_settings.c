@@ -257,5 +257,57 @@ int kbo_webview_handle_settings_command(const char* cmd)
         kbo_webview_navigate_current();
         return 1;
     }
+    const char* independent_foreign_seller_transfer_fee_prefix =
+        "settings/independent-acquisition-foreign-seller-transfer-fee/";
+    size_t independent_foreign_seller_transfer_fee_prefix_len =
+        strlen(independent_foreign_seller_transfer_fee_prefix);
+    if (strncmp(
+            cmd,
+            independent_foreign_seller_transfer_fee_prefix,
+            independent_foreign_seller_transfer_fee_prefix_len) == 0) {
+        if (!kbo_hub_selected_league_is_kbo()) {
+            g_kbo_hub_selected_view = KBO_HUB_VIEW_MOD_INFO;
+            g_kbo_hub_open_dropdown = 0;
+            kbo_webview_navigate_current();
+            return 1;
+        }
+        int32_t value = (int32_t)atoi(cmd + independent_foreign_seller_transfer_fee_prefix_len);
+        int32_t clamped = kbo_clamp_independent_acquisition_cash_cost(value);
+        if (kbo_set_independent_acquisition_foreign_seller_transfer_fee(value)) {
+            kbo_log_runtimef("settings webview: independent acquisition foreign seller transfer fee=%d", clamped);
+        } else {
+            kbo_log_runtimef("settings webview: failed to write independent acquisition foreign seller transfer fee=%d", value);
+        }
+        g_kbo_hub_selected_view = KBO_HUB_VIEW_SETTINGS;
+        g_kbo_hub_open_dropdown = 0;
+        kbo_webview_navigate_current();
+        return 1;
+    }
+    const char* independent_domestic_seller_transfer_fee_prefix =
+        "settings/independent-acquisition-domestic-seller-transfer-fee/";
+    size_t independent_domestic_seller_transfer_fee_prefix_len =
+        strlen(independent_domestic_seller_transfer_fee_prefix);
+    if (strncmp(
+            cmd,
+            independent_domestic_seller_transfer_fee_prefix,
+            independent_domestic_seller_transfer_fee_prefix_len) == 0) {
+        if (!kbo_hub_selected_league_is_kbo()) {
+            g_kbo_hub_selected_view = KBO_HUB_VIEW_MOD_INFO;
+            g_kbo_hub_open_dropdown = 0;
+            kbo_webview_navigate_current();
+            return 1;
+        }
+        int32_t value = (int32_t)atoi(cmd + independent_domestic_seller_transfer_fee_prefix_len);
+        int32_t clamped = kbo_clamp_independent_acquisition_cash_cost(value);
+        if (kbo_set_independent_acquisition_domestic_seller_transfer_fee(value)) {
+            kbo_log_runtimef("settings webview: independent acquisition domestic seller transfer fee=%d", clamped);
+        } else {
+            kbo_log_runtimef("settings webview: failed to write independent acquisition domestic seller transfer fee=%d", value);
+        }
+        g_kbo_hub_selected_view = KBO_HUB_VIEW_SETTINGS;
+        g_kbo_hub_open_dropdown = 0;
+        kbo_webview_navigate_current();
+        return 1;
+    }
     return 0;
 }

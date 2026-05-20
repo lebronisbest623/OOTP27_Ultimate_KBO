@@ -42,7 +42,9 @@ internal static partial class KboFlags
         "foreign_fa_non_asian_starter_quality_cap",
         "foreign_fa_quality_cap_enabled",
         "independent_acquisition_domestic_cash_cost",
+        "independent_acquisition_domestic_seller_transfer_fee",
         "independent_acquisition_foreign_cash_cost",
+        "independent_acquisition_foreign_seller_transfer_fee",
         "intl_established_fa_multiplier",
     ];
 

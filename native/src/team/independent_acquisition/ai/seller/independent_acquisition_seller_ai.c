@@ -2,13 +2,12 @@
 #include <windows.h>
 
 #include "../independent_acquisition_ai_internal.h"
+#include "helpers/decision/independent_acquisition_seller_decision.h"
 #include "helpers/fit/independent_acquisition_seller_ai_helpers.h"
 #include "helpers/queue/independent_acquisition_seller_queue.h"
 #include "helpers/transfer/independent_acquisition_seller_transfer.h"
 
-#include <inttypes.h>
 #include <stdint.h>
-#include <stdio.h>
 
 #include "../../../../bootstrap/abi/ootp_offsets.h"
 #include "../../../../core/core_flags/api/flags_api.h"
@@ -318,6 +317,10 @@ int kbo_run_independent_team_acquisition_seller_ai(
         int cash_charged = 0;
         int32_t old_cash = 0;
         int32_t new_cash = 0;
+        int seller_cash_credited = 0;
+        int32_t seller_old_cash = 0;
+        int32_t seller_new_cash = 0;
+        int32_t seller_transfer_fee = 0;
         int32_t cash_cost = 0;
         if (kbo_independent_acquisition_seller_abort_if_save(source, "before_assignment", today)) {
             abort_for_save = 1;
@@ -333,13 +336,38 @@ int kbo_run_independent_team_acquisition_seller_ai(
             &cash_charged,
             &old_cash,
             &new_cash,
+            &seller_cash_credited,
+            &seller_old_cash,
+            &seller_new_cash,
+            &seller_transfer_fee,
             &cash_cost);
 
         if (kbo_independent_acquisition_seller_abort_if_save(source, "before_append_decision", today)) {
             abort_for_save = 1;
             break;
         }
-        if (kbo_independent_acquisition_append_decision(today, &selected, moved, old_cash, new_cash, source)) {
+        if (kbo_independent_acquisition_seller_append_decision_and_log(
+                today,
+                &selected,
+                moved,
+                old_cash,
+                new_cash,
+                cash_cost,
+                seller_transfer_fee,
+                seller_old_cash,
+                seller_new_cash,
+                seller_cash_credited,
+                best->request_score,
+                best_fit_score,
+                reservation_score,
+                hold_value,
+                second_best_request_score,
+                market_offer_count,
+                best_buyer_transfers,
+                best_tiebreaker,
+                seller_transfers,
+                seller_transfer_limit,
+                source)) {
             decided++;
             if (moved) {
                 transferred++;
@@ -347,28 +375,6 @@ int kbo_run_independent_team_acquisition_seller_ai(
                     daily_seller_transfer_counts[daily_seller_index]++;
                 }
             }
-            char request_score_text[32] = {0};
-            snprintf(request_score_text, sizeof(request_score_text), "%" PRId64, (int64_t)best->request_score);
-            kbo_log_runtimef(
-                "independent acquisition seller AI decision source=%s seller=%u player=%u buyer=%u score=%s adjusted_fit=%lld reservation=%lld hold_value=%lld second_best=%lld market_offers=%d buyer_transfers=%d tiebreaker=%u cash_cost=%d old_cash=%d new_cash=%d transferred=%d seller_transfers=%d seller_transfer_limit=%d",
-                source != NULL ? source : "",
-                selected.seller_team_id,
-                selected.player_id,
-                selected.buyer_team_id,
-                request_score_text,
-                (long long)best_fit_score,
-                (long long)reservation_score,
-                (long long)hold_value,
-                (long long)second_best_request_score,
-                market_offer_count,
-                best_buyer_transfers,
-                best_tiebreaker,
-                cash_cost,
-                old_cash,
-                new_cash,
-                moved,
-                seller_transfers,
-                seller_transfer_limit);
         }
     }
 

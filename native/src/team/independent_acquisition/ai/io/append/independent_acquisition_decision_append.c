@@ -63,6 +63,9 @@ int kbo_independent_acquisition_append_decision(
     int transferred,
     int32_t old_cash,
     int32_t new_cash,
+    int32_t seller_transfer_fee,
+    int32_t seller_old_cash,
+    int32_t seller_new_cash,
     const char* source)
 {
     if (today == 0u || request == NULL) {
@@ -98,7 +101,7 @@ int kbo_independent_acquisition_append_decision(
     snprintf(
         line,
         sizeof(line),
-        "{\"date\":%u,\"season\":%u,\"seller_team_id\":%u,\"player_id\":%u,\"buyer_team_id\":%u,\"request_score\":%s,\"value_score\":%d,\"cash_cost\":%d,\"old_cash\":%d,\"new_cash\":%d,\"transferred\":%u,\"source\":\"",
+        "{\"date\":%u,\"season\":%u,\"seller_team_id\":%u,\"player_id\":%u,\"buyer_team_id\":%u,\"request_score\":%s,\"value_score\":%d,\"cash_cost\":%d,\"old_cash\":%d,\"new_cash\":%d,\"seller_transfer_fee\":%d,\"seller_old_cash\":%d,\"seller_new_cash\":%d,\"transferred\":%u,\"source\":\"",
         today,
         request->season,
         request->seller_team_id,
@@ -109,6 +112,9 @@ int kbo_independent_acquisition_append_decision(
         request->cash_cost,
         old_cash,
         new_cash,
+        seller_transfer_fee,
+        seller_old_cash,
+        seller_new_cash,
         transferred ? 1u : 0u);
     kbo_independent_acquisition_json_append_escaped(line, sizeof(line), source != NULL ? source : "");
     size_t used = strlen(line);

@@ -63,6 +63,16 @@ int32_t kbo_independent_acquisition_cash_cost_for_player(uint8_t* player)
         : kbo_get_independent_acquisition_domestic_cash_cost();
 }
 
+int32_t kbo_independent_acquisition_seller_transfer_fee_for_player(uint8_t* player)
+{
+    if (player == NULL || !memory_range_readable(player, OOTP27_PLAYER_SCAN_BYTES)) {
+        return 0;
+    }
+    return kbo_player_is_foreign_for_kbo_rights(player)
+        ? kbo_get_independent_acquisition_foreign_seller_transfer_fee()
+        : kbo_get_independent_acquisition_domestic_seller_transfer_fee();
+}
+
 int kbo_independent_acquisition_team_has_cash(uint8_t* team, int32_t cash_cost)
 {
     if (cash_cost <= 0) {
@@ -91,6 +101,37 @@ int kbo_independent_acquisition_charge_team_cash(
 
     int32_t old_cash = *cash;
     int32_t new_cash = old_cash - cash_cost;
+    *cash = new_cash;
+    if (out_old_cash != NULL) { *out_old_cash = old_cash; }
+    if (out_new_cash != NULL) { *out_new_cash = new_cash; }
+    return 1;
+}
+
+int kbo_independent_acquisition_credit_team_cash(
+    uint8_t* team,
+    int32_t cash_receipt,
+    int32_t* out_old_cash,
+    int32_t* out_new_cash)
+{
+    if (out_old_cash != NULL) { *out_old_cash = 0; }
+    if (out_new_cash != NULL) { *out_new_cash = 0; }
+    if (cash_receipt <= 0) {
+        return 0;
+    }
+
+    int32_t* cash = kbo_independent_acquisition_team_cash_ptr(team);
+    if (cash == NULL) {
+        return 0;
+    }
+
+    int32_t old_cash = *cash;
+    int64_t new_cash64 = (int64_t)old_cash + (int64_t)cash_receipt;
+    if (new_cash64 <= -KBO_INDEPENDENT_ACQUISITION_FINANCIAL_FIELD_ABS_LIMIT
+            || new_cash64 >= KBO_INDEPENDENT_ACQUISITION_FINANCIAL_FIELD_ABS_LIMIT) {
+        return 0;
+    }
+
+    int32_t new_cash = (int32_t)new_cash64;
     *cash = new_cash;
     if (out_old_cash != NULL) { *out_old_cash = old_cash; }
     if (out_new_cash != NULL) { *out_new_cash = new_cash; }

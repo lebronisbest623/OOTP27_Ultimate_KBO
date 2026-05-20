@@ -87,10 +87,16 @@ typedef struct KboIndependentAcquisitionDecisionKey {
 
 int32_t* kbo_independent_acquisition_team_cash_ptr(uint8_t* team);
 int32_t kbo_independent_acquisition_cash_cost_for_player(uint8_t* player);
+int32_t kbo_independent_acquisition_seller_transfer_fee_for_player(uint8_t* player);
 int kbo_independent_acquisition_team_has_cash(uint8_t* team, int32_t cash_cost);
 int kbo_independent_acquisition_charge_team_cash(
     uint8_t* team,
     int32_t cash_cost,
+    int32_t* out_old_cash,
+    int32_t* out_new_cash);
+int kbo_independent_acquisition_credit_team_cash(
+    uint8_t* team,
+    int32_t cash_receipt,
     int32_t* out_old_cash,
     int32_t* out_new_cash);
 void kbo_independent_acquisition_read_buyer_state(
@@ -178,6 +184,9 @@ int kbo_independent_acquisition_append_decision(
     int transferred,
     int32_t old_cash,
     int32_t new_cash,
+    int32_t seller_transfer_fee,
+    int32_t seller_old_cash,
+    int32_t seller_new_cash,
     const char* source);
 int kbo_emit_independent_acquisition_transfer_news(
     uint32_t today,

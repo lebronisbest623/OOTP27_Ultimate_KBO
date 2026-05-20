@@ -11,6 +11,8 @@ $ForeignRetentionScoreGateTestSrc = Join-Path $PSScriptRoot "test_foreign_retent
 $ForeignRetentionScoreGateTestExe = Join-Path $PSScriptRoot "test_foreign_retention_score_gate.exe"
 $ForeignOfferAttachHookPolicyTestSrc = Join-Path $PSScriptRoot "test_foreign_offer_attach_hook_policy.c"
 $ForeignOfferAttachHookPolicyTestExe = Join-Path $PSScriptRoot "test_foreign_offer_attach_hook_policy.exe"
+$IndependentAcquisitionCashFlowTestSrc = Join-Path $PSScriptRoot "test_independent_acquisition_cash_flow.c"
+$IndependentAcquisitionCashFlowTestExe = Join-Path $PSScriptRoot "test_independent_acquisition_cash_flow.exe"
 $IntlEstablishedFaMarketNormalizeTestSrc = Join-Path $PSScriptRoot "test_intl_established_fa_market_normalize.c"
 $IntlEstablishedFaMarketNormalizeTestExe = Join-Path $PSScriptRoot "test_intl_established_fa_market_normalize.exe"
 $FaDeclarationRepairTestSrc = Join-Path $PSScriptRoot "test_fa_declaration_repair.c"
@@ -133,6 +135,21 @@ if ($LASTEXITCODE -ne 0) {
 & $ForeignOfferAttachHookPolicyTestExe
 if ($LASTEXITCODE -ne 0) {
     throw "Foreign offer attach hook policy tests failed"
+}
+
+& $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
+    -I $Root `
+    -I (Join-Path $Root "src") `
+    -o $IndependentAcquisitionCashFlowTestExe `
+    $IndependentAcquisitionCashFlowTestSrc `
+    (Join-Path $Root "src\team\independent_acquisition\ai\buyer\independent_acquisition_buyer_state.c")
+if ($LASTEXITCODE -ne 0) {
+    throw "Independent acquisition cash flow test build failed"
+}
+
+& $IndependentAcquisitionCashFlowTestExe
+if ($LASTEXITCODE -ne 0) {
+    throw "Independent acquisition cash flow tests failed"
 }
 
 & $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `

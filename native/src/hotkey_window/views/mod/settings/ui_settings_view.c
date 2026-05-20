@@ -167,6 +167,8 @@ void kbo_webview_append_settings_view(KboWindowTextBuffer* buffer, int selected_
     int asian_games_no_gold_odds = kbo_get_asian_games_no_gold_odds_denominator();
     int32_t independent_foreign_cash_cost = kbo_get_independent_acquisition_foreign_cash_cost();
     int32_t independent_domestic_cash_cost = kbo_get_independent_acquisition_domestic_cash_cost();
+    int32_t independent_foreign_seller_transfer_fee = kbo_get_independent_acquisition_foreign_seller_transfer_fee();
+    int32_t independent_domestic_seller_transfer_fee = kbo_get_independent_acquisition_domestic_seller_transfer_fee();
     kbo_window_text_appendf(buffer, "<div class='settingRow'><label class='settingLabel' for='foreignFaQualityCapSelect'>");
     kbo_html_append_escaped(buffer, kbo_hub_text("\xec\x99\xb8\xea\xb5\xad\xec\x9d\xb8 \xec\x83\x9d\xec\x84\xb1 \xed\x92\x88\xec\xa7\x88 \xec\xba\xa1", "외국인 생성 품질 캡"));
     kbo_window_text_appendf(buffer, "</label>");
@@ -202,7 +204,7 @@ void kbo_webview_append_settings_view(KboWindowTextBuffer* buffer, int selected_
     kbo_window_text_appendf(
         buffer,
         "<div class='settingRow'><label class='settingLabel' for='independentForeignCashCost'>");
-    kbo_html_append_escaped(buffer, kbo_hub_text("\xec\x99\xb8\xea\xb5\xad\xec\x9d\xb8 \xec\x84\xa0\xec\x88\x98", "외국인 선수"));
+    kbo_html_append_escaped(buffer, kbo_hub_text("구매 비용(외국인)", "Purchase cost (foreign)"));
     kbo_window_text_appendf(
         buffer,
         "</label><input id='independentForeignCashCost' class='ootpSelect salaryInput' type='text' inputmode='numeric' pattern='[0-9]*' data-min='%d' data-max='%d' data-step='10000' value='%d' "
@@ -215,7 +217,7 @@ void kbo_webview_append_settings_view(KboWindowTextBuffer* buffer, int selected_
     kbo_window_text_appendf(
         buffer,
         "<div class='settingRow'><label class='settingLabel' for='independentDomesticCashCost'>");
-    kbo_html_append_escaped(buffer, kbo_hub_text("\xeb\x82\xb4\xea\xb5\xad\xec\x9d\xb8 \xec\x84\xa0\xec\x88\x98", "내국인 선수"));
+    kbo_html_append_escaped(buffer, kbo_hub_text("구매 비용(내국인)", "Purchase cost (domestic)"));
     kbo_window_text_appendf(
         buffer,
         "</label><input id='independentDomesticCashCost' class='ootpSelect salaryInput' type='text' inputmode='numeric' pattern='[0-9]*' data-min='%d' data-max='%d' data-step='10000' value='%d' "
@@ -224,6 +226,32 @@ void kbo_webview_append_settings_view(KboWindowTextBuffer* buffer, int selected_
         KBO_INDEPENDENT_ACQUISITION_CASH_COST_MIN,
         KBO_INDEPENDENT_ACQUISITION_CASH_COST_MAX,
         independent_domestic_cash_cost);
+
+    kbo_window_text_appendf(
+        buffer,
+        "<div class='settingRow'><label class='settingLabel' for='independentForeignSellerTransferFee'>");
+    kbo_html_append_escaped(buffer, kbo_hub_text("판매 구단 수령(외국인)", "Seller receipt (foreign)"));
+    kbo_window_text_appendf(
+        buffer,
+        "</label><input id='independentForeignSellerTransferFee' class='ootpSelect salaryInput' type='text' inputmode='numeric' pattern='[0-9]*' data-min='%d' data-max='%d' data-step='10000' value='%d' "
+        "onchange=\"location.href='kbo://settings/independent-acquisition-foreign-seller-transfer-fee/'+this.value\" "
+        "onkeydown=\"if(event.key==='Enter'){this.blur();}\"></div>",
+        KBO_INDEPENDENT_ACQUISITION_CASH_COST_MIN,
+        KBO_INDEPENDENT_ACQUISITION_CASH_COST_MAX,
+        independent_foreign_seller_transfer_fee);
+
+    kbo_window_text_appendf(
+        buffer,
+        "<div class='settingRow'><label class='settingLabel' for='independentDomesticSellerTransferFee'>");
+    kbo_html_append_escaped(buffer, kbo_hub_text("판매 구단 수령(내국인)", "Seller receipt (domestic)"));
+    kbo_window_text_appendf(
+        buffer,
+        "</label><input id='independentDomesticSellerTransferFee' class='ootpSelect salaryInput' type='text' inputmode='numeric' pattern='[0-9]*' data-min='%d' data-max='%d' data-step='10000' value='%d' "
+        "onchange=\"location.href='kbo://settings/independent-acquisition-domestic-seller-transfer-fee/'+this.value\" "
+        "onkeydown=\"if(event.key==='Enter'){this.blur();}\"></div>",
+        KBO_INDEPENDENT_ACQUISITION_CASH_COST_MIN,
+        KBO_INDEPENDENT_ACQUISITION_CASH_COST_MAX,
+        independent_domestic_seller_transfer_fee);
 
     kbo_webview_append_settings_section_end(buffer);
     kbo_webview_append_settings_section_start(buffer, "\xeb\xb9\x84\xec\x95\x84\xec\x8b\x9c\xec\x95\x84 \xec\x99\xb8\xea\xb5\xad\xec\x9d\xb8 \xed\x92\x88\xec\xa7\x88 \xec\xba\xa1", "비아시아 외국인 품질 캡");

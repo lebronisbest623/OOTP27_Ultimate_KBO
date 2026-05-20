@@ -5,6 +5,8 @@
   "asian_quota_salary_limit": 200000,
   "independent_acquisition_foreign_cash_cost": 100000,
   "independent_acquisition_domestic_cash_cost": 30000,
+  "independent_acquisition_foreign_seller_transfer_fee": 100000,
+  "independent_acquisition_domestic_seller_transfer_fee": 30000,
   "foreign_fa_demand_minimum_salary": 300000,
   "foreign_fa_demand_poor_salary": 300000,
   "foreign_fa_demand_fair_salary": 320000,

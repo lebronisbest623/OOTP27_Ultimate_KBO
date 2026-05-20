@@ -15,6 +15,10 @@ int kbo_independent_acquisition_seller_apply_transfer(
     int* out_cash_charged,
     int32_t* out_old_cash,
     int32_t* out_new_cash,
+    int* out_seller_cash_credited,
+    int32_t* out_seller_old_cash,
+    int32_t* out_seller_new_cash,
+    int32_t* out_seller_transfer_fee,
     int32_t* out_cash_cost);
 
 #endif
