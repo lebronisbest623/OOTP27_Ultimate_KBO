@@ -46,6 +46,8 @@ The first migrated subsystems are:
   cursor.
 - `foreign_reserve_rights`: exercised KBO foreign-player reserve rights,
   formerly `foreign_waiver_rights.csv`.
+- `foreign_waiver_decisions`: retain/skip decision ledger rows, formerly
+  `foreign_waiver_decisions.csv`.
 
 The shared SQLite opener lives in:
 
@@ -75,10 +77,11 @@ Use this classification when moving existing save-scoped files out of the root.
 These files are durable mod state. They should become domain-owned tables, with
 the old CSV/TXT/JSONL names retired for new saves:
 
-- Foreign reserve and waiver state: `foreign_waiver_decisions.csv`,
-  `foreign_waiver_negotiation_window.txt`, `foreign_waiver_announcements.txt`.
+- Foreign reserve and waiver state: `foreign_waiver_negotiation_window.txt`,
+  `foreign_waiver_announcements.txt`.
   `foreign_waiver_rights.csv` is retired for new saves and now lives in
-  `foreign_reserve_rights`.
+  `foreign_reserve_rights`; `foreign_waiver_decisions.csv` now lives in
+  `foreign_waiver_decisions`.
 - FA state: `fa_declarations.csv`, `fa_filing.csv`, `fa_compensation.csv`,
   `fa_compensation_decisions.csv`, `fa_compensation_cash_transfers.csv`,
   `fa_salary_opening_day_snapshot_YYYY.csv`.

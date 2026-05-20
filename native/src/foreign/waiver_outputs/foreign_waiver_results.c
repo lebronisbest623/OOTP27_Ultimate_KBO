@@ -6,7 +6,6 @@
 
 #include "../../bootstrap/abi/ootp_offsets.h"
 #include "../../core/core_league_context_parts/api/league_context_lookup.h"
-#include "../../core/csv/core_csv.h"
 #include "../../custom_events/runtime/dates/custom_event_dates.h"
 #include "../../core/news/live/core_live_news.h"
 #include "../../core/news/templates/core_news_templates.h"
@@ -17,6 +16,7 @@
 #include "../common/policy/foreign_waiver_policy.h"
 #include "foreign_waiver_results.h"
 #include "../rights/query/foreign_waiver_rights_query.h"
+#include "../waiver_decisions/sql/foreign_waiver_decisions_sql_store.h"
 
 static uint32_t g_kbo_foreign_waiver_last_result_announcement = 0;
 
@@ -44,36 +44,15 @@ static int kbo_build_foreign_waiver_result_body(char* out, size_t out_size, uint
     }
     kbo_lock_leave(&g_kbo_foreign_waiver_rights_lock);
 
-    char decision_path[MAX_PATH] = {0};
-    if (get_kbo_foreign_waiver_decisions_path(decision_path, sizeof(decision_path))) {
-        KboCsvReader* reader = kbo_csv_reader_open(decision_path);
-        if (reader != NULL) {
-            while (kbo_csv_reader_next_row(reader)) {
-                char fields[10][64];
-                int field_count = kbo_csv_reader_read_trimmed_fields(reader, (char*)fields, sizeof(fields[0]), 10);
-                if (field_count < 5 || fields[0][0] < '0' || fields[0][0] > '9') {
-                    continue;
-                }
-
-                uint32_t window_end = kbo_csv_parse_u32_text(fields[2], 10);
-                if (window_end == today_yyyymmdd) {
-                    const char* source_name = fields[3];
-                    const char* action_name = fields[4];
-                    if (_stricmp(action_name, "RETAIN") == 0) {
-                        retained++;
-                        decision_breakdown_available = 1;
-                        if (_stricmp(source_name, "ai") == 0) { ai_retained++; }
-                        else if (_stricmp(source_name, "user") == 0) { user_retained++; }
-                    } else if (_stricmp(action_name, "SKIP") == 0) {
-                        skipped++;
-                        decision_breakdown_available = 1;
-                        if (_stricmp(source_name, "ai") == 0) { ai_skipped++; }
-                        else if (_stricmp(source_name, "user") == 0) { user_skipped++; }
-                    }
-                }
-            }
-            kbo_csv_reader_close(reader);
-        }
+    KboForeignWaiverDecisionBreakdown breakdown = {0};
+    if (kbo_foreign_waiver_decisions_sql_breakdown(today_yyyymmdd, &breakdown)) {
+        retained = breakdown.retained;
+        skipped = breakdown.skipped;
+        ai_retained = breakdown.ai_retained;
+        ai_skipped = breakdown.ai_skipped;
+        user_retained = breakdown.user_retained;
+        user_skipped = breakdown.user_skipped;
+        decision_breakdown_available = breakdown.available;
     }
 
     if (retained == 0 && skipped == 0) {
