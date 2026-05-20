@@ -1,6 +1,41 @@
 #include "../internal/foreign_roster_audit_internal.h"
 #include "../../../core/dates/tick/current_date_tick_capture.h"
 #include "../../../core/logging/rule_audit.h"
+#include "../../quota/counts/foreign_quota_counts.h"
+
+static int kbo_foreign_roster_audit_assignment_changed(
+    const KboForeignRosterAuditState* old_state,
+    const KboForeignRosterAuditState* new_state)
+{
+    return old_state != NULL
+        && new_state != NULL
+        && (old_state->current_team_id != new_state->current_team_id
+            || old_state->active_team_id != new_state->active_team_id
+            || old_state->loan_team_id != new_state->loan_team_id);
+}
+
+static void kbo_foreign_roster_audit_note_quota_assignment_change(
+    const KboForeignRosterAuditState* old_state,
+    const KboForeignRosterAuditState* new_state,
+    uint8_t* player)
+{
+    if (!kbo_foreign_roster_audit_assignment_changed(old_state, new_state)
+            || new_state->player_id == 0u
+            || player == NULL
+            || !memory_range_readable(player, OOTP27_PLAYER_SCAN_BYTES)) {
+        return;
+    }
+
+    kbo_foreign_org_count_cache_note_player_assignment_change(
+        old_state->current_team_id,
+        old_state->active_team_id,
+        old_state->loan_team_id,
+        new_state->current_team_id,
+        new_state->active_team_id,
+        new_state->loan_team_id,
+        new_state->player_id,
+        kbo_player_is_asian_quota_candidate(player));
+}
 
 void audit_foreign_roster_state(const char* source, int write_snapshot)
 {
@@ -138,6 +173,8 @@ void audit_foreign_roster_state(const char* source, int write_snapshot)
         if (!kbo_foreign_roster_audit_state_changed(&old, &current)) {
             continue;
         }
+
+        kbo_foreign_roster_audit_note_quota_assignment_change(&old, &current, player);
 
         const char* change_type = kbo_foreign_roster_audit_change_type(&old, &current);
         if (audit_file == INVALID_HANDLE_VALUE) {

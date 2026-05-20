@@ -84,6 +84,7 @@ int kbo_get_current_save_path(char* out, size_t out_size)
 #include "../src/bootstrap/abi/ootp_offsets.h"
 #include "../src/foreign/common/player_eval/foreign_waiver_player_eval.h"
 #include "../src/foreign/injury/api/foreign_injury.h"
+#include "../src/foreign/quota/counts/org/foreign_quota_counts_internal.h"
 #include "../src/amateur_player_quality/api/amateur_player_quality.h"
 #include "../src/amateur_player_quality/assignment/policy/amateur_assignment_policy_values.h"
 #include "../src/team/independent_acquisition/ai/independent_acquisition_score.h"
@@ -114,6 +115,9 @@ static int g_test_fa_market_team_independent_kinds[512];
 static uint8_t g_test_team_8[OOTP27_KBO_TEAM_READABLE_BYTES];
 static uint8_t g_test_team_11[OOTP27_KBO_TEAM_READABLE_BYTES];
 static int g_test_team_lookup_enabled = 0;
+static uintptr_t g_test_player_vector_storage[16];
+static int32_t g_test_player_vector_count = 0;
+static int g_test_player_vector_enabled = 0;
 
 static void test_configure_team_org_lookup(void)
 {
@@ -2469,6 +2473,91 @@ static void test_foreign_injury_foreign_count_exclusion(void)
     printf("test_foreign_injury_foreign_count_exclusion: PASS\n");
 }
 
+static void test_foreign_org_snapshot_updates_on_assignment_change(void)
+{
+    uint8_t non_asian[OOTP27_PLAYER_SCAN_BYTES];
+    uint8_t asian[OOTP27_PLAYER_SCAN_BYTES];
+    memset(non_asian, 0, sizeof(non_asian));
+    memset(asian, 0, sizeof(asian));
+
+    memset(g_kbo_foreign_org_count_cache, 0, sizeof(g_kbo_foreign_org_count_cache));
+    memset(g_kbo_foreign_org_snapshot, 0, sizeof(g_kbo_foreign_org_snapshot));
+    memset(g_kbo_foreign_org_parent_cache_team_ids, 0, sizeof(g_kbo_foreign_org_parent_cache_team_ids));
+    memset(g_kbo_foreign_org_parent_cache_org_ids, 0, sizeof(g_kbo_foreign_org_parent_cache_org_ids));
+    memset(g_kbo_foreign_org_team_generation_team_ids, 0, sizeof(g_kbo_foreign_org_team_generation_team_ids));
+    memset(g_kbo_foreign_org_team_generations, 0, sizeof(g_kbo_foreign_org_team_generations));
+    g_kbo_foreign_org_snapshot_count = 0;
+    g_kbo_foreign_org_snapshot_tick = 0u;
+    g_kbo_foreign_org_count_cache_generation = 1;
+
+    *(uint32_t*)(non_asian + OOTP27_PLAYER_ID_OFFSET) = 7001u;
+    *(uint32_t*)(non_asian + OOTP27_PLAYER_NATION_ID_OFFSET) = 206u;
+    *(uint32_t*)(non_asian + OOTP27_PLAYER_CURRENT_TEAM_ID_OFFSET) = 2u;
+    *(uint32_t*)(non_asian + OOTP27_PLAYER_ACTIVE_TEAM_ID_OFFSET) = 2u;
+
+    *(uint32_t*)(asian + OOTP27_PLAYER_ID_OFFSET) = 7002u;
+    *(uint32_t*)(asian + OOTP27_PLAYER_NATION_ID_OFFSET) = 43u;
+    *(uint32_t*)(asian + OOTP27_PLAYER_CURRENT_TEAM_ID_OFFSET) = 2u;
+    *(uint32_t*)(asian + OOTP27_PLAYER_ACTIVE_TEAM_ID_OFFSET) = 2u;
+    *(int32_t*)(asian + OOTP27_PLAYER_CONTRACT_SALARY_Y1_OFFSET) = 100000;
+
+    g_test_player_vector_storage[0] = (uintptr_t)non_asian;
+    g_test_player_vector_storage[1] = (uintptr_t)asian;
+    g_test_player_vector_count = 2;
+    g_test_player_vector_enabled = 1;
+
+    uint32_t foreign_count = 0u;
+    uint32_t asian_count = 0u;
+    uint32_t non_asian_count = 0u;
+    kbo_count_team_asian_quota_probe(2u, &foreign_count, &asian_count, &non_asian_count);
+    assert(foreign_count == 2u);
+    assert(asian_count == 1u);
+    assert(non_asian_count == 1u);
+
+    uint32_t generation_before = kbo_foreign_org_count_cache_generation_for_team(2u);
+    *(uint32_t*)(non_asian + OOTP27_PLAYER_CURRENT_TEAM_ID_OFFSET) = 0u;
+    *(uint32_t*)(non_asian + OOTP27_PLAYER_ACTIVE_TEAM_ID_OFFSET) = 0u;
+    *(uint32_t*)(asian + OOTP27_PLAYER_CURRENT_TEAM_ID_OFFSET) = 0u;
+    *(uint32_t*)(asian + OOTP27_PLAYER_ACTIVE_TEAM_ID_OFFSET) = 0u;
+
+    kbo_foreign_org_count_cache_note_player_assignment_change(
+        2u,
+        2u,
+        0u,
+        0u,
+        0u,
+        0u,
+        7001u,
+        0);
+    kbo_foreign_org_count_cache_note_player_assignment_change(
+        2u,
+        2u,
+        0u,
+        0u,
+        0u,
+        0u,
+        7002u,
+        1);
+
+    foreign_count = 99u;
+    asian_count = 99u;
+    non_asian_count = 99u;
+    kbo_count_team_asian_quota_probe(2u, &foreign_count, &asian_count, &non_asian_count);
+    assert(foreign_count == 0u);
+    assert(asian_count == 0u);
+    assert(non_asian_count == 0u);
+    assert(kbo_foreign_org_count_cache_generation_for_team(2u) != generation_before);
+
+    g_test_player_vector_enabled = 0;
+    g_test_player_vector_count = 0;
+    memset(g_test_player_vector_storage, 0, sizeof(g_test_player_vector_storage));
+    memset(g_kbo_foreign_org_count_cache, 0, sizeof(g_kbo_foreign_org_count_cache));
+    memset(g_kbo_foreign_org_snapshot, 0, sizeof(g_kbo_foreign_org_snapshot));
+    g_kbo_foreign_org_snapshot_count = 0;
+    g_kbo_foreign_org_snapshot_tick = 0u;
+    printf("test_foreign_org_snapshot_updates_on_assignment_change: PASS\n");
+}
+
 static void test_flag_key_from_file_name(void)
 {
     char out[64];
@@ -2778,7 +2867,6 @@ static void test_independent_acquisition_score_policy(void)
     printf("test_independent_acquisition_score_policy: PASS\n");
 }
 
-
 static void test_asian_games_wildcard_age_policy(void)
 {
     assert(kbo_asian_games_policy_clamp_max_wildcards(-1) == KBO_ASIAN_GAMES_MAX_WILDCARDS_MIN);
@@ -2852,6 +2940,7 @@ int main(void)
     test_foreign_injury_policy_helpers();
     test_foreign_injury_live_memory_fields();
     test_foreign_injury_foreign_count_exclusion();
+    test_foreign_org_snapshot_updates_on_assignment_change();
     test_amateur_assignment_policy();
     test_amateur_reputation_balanced_deltas_prevent_inflation();
     test_independent_acquisition_score_policy();
@@ -2866,6 +2955,33 @@ void kbo_log_runtimef_at(const char* file, int line, const char* fmt, ...)
     (void)line;
     (void)fmt;
 }
+
+int kbo_profiler_begin(LARGE_INTEGER* out_start)
+{
+    if (out_start != NULL) {
+        out_start->QuadPart = 0;
+    }
+    return 0;
+}
+
+void kbo_profiler_end(const char* name, const LARGE_INTEGER* start)
+{
+    (void)name;
+    (void)start;
+}
+
+int kbo_profiler_is_enabled(void)
+{
+    return 0;
+}
+
+void kbo_profiler_record_us(const char* name, unsigned long long elapsed_us)
+{
+    (void)name;
+    (void)elapsed_us;
+}
+
+void kbo_profiler_reset_enabled_cache(void) {}
 
 int kbo_get_save_scoped_data_file(const char* file_name, char* out, size_t out_size)
 {
@@ -2944,8 +3060,9 @@ int kbo_foreign_injury_player_on_inactive_replacement_roster(
 
 int kbo_player_pointer_plausible(uintptr_t player_ptr)
 {
-    (void)player_ptr;
-    return 0;
+    return g_test_player_vector_enabled
+        && player_ptr != 0u
+        && memory_range_readable((void*)player_ptr, OOTP27_PLAYER_SCAN_BYTES);
 }
 
 int find_kbo_global_player_vector(uintptr_t* out_vector, int32_t* out_count, uint32_t* out_offset)
@@ -2953,7 +3070,26 @@ int find_kbo_global_player_vector(uintptr_t* out_vector, int32_t* out_count, uin
     if (out_vector != NULL) { *out_vector = 0u; }
     if (out_count != NULL) { *out_count = 0; }
     if (out_offset != NULL) { *out_offset = 0u; }
+    if (!g_test_player_vector_enabled) {
+        return 0;
+    }
+    if (out_vector != NULL) { *out_vector = (uintptr_t)g_test_player_vector_storage; }
+    if (out_count != NULL) { *out_count = g_test_player_vector_count; }
+    return 1;
+}
+
+void kbo_ensure_foreign_replacement_player_seeds_loaded(void) {}
+
+int kbo_foreign_replacement_player_seed_matches_loaded(uint8_t* player, uint8_t* out_slot_type)
+{
+    (void)player;
+    if (out_slot_type != NULL) { *out_slot_type = 0u; }
     return 0;
+}
+
+int kbo_foreign_injury_player_excluded_from_foreign_count(uint32_t team_id, uint32_t player_id)
+{
+    return kbo_foreign_injury_player_excluded_from_foreign_count_locked(team_id, player_id);
 }
 
 int get_kbo_asian_quota_nation_ids_path(char* out, size_t out_size)
