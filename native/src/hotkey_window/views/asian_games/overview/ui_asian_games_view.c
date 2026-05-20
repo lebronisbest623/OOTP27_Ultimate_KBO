@@ -1,5 +1,4 @@
 #include "../ui_asian_games_view_internal.h"
-#include "../../mod/info/ui_mod_info_views_internal.h"
 
 static void kbo_webview_asian_games_roster_add_year(uint16_t* years, int* year_count, uint32_t year)
 {

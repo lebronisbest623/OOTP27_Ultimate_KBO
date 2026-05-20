@@ -1,5 +1,9 @@
-#include "../info/ui_mod_info_views_internal.h"
+#include "../info/ui_mod_info_views.h"
 #include "../../../runtime/mode/hotkey_window_runtime_mode.h"
+#include "../../../support/text/language/ui_language.h"
+#include "../../../../core/core_flags/api/flags_api.h"
+
+#include <stdio.h>
 
 static void kbo_webview_append_settings_section_start(KboWindowTextBuffer* buffer, const char* title_ko, const char* title_en)
 {

@@ -1,5 +1,10 @@
-#include "../info/ui_mod_info_views_internal.h"
+#include "../info/ui_mod_info_views.h"
 #include "runtime_flags.generated.h"
+
+#include <stdio.h>
+#include <string.h>
+
+#include "../../../../core/core_flags/localappdata/localappdata_reader.h"
 
 const KboModRuntimeFlagSetting* kbo_find_mod_runtime_flag_setting(const char* key)
 {

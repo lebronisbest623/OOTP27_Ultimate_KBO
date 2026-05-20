@@ -1,5 +1,4 @@
 #include "../internal/ui_military_view_internal.h"
-#include "../../mod/info/ui_mod_info_views_internal.h"
 
 static LONG kbo_military_results_candidate_count(void)
 {
