@@ -41,8 +41,8 @@ uint32_t kbo_get_foreign_waiver_decision_team_id(uint8_t* player)
      * OOTP saves can carry an active_team_id for foreign players at league start.
      * That is only the club with priority to decide during the KBO reserve-rights
      * event, not an already exercised reserve right. Stored rights are handled by
-     * foreign_waiver_rights.csv; candidate ownership should appear only while the
-     * negotiation window is open.
+     * kbo_state.sqlite3 foreign_reserve_rights table; candidate ownership should
+     * appear only while the negotiation window is open.
      */
     if (!kbo_is_foreign_waiver_negotiation_window_open()) {
         return 0;

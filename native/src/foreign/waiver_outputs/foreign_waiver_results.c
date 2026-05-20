@@ -77,26 +77,7 @@ static int kbo_build_foreign_waiver_result_body(char* out, size_t out_size, uint
     }
 
     if (retained == 0 && skipped == 0) {
-        char rights_path[MAX_PATH] = {0};
-        if (kbo_get_foreign_waiver_rights_path(rights_path, sizeof(rights_path))) {
-            KboCsvReader* reader = kbo_csv_reader_open(rights_path);
-            if (reader != NULL) {
-                while (kbo_csv_reader_next_row(reader)) {
-                    char fields[5][64];
-                    int field_count = kbo_csv_reader_read_trimmed_fields(reader, (char*)fields, sizeof(fields[0]), 5);
-                    if (field_count < 5 || fields[0][0] < '0' || fields[0][0] > '9') {
-                        continue;
-                    }
-
-                    uint32_t retained_on = kbo_csv_parse_u32_text(fields[3], 10);
-                    uint32_t expires_on = kbo_csv_parse_u32_text(fields[4], 10);
-                    if (retained_on <= today_yyyymmdd && expires_on >= today_yyyymmdd) {
-                        retained++;
-                    }
-                }
-                kbo_csv_reader_close(reader);
-            }
-        }
+        retained = active_rights;
     }
 
     char retained_text[16] = {0};

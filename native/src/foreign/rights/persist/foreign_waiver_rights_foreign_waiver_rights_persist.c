@@ -1,59 +1,33 @@
 #include "../internal/foreign_waiver_rights_internal.h"
+#include "../sql/foreign_waiver_rights_sql_store.h"
 
-/* Foreign reserve-right CSV persistence. */
+/* Foreign reserve-right SQLite persistence. */
 
 int kbo_persist_foreign_waiver_rights(void)
 {
-    char path[MAX_PATH] = {0};
-    if (!kbo_get_foreign_waiver_rights_path(path, sizeof(path))) {
-        kbo_log_runtime_line("foreign reserve rights: persist skipped reason=path_unavailable");
-        return 0;
-    }
-
-    char dir[MAX_PATH] = {0};
-    snprintf(dir, sizeof(dir), "%s", path);
-    char* slash = strrchr(dir, '\\');
-    if (slash != NULL) {
-        *slash = '\0';
-        CreateDirectoryA(dir, NULL);
-    }
-
+    KboForeignWaiverRetention records[KBO_FOREIGN_WAIVER_RIGHTS_MAX] = {{0}};
+    int count = 0;
     kbo_lock_enter(&g_kbo_foreign_waiver_rights_lock);
-
-    char tmp_path[MAX_PATH] = {0};
-    HANDLE file = kbo_atomic_open_tmp(path, tmp_path, sizeof(tmp_path));
-    if (file == INVALID_HANDLE_VALUE) {
-        kbo_lock_leave(&g_kbo_foreign_waiver_rights_lock);
-        kbo_log_runtimef("foreign reserve rights: persist failed reason=create_tmp gle=%lu path=%s", GetLastError(), path);
-        return 0;
+    count = g_kbo_foreign_waiver_rights_count;
+    if (count > KBO_FOREIGN_WAIVER_RIGHTS_MAX) {
+        count = KBO_FOREIGN_WAIVER_RIGHTS_MAX;
     }
-    char header[64] = "player_id,team_id,league_id,retained_on,expires_on\r\n";
-    DWORD written = 0;
-    WriteFile(file, header, (DWORD)strlen(header), &written, NULL);
-    for (int i = 0; i < g_kbo_foreign_waiver_rights_count; i++) {
-        KboForeignWaiverRetention* rec = &g_kbo_foreign_waiver_rights[i];
-        if (rec->player_id == 0u || rec->team_id == 0u) {
-            continue;
-        }
-        char line[128] = {0};
-        int len = snprintf(
-            line,
-            sizeof(line),
-            "%u,%u,%u,%u,%u\r\n",
-            rec->player_id,
-            rec->team_id,
-            rec->league_id,
-            rec->retained_on_yyyymmdd,
-            rec->expires_on_yyyymmdd);
-        WriteFile(file, line, (DWORD)len, &written, NULL);
+    for (int i = 0; i < count; i++) {
+        records[i] = g_kbo_foreign_waiver_rights[i];
     }
-    int ok = kbo_atomic_commit(file, tmp_path, path);
     kbo_lock_leave(&g_kbo_foreign_waiver_rights_lock);
-    if (!ok) {
-        kbo_log_runtimef("foreign reserve rights: atomic commit failed path=%s", path);
+
+    if (!kbo_foreign_waiver_rights_sql_replace_all(records, count)) {
+        kbo_log_runtime_line("foreign reserve rights: persist failed store=sqlite");
         return 0;
     }
-    kbo_log_runtimef("foreign reserve rights: persisted=%d path=%s", g_kbo_foreign_waiver_rights_count, path);
+
+    char path[MAX_PATH] = {0};
+    if (kbo_get_foreign_waiver_rights_path(path, sizeof(path))) {
+        kbo_log_runtimef("foreign reserve rights: persisted=%d path=%s store=sqlite", count, path);
+    } else {
+        kbo_log_runtimef("foreign reserve rights: persisted=%d store=sqlite", count);
+    }
     return 1;
 }
 

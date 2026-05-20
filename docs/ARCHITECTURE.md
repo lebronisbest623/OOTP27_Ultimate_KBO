@@ -224,7 +224,8 @@ Key subfolders:
 
 - `common/`: CSV parsing, path/date/config helpers, waiver policy, player
   evaluation, and shared event declarations
-- `rights/`: exercised reserve-right storage, loading, mutation, and query
+- `rights/`: exercised reserve-right storage, SQLite persistence, loading,
+  mutation, and query
 - `signability/`: signability, offer, FA candidate, and no-minor-contract probes
 - `replacement_seed/`: replacement-player seed parsing and resolution
 - `injury/`: injury replacement slot lifecycle
@@ -471,7 +472,7 @@ trigger decisions, and in-season captain repair.
 - Audit modules observe only.
 - Patch installers patch bytes; they do not own policy.
 - Hook wrappers stay thin and delegate to domain modules.
-- CSV files are module-owned persistence.
+- CSV files and save-state SQLite tables are module-owned persistence.
 - Thread start functions are explicit and owned by the loop's module.
 - Public wrapper names are stable unless the corresponding patch installer is
   updated in the same change.
@@ -487,8 +488,6 @@ path, not guessed global destinations.
 
 ## Open Questions
 
-- Should `foreign_waiver_rights.csv` be renamed to
-  `foreign_reserve_rights.csv`, or kept for compatibility?
 - Should F2 user actions remain command-file based long term, or move to a
   narrower in-memory request API?
 - Should numeric foreign-policy config values move into a structured manifest?

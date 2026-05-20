@@ -218,7 +218,7 @@ OOTP 메모리에 `active_team_id`가 있다고 해서 보류권이 행사된 �
 보류권은 오직 다음 중 하나로만 생성된다:
 
 1. 이벤트 창이 열려 있는 동안 보류 결정이 내려진 경우
-2. `foreign_waiver_rights.csv`에서 로드된 경우
+2. `kbo_state.sqlite3`의 `foreign_reserve_rights` 테이블에서 로드된 경우
 
 이 불변 조건을 어기는 코드는 즉시 제거한다.
 
