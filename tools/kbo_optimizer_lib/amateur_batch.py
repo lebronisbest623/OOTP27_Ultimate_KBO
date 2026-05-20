@@ -38,7 +38,7 @@ def _incoming_team_cap(total_players, total_teams):
     average = total_players / max(1, total_teams)
     return max(1, int(math.ceil(average * INCOMING_MAX_AVERAGE_MULTIPLIER)))
 
-def _solve_batch_flexible_assignment(grouped, max_tier_gap=1, status_label="ok"):
+def _solve_batch_flexible_assignment(grouped, max_tier_gap=1, status_label="ok", force_incoming=None):
     total_players = len(grouped)
     if total_players <= 0:
         return {}
@@ -47,7 +47,7 @@ def _solve_batch_flexible_assignment(grouped, max_tier_gap=1, status_label="ok")
     team_percentiles = _team_reputation_percentiles(grouped)
     draft_penalties = _batch_draft_penalties(grouped)
     total_teams = max(1, len(team_percentiles))
-    incoming_batch = _batch_is_incoming(grouped)
+    incoming_batch = _batch_is_incoming(grouped) if force_incoming is None else force_incoming
     detailed_roles = _batch_has_detailed_position_buckets(grouped)
     team_info = _collect_batch_team_info(grouped, team_percentiles, incoming_batch, detailed_roles)
     if not team_info:
@@ -319,10 +319,16 @@ def _solve_batch_final_assignment(grouped):
         (2, "ok_relaxed_tier2"),
         (None, "ok_relaxed"),
     )
+    force_incoming_attempts = (None,) if _batch_is_incoming(grouped) else (None, True)
     for max_tier_gap, status_label in attempts:
-        assignments = _solve_batch_flexible_assignment(grouped, max_tier_gap, status_label)
-        if assignments is not None:
-            return assignments
+        for force_incoming in force_incoming_attempts:
+            assignments = _solve_batch_flexible_assignment(
+                grouped,
+                max_tier_gap,
+                status_label,
+                force_incoming=force_incoming)
+            if assignments is not None:
+                return assignments
 
     for max_tier_gap, status_label in attempts:
         for role_tolerance in AMATEUR_ROLE_BALANCE_TOLERANCES:

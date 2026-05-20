@@ -305,6 +305,9 @@ int kbo_amateur_flush_league_batch_ortools(const char* reason, int force)
         return 0;
     }
 
+    /* League batch flushes are generated amateur cohorts, even after OOTP has
+       already attached them to their original teams. Keep optimizer capacity
+       semantics on the incoming-player path. */
     if (!kbo_amateur_ortools_write_batch_request(
             request_path,
             league_players,
@@ -313,7 +316,7 @@ int kbo_amateur_flush_league_batch_ortools(const char* reason, int force)
             league_id,
             candidates,
             count,
-            deferred_count > 0)) {
+            1)) {
         kbo_amateur_audit_ortools_batch(
             "fallback", "write_failed", reason, league_id,
             optimizer_player_count, accumulated_teams, count, -1, deferred_count, -1, 0u);
