@@ -102,23 +102,6 @@ int kbo_compare_amateur_reputation_update_rows(const void* a, const void* b)
     return (int)left->team_id - (int)right->team_id;
 }
 
-uint8_t kbo_amateur_reputation_clamp_for_league(uint32_t league_id, int32_t value)
-{
-    const KboAmateurPlayerQualityPolicy* policy = kbo_amateur_player_quality_policy();
-    int32_t min_value = league_id == KBO_COLLEGE_LEAGUE_ID
-        ? policy->college_reputation_min
-        : policy->high_school_reputation_min;
-    int32_t max_value = league_id == KBO_COLLEGE_LEAGUE_ID
-        ? policy->college_reputation_max
-        : policy->high_school_reputation_max;
-    if (value < min_value) {
-        value = min_value;
-    } else if (value > max_value) {
-        value = max_value;
-    }
-    return (uint8_t)value;
-}
-
 int kbo_append_amateur_reputation_history(
     uint32_t league_id,
     const KboAmateurReputationUpdateRow* rows,
@@ -262,38 +245,16 @@ int kbo_update_amateur_reputation_for_league(uint32_t league_id, const char* sou
     }
 
     qsort(rows, (size_t)row_count, sizeof(rows[0]), kbo_compare_amateur_reputation_update_rows);
-    const KboAmateurPlayerQualityPolicy* policy = kbo_amateur_player_quality_policy();
-    for (int i = 0; i < row_count; i++) {
-        int32_t delta = 0;
-        if (rows[i].score >= policy->reputation_elite_score_min) {
-            delta += policy->reputation_elite_delta;
-        } else if (rows[i].score >= policy->reputation_strong_score_min) {
-            delta += policy->reputation_strong_delta;
-        } else if (rows[i].score >= policy->reputation_positive_score_min) {
-            delta += policy->reputation_positive_delta;
-        } else if (rows[i].score <= policy->reputation_poor_score_max) {
-            delta += policy->reputation_poor_delta;
-        } else if (rows[i].score <= policy->reputation_weak_score_max) {
-            delta += policy->reputation_weak_delta;
-        } else if (rows[i].score <= policy->reputation_negative_score_max) {
-            delta += policy->reputation_negative_delta;
-        }
-
-        if (i < policy->reputation_top_major_rank_count) {
-            delta += policy->reputation_top_major_bonus;
-        } else if (i < policy->reputation_top_minor_rank_count) {
-            delta += policy->reputation_top_minor_bonus;
-        }
-        if (i >= row_count - policy->reputation_bottom_major_rank_count) {
-            delta -= policy->reputation_bottom_major_penalty;
-        } else if (i >= row_count - policy->reputation_bottom_minor_rank_count) {
-            delta -= policy->reputation_bottom_minor_penalty;
-        }
-
-        rows[i].new_reputation = kbo_amateur_reputation_clamp_for_league(
-            league_id,
-            (int32_t)rows[i].old_reputation + delta);
-    }
+    int32_t raw_delta_sum = 0;
+    int32_t balance_adjustment = 0;
+    int32_t final_delta_sum = 0;
+    kbo_apply_amateur_reputation_balanced_deltas(
+        league_id,
+        rows,
+        row_count,
+        &raw_delta_sum,
+        &balance_adjustment,
+        &final_delta_sum);
 
     if (kbo_amateur_reputation_history_has_year(league_id, year)) {
         kbo_log_runtimef("amateur reputation update skipped source=%s league=%u year=%u reason=history_already_exists",
@@ -319,8 +280,11 @@ int kbo_update_amateur_reputation_for_league(uint32_t league_id, const char* sou
             (uint32_t)rows[i].wins, (uint32_t)rows[i].losses, (uint32_t)rows[i].ties,
             (uint32_t)rows[i].old_reputation, (uint32_t)rows[i].new_reputation, rows[i].score);
     }
-    kbo_log_runtimef("amateur reputation update summary source=%s league=%u year=%u rows=%d playoff=todo regular_offsets=w:0x%x,l:0x%x,t:0x%x",
+    kbo_log_runtimef("amateur reputation update summary source=%s league=%u year=%u rows=%d raw_delta_sum=%d balance_adjust=%d final_delta_sum=%d playoff=todo regular_offsets=w:0x%x,l:0x%x,t:0x%x",
         source != NULL ? source : "", league_id, year, row_count,
+        raw_delta_sum,
+        balance_adjustment,
+        final_delta_sum,
         KBO_AMATEUR_TEAM_REGULAR_WINS_OFFSET,
         KBO_AMATEUR_TEAM_REGULAR_LOSSES_OFFSET,
         KBO_AMATEUR_TEAM_REGULAR_TIES_OFFSET);

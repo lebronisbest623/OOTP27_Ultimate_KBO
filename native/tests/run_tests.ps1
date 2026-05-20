@@ -201,6 +201,7 @@ if ($LASTEXITCODE -ne 0) {
     (Join-Path $Root "src\core\core_flags\api\settings\economic\economic_defaults.c") `
     (Join-Path $Root "src\core\core_flags\api\settings\foreign\foreign_demand_baselines.c") `
     (Join-Path $Root "src\amateur_player_quality\assignment\policy\amateur_assignment_policy_values.c") `
+    (Join-Path $Root "src\amateur_player_quality\reputation\amateur_reputation_balance.c") `
     (Join-Path $Root "src\patch_helpers\bytes\patch_bytes.c") `
     (Join-Path $Root "src\fa_filing\fa_filing_parts\fa_filing_csv_parse.c") `
     (Join-Path $Root "src\fa_salary_snapshot\csv\salary_snapshot_csv_parse.c") `

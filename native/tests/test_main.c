@@ -99,6 +99,13 @@ int kbo_amateur_assignment_team_tier(uint32_t league_id, uint8_t reputation);
 int kbo_amateur_assignment_player_tier(uint32_t league_id, int32_t quality_score);
 int kbo_amateur_assignment_tier_allowed(int player_tier, int team_tier);
 int kbo_amateur_assignment_effective_player_tier(int player_tier, int max_team_tier);
+void kbo_apply_amateur_reputation_balanced_deltas(
+    uint32_t league_id,
+    KboAmateurReputationUpdateRow* rows,
+    int row_count,
+    int32_t* out_raw_delta_sum,
+    int32_t* out_balance_adjustment,
+    int32_t* out_final_delta_sum);
 
 static uint32_t g_test_fa_market_team_leagues[512];
 static int g_test_fa_market_team_independent_kinds[512];
@@ -2354,8 +2361,8 @@ static void test_amateur_assignment_policy(void)
     assert(kbo_amateur_assignment_target_reputation(KBO_HIGH_SCHOOL_LEAGUE_ID, 600)  == 45);
     assert(kbo_amateur_assignment_target_reputation(KBO_HIGH_SCHOOL_LEAGUE_ID, 599)  == 35);
     assert(kbo_amateur_assignment_target_reputation(KBO_HIGH_SCHOOL_LEAGUE_ID, 0)    == 35);
-    /* college: subtracts 10 from each threshold; bottom bracket (35-10=25) is clamped to 25 */
-    assert(kbo_amateur_assignment_target_reputation(KBO_COLLEGE_LEAGUE_ID, 2300) == 82);
+    /* college: subtracts 10 from each threshold, then clamps to the college reputation cap. */
+    assert(kbo_amateur_assignment_target_reputation(KBO_COLLEGE_LEAGUE_ID, 2300) == 78);
     assert(kbo_amateur_assignment_target_reputation(KBO_COLLEGE_LEAGUE_ID, 1800) == 74);
     assert(kbo_amateur_assignment_target_reputation(KBO_COLLEGE_LEAGUE_ID, 1350) == 62);
     assert(kbo_amateur_assignment_target_reputation(KBO_COLLEGE_LEAGUE_ID, 950)  == 48);
@@ -2463,6 +2470,45 @@ static void test_amateur_assignment_policy(void)
     printf("test_amateur_assignment_policy: PASS\n");
 }
 
+static void test_amateur_reputation_balanced_deltas_prevent_inflation(void)
+{
+    KboAmateurReputationUpdateRow rows[50];
+    memset(rows, 0, sizeof(rows));
+
+    for (int i = 0; i < 50; ++i) {
+        rows[i].league_id = KBO_COLLEGE_LEAGUE_ID;
+        rows[i].team_id = (uint32_t)(i + 1);
+        rows[i].old_reputation = 60u;
+        rows[i].new_reputation = 60u;
+        rows[i].wins = 30u;
+        rows[i].losses = 20u;
+        rows[i].ties = 10u;
+        rows[i].score = 1200;
+    }
+
+    int32_t raw_sum = 0;
+    int32_t adjustment = 0;
+    int32_t final_sum = 0;
+    kbo_apply_amateur_reputation_balanced_deltas(
+        KBO_COLLEGE_LEAGUE_ID,
+        rows,
+        50,
+        &raw_sum,
+        &adjustment,
+        &final_sum);
+
+    assert(raw_sum == 50);
+    assert(adjustment == 1);
+    assert(final_sum == 0);
+    assert(rows[0].new_reputation == 62u);
+    assert(rows[4].new_reputation == 61u);
+    assert(rows[10].new_reputation == 60u);
+    assert(rows[44].new_reputation == 59u);
+    assert(rows[49].new_reputation == 58u);
+
+    printf("test_amateur_reputation_balanced_deltas_prevent_inflation: PASS\n");
+}
+
 static void test_independent_acquisition_score_policy(void)
 {
     assert(kbo_independent_acquisition_market_interest_adjustment(0) == 0);
@@ -2542,6 +2588,7 @@ int main(void)
     test_foreign_injury_live_memory_fields();
     test_foreign_injury_foreign_count_exclusion();
     test_amateur_assignment_policy();
+    test_amateur_reputation_balanced_deltas_prevent_inflation();
     test_independent_acquisition_score_policy();
     printf("All tests passed.\n");
     return 0;

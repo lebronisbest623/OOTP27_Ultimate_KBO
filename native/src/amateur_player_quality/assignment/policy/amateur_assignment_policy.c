@@ -204,6 +204,12 @@ int32_t kbo_amateur_assignment_target_reputation(uint32_t league_id, int32_t qua
     } else if (target > policy->target_reputation_max) {
         target = policy->target_reputation_max;
     }
+    int32_t league_reputation_max = league_id == KBO_COLLEGE_LEAGUE_ID
+        ? policy->college_reputation_max
+        : policy->high_school_reputation_max;
+    if (target > league_reputation_max) {
+        target = league_reputation_max;
+    }
     return target;
 }
 

@@ -53,6 +53,13 @@ uint32_t kbo_resolve_amateur_assignment_league_id_for_team_ptr(uint8_t* team);
 uint32_t kbo_resolve_amateur_assignment_league_id_for_team_and_player(uint8_t* team, uint8_t* player);
 int kbo_compare_amateur_reputation_update_rows(const void* a, const void* b);
 uint8_t kbo_amateur_reputation_clamp_for_league(uint32_t league_id, int32_t value);
+void kbo_apply_amateur_reputation_balanced_deltas(
+    uint32_t league_id,
+    KboAmateurReputationUpdateRow* rows,
+    int row_count,
+    int32_t* out_raw_delta_sum,
+    int32_t* out_balance_adjustment,
+    int32_t* out_final_delta_sum);
 int kbo_append_amateur_reputation_history(
     uint32_t league_id,
     const KboAmateurReputationUpdateRow* rows,
