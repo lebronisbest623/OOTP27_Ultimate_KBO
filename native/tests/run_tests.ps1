@@ -15,6 +15,8 @@ $IndependentAcquisitionCashFlowTestSrc = Join-Path $PSScriptRoot "test_independe
 $IndependentAcquisitionCashFlowTestExe = Join-Path $PSScriptRoot "test_independent_acquisition_cash_flow.exe"
 $IntlEstablishedFaMarketNormalizeTestSrc = Join-Path $PSScriptRoot "test_intl_established_fa_market_normalize.c"
 $IntlEstablishedFaMarketNormalizeTestExe = Join-Path $PSScriptRoot "test_intl_established_fa_market_normalize.exe"
+$AsianGamesPlayerEligibilityTestSrc = Join-Path $PSScriptRoot "test_asian_games_player_eligibility.c"
+$AsianGamesPlayerEligibilityTestExe = Join-Path $PSScriptRoot "test_asian_games_player_eligibility.exe"
 $FaDeclarationRepairTestSrc = Join-Path $PSScriptRoot "test_fa_declaration_repair.c"
 $FaDeclarationRepairTestExe = Join-Path $PSScriptRoot "test_fa_declaration_repair.exe"
 $WebViewCommandRouterTestSrc = Join-Path $PSScriptRoot "test_webview_command_router.c"
@@ -165,6 +167,17 @@ if ($LASTEXITCODE -ne 0) {
 & $IntlEstablishedFaMarketNormalizeTestExe
 if ($LASTEXITCODE -ne 0) {
     throw "International established FA market normalization tests failed"
+}
+Write-Host "Building Asian Games player eligibility tests..."
+& $Compiler $AsianGamesPlayerEligibilityTestSrc (Join-Path $PSScriptRoot "..\src\custom_events\asian_games\player_eval\asian_games_player_eligibility.c") /Fe:$AsianGamesPlayerEligibilityTestExe /I (Join-Path $PSScriptRoot "..\src") /link /subsystem:console
+if ($LASTEXITCODE -ne 0) {
+    throw "Failed to build Asian Games player eligibility tests"
+}
+
+Write-Host "Running Asian Games player eligibility tests..."
+& $AsianGamesPlayerEligibilityTestExe
+if ($LASTEXITCODE -ne 0) {
+    throw "Asian Games player eligibility tests failed"
 }
 
 & $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `

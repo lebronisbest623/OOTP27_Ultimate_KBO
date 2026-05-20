@@ -155,7 +155,7 @@ int kbo_asian_games_finalize_selected_players(uint32_t event_yyyymmdd, const cha
         *(uint32_t*)(player + OOTP27_PLAYER_CURRENT_LEAGUE_ID_OFFSET) = league_id;
         *(uint32_t*)(player + OOTP27_PLAYER_ACTIVE_TEAM_ID_OFFSET) = team_id;
 
-        if (gold_won) {
+        if (gold_won && entry->military_unserved != 0u) {
             complete_kbo_military_service_status(player);
             entry->exempted = 1u;
             exempted++;

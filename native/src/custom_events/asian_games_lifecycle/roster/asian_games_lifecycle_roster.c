@@ -10,6 +10,7 @@
 #include "../../../core/core_flags/api/flags_api.h"
 #include "../../../runtime_memory/runtime_memory.h"
 #include "../../../team/lookup/team_lookup.h"
+#include "../../asian_games/player_eval/asian_games_player_eligibility.h"
 
 /* Asian Games roster lifecycle query helpers. */
 
@@ -73,11 +74,5 @@ int kbo_asian_games_player_unavailable_for_departure(uint8_t* player)
     if (player == NULL || !kbo_player_pointer_plausible((uintptr_t)player)) {
         return 1;
     }
-    return player[OOTP27_PLAYER_INJURY_ACTIVE_OFFSET] != 0u
-        || player[OOTP27_PLAYER_RESTRICTED_FLAG_OFFSET] != 0u
-        || player[OOTP27_PLAYER_SECONDARY_RESTRICTED_FLAG_OFFSET] != 0u
-        || player[OOTP27_PLAYER_DFA_FLAG_OFFSET] != 0u
-        || player[OOTP27_PLAYER_LOAN_ACTIVE_FLAG_OFFSET] != 0u
-        || player[OOTP27_PLAYER_MILITARY_ACTIVE_OFFSET] != 0u
-        || player[OOTP27_PLAYER_MILITARY_EXEMPT_OFFSET] != 0u;
+    return !kbo_asian_games_player_status_allows_selection(player);
 }

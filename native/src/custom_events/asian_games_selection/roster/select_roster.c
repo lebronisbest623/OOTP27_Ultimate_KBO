@@ -8,6 +8,7 @@
 #include "../../../core/core_league_context_parts/api/league_context_lookup.h"
 #include "../../../foreign/common/policy/foreign_waiver_policy.h"
 #include "../../../team/lookup/team_lookup.h"
+#include "../../asian_games/player_eval/asian_games_player_eligibility.h"
 #include "../../asian_games/roster/asian_games_roster_store.h"
 #include "select_roster_ortools.h"
 
@@ -72,13 +73,7 @@ int kbo_select_asian_games_roster(uint32_t event_yyyymmdd, const char* source)
             rejected_nation++;
             continue;
         }
-        if (player[OOTP27_PLAYER_MILITARY_EXEMPT_OFFSET] != 0u
-                || player[OOTP27_PLAYER_MILITARY_ACTIVE_OFFSET] != 0u
-                || player[OOTP27_PLAYER_RESTRICTED_FLAG_OFFSET] != 0u
-                || player[OOTP27_PLAYER_SECONDARY_RESTRICTED_FLAG_OFFSET] != 0u
-                || player[OOTP27_PLAYER_INJURY_ACTIVE_OFFSET] != 0u
-                || player[OOTP27_PLAYER_DFA_FLAG_OFFSET] != 0u
-                || player[OOTP27_PLAYER_LOAN_ACTIVE_FLAG_OFFSET] != 0u) {
+        if (!kbo_asian_games_player_status_allows_selection(player)) {
             rejected_status++;
             continue;
         }
@@ -116,7 +111,7 @@ int kbo_select_asian_games_roster(uint32_t event_yyyymmdd, const char* source)
         candidate->entry.age = *(uint16_t*)(player + OOTP27_PLAYER_AGE_OFFSET);
         candidate->entry.role = player[OOTP27_PLAYER_POSITION_GROUP_OFFSET];
         candidate->entry.wildcard = 0u;
-        candidate->entry.military_unserved = 1u;
+        candidate->entry.military_unserved = kbo_asian_games_player_military_unserved(player);
         candidate->entry.old_restricted = 0u;
         candidate->entry.old_secondary_restricted = 0u;
         candidate->entry.old_injury_active = 0u;

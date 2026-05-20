@@ -14,6 +14,7 @@
 #include "../../../foreign/common/player_eval/foreign_waiver_player_eval.h"
 #include "../../../foreign/common/policy/foreign_waiver_policy.h"
 #include "../../../team/lookup/team_lookup.h"
+#include "../../asian_games/player_eval/asian_games_player_eligibility.h"
 #include "../roster/asian_games_lifecycle_roster.h"
 #include "../../asian_games_news/emit/emit.h"
 
@@ -124,7 +125,7 @@ int kbo_asian_games_find_replacement_for_entry(
             best_entry.age = age;
             best_entry.role = role;
             best_entry.wildcard = wildcard ? 1u : 0u;
-            best_entry.military_unserved = 1u;
+            best_entry.military_unserved = kbo_asian_games_player_military_unserved(player);
             best_entry.score = score;
             best_entry.player_ptr = player_ptr;
             best_score = score;

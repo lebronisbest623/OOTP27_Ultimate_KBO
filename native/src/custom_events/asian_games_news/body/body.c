@@ -339,8 +339,12 @@ int kbo_asian_games_append_roster_line(
         status = use_korean
             ? (entry->exempted
                 ? "\xeb\xb3\xb5\xea\xb7\x80, \xeb\xb3\x91\xec\x97\xad \xed\x98\x9c\xed\x83\x9d"
-                : "\xeb\xb3\xb5\xea\xb7\x80, \xed\x98\x9c\xed\x83\x9d \xec\x97\x86\xec\x9d\x8c")
-            : (entry->exempted ? "returned, exempt" : "returned, no exemption");
+                : (entry->military_unserved
+                    ? "\xeb\xb3\xb5\xea\xb7\x80, \xed\x98\x9c\xed\x83\x9d \xec\x97\x86\xec\x9d\x8c"
+                    : "\xeb\xb3\xb5\xea\xb7\x80, \xeb\xb3\x91\xec\x97\xad \xed\x95\xb4\xea\xb2\xb0"))
+            : (entry->exempted
+                ? "returned, exempt"
+                : (entry->military_unserved ? "returned, no exemption" : "returned, military cleared"));
     } else if (entry->departed) {
         status = use_korean ? "\xec\xb0\xa8\xec\xb6\x9c \xec\xa4\x91" : "on tournament leave";
     }
