@@ -6,30 +6,6 @@
 #define KBO_FOREIGN_INJURY_DATE_TICK_CONSUMER_FLAGS \
     KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER
 
-static int kbo_foreign_injury_date_tick_sync_consumer(
-    uint32_t date,
-    uint32_t site_rva,
-    void* context)
-{
-    (void)context;
-    if (!kbo_foreign_injury_replacement_enabled()) {
-        return 1;
-    }
-    if (kbo_runtime_save_in_progress()) {
-        kbo_log_runtimef(
-            "foreign injury date tick sync deferred reason=save_in_progress date=%u site=0x%x",
-            date,
-            site_rva);
-        return 0;
-    }
-
-    const char* source = site_rva == KBO_CURRENT_DATE_TICK_SAVE_ENTER_SITE_RVA
-        ? "foreign_injury_current_date_tick_sync_save_enter"
-        : "foreign_injury_current_date_tick_sync_post_advance";
-    kbo_foreign_injury_replacement_scan_captured_date(source, date);
-    return !kbo_runtime_save_in_progress();
-}
-
 static int kbo_foreign_injury_date_tick_process_work(
     KboCurrentDateTickConsumer* consumer,
     const KboCurrentDateTickWork* work)
@@ -37,7 +13,25 @@ static int kbo_foreign_injury_date_tick_process_work(
     if (consumer == NULL || work == NULL) {
         return 1;
     }
+    if (!kbo_foreign_injury_replacement_enabled()) {
+        kbo_current_date_tick_consumer_mark_processed(consumer);
+        return 1;
+    }
+    if (kbo_runtime_save_in_progress()) {
+        kbo_log_runtimef(
+            "foreign injury date tick background deferred reason=save_in_progress date=%u site=0x%x",
+            work->date,
+            work->site_rva);
+        return 0;
+    }
 
+    const char* source = work->site_rva == KBO_CURRENT_DATE_TICK_SAVE_ENTER_SITE_RVA
+        ? "foreign_injury_current_date_tick_background_save_enter"
+        : "foreign_injury_current_date_tick_background_post_advance";
+    kbo_foreign_injury_replacement_scan_captured_date(source, work->date);
+    if (kbo_runtime_save_in_progress()) {
+        return 0;
+    }
     kbo_current_date_tick_consumer_mark_processed(consumer);
     return 1;
 }
@@ -93,11 +87,6 @@ void start_kbo_foreign_injury_date_tick_thread(void)
     if (InterlockedCompareExchange(&g_kbo_foreign_injury_date_tick_thread_started, 1, 0) != 0) {
         return;
     }
-    kbo_current_date_tick_register_sync_consumer(
-        "foreign_injury_current_date_tick",
-        kbo_foreign_injury_date_tick_sync_consumer,
-        NULL);
-
     if (kbo_start_runtime_thread(
             kbo_foreign_injury_date_tick_thread,
             NULL,

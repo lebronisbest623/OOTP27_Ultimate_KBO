@@ -231,12 +231,74 @@ int kbo_tick_military_service_days_for_date(
     return kbo_tick_military_service_days_for_serial(today_serial, source, out_seeded_assignments);
 }
 
-/* This thread is the consumer side of the date-tick pipeline: it parks on the
- * consumer queue waiting for date-change events.  The actual military tick
- * work runs from kbo_tick_military_service_days_for_date(), which is called
- * by other entry points (the date-tick sync layer, the runtime marker wait,
- * etc.); this thread just keeps the consumer alive so save-enter events get
- * marked processed and date dispatch keeps flowing. */
+static const char* kbo_military_days_tick_source_for_work(const KboCurrentDateTickWork* work)
+{
+    if (work != NULL && work->site_rva == KBO_CURRENT_DATE_TICK_SAVE_ENTER_SITE_RVA) {
+        return "military_days_tick_background_save_enter";
+    }
+    return "military_days_tick_background_post_advance";
+}
+
+static int kbo_military_days_tick_ready_for_work(const KboCurrentDateTickWork* work)
+{
+    if (work == NULL || kbo_military_days_tick_serial_from_work_date(work->date) == 0u) {
+        return 0;
+    }
+    if (!kbo_fix_enabled() || get_ootp_cached_global_database() == 0u) {
+        return 0;
+    }
+    if (kbo_runtime_save_in_progress()) {
+        return 0;
+    }
+
+    uintptr_t player_vector = 0u;
+    int32_t player_count = 0;
+    if (!find_kbo_global_player_vector(&player_vector, &player_count, NULL)
+            || player_vector == 0u
+            || player_count <= 0
+            || player_count > KBO_MILITARY_TICK_PLAYER_COUNT_MAX_PLAUSIBLE) {
+        return 0;
+    }
+    return 1;
+}
+
+static int kbo_military_days_tick_process_work(
+    KboCurrentDateTickConsumer* consumer,
+    const KboCurrentDateTickWork* work)
+{
+    if (consumer == NULL || work == NULL) {
+        return 1;
+    }
+    if (!kbo_fix_enabled()) {
+        kbo_current_date_tick_consumer_mark_processed(consumer);
+        return 1;
+    }
+    if (!kbo_military_days_tick_ready_for_work(work)) {
+        static volatile LONG s_not_ready_log_count = 0;
+        LONG log_index = InterlockedIncrement(&s_not_ready_log_count);
+        if (log_index <= 40) {
+            kbo_log_runtimef(
+                "KBO military service day tick background deferred reason=not_ready date=%u site=0x%x",
+                work->date,
+                work->site_rva);
+        }
+        return 0;
+    }
+
+    kbo_tick_military_service_days_for_date(
+        work->date,
+        kbo_military_days_tick_source_for_work(work),
+        NULL);
+    if (kbo_runtime_save_in_progress()) {
+        return 0;
+    }
+    kbo_current_date_tick_consumer_mark_processed(consumer);
+    return 1;
+}
+
+/* This thread is the consumer side of the date-tick pipeline.  It keeps the
+ * central date publishing path thin, then runs the full player pass from the
+ * background runtime loop once the date event is available. */
 DWORD WINAPI kbo_military_days_tick_thread(LPVOID parameter)
 {
     (void)parameter;
@@ -255,8 +317,9 @@ DWORD WINAPI kbo_military_days_tick_thread(LPVOID parameter)
 
         KboCurrentDateTickWork work = {0};
         while (kbo_current_date_tick_consumer_next(&consumer, &work)) {
-            (void)work;
-            kbo_current_date_tick_consumer_mark_processed(&consumer);
+            if (!kbo_military_days_tick_process_work(&consumer, &work)) {
+                break;
+            }
         }
     }
     InterlockedExchange(&g_military_days_tick_started, 0);

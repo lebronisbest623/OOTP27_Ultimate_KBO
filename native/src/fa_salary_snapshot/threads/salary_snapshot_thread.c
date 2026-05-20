@@ -24,7 +24,7 @@
 #include "../state/salary_snapshot_state.h"
 #include "../capture/salary_snapshot_write_capture.h"
 
-static int kbo_fa_salary_snapshot_process_date_sync(uint32_t date, const char* source)
+static int kbo_fa_salary_snapshot_process_date_work(uint32_t date, const char* source)
 {
     if (!kbo_fix_enabled()) {
         return 1;
@@ -109,18 +109,6 @@ static int kbo_fa_salary_snapshot_process_date_sync(uint32_t date, const char* s
     return captured || snapshot_exists || kbo_fa_salary_snapshot_file_exists(year);
 }
 
-static int kbo_fa_salary_snapshot_sync_consumer(
-    uint32_t date,
-    uint32_t site_rva,
-    void* context)
-{
-    (void)context;
-    const char* source = site_rva == KBO_CURRENT_DATE_TICK_SAVE_ENTER_SITE_RVA
-        ? "opening_day_sync_save_enter"
-        : "opening_day_sync_post_advance";
-    return kbo_fa_salary_snapshot_process_date_sync(date, source);
-}
-
 static DWORD WINAPI kbo_fa_salary_snapshot_thread(LPVOID parameter)
 {
     (void)parameter;
@@ -154,16 +142,25 @@ static DWORD WINAPI kbo_fa_salary_snapshot_thread(LPVOID parameter)
 
         KboCurrentDateTickWork date_work = {0};
         int drained = 0;
+        int deferred = 0;
         while (kbo_current_date_tick_consumer_next(&date_consumer, &date_work)) {
-            (void)date_work;
+            const char* source = date_work.site_rva == KBO_CURRENT_DATE_TICK_SAVE_ENTER_SITE_RVA
+                ? "opening_day_background_save_enter"
+                : "opening_day_background_post_advance";
+            if (!kbo_fa_salary_snapshot_process_date_work(date_work.date, source)) {
+                deferred = 1;
+                break;
+            }
             kbo_current_date_tick_consumer_mark_processed(&date_consumer);
             drained = 1;
         }
         if (profile_snapshot_thread_tick_active) {
             kbo_profiler_end(
-                drained
-                    ? "fa_salary_snapshot.thread.date_delegated_to_sync"
-                    : "fa_salary_snapshot.thread.no_date",
+                deferred
+                    ? "fa_salary_snapshot.thread.date_deferred"
+                    : drained
+                        ? "fa_salary_snapshot.thread.date_processed"
+                        : "fa_salary_snapshot.thread.no_date",
                 &profile_snapshot_thread_tick);
         }
     }
@@ -181,11 +178,6 @@ void start_kbo_fa_salary_snapshot_thread(void)
     if (InterlockedCompareExchange(&g_kbo_fa_salary_snapshot_thread_started, 1, 0) != 0) {
         return;
     }
-    kbo_current_date_tick_register_sync_consumer(
-        "fa_salary_snapshot_thread",
-        kbo_fa_salary_snapshot_sync_consumer,
-        NULL);
-
     if (!kbo_start_runtime_thread(kbo_fa_salary_snapshot_thread, NULL, "FA salary snapshot")) {
         InterlockedExchange(&g_kbo_fa_salary_snapshot_thread_started, 0);
     }
