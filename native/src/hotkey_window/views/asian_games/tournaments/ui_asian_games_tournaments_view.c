@@ -1,13 +1,12 @@
 #include "../ui_asian_games_view_internal.h"
+#include "../../../../core/dates/tick/current_date_tick_capture.h"
 
 int kbo_webview_asian_games_schedule(KboAsianGamesScheduleSeed* out)
 {
     uint32_t year = 0u;
     uint32_t month = 0u;
     uint32_t day = 0u;
-    if (!kbo_current_date_is_valid(&year, &month, &day)) {
-        kbo_current_year_relaxed(&year);
-    }
+    (void)kbo_current_date_tick_latest_components(&year, &month, &day);
     if (year < 1982u || year > 2200u) {
         return 0;
     }
@@ -229,15 +228,16 @@ void kbo_webview_append_asian_games_tournaments_view(KboWindowTextBuffer* buffer
     uint32_t current_year = 0u;
     uint32_t current_month = 0u;
     uint32_t current_day = 0u;
-    if (!kbo_current_date_is_valid(&current_year, &current_month, &current_day)) {
-        kbo_current_year_relaxed(&current_year);
-    }
+    (void)kbo_current_date_tick_latest_components(
+        &current_year,
+        &current_month,
+        &current_day);
     if (current_year < 2026u || current_year > 2200u) {
         current_year = 2026u;
     }
 
     uint32_t today = 0u;
-    kbo_get_current_yyyymmdd(&today);
+    kbo_current_date_tick_latest_published_date(&today);
 
     KboAsianGamesScheduleSeed schedules[64];
     memset(schedules, 0, sizeof(schedules));

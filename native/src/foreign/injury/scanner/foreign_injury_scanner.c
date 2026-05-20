@@ -1,6 +1,7 @@
 #include "foreign_injury_scanner_internal.h"
 #include "../../common/policy/foreign_player_policy.h"
 #include "../../../bootstrap/profiling/profiler.h"
+#include "../../../core/dates/tick/current_date_tick_capture.h"
 #include "../../../team/add_player_guard/team_add_player_guard_ai_roster.h"
 
 static LONG g_kbo_foreign_injury_non_roster_log_count = 0;
@@ -50,7 +51,7 @@ static void kbo_foreign_injury_replacement_scan_for_date_mode(
         return;
     }
     uint32_t live_date = 0u;
-    kbo_get_current_yyyymmdd(&live_date);
+    (void)kbo_current_date_tick_latest_published_date(&live_date);
     int live_injury_fields_available = captured_live_date || live_date == today;
     if (captured_live_date && live_date != 0u && live_date != today) {
         kbo_log_runtimef(

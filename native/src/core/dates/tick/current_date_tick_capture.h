@@ -2,6 +2,7 @@
 #define KBOFIX_SRC_CORE_DATES_TICK_CURRENT_DATE_TICK_CAPTURE_H_
 
 #include <stdint.h>
+#include <stddef.h>
 #include <windows.h>
 
 #include "../boundary/current_date_boundary.h"
@@ -72,6 +73,14 @@ extern uint32_t g_kbo_current_date_tick_event_save_epochs[KBO_CURRENT_DATE_TICK_
 int kbo_current_date_tick_publish(uint32_t date, uint32_t site_rva);
 int kbo_current_date_tick_publish_and_dispatch(uint32_t date, uint32_t site_rva);
 int kbo_current_date_tick_latest_published_date(uint32_t* out_date);
+int kbo_current_date_tick_latest_components(
+    uint32_t* out_year,
+    uint32_t* out_month,
+    uint32_t* out_day);
+int kbo_current_date_tick_latest_history_date(
+    char* out,
+    size_t out_size,
+    uint32_t fallback_year);
 int kbo_current_date_tick_live_candidate_publishable(
     uint32_t date,
     uint32_t site_rva,

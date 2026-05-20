@@ -1,4 +1,5 @@
 #include "ui_cbt_view_internal.h"
+#include "../../../core/dates/tick/current_date_tick_capture.h"
 
 void kbo_webview_append_cbt_history_view(KboWindowTextBuffer* buffer, uint32_t selected_team_id)
 {
@@ -114,7 +115,7 @@ static void kbo_webview_append_cbt_exception_css(KboWindowTextBuffer* buffer)
 void kbo_webview_append_cbt_exceptions_view(KboWindowTextBuffer* buffer, uint32_t selected_team_id)
 {
     uint32_t year = 0, month = 0, day = 0;
-    kbo_current_date_is_valid(&year, &month, &day);
+    kbo_current_date_tick_latest_components(&year, &month, &day);
     uint32_t current_date = year * 10000u + month * 100u + day;
 
     char team_name[96];
@@ -238,7 +239,7 @@ void kbo_webview_append_cbt_rules_view(KboWindowTextBuffer* buffer)
     KboCbtRules rules;
     kbo_cbt_rules_load(&rules);
     uint32_t current_year = 0, cm = 0, cd = 0;
-    kbo_current_date_is_valid(&current_year, &cm, &cd);
+    kbo_current_date_tick_latest_components(&current_year, &cm, &cd);
 
     kbo_window_text_appendf(buffer, "<div class='rights rosterRights'>");
     kbo_webview_append_roster_top_bar(buffer, rules.enabled ? "CBT 활성화" : "CBT 비활성화");

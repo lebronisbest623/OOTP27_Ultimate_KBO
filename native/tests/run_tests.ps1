@@ -189,6 +189,9 @@ if ($LASTEXITCODE -ne 0) {
     (Join-Path $Root "src\team\names\team_string.c") `
     (Join-Path $Root "src\core\dates\boundary\current_date_boundary.c") `
     (Join-Path $Root "src\core\dates\tick\current_date_tick_capture.c") `
+    (Join-Path $Root "src\core\dates\tick\capture\current_date_tick_consumer.c") `
+    (Join-Path $Root "src\core\dates\tick\capture\current_date_tick_latest.c") `
+    (Join-Path $Root "src\core\dates\tick\capture\current_date_tick_sync_consumers.c") `
     (Join-Path $Root "src\core\dates\core_text_date.c") `
     (Join-Path $Root "src\core\sql\escape\core_sql_escape.c") `
     (Join-Path $Root "src\core\core_flags\keys\flag_key.c") `

@@ -1,11 +1,13 @@
 #include "../../hotkey_window_webview.h"
+#include "../../../../../core/dates/tick/current_date_tick_capture.h"
 #include "../../../../../competitive_balance_tax/exceptions/cbt_exceptions.h"
 #include "../../../../../fa_salary_snapshot/grading/salary_snapshot_grade_rows.h"
 
 static int kbo_webview_cbt_exception_window_open(uint32_t season)
 {
     uint32_t year = 0, month = 0, day = 0;
-    if (!kbo_current_date_is_valid(&year, &month, &day) || year != season) {
+    if (!kbo_current_date_tick_latest_components(&year, &month, &day)
+            || year != season) {
         return 0;
     }
 

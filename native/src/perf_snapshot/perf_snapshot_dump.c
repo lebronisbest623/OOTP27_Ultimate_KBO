@@ -7,6 +7,7 @@
 
 #include "../bootstrap/abi/ootp_offsets.h"
 #include "../core/core_flags/api/flags_api.h"
+#include "../core/dates/tick/current_date_tick_capture.h"
 #include "../core/files/atomic/core_atomic_file.h"
 #include "../core/files/save_paths/core_save_paths.h"
 #include "../core/logging/core_log.h"
@@ -165,7 +166,7 @@ int kbo_dump_perf_player_snapshot(const char* source, char* out_path, size_t out
     header.source_player_count = (uint32_t)player_count;
     header.vector_offset = vector_offset;
     header.created_filetime = kbo_perf_snapshot_filetime_now();
-    kbo_get_current_yyyymmdd(&header.yyyymmdd);
+    kbo_current_date_tick_latest_published_date(&header.yyyymmdd);
 
     int ok = kbo_perf_snapshot_write_all(file, &header, (DWORD)sizeof(header));
     uint8_t player_scan[OOTP27_PLAYER_SCAN_BYTES];

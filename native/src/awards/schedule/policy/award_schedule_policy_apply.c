@@ -607,9 +607,7 @@ __declspec(noinline) void* ootp_kbo_award_schedule_create_league_event_wrapper(
     }
 
     uint32_t current_date = 0u;
-    if (!kbo_get_current_yyyymmdd(&current_date)) {
-        (void)kbo_current_date_tick_latest_published_date(&current_date);
-    }
+    (void)kbo_current_date_tick_latest_published_date(&current_date);
     (void)kbo_award_schedule_adjust_created_event(
         event,
         event_type,

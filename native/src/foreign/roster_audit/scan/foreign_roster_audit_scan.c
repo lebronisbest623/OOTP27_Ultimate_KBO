@@ -1,4 +1,5 @@
 #include "../internal/foreign_roster_audit_internal.h"
+#include "../../../core/dates/tick/current_date_tick_capture.h"
 #include "../../../core/logging/rule_audit.h"
 
 void audit_foreign_roster_state(const char* source, int write_snapshot)
@@ -51,7 +52,7 @@ void audit_foreign_roster_state(const char* source, int write_snapshot)
     int write_snapshot_now = write_snapshot || baseline_scan;
 
     char date[16] = {0};
-    if (!kbo_current_history_date(date, sizeof(date), 2000, source)) {
+    if (!kbo_current_date_tick_latest_history_date(date, sizeof(date), 2000u)) {
         strcpy_s(date, sizeof(date), "00000000");
     }
 

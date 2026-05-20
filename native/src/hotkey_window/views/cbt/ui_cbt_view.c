@@ -1,4 +1,5 @@
 #include "ui_cbt_view_internal.h"
+#include "../../../core/dates/tick/current_date_tick_capture.h"
 
 static int kbo_cbt_view_compare(const void* a, const void* b)
 {
@@ -60,7 +61,7 @@ int kbo_cbt_load_sorted(KboCbtRecord** out_records, int* out_count)
     if (records == NULL) return 0;
     int loaded = kbo_cbt_load_records(records, KBO_CBT_RECORDS_MAX, NULL, 0);
     uint32_t today = 0u;
-    kbo_get_current_yyyymmdd(&today);
+    kbo_current_date_tick_latest_published_date(&today);
     int filtered = 0;
     for (int i = 0; i < loaded; i++) {
         if (!kbo_cbt_record_visible_in_hub(&records[i], today)) {
@@ -182,7 +183,7 @@ static void kbo_webview_append_cbt_overview_view(KboWindowTextBuffer* buffer)
     kbo_cbt_format_usd(tax_text, sizeof(tax_text), total_tax);
     kbo_cbt_format_usd(threshold_text, sizeof(threshold_text), latest_threshold);
     uint32_t current_year = 0u, cm = 0u, cd = 0u;
-    kbo_current_date_is_valid(&current_year, &cm, &cd);
+    kbo_current_date_tick_latest_components(&current_year, &cm, &cd);
     uint32_t opening_day = 0u;
     uint32_t announcement_day = 0u;
     if (current_year != 0u && kbo_cbt_exception_resolve_opening_day(current_year, &opening_day)) {

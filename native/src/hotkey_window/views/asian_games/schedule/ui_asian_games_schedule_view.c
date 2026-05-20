@@ -1,4 +1,5 @@
 #include "../ui_asian_games_view_internal.h"
+#include "../../../../core/dates/tick/current_date_tick_capture.h"
 
 int kbo_webview_weekday_for_yyyymmdd(uint32_t yyyymmdd)
 {
@@ -121,7 +122,7 @@ void kbo_webview_append_asian_games_schedule_view(KboWindowTextBuffer* buffer)
     int has_schedule = kbo_webview_asian_games_schedule(&schedule);
     uint32_t schedule_year = has_schedule ? schedule.year : 0u;
     uint32_t today = 0u;
-    kbo_get_current_yyyymmdd(&today);
+    kbo_current_date_tick_latest_published_date(&today);
 
     uint32_t league_id = kbo_get_foreign_waiver_league_id();
     if (league_id == 0u) {

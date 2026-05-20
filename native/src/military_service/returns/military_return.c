@@ -155,7 +155,7 @@ int kbo_return_completed_military_loan_player(
         month = (current_yyyymmdd / 100u) % 100u;
         day = current_yyyymmdd % 100u;
     } else {
-        if (!kbo_current_year_relaxed(&year) || year == 0) { year = 2001; }
+        year = 2001;
     }
     char service_team_name[96] = {0};
     char original_team_name[96] = {0};

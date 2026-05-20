@@ -1,4 +1,5 @@
 #include "../../internal/amateur_assignment_internal.h"
+#include "../../../core/dates/tick/current_date_tick_capture.h"
 
 void kbo_amateur_assignment_append_debug_csv(
     const char* phase,
@@ -70,7 +71,7 @@ void kbo_amateur_assignment_append_debug_csv(
     uint32_t year = 0u;
     uint32_t month = 0u;
     uint32_t day = 0u;
-    kbo_current_date_is_valid(&year, &month, &day);
+    kbo_current_date_tick_latest_components(&year, &month, &day);
 
     char line[1024] = {0};
     snprintf(

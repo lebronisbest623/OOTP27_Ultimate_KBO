@@ -1,4 +1,5 @@
 #include "../ui_asian_games_view_internal.h"
+#include "../../../../core/dates/tick/current_date_tick_capture.h"
 
 static void kbo_webview_asian_games_roster_add_year(uint16_t* years, int* year_count, uint32_t year)
 {
@@ -227,7 +228,13 @@ static void kbo_webview_append_asian_games_roster_view(
         }
     } else if (year_count == 0 && selected_year == 0u) {
         uint32_t current_year = 0u;
-        if (kbo_current_year_relaxed(&current_year) && current_year != 0u) {
+        uint32_t current_month = 0u;
+        uint32_t current_day = 0u;
+        if (kbo_current_date_tick_latest_components(
+                &current_year,
+                &current_month,
+                &current_day)
+                && current_year != 0u) {
             selected_year = current_year;
             if (selected_roster_year != NULL) {
                 *selected_roster_year = selected_year;

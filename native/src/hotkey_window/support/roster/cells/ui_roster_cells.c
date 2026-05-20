@@ -2,6 +2,7 @@
 
 #include "../../../runtime/hotkey_window_runtime_shared.h"
 #include "../../../../captain/api/captain_selection.h"
+#include "../../../../core/dates/tick/current_date_tick_capture.h"
 #include "../../text/language/ui_language.h"
 #include "ui_roster_cells.h"
 
@@ -22,7 +23,8 @@ static int kbo_webview_player_is_selected_team_captain(uint32_t player_id)
     uint32_t current_year = 0u;
     uint32_t current_month = 0u;
     uint32_t current_day = 0u;
-    if (!kbo_current_date_is_valid(&current_year, &current_month, &current_day) || current_year == 0u) {
+    if (!kbo_current_date_tick_latest_components(&current_year, &current_month, &current_day)
+            || current_year == 0u) {
         return 0;
     }
 

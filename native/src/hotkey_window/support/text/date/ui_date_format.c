@@ -4,8 +4,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "../../../../core/dates/core_current_date.h"
 #include "../../../../core/dates/core_text_date.h"
+#include "../../../../core/dates/tick/current_date_tick_capture.h"
 #include "ui_date_format.h"
 
 int kbo_hub_days_until_yyyymmdd(uint32_t yyyymmdd)
@@ -16,7 +16,7 @@ int kbo_hub_days_until_yyyymmdd(uint32_t yyyymmdd)
     uint32_t year = 0;
     uint32_t month = 0;
     uint32_t day = 0;
-    if (!kbo_current_date_is_valid(&year, &month, &day)) {
+    if (!kbo_current_date_tick_latest_components(&year, &month, &day)) {
         return -1;
     }
     uint32_t today_serial = kbo_date_serial(year, month, day);

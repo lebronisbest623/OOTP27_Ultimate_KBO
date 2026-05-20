@@ -12,6 +12,7 @@
 #include "../../../bootstrap/abi/ootp_offsets.h"
 #include "../../../core/core_flags/api/flags_api.h"
 #include "../../../core/dates/core_text_date.h"
+#include "../../../core/dates/tick/current_date_tick_capture.h"
 #include "../../../core/files/save_paths/core_save_paths.h"
 #include "../../../core/logging/core_log.h"
 #include "../../../foreign/common/dates/foreign_waiver_date.h"
@@ -60,7 +61,7 @@ int kbo_independent_acquisition_ui_context(
     out_context->policy_enabled = kbo_fix_enabled() && kbo_custom_foreign_policy_enabled();
 
     uint32_t today = 0u;
-    if (kbo_get_current_yyyymmdd(&today)) {
+    if (kbo_current_date_tick_latest_published_date(&today)) {
         out_context->today = today;
     }
     if (out_context->today != 0u) {

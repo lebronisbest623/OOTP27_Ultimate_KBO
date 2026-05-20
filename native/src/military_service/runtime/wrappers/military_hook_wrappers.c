@@ -92,8 +92,6 @@ __declspec(noinline) void ootp_kbo_military_service_entry_wrapper(
                 cur_year = current_yyyymmdd / 10000u;
                 cur_month = (current_yyyymmdd / 100u) % 100u;
                 cur_day = current_yyyymmdd % 100u;
-            } else {
-                kbo_current_year_relaxed(&cur_year);
             }
             kbo_log_runtimef(
                 "KBO military service entry deferred player=%p player_id=%u"

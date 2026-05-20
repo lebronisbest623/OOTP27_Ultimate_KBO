@@ -1,4 +1,5 @@
 #include "../internal/fa_market_policy_internal.h"
+#include "../../core/dates/tick/current_date_tick_capture.h"
 #include "../../core/files/atomic/core_atomic_file.h"
 #include "../../core/logging/rule_audit.h"
 
@@ -85,7 +86,7 @@ void kbo_write_fa_market_classification_csv(
     char date[16] = {0};
     if (summary->today_yyyymmdd != 0u) {
         snprintf(date, sizeof(date), "%08u", summary->today_yyyymmdd);
-    } else if (!kbo_current_history_date(date, sizeof(date), 2000, source)) {
+    } else if (!kbo_current_date_tick_latest_history_date(date, sizeof(date), 2000u)) {
         snprintf(date, sizeof(date), "00000000");
     }
 

@@ -1,4 +1,5 @@
 #include "ui_fa_cases_view_internal.h"
+#include "../../../../core/dates/tick/current_date_tick_capture.h"
 #include "../../../../team/lookup/team_lookup.h"
 #include "../../../support/assets/paths/ui_image_sources.h"
 #include "../../../support/text/js/ui_js_string.h"
@@ -280,8 +281,10 @@ void kbo_webview_append_fa_cases_view(KboWindowTextBuffer* buffer, uint32_t sele
 
     uint32_t today = 0u;
     uint32_t current_year = 0u;
-    kbo_get_current_yyyymmdd(&today);
-    kbo_current_year_relaxed(&current_year);
+    kbo_current_date_tick_latest_published_date(&today);
+    if (today != 0u) {
+        current_year = today / 10000u;
+    }
 
     KboFaMarketScanSummary summary = {0};
     int count = 0;

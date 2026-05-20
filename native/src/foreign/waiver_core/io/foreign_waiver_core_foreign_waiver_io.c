@@ -7,6 +7,7 @@
 #include "../../../bootstrap/abi/ootp_offsets.h"
 #include "../../../core/core_flags/api/flags_api.h"
 #include "../../../core/dates/core_current_date.h"
+#include "../../../core/dates/tick/current_date_tick_capture.h"
 #include "../../../core/files/save_paths/core_save_paths.h"
 #include "../../../core/logging/core_log.h"
 #include "../../../team/lookup/team_lookup.h"
@@ -88,7 +89,7 @@ void write_foreign_waiver_candidates(const char* source)
         append_foreign_waiver_candidate_csv_header(file);
     }
     char date[16] = {0};
-    if (!kbo_current_history_date(date, sizeof(date), 2000, source)) {
+    if (!kbo_current_date_tick_latest_history_date(date, sizeof(date), 2000u)) {
         strcpy_s(date, sizeof(date), "00000000");
     }
 

@@ -1,4 +1,5 @@
 #include "../internal/intl_established_fa_postscan_internal.h"
+#include "../../../core/dates/tick/current_date_tick_capture.h"
 #include "../../intl_established_fa/intl_established_fa_policy.h"
 
 void kbo_intl_established_fa_postscan_run(const KboIntlEstablishedFaPostscanState* batch)
@@ -19,7 +20,7 @@ void kbo_intl_established_fa_postscan_run(const KboIntlEstablishedFaPostscanStat
     }
 
     char date[16] = {0};
-    if (!kbo_current_history_date(date, sizeof(date), 2000, "intl_established_fa_postscan")) {
+    if (!kbo_current_date_tick_latest_history_date(date, sizeof(date), 2000u)) {
         strcpy_s(date, sizeof(date), "00000000");
     }
 

@@ -670,6 +670,45 @@ static void test_current_date_tick_live_candidate_publishable_filters_transient_
     printf("test_current_date_tick_live_candidate_publishable_filters_transient_dates: PASS\n");
 }
 
+static void test_current_date_tick_latest_date_helpers_use_published_date(void)
+{
+    kbo_test_reset_current_date_tick_state();
+
+    uint32_t year = 1u;
+    uint32_t month = 1u;
+    uint32_t day = 1u;
+    char history_date[16] = {0};
+    assert(!kbo_current_date_tick_latest_components(&year, &month, &day));
+    assert(year == 0u);
+    assert(month == 0u);
+    assert(day == 0u);
+    assert(kbo_current_date_tick_latest_history_date(
+        history_date,
+        sizeof(history_date),
+        2000u));
+    assert(strcmp(history_date, "20000101") == 0);
+
+    g_test_current_yyyymmdd = 20261231u;
+    assert(kbo_current_date_tick_publish(
+        20260430u,
+        KBO_CURRENT_DATE_TICK_WATCHPOINT_SITE_RVA));
+
+    assert(kbo_current_date_tick_latest_components(&year, &month, &day));
+    assert(year == 2026u);
+    assert(month == 4u);
+    assert(day == 30u);
+
+    memset(history_date, 0, sizeof(history_date));
+    assert(kbo_current_date_tick_latest_history_date(
+        history_date,
+        sizeof(history_date),
+        2000u));
+    assert(strcmp(history_date, "20260430") == 0);
+
+    kbo_test_reset_current_date_tick_state();
+    printf("test_current_date_tick_latest_date_helpers_use_published_date: PASS\n");
+}
+
 static void test_current_date_boundary_context_records_source_and_epoch(void)
 {
     kbo_test_reset_current_date_tick_state();
@@ -2713,6 +2752,7 @@ int main(void)
     test_current_date_tick_consumer_requires_published_dates();
     test_current_date_tick_publish_rejects_non_adjacent_live_dates();
     test_current_date_tick_live_candidate_publishable_filters_transient_dates();
+    test_current_date_tick_latest_date_helpers_use_published_date();
     test_current_date_boundary_context_records_source_and_epoch();
     test_current_date_tick_sync_consumers_run_by_phase();
     test_current_date_tick_publish_and_dispatch_waits_sync_consumers();

@@ -1,4 +1,5 @@
 #include "../ui_fa_views_internal.h"
+#include "../../../../core/dates/tick/current_date_tick_capture.h"
 
 static int kbo_fa_rights_report_row_latest_for_player(
     const KboFaDeclarationReportRow* rows,
@@ -84,7 +85,12 @@ void kbo_webview_append_fa_rights_exercise_view(KboWindowTextBuffer* buffer, uin
     }
 
     uint32_t current_year = 0u;
-    kbo_current_year_relaxed(&current_year);
+    uint32_t current_month = 0u;
+    uint32_t current_day = 0u;
+    kbo_current_date_tick_latest_components(
+        &current_year,
+        &current_month,
+        &current_day);
 
     KboFaDeclarationReportRow* rows = (KboFaDeclarationReportRow*)HeapAlloc(
         GetProcessHeap(),

@@ -1,6 +1,7 @@
 #include "../hotkey_window_runtime_content.h"
 #include "../../hotkey_window_domain_contract.h"
 #include "../../../../captain/api/captain_selection.h"
+#include "../../../../core/dates/tick/current_date_tick_capture.h"
 
 static volatile LONG g_kbo_webview_navigate_current_pending = 0;
 static ICoreWebView2* g_kbo_webview_last_html_target = NULL;
@@ -102,7 +103,10 @@ WCHAR* kbo_build_webview_hub_html(void)
     kbo_get_foreign_waiver_window_status_text(window_status, sizeof(window_status));
 
     uint32_t current_year = 0, current_month = 0, current_day = 0;
-    if (kbo_current_date_is_valid(&current_year, &current_month, &current_day)) {
+    if (kbo_current_date_tick_latest_components(
+            &current_year,
+            &current_month,
+            &current_day)) {
         kbo_hub_format_ootp_date(current_year, current_month, current_day, current_date_text, sizeof(current_date_text));
     } else {
         snprintf(current_date_text, sizeof(current_date_text), "DATE UNKNOWN");

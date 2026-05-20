@@ -1,4 +1,5 @@
 #include "../internal/fa_market_policy_internal.h"
+#include "../../core/dates/tick/current_date_tick_capture.h"
 #include "../../core/logging/rule_audit.h"
 
 static int kbo_fa_market_source_is_interactive_ui(const char* source)
@@ -71,9 +72,11 @@ static int kbo_collect_fa_market_classifications_internal(
 
     uint32_t league_id = kbo_fa_market_resolve_league_id(requested_league_id);
     uint32_t today = 0u;
-    kbo_get_current_yyyymmdd(&today);
+    kbo_current_date_tick_latest_published_date(&today);
     uint32_t current_year = 0u;
-    kbo_current_year_relaxed(&current_year);
+    if (today != 0u) {
+        current_year = today / 10000u;
+    }
 
     if (summary != NULL) {
         summary->league_id = league_id;

@@ -1,4 +1,5 @@
 #include "../internal/ui_military_view_internal.h"
+#include "../../../../core/dates/tick/current_date_tick_capture.h"
 
 int kbo_military_resolve_application_window(
     uint32_t* out_today,
@@ -6,7 +7,7 @@ int kbo_military_resolve_application_window(
     uint32_t* out_announcement)
 {
     uint32_t today = 0u;
-    if (!kbo_get_current_yyyymmdd(&today) || today == 0u) {
+    if (!kbo_current_date_tick_latest_published_date(&today) || today == 0u) {
         return 0;
     }
 
@@ -66,9 +67,7 @@ void kbo_military_refresh_applicants_for_hotkey_view(void)
     uint32_t entry_year = 0u;
     uint32_t month = 0u;
     uint32_t day = 0u;
-    if (!kbo_current_date_is_valid(&entry_year, &month, &day)) {
-        kbo_current_year_relaxed(&entry_year);
-    }
+    (void)kbo_current_date_tick_latest_components(&entry_year, &month, &day);
     if (entry_year < 1982u || entry_year > 2300u) {
         return;
     }
