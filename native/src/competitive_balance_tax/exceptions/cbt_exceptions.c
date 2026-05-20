@@ -111,6 +111,26 @@ static void kbo_cbt_opening_day_cache_store(uint32_t season, uint32_t opening_da
     fclose(file);
 }
 
+static int kbo_cbt_opening_day_snapshot_load(uint32_t season, uint32_t* out_opening_day)
+{
+    if (out_opening_day != NULL) {
+        *out_opening_day = 0u;
+    }
+    if (out_opening_day == NULL || season < 1982u || season > 2200u) {
+        return 0;
+    }
+
+    KboFaSalarySnapshotGrade row;
+    memset(&row, 0, sizeof(row));
+    if (kbo_fa_salary_snapshot_load_grade_rows(season, &row, 1, NULL, 0) <= 0
+            || !kbo_cbt_opening_day_valid(season, row.opening_day)) {
+        return 0;
+    }
+
+    *out_opening_day = row.opening_day;
+    return 1;
+}
+
 int kbo_cbt_exception_resolve_opening_day(uint32_t season, uint32_t* out_opening_day)
 {
     if (out_opening_day != NULL) {
@@ -143,6 +163,14 @@ int kbo_cbt_exception_resolve_opening_day(uint32_t season, uint32_t* out_opening
     }
 
     if (kbo_cbt_opening_day_cache_load(season, &opening_day)) {
+        if (out_opening_day != NULL) {
+            *out_opening_day = opening_day;
+        }
+        return 1;
+    }
+
+    if (kbo_cbt_opening_day_snapshot_load(season, &opening_day)) {
+        kbo_cbt_opening_day_cache_store(season, opening_day);
         if (out_opening_day != NULL) {
             *out_opening_day = opening_day;
         }

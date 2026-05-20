@@ -117,7 +117,7 @@ uintptr_t kbo_find_league_ptr_by_memory_scan(uint32_t league_id)
     uintptr_t result = 0u;
     uint32_t result_id_offset = 0u;
     last_scan_ms = now;
-    kbo_log_runtimef("KBO league ptr memory scan started league_id=%u mode=bounded_named");
+    kbo_log_runtimef("KBO league ptr memory scan started league_id=%u mode=bounded_named", league_id);
 
     uintptr_t named_ptr = kbo_find_named_league_ptr_by_memory_scan_all(league_id);
     if (named_ptr != 0u) {

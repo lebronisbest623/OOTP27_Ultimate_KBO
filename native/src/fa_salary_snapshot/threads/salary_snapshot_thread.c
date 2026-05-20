@@ -81,17 +81,30 @@ static int kbo_fa_salary_snapshot_process_date_sync(uint32_t date, const char* s
         return 1;
     }
 
+    int after_opening_day = opening_day / 10000u == year && date > opening_day;
+    int late_missing_snapshot_backfill =
+        !in_opening_window
+        && after_opening_day
+        && !snapshot_exists;
     if (!in_opening_window) {
-        return 1;
+        if (!late_missing_snapshot_backfill) {
+            return 1;
+        }
+        kbo_log_runtimef(
+            "KBO FA salary snapshot sync late backfill date=%u opening_day=%u league=%u source=%s reason=missing_opening_day_snapshot",
+            date,
+            opening_day,
+            league_id,
+            source != NULL ? source : "");
     }
 
     int captured = kbo_capture_fa_salary_opening_day_snapshot(
-        source,
+        late_missing_snapshot_backfill ? "opening_day_sync_late_backfill" : source,
         date,
         year,
         opening_day,
         league_id);
-    return captured || snapshot_exists;
+    return captured || snapshot_exists || kbo_fa_salary_snapshot_file_exists(year);
 }
 
 static int kbo_fa_salary_snapshot_sync_consumer(
