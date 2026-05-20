@@ -183,7 +183,7 @@ static int kbo_independent_team_acquisition_scan_memory_start_by_league_id(
     int best_score = 0;
     uintptr_t best_ptr = 0u;
     uint32_t best_start = 0u;
-    uintptr_t address = 0x10000u;
+    uintptr_t address = KBO_RUNTIME_MIN_USER_POINTER;
     MEMORY_BASIC_INFORMATION mbi;
     while (VirtualQuery((void*)address, &mbi, sizeof(mbi)) != 0) {
         uintptr_t base = (uintptr_t)mbi.BaseAddress;
@@ -232,7 +232,7 @@ static int kbo_independent_team_acquisition_scan_memory_start_by_league_id(
 
         address = end;
 #if UINTPTR_MAX > 0xffffffffu
-        if (address >= (uintptr_t)0x0000800000000000ull) {
+        if (address >= KBO_RUNTIME_USER_SCAN_END) {
             break;
         }
 #endif

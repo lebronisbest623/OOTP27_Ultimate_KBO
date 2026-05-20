@@ -1,4 +1,5 @@
 #include "../internal/fa_market_data_internal.h"
+#include "../../core/sql/text_data/core_sql_text_data_paths.h"
 
 uint32_t kbo_fa_market_get_player_original_team_id(uint8_t* player)
 {
@@ -25,27 +26,14 @@ void kbo_fa_market_text_data_source_paths(
     char* source_shm,
     size_t source_shm_size)
 {
-    if (source_db != NULL && source_db_size > 0) {
-        source_db[0] = '\0';
-    }
-    if (source_wal != NULL && source_wal_size > 0) {
-        source_wal[0] = '\0';
-    }
-    if (source_shm != NULL && source_shm_size > 0) {
-        source_shm[0] = '\0';
-    }
-    if (save_path == NULL || save_path[0] == '\0') {
-        return;
-    }
-    if (source_db != NULL && source_db_size > 0) {
-        snprintf(source_db, source_db_size, "%s\\temp\\text_data.sqlite3", save_path);
-    }
-    if (source_wal != NULL && source_wal_size > 0) {
-        snprintf(source_wal, source_wal_size, "%s\\temp\\text_data.sqlite3-wal", save_path);
-    }
-    if (source_shm != NULL && source_shm_size > 0) {
-        snprintf(source_shm, source_shm_size, "%s\\temp\\text_data.sqlite3-shm", save_path);
-    }
+    kbo_core_sql_text_data_companion_paths(
+        save_path,
+        source_db,
+        source_db_size,
+        source_wal,
+        source_wal_size,
+        source_shm,
+        source_shm_size);
 }
 
 int kbo_fa_market_get_file_signature(const char* path, KboFaMarketFileSignature* out)

@@ -161,7 +161,7 @@ int kbo_asian_games_team_is_service_or_ulsan(uint8_t* team)
         return 0;
     }
 
-    static const uint32_t string_offsets[] = { 0x10u, 0x28u, 0x40u, 0x58u, 0x70u, 0x100u };
+    static const uint32_t string_offsets[] = OOTP27_KBO_TEAM_SEARCH_STRING_OFFSETS;
     for (size_t i = 0; i < sizeof(string_offsets) / sizeof(string_offsets[0]); i++) {
         char name[96] = {0};
         if (!copy_ootp_string_object_text(team, string_offsets[i], name, sizeof(name))) {

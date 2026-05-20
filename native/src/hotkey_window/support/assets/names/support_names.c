@@ -129,15 +129,15 @@ void kbo_hub_copy_team_display_name_from_ptr(uint8_t* team, char* out, size_t ou
         return;
     }
 
-    static const uint32_t string_offsets[] = { 0x10u, 0x28u, 0x40u, 0x58u, 0x70u, 0x100u };
+    static const uint32_t string_offsets[] = OOTP27_KBO_TEAM_SEARCH_STRING_OFFSETS;
 
     char city[64] = {0};
     char nickname[64] = {0};
     char best[96] = {0};
     int best_score = -1000;
 
-    copy_ootp_string_object_text(team, 0x10u, city,     sizeof(city));
-    copy_ootp_string_object_text(team, 0x28u, nickname, sizeof(nickname));
+    copy_ootp_string_object_text(team, OOTP27_KBO_TEAM_CITY_STRING_OFFSET, city, sizeof(city));
+    copy_ootp_string_object_text(team, OOTP27_KBO_TEAM_NICKNAME_STRING_OFFSET, nickname, sizeof(nickname));
 
     for (size_t i = 0; i < sizeof(string_offsets) / sizeof(string_offsets[0]); i++) {
         char text[96] = {0};

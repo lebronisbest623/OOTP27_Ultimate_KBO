@@ -3,11 +3,9 @@ using System.Runtime.InteropServices;
 
 internal static partial class OotpCurrentSavePathReader
 {
-    private const int SystemExtendedHandleInformation = 64;
-
     private static string? TryReadFromOpenFileHandles(int pid, Action<string>? log)
     {
-        var queryLength = 0x10000;
+        var queryLength = Win32ProbeConstants.InitialHandleQueryBytes;
         byte[] buffer;
         int status;
         int returnLength;
@@ -15,19 +13,19 @@ internal static partial class OotpCurrentSavePathReader
         {
             buffer = new byte[queryLength];
             status = NativeMethods.NtQuerySystemInformation(
-                SystemExtendedHandleInformation,
+                Win32ProbeConstants.SystemExtendedHandleInformation,
                 buffer,
                 buffer.Length,
                 out returnLength);
-            if (status == unchecked((int)0xC0000004) && returnLength > queryLength)
+            if (status == Win32ProbeConstants.NtStatusInfoLengthMismatch && returnLength > queryLength)
             {
-                queryLength = returnLength + 0x10000;
+                queryLength = returnLength + Win32ProbeConstants.InitialHandleQueryBytes;
             }
-            else if (status == unchecked((int)0xC0000004))
+            else if (status == Win32ProbeConstants.NtStatusInfoLengthMismatch)
             {
                 queryLength *= 2;
             }
-        } while (status == unchecked((int)0xC0000004) && queryLength <= 0x4000000);
+        } while (status == Win32ProbeConstants.NtStatusInfoLengthMismatch && queryLength <= Win32ProbeConstants.MaxHandleQueryBytes);
 
         if (status != 0)
         {
@@ -146,7 +144,7 @@ internal static partial class OotpCurrentSavePathReader
         var normalized = path.StartsWith(@"\\?\", StringComparison.Ordinal)
             ? path[4..]
             : path;
-        var marker = ".lg";
+        var marker = OotpProduct.SaveGameExtension;
         var index = normalized.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
         if (index < 0)
         {
@@ -172,7 +170,7 @@ internal static partial class OotpCurrentSavePathReader
 
         var absolute = Path.IsPathFullyQualified(path);
         return absolute
-            && path.EndsWith(".lg", StringComparison.OrdinalIgnoreCase)
+            && path.EndsWith(OotpProduct.SaveGameExtension, StringComparison.OrdinalIgnoreCase)
             && Directory.Exists(path);
     }
 

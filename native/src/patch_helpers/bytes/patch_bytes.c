@@ -54,8 +54,8 @@ void log_patch_bytes_mismatch(const char* label, const uint8_t* target, size_t s
 void log_extended_context(const char* label, const uint8_t* target, int pre_bytes, int total_bytes)
 {
     const uint8_t* start = (pre_bytes > 0) ? (target - pre_bytes) : target;
-    if ((uintptr_t)start < 0x10000u) {
-        start = (const uint8_t*)0x10000u;
+    if ((uintptr_t)start < KBO_RUNTIME_MIN_USER_POINTER) {
+        start = (const uint8_t*)KBO_RUNTIME_MIN_USER_POINTER;
     }
     if (!memory_range_readable(start, (SIZE_T)total_bytes)) {
         kbo_log_runtimef("%s extended ctx unreadable start=%p pre=%d total=%d", label, start, pre_bytes, total_bytes);

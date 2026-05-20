@@ -10,6 +10,8 @@
 #include "../../../runtime_memory/runtime_memory.h"
 #include "../../../core/dates/constants/kbo_date_constants.h"
 
+#define KBO_ALLSTAR_DATE_SERIALIZER_CALLBACK_OFFSET 0x10u
+
 static int kbo_allstar_schedule_memory_executable(const void* address)
 {
     if (address == NULL) {
@@ -44,11 +46,12 @@ static int kbo_allstar_date_slot_looks_like_serializer_callback(uint8_t* league,
     if (out_slot != NULL) {
         *out_slot = slot;
     }
-    if (slot < 0x10000u || !memory_range_readable((void*)(slot + 0x10u), sizeof(uintptr_t))) {
+    if (slot < KBO_RUNTIME_MIN_USER_POINTER
+            || !memory_range_readable((void*)(slot + KBO_ALLSTAR_DATE_SERIALIZER_CALLBACK_OFFSET), sizeof(uintptr_t))) {
         return 0;
     }
 
-    uintptr_t callback = *(uintptr_t*)(slot + 0x10u);
+    uintptr_t callback = *(uintptr_t*)(slot + KBO_ALLSTAR_DATE_SERIALIZER_CALLBACK_OFFSET);
     if (out_callback != NULL) {
         *out_callback = callback;
     }

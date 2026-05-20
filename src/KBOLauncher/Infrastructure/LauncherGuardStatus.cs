@@ -149,7 +149,7 @@ internal static class LauncherGuardStatus
     
     public static void WriteCurrentSavePathCache(int pid, string? savePath, string logPath)
     {
-        var path = GetKboLocalDataPath($"current_save_path_{pid}.txt");
+        var path = GetKboLocalDataPath(OotpProduct.CurrentSavePathFileName(pid));
         try
         {
             if (string.IsNullOrWhiteSpace(savePath))
@@ -172,7 +172,7 @@ internal static class LauncherGuardStatus
     
     public static void WriteRosterMarkerGuardStatus(RosterMarkerInfo info)
     {
-        var path = GetKboLocalDataPath("launcher_roster_marker_guard_status.txt");
+        var path = GetKboLocalDataPath(OotpProduct.RosterMarkerGuardStatusFileName);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
     
         var lines = new List<string>
@@ -210,7 +210,7 @@ internal static class LauncherGuardStatus
     public static void PrintMissingRosterMarkerWarning(RosterMarkerInfo info)
     {
         Console.Error.WriteLine("KBOFix injection disabled: the currently opened OOTP save is not marked for this KBO roster or is not fully saved yet.");
-        Console.Error.WriteLine($"Required marker in description.txt: {KboRosterMarkerGuard.RequiredMarkerUrl}");
+        Console.Error.WriteLine($"Required marker in {OotpProduct.DescriptionFileName}: {KboRosterMarkerGuard.RequiredMarkerUrl}");
         if (!string.IsNullOrWhiteSpace(info.SavePath))
         {
             Console.Error.WriteLine($"Current save checked: {info.SavePath}");

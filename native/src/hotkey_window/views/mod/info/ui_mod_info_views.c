@@ -107,9 +107,11 @@ void kbo_webview_append_mod_info_view(KboWindowTextBuffer* buffer, int selected_
         }
         kbo_window_text_appendf(
             buffer,
-            "<div class='githubRepo'><strong>OOTP27_Ultimate_KBO</strong>"
-            "<span>github.com/lebronisbest623</span></div></div>"
-            "<p>");
+            "<div class='githubRepo'><strong>%s</strong>"
+            "<span>%s</span></div></div>"
+            "<p>",
+            KBO_PRODUCT_REPOSITORY_NAME,
+            KBO_PRODUCT_REPOSITORY_HOST_LABEL);
         kbo_html_append_escaped(
             buffer,
             kbo_hub_text(
@@ -127,10 +129,11 @@ void kbo_webview_append_mod_info_view(KboWindowTextBuffer* buffer, int selected_
             }
             kbo_window_text_appendf(
                 buffer,
-                "<div class='buildRow'><span class='buildLabel'>%s</span><span class='buildValue'>OOTP 27 %s</span></div>"
+                "<div class='buildRow'><span class='buildLabel'>%s</span><span class='buildValue'>%s %s</span></div>"
                 "<div class='buildRow'><span class='buildLabel'>%s</span><span class='buildValue'>0x%08X</span></div>"
                 "<div class='buildRow'><span class='buildLabel'>%s</span><span class='buildValue'>0x%08X</span></div>",
                 kbo_hub_text("\xeb\xb2\x84\xec\xa0\x84", "빌드"),
+                KBO_OOTP_PRODUCT_SHORT_NAME,
                 build->label,
                 kbo_hub_text("\xed\x83\x80\xec\x9e\x84\xec\x8a\xa4\xed\x83\xac\xed\x94\x84", "타임스탬프"),
                 build->timestamp,
@@ -280,7 +283,11 @@ void kbo_webview_append_mod_info_view(KboWindowTextBuffer* buffer, int selected_
         if (github_icon_path[0] != '\0') {
             kbo_window_text_appendf(buffer, "<div class='githubHero'><img class='githubLogo' src='");
             kbo_webview_append_image_src(buffer, github_icon_path);
-            kbo_window_text_appendf(buffer, "'><div class='githubRepo'><strong>OOTP27_Ultimate_KBO</strong><span>github.com/lebronisbest623</span></div></div>");
+            kbo_window_text_appendf(
+                buffer,
+                "'><div class='githubRepo'><strong>%s</strong><span>%s</span></div></div>",
+                KBO_PRODUCT_REPOSITORY_NAME,
+                KBO_PRODUCT_REPOSITORY_HOST_LABEL);
         }
         kbo_window_text_appendf(buffer, "<p>");
         kbo_html_append_escaped(

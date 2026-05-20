@@ -1,4 +1,5 @@
 #include "../../hotkey_window_webview.h"
+#include "../../../../../core/product/ootp_product.h"
 
 int kbo_webview_handle_external_or_foreign_command(const char* cmd, HWND hwnd)
 {
@@ -7,7 +8,7 @@ int kbo_webview_handle_external_or_foreign_command(const char* cmd, HWND hwnd)
         ShellExecuteA(
             hwnd,
             "open",
-            "https://github.com/lebronisbest623/OOTP27_Ultimate_KBO",
+            KBO_PRODUCT_REQUIRED_ROSTER_MARKER_URL,
             NULL,
             NULL,
             SW_SHOWNORMAL);

@@ -74,7 +74,7 @@ int kbo_get_save_scoped_data_dir(char* out, size_t out_size)
     kbo_create_directory_utf8(root_dir);
 
     char saves_dir[KBO_UTF8_PATH_BYTES] = {0};
-    snprintf(saves_dir, sizeof(saves_dir), "%s\\saves", root_dir);
+    snprintf(saves_dir, sizeof(saves_dir), "%s\\" KBO_PRODUCT_SAVE_SCOPED_DATA_DIR, root_dir);
     kbo_create_directory_utf8(saves_dir);
 
     char save_name[96] = {0};

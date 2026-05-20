@@ -1,6 +1,10 @@
 #include "../allstar_league_context.h"
 #include "../../../core/dates/constants/kbo_date_constants.h"
 
+#define KBO_ALLSTAR_GLOBAL_EXTENDED_VECTOR_START_OFFSET 0x130u
+#define KBO_ALLSTAR_GLOBAL_EXTENDED_VECTOR_END_OFFSET 0x5F8u
+#define KBO_ALLSTAR_GLOBAL_DIRECT_SCAN_BYTES 0x600u
+
 /* Scan one vector entry in the global DB for a league matching league_id.
  * Returns the league pointer if found, 0 otherwise. */
 uintptr_t kbo_scan_league_vec(uintptr_t global, uint32_t vec_off, uint32_t league_id, const KboAllstarLayout* layout)
@@ -75,8 +79,10 @@ uintptr_t kbo_find_allstar_league_ptr(uint32_t league_id)
         }
     }
 
-    /* Pass 2: extended vector scan (0x130-0x5F8) ??may build moved league vectors */
-    for (uint32_t vec_off = 0x130u; vec_off <= 0x5F8u; vec_off += 8u) {
+    /* Pass 2: extended vector scan may catch builds that moved league vectors. */
+    for (uint32_t vec_off = KBO_ALLSTAR_GLOBAL_EXTENDED_VECTOR_START_OFFSET;
+            vec_off <= KBO_ALLSTAR_GLOBAL_EXTENDED_VECTOR_END_OFFSET;
+            vec_off += 8u) {
         found = kbo_scan_league_vec(global, vec_off, league_id, &layout);
         if (found) {
             kbo_log_runtimef("KBO allstar: found league at extended global+0x%x ptr=%p", vec_off, (void*)found);
@@ -87,10 +93,12 @@ uintptr_t kbo_find_allstar_league_ptr(uint32_t league_id)
     /* Pass 3: scan global DB directly for any pointer to a plausible league object.
      * Catches layouts where the league is stored as a direct pointer, not in a vector. */
     static volatile LONG s_reject_log_count = 0;
-    if (memory_range_readable((void*)global, 0x600u)) {
-        for (uint32_t ptr_off = 0u; ptr_off + (uint32_t)sizeof(uintptr_t) <= 0x600u; ptr_off += (uint32_t)sizeof(uintptr_t)) {
+    if (memory_range_readable((void*)global, KBO_ALLSTAR_GLOBAL_DIRECT_SCAN_BYTES)) {
+        for (uint32_t ptr_off = 0u;
+                ptr_off + (uint32_t)sizeof(uintptr_t) <= KBO_ALLSTAR_GLOBAL_DIRECT_SCAN_BYTES;
+                ptr_off += (uint32_t)sizeof(uintptr_t)) {
             uintptr_t candidate = *(uintptr_t*)((uint8_t*)global + ptr_off);
-            if (candidate < 0x10000u) {
+            if (candidate < KBO_RUNTIME_MIN_USER_POINTER) {
                 continue;
             }
             /* Quick year probe before the expensive full check */

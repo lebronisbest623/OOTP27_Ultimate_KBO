@@ -125,7 +125,7 @@ int kbo_player_memory_contains_ascii_seed_key(uint8_t* player, const char* key)
         return 0;
     }
 
-    static const uint32_t export_key_offsets[] = { 0x1140u, 0x1188u, 0x11a0u };
+    static const uint32_t export_key_offsets[] = OOTP27_PLAYER_EXPORT_KEY_STRING_OFFSETS;
     for (int i = 0; i < (int)(sizeof(export_key_offsets) / sizeof(export_key_offsets[0])); i++) {
         if (kbo_player_memory_string_slot_contains_ascii_seed_key(player, export_key_offsets[i], key)) {
             return 1;

@@ -51,13 +51,13 @@ internal static class KboRosterMarkerGuard
         }
         if (!normalizedSavePath.EndsWith(OotpProduct.SaveGameExtension, StringComparison.OrdinalIgnoreCase))
         {
-            return RosterMarkerInfo.Fail("current_save_not_lg", normalizedSavePath, null, "current save path is not an .lg directory");
+            return RosterMarkerInfo.Fail("current_save_not_lg", normalizedSavePath, null, $"current save path is not an {OotpProduct.SaveGameExtension} directory");
         }
 
-        var descriptionPath = Path.Combine(normalizedSavePath, "description.txt");
+        var descriptionPath = Path.Combine(normalizedSavePath, OotpProduct.DescriptionFileName);
         if (!File.Exists(descriptionPath))
         {
-            return RosterMarkerInfo.Fail("description_missing", normalizedSavePath, descriptionPath, "description.txt not found");
+            return RosterMarkerInfo.Fail("description_missing", normalizedSavePath, descriptionPath, $"{OotpProduct.DescriptionFileName} not found");
         }
 
         string text;

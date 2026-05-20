@@ -5,12 +5,14 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+. (Join-Path $PSScriptRoot "kbo_product.ps1")
+
 if ([string]::IsNullOrWhiteSpace($Path)) {
-    $perfDir = Join-Path $env:LOCALAPPDATA "OOTP-KBO\perf"
+    $perfDir = Get-KboLocalDataPath $script:KboProductPerfDirectoryName
     if (-not (Test-Path -LiteralPath $perfDir)) {
         throw "Perf directory not found: $perfDir"
     }
-    $latest = Get-ChildItem -LiteralPath $perfDir -Filter "kbo_perf_*.csv" |
+    $latest = Get-ChildItem -LiteralPath $perfDir -Filter $script:KboProductPerfFilePattern |
         Sort-Object LastWriteTime -Descending |
         Select-Object -First 1
     if (-not $latest) {

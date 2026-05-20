@@ -16,6 +16,8 @@ internal static class OotpProduct
     public const string SaveGameExtension = ".lg";
     public const string SaveGameSearchPattern = "*.lg";
     public const string RosterMarkerUrl = "https://github.com/lebronisbest623/OOTP27_Ultimate_KBO";
+    public const string DescriptionFileName = "description.txt";
+    public const string SaveStartedFileName = "flag_save_started.dat";
     public const string SaveCompletedFileName = "flag_save_completed.dat";
     public const string SaveCompletedSentinel = "Finished save_database, closing flag file now";
     public const string LeagueIdFileName = "kbo_league_id.txt";
@@ -23,6 +25,8 @@ internal static class OotpProduct
     public const string SettingsFileName = "kbo_settings.json";
     public const string LauncherLogFileName = "launcher.log";
     public const string PathDiscoveryStatusFileName = "launcher_path_discovery_status.txt";
+    public const string RosterMarkerGuardStatusFileName = "launcher_roster_marker_guard_status.txt";
+    public const string CurrentSavePathFileTemplate = "current_save_path_{0}.txt";
 
     public static readonly string[] OotpEnvironmentVariables =
     [
@@ -60,5 +64,10 @@ internal static class OotpProduct
             var documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
             return Path.Combine(documents, VendorFolderName, ProductFolderName, SavedGamesDirectoryName);
         }
+    }
+
+    public static string CurrentSavePathFileName(int pid)
+    {
+        return string.Format(CurrentSavePathFileTemplate, pid);
     }
 }

@@ -3,6 +3,7 @@
 #include "../../localappdata/localappdata_reader.h"
 #include "../../../files/save_paths/core_save_paths.h"
 #include "../../../logging/core_log.h"
+#include "../../../product/ootp_product.h"
 #include "../../../sync/spin_lock.h"
 
 #include <stdio.h>
@@ -13,6 +14,7 @@ static volatile LONG g_kbo_runtime_threads_stop_requested = 0;
 static KboSpinLock g_kbo_runtime_thread_registry_lock = KBO_SPIN_LOCK_INIT;
 
 #define KBO_RUNTIME_THREAD_MAX 64
+#define KBO_RUNTIME_SAVE_STARTED_STALE_MINUTES 15u
 
 typedef struct KboRuntimeThreadEntry {
     HANDLE handle;
@@ -55,18 +57,8 @@ int kbo_runtime_save_in_progress(void)
 
     char started_path[MAX_PATH] = {0};
     char completed_path[MAX_PATH] = {0};
-    int started_written = snprintf(
-        started_path,
-        sizeof(started_path),
-        "%s\\flag_save_started.dat",
-        save_path);
-    int completed_written = snprintf(
-        completed_path,
-        sizeof(completed_path),
-        "%s\\flag_save_completed.dat",
-        save_path);
-    if (started_written <= 0 || (size_t)started_written >= sizeof(started_path)
-            || completed_written <= 0 || (size_t)completed_written >= sizeof(completed_path)) {
+    if (!kbo_get_ootp_save_started_file_path(save_path, started_path, sizeof(started_path))
+            || !kbo_get_ootp_save_completed_file_path(save_path, completed_path, sizeof(completed_path))) {
         return 0;
     }
 
@@ -92,7 +84,8 @@ int kbo_runtime_save_in_progress(void)
             && started < kbo_runtime_filetime_u64(process_created)) {
         return 0;
     }
-    const ULONGLONG stale_save_started_100ns = 15ull * 60ull * 1000ull * 10000ull;
+    const ULONGLONG stale_save_started_100ns =
+        (ULONGLONG)KBO_RUNTIME_SAVE_STARTED_STALE_MINUTES * 60ull * 1000ull * 10000ull;
     if (now > started && now - started > stale_save_started_100ns) {
         return 0;
     }

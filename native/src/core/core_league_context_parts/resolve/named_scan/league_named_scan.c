@@ -233,7 +233,7 @@ static uintptr_t kbo_find_named_league_ptr_by_memory_scan(
     int best_score = -1000;
     char best_name[96] = {0};
 
-    uintptr_t address = 0x10000u;
+    uintptr_t address = KBO_RUNTIME_MIN_USER_POINTER;
     MEMORY_BASIC_INFORMATION mbi;
     while (VirtualQuery((void*)address, &mbi, sizeof(mbi)) != 0) {
         uintptr_t base = (uintptr_t)mbi.BaseAddress;
@@ -296,7 +296,7 @@ static uintptr_t kbo_find_named_league_ptr_by_memory_scan(
 
         address = end;
 #if UINTPTR_MAX > 0xffffffffu
-        if (address >= (uintptr_t)0x0000800000000000ull) {
+        if (address >= KBO_RUNTIME_USER_SCAN_END) {
             break;
         }
 #endif
@@ -317,14 +317,14 @@ uintptr_t kbo_find_named_league_ptr_by_memory_scan_all(uint32_t league_id)
     char name[96] = {0};
     uintptr_t ptr = kbo_find_named_league_ptr_by_memory_scan(
         league_id,
-        (SIZE_T)0x00040000u,
+        KBO_RUNTIME_FAST_LEAGUE_SCAN_BYTES,
         &score,
         name,
         sizeof(name));
     if (score < KBO_CORE_NAMED_LEAGUE_SCAN_MIN_SCORE) {
         ptr = kbo_find_named_league_ptr_by_memory_scan(
             league_id,
-            (SIZE_T)0x00400000u,
+            KBO_RUNTIME_BOUNDED_SCAN_MAX_BYTES,
             &score,
             name,
             sizeof(name));

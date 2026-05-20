@@ -5,18 +5,6 @@ using System.Text;
 
 internal static partial class OotpCurrentSavePathReader
 {
-
-    private const uint ImageScnMemExecute = 0x20000000u;
-    private const uint ImageScnMemRead = 0x40000000u;
-    private const uint ImageScnMemWrite = 0x80000000u;
-
-    private const ulong OotpMessageSavePathOffset = 0x1A58u;
-    private const ulong OotpStringObjectTextOffset = 0x8u;
-    private const ulong OotpTeamVectorOffset = 0x90u;
-    private const ulong OotpTeamCountOffset = 0x9Cu;
-    private const ulong OotpTeamLeagueIdOffset = 0x120u;
-    private const ulong OotpTeamIdOffset = 0x4450u;
-
     public static CurrentSavePathInfo TryRead(int pid, Action<string>? log = null)
     {
         using var process = Process.GetProcessById(pid);
@@ -65,7 +53,7 @@ internal static partial class OotpCurrentSavePathReader
                 for (var offset = 0; offset + 8 <= sectionBytes.Length; offset += 8)
                 {
                     var candidate = BitConverter.ToUInt64(sectionBytes, offset);
-                    if (candidate < 0x10000u || candidate > 0x7FFFFFFFFFFFFFFFul)
+                    if (candidate < Win32ProbeConstants.MinUserPointer || candidate > Win32ProbeConstants.MaxUserPointer)
                     {
                         continue;
                     }
@@ -74,7 +62,7 @@ internal static partial class OotpCurrentSavePathReader
                         continue;
                     }
 
-                    var savePath = ReadOotpString(processHandle, candidate + OotpMessageSavePathOffset, 512);
+                    var savePath = ReadOotpString(processHandle, candidate + OotpAbiOffsets.MessageSavePath, 512);
                         log?.Invoke($"current_save_probe pid={pid} global=0x{candidate:X} save=\"{savePath ?? ""}\"");
                         if (LooksLikeAbsoluteLgSavePath(savePath))
                         {
@@ -98,7 +86,7 @@ internal static partial class OotpCurrentSavePathReader
             return new CurrentSavePathInfo(true, "current_save_found_from_handles", Path.GetFullPath(handleSavePath!), null);
         }
 
-        return CurrentSavePathInfo.Fail("current_save_unavailable", null, "could not read an opened .lg save path from the target process");
+        return CurrentSavePathInfo.Fail("current_save_unavailable", null, $"could not read an opened {OotpProduct.SaveGameExtension} save path from the target process");
     }
 
     private static List<PeSection> ReadWritableDataSections(string exePath)
@@ -106,20 +94,20 @@ internal static partial class OotpCurrentSavePathReader
         using var stream = File.Open(exePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
         using var reader = new BinaryReader(stream);
 
-        if (stream.Length < 0x100)
+        if (stream.Length < PeImageConstants.DosHeaderMinBytes)
         {
             return [];
         }
 
-        stream.Position = 0x3C;
+        stream.Position = PeImageConstants.PeHeaderPointerOffset;
         var peHeaderOffset = reader.ReadInt32();
-        if (peHeaderOffset <= 0 || peHeaderOffset + 0x18 > stream.Length)
+        if (peHeaderOffset <= 0 || peHeaderOffset + PeImageConstants.CoffHeaderBytes > stream.Length)
         {
             return [];
         }
 
         stream.Position = peHeaderOffset;
-        if (reader.ReadUInt32() != 0x00004550)
+        if (reader.ReadUInt32() != PeImageConstants.PeSignature)
         {
             return [];
         }
@@ -129,12 +117,12 @@ internal static partial class OotpCurrentSavePathReader
         stream.Position = peHeaderOffset + 20;
         var optionalHeaderSize = reader.ReadUInt16();
 
-        var sectionOffset = peHeaderOffset + 24 + optionalHeaderSize;
+        var sectionOffset = peHeaderOffset + PeImageConstants.CoffHeaderBytes + optionalHeaderSize;
         var sections = new List<PeSection>();
         for (var i = 0; i < sectionCount; i++)
         {
-            var current = sectionOffset + i * 40;
-            if (current + 40 > stream.Length)
+            var current = sectionOffset + i * PeImageConstants.SectionHeaderBytes;
+            if (current + PeImageConstants.SectionHeaderBytes > stream.Length)
             {
                 break;
             }
@@ -145,9 +133,9 @@ internal static partial class OotpCurrentSavePathReader
             stream.Position = current + 36;
             var characteristics = reader.ReadUInt32();
 
-            var writableData = (characteristics & ImageScnMemWrite) != 0
-                && (characteristics & ImageScnMemRead) != 0
-                && (characteristics & ImageScnMemExecute) == 0;
+            var writableData = (characteristics & PeImageConstants.SectionMemoryWrite) != 0
+                && (characteristics & PeImageConstants.SectionMemoryRead) != 0
+                && (characteristics & PeImageConstants.SectionMemoryExecute) == 0;
             if (writableData && virtualSize >= 8)
             {
                 sections.Add(new PeSection(virtualAddress, virtualSize));
@@ -165,13 +153,13 @@ internal static partial class OotpCurrentSavePathReader
             return false;
         }
 
-        var teamCount = BitConverter.ToInt32(header, (int)OotpTeamCountOffset);
+        var teamCount = BitConverter.ToInt32(header, (int)OotpAbiOffsets.TeamCount);
         if (teamCount < 2 || teamCount > 500)
         {
             return false;
         }
 
-        var teamVector = BitConverter.ToUInt64(header, (int)OotpTeamVectorOffset);
+        var teamVector = BitConverter.ToUInt64(header, (int)OotpAbiOffsets.TeamVector);
         if (teamVector == 0)
         {
             return false;
@@ -192,8 +180,8 @@ internal static partial class OotpCurrentSavePathReader
                 return false;
             }
 
-            var teamIdBytes = ReadMemory(processHandle, team + OotpTeamIdOffset, 4);
-            var leagueIdBytes = ReadMemory(processHandle, team + OotpTeamLeagueIdOffset, 4);
+            var teamIdBytes = ReadMemory(processHandle, team + OotpAbiOffsets.TeamId, 4);
+            var leagueIdBytes = ReadMemory(processHandle, team + OotpAbiOffsets.TeamLeagueId, 4);
             if (teamIdBytes is null || leagueIdBytes is null)
             {
                 return false;
@@ -212,14 +200,14 @@ internal static partial class OotpCurrentSavePathReader
 
     private static string? ReadOotpString(IntPtr processHandle, ulong stringObjectAddress, int maxBytes)
     {
-        var pointerBytes = ReadMemory(processHandle, stringObjectAddress + OotpStringObjectTextOffset, 8);
+        var pointerBytes = ReadMemory(processHandle, stringObjectAddress + OotpAbiOffsets.StringObjectText, 8);
         if (pointerBytes is null)
         {
             return null;
         }
 
         var textPointer = BitConverter.ToUInt64(pointerBytes, 0);
-        if (textPointer < 0x10000u)
+        if (textPointer < Win32ProbeConstants.MinUserPointer)
         {
             return null;
         }
@@ -267,7 +255,7 @@ internal static partial class OotpCurrentSavePathReader
 
     private static byte[]? ReadMemory(IntPtr processHandle, ulong address, int size)
     {
-        if (size <= 0 || address < 0x10000u)
+        if (size <= 0 || address < Win32ProbeConstants.MinUserPointer)
         {
             return null;
         }

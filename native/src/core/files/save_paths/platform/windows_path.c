@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "../core_save_paths_internal.h"
+#include "../../../product/ootp_product.h"
 
 int kbo_utf8_to_wide_path(const char* path, WCHAR* out, DWORD out_count)
 {
@@ -117,7 +118,9 @@ int kbo_path_looks_like_absolute_save_path(const char* path)
     while (len > 0 && (path[len - 1] == '\\' || path[len - 1] == '/')) {
         len--;
     }
-    if (len < 3 || _strnicmp(path + len - 3, ".lg", 3) != 0) {
+    size_t extension_len = strlen(KBO_OOTP_SAVE_EXTENSION);
+    if (len < extension_len
+            || _strnicmp(path + len - extension_len, KBO_OOTP_SAVE_EXTENSION, extension_len) != 0) {
         return 0;
     }
 

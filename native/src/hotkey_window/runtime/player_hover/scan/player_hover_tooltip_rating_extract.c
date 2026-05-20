@@ -214,7 +214,7 @@ int kbo_tooltip_extract_overall_potential(
     for (size_t i = 0u; i + sizeof(uintptr_t) <= KBO_TOOLTIP_OBJECT_BYTES
             && seen_count < KBO_TOOLTIP_POINTER_SCAN_LIMIT; i += sizeof(uintptr_t)) {
         uintptr_t ptr = *(uintptr_t*)(base + i);
-        if (ptr < 0x10000u || kbo_tooltip_seen_ptr(seen, seen_count, ptr)) {
+        if (ptr < KBO_RUNTIME_MIN_USER_POINTER || kbo_tooltip_seen_ptr(seen, seen_count, ptr)) {
             continue;
         }
         uint8_t* child = (uint8_t*)ptr;
@@ -232,7 +232,7 @@ int kbo_tooltip_extract_overall_potential(
 
         for (size_t j = 0u; j + sizeof(uintptr_t) <= KBO_TOOLTIP_POINTER_SCAN_BYTES; j += sizeof(uintptr_t)) {
             uintptr_t nested_ptr = *(uintptr_t*)(child + j);
-            if (nested_ptr < 0x10000u || kbo_tooltip_seen_ptr(seen, seen_count, nested_ptr)) {
+            if (nested_ptr < KBO_RUNTIME_MIN_USER_POINTER || kbo_tooltip_seen_ptr(seen, seen_count, nested_ptr)) {
                 continue;
             }
             uint8_t* nested = (uint8_t*)nested_ptr;
@@ -270,7 +270,7 @@ void kbo_tooltip_scan_rating_child_values(
     for (size_t i = 0u; i + sizeof(uintptr_t) <= KBO_TOOLTIP_OBJECT_BYTES
             && seen_count < KBO_TOOLTIP_POINTER_SCAN_LIMIT; i += sizeof(uintptr_t)) {
         uintptr_t ptr = *(uintptr_t*)(base + i);
-        if (ptr < 0x10000u || kbo_tooltip_seen_ptr(seen, seen_count, ptr)) {
+        if (ptr < KBO_RUNTIME_MIN_USER_POINTER || kbo_tooltip_seen_ptr(seen, seen_count, ptr)) {
             continue;
         }
 
@@ -336,7 +336,7 @@ void kbo_tooltip_scan_rating_child_values(
 
         for (size_t j = 0u; j + sizeof(uintptr_t) <= KBO_TOOLTIP_POINTER_SCAN_BYTES; j += sizeof(uintptr_t)) {
             uintptr_t nested_ptr = *(uintptr_t*)(child + j);
-            if (nested_ptr < 0x10000u || !memory_range_readable((uint8_t*)nested_ptr, 0x80u)) {
+            if (nested_ptr < KBO_RUNTIME_MIN_USER_POINTER || !memory_range_readable((uint8_t*)nested_ptr, 0x80u)) {
                 continue;
             }
             uint8_t* nested = (uint8_t*)nested_ptr;

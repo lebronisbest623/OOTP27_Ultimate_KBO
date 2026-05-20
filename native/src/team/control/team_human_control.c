@@ -55,7 +55,7 @@ static int kbo_human_manager_pointer_plausible(uintptr_t manager_ptr)
     }
 
     uintptr_t vtable = *(uintptr_t*)manager_ptr;
-    if (vtable < 0x10000u || !memory_range_readable((void*)vtable, sizeof(uintptr_t))) {
+    if (vtable < KBO_RUNTIME_MIN_USER_POINTER || !memory_range_readable((void*)vtable, sizeof(uintptr_t))) {
         return 0;
     }
 

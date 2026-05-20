@@ -6,8 +6,8 @@
 
 #include <stdio.h>
 
-#include "../../files/save_paths/core_save_paths.h"
 #include "../../logging/core_log.h"
+#include "../text_data/core_sql_text_data_paths.h"
 
 typedef int (__cdecl *KboLeagueNewsSqliteOpenV2Fn)(const char*, void**, int, const char*);
 typedef int (__cdecl *KboLeagueNewsSqliteCloseFn)(void*);
@@ -158,17 +158,7 @@ static int kbo_league_news_text_data_path(char* out, size_t out_size)
     }
     out[0] = '\0';
 
-    char save_path[MAX_PATH] = {0};
-    if (!kbo_get_current_save_path(save_path, sizeof(save_path)) || save_path[0] == '\0') {
-        return 0;
-    }
-
-    int written = snprintf(
-        out,
-        out_size,
-        "%s\\temp\\text_data.sqlite3",
-        save_path);
-    return written > 0 && (size_t)written < out_size;
+    return kbo_core_sql_current_text_data_path(out, out_size);
 }
 
 static void kbo_league_news_sqlite_free_error(

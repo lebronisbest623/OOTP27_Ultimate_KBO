@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 
+#include "../../bootstrap/abi/ootp_offsets.h"
 #include "../../runtime_memory/runtime_memory.h"
 
 static int kbo_fa_salary_snapshot_memory_key_text_valid(const char* text)
@@ -59,7 +60,7 @@ void kbo_fa_salary_snapshot_copy_memory_player_key(uint8_t* player, char* out, s
         return;
     }
 
-    static const uint32_t export_key_offsets[] = { 0x1140u, 0x1188u, 0x11a0u };
+    static const uint32_t export_key_offsets[] = OOTP27_PLAYER_EXPORT_KEY_STRING_OFFSETS;
     for (int i = 0; i < (int)(sizeof(export_key_offsets) / sizeof(export_key_offsets[0])); i++) {
         if (kbo_fa_salary_snapshot_copy_memory_player_export_key_at(
                 player,

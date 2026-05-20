@@ -1,5 +1,6 @@
 #include "../hotkey_window_runtime_content.h"
 #include "../../hotkey_window_domain_contract.h"
+#include "../../../../core/product/ootp_product.h"
 
 void kbo_build_foreign_injury_replacement_hub_text(char* out, size_t out_size)
 {
@@ -103,7 +104,7 @@ void kbo_build_mod_info_hub_text(char* out, size_t out_size)
 
     kbo_window_text_appendf(&buffer, "%s\r\n\r\n", kbo_hub_text("\xeb\xaa\xa8\xeb\x93\x9c \xec\xa0\x95\xeb\xb3\xb4", "모드 정보"));
     kbo_window_text_appendf(&buffer, "GitHub\r\n");
-    kbo_window_text_appendf(&buffer, "  https://github.com/lebronisbest623/OOTP27_Ultimate_KBO\r\n\r\n");
+    kbo_window_text_appendf(&buffer, "  %s\r\n\r\n", KBO_PRODUCT_REQUIRED_ROSTER_MARKER_URL);
     kbo_window_text_appendf(
         &buffer, "%s\r\n",
         kbo_hub_text(
@@ -126,7 +127,8 @@ void kbo_build_mod_info_hub_text(char* out, size_t out_size)
         }
         kbo_window_text_appendf(
             &buffer,
-            "Supported build: OOTP 27 %s / timestamp 0x%08X / image 0x%08X\r\n",
+            "Supported build: %s %s / timestamp 0x%08X / image 0x%08X\r\n",
+            KBO_OOTP_PRODUCT_SHORT_NAME,
             build->label,
             build->timestamp,
             build->size_of_image);

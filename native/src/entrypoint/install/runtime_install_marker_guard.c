@@ -3,8 +3,7 @@
 static int kbo_current_save_has_completed_flag(const char* save_path, const char* source, int log_detail)
 {
     char completed_path[MAX_PATH] = {0};
-    int path_written = snprintf(completed_path, sizeof(completed_path), "%s\\flag_save_completed.dat", save_path);
-    if (path_written <= 0 || (size_t)path_written >= sizeof(completed_path)) {
+    if (!kbo_get_ootp_save_completed_file_path(save_path, completed_path, sizeof(completed_path))) {
         if (log_detail) {
             kbo_log_runtimef(
                 "KBO runtime marker guard waiting source=%s reason=save_completed_path_overflow save=%s",
@@ -66,7 +65,7 @@ static int kbo_current_save_has_completed_flag(const char* save_path, const char
     }
     text[read] = '\0';
 
-    int completed = kbo_ascii_contains_ignore_case(text, "Finished save_database, closing flag file now");
+    int completed = kbo_ascii_contains_ignore_case(text, KBO_OOTP_SAVE_COMPLETED_SENTINEL);
     HeapFree(GetProcessHeap(), 0, text);
     if (!completed) {
         if (log_detail) {
@@ -92,8 +91,7 @@ int kbo_current_save_has_required_roster_marker(const char* source, int log_deta
     }
 
     char description_path[MAX_PATH] = {0};
-    int path_written = snprintf(description_path, sizeof(description_path), "%s\\description.txt", save_path);
-    if (path_written <= 0 || (size_t)path_written >= sizeof(description_path)) {
+    if (!kbo_get_ootp_save_description_file_path(save_path, description_path, sizeof(description_path))) {
         if (log_detail) {
             kbo_log_runtimef(
                 "KBO runtime marker guard waiting source=%s reason=description_path_overflow save=%s",
@@ -155,18 +153,20 @@ int kbo_current_save_has_required_roster_marker(const char* source, int log_deta
     }
     text[read] = '\0';
 
-    int marked = kbo_ascii_contains_ignore_case(text, KBO_REQUIRED_ROSTER_MARKER_URL);
+    int marked = kbo_ascii_contains_ignore_case(text, KBO_PRODUCT_REQUIRED_ROSTER_MARKER_URL);
     HeapFree(GetProcessHeap(), 0, text);
     if (marked) {
         if (!kbo_current_save_has_completed_flag(save_path, source, log_detail)) {
             return 0;
         }
+        char completed_path[MAX_PATH] = {0};
+        kbo_get_ootp_save_completed_file_path(save_path, completed_path, sizeof(completed_path));
         kbo_log_runtimef(
-            "KBO runtime marker guard passed source=%s save=%s description=%s save_completed=%s\\flag_save_completed.dat",
+            "KBO runtime marker guard passed source=%s save=%s description=%s save_completed=%s",
             source != NULL ? source : "",
             save_path,
             description_path,
-            save_path);
+            completed_path);
         return 1;
     }
 

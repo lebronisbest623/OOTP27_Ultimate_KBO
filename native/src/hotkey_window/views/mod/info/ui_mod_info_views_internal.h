@@ -11,6 +11,7 @@
 #include "../../../../build_verify/build_verify.h"
 #include "../../../../core/core_flags/api/flags_api.h"
 #include "../../../../core/core_flags/localappdata/localappdata_reader.h"
+#include "../../../../core/product/ootp_product.h"
 #include "../../../support/assets/paths/ui_asset_paths.h"
 #include "../../../support/assets/paths/ui_image_sources.h"
 #include "../../../support/text/language/ui_language.h"

@@ -19,6 +19,8 @@
 #include "../internal/foreign_waiver_decisions_state_internal.h"
 #include "../internal/foreign_waiver_decisions_team_internal.h"
 
+#define KBO_FOREIGN_WAIVER_COMMAND_FILE "foreign_waiver_commands.txt"
+
 static void kbo_audit_foreign_waiver_command(
     const char* decision,
     const char* reason,
@@ -188,12 +190,18 @@ static int kbo_execute_foreign_waiver_claim(const char* line, int line_no)
     return 1;
 }
 
-static int get_kbo_foreign_waiver_cmd_path(char* out, size_t out_size)
+int kbo_get_foreign_waiver_command_path(char* out, size_t out_size)
 {
     if (out == NULL || out_size < 2) {
         return 0;
     }
-    return kbo_get_save_scoped_data_file("foreign_waiver_commands.txt", out, out_size);
+    return kbo_get_save_scoped_data_file(KBO_FOREIGN_WAIVER_COMMAND_FILE, out, out_size);
+}
+
+int kbo_foreign_waiver_command_file_ready(void)
+{
+    char path[MAX_PATH] = {0};
+    return kbo_get_foreign_waiver_command_path(path, sizeof(path));
 }
 
 static int kbo_append_foreign_waiver_cmd_line(const char* line)
@@ -202,7 +210,7 @@ static int kbo_append_foreign_waiver_cmd_line(const char* line)
         return 0;
     }
     char path[MAX_PATH] = {0};
-    if (!get_kbo_foreign_waiver_cmd_path(path, sizeof(path))) {
+    if (!kbo_get_foreign_waiver_command_path(path, sizeof(path))) {
         return 0;
     }
     kbo_lock_enter(&g_kbo_foreign_waiver_decision_lock);
@@ -256,7 +264,7 @@ void process_foreign_waiver_commands(void)
     }
 
     char path[MAX_PATH] = {0};
-    if (!get_kbo_foreign_waiver_cmd_path(path, sizeof(path))) {
+    if (!kbo_get_foreign_waiver_command_path(path, sizeof(path))) {
         kbo_log_runtime_line("foreign waiver command: unable to resolve command path");
         return;
     }

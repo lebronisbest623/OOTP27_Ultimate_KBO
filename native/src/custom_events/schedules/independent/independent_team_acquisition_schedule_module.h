@@ -6,8 +6,11 @@
 
 #include <stdint.h>
 
+#include "../../../runtime_memory/runtime_memory.h"
+
 #define KBO_INDEPENDENT_ACQUISITION_LEAGUE_ID_OFFSET_COUNT 4u
-#define KBO_INDEPENDENT_ACQUISITION_LEAGUE_SCAN_MAX_REGION ((SIZE_T)0x00400000u)
+#define KBO_INDEPENDENT_ACQUISITION_LEAGUE_SCAN_MAX_REGION KBO_RUNTIME_BOUNDED_SCAN_MAX_BYTES
+#define KBO_INDEPENDENT_ACQUISITION_SERIALIZER_CALLBACK_OFFSET 0x10u
 
 typedef struct KboIndependentAcquisitionMemoryStartCache {
     uint32_t league_id;

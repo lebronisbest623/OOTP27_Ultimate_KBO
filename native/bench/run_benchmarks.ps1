@@ -21,6 +21,7 @@ $ErrorActionPreference = "Stop"
 $BenchDir = $PSScriptRoot
 $Root = Split-Path -Parent $BenchDir
 $RepoRoot = Split-Path -Parent $Root
+. (Join-Path $Root "tools\kbo_product.ps1")
 $BenchSrc = Join-Path $BenchDir "bench_main.c"
 $BenchExe = Join-Path $BenchDir "bench.exe"
 $ResultsDir = Join-Path $BenchDir "results"
@@ -75,15 +76,15 @@ function Resolve-SnapshotPath {
         return ""
     }
     if ($Path -ieq "latest") {
-        $Root = Join-Path $env:LOCALAPPDATA "OOTP-KBO\saves"
-        if (-not (Test-Path -LiteralPath $Root)) {
-            throw "No save-scoped data directory found at $Root"
+        $SaveScopedRoot = Get-KboLocalDataPath $script:KboProductSaveScopedDirectoryName
+        if (-not (Test-Path -LiteralPath $SaveScopedRoot)) {
+            throw "No save-scoped data directory found at $SaveScopedRoot"
         }
-        $Latest = Get-ChildItem -LiteralPath $Root -Recurse -Filter "perf_snapshot_players.bin" -ErrorAction SilentlyContinue |
+        $Latest = Get-ChildItem -LiteralPath $SaveScopedRoot -Recurse -Filter $script:KboPerfSnapshotPlayerFileName -ErrorAction SilentlyContinue |
             Sort-Object LastWriteTime -Descending |
             Select-Object -First 1
         if (-not $Latest) {
-            throw "No perf_snapshot_players.bin found below $Root"
+            throw "No $($script:KboPerfSnapshotPlayerFileName) found below $SaveScopedRoot"
         }
         return $Latest.FullName
     }
@@ -100,15 +101,15 @@ function Resolve-PerfPath {
         return ""
     }
     if ($Path -ieq "latest") {
-        $Root = Join-Path $env:LOCALAPPDATA "OOTP-KBO\perf"
-        if (-not (Test-Path -LiteralPath $Root)) {
-            throw "No profiler directory found at $Root"
+        $PerfRoot = Get-KboLocalDataPath $script:KboProductPerfDirectoryName
+        if (-not (Test-Path -LiteralPath $PerfRoot)) {
+            throw "No profiler directory found at $PerfRoot"
         }
-        $Latest = Get-ChildItem -LiteralPath $Root -Filter "kbo_perf_*.csv" -ErrorAction SilentlyContinue |
+        $Latest = Get-ChildItem -LiteralPath $PerfRoot -Filter $script:KboProductPerfFilePattern -ErrorAction SilentlyContinue |
             Sort-Object LastWriteTime -Descending |
             Select-Object -First 1
         if (-not $Latest) {
-            throw "No kbo_perf_*.csv found below $Root"
+            throw "No $($script:KboProductPerfFilePattern) found below $PerfRoot"
         }
         return $Latest.FullName
     }

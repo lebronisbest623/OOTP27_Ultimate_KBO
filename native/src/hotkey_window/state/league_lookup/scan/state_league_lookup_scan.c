@@ -7,7 +7,7 @@ uintptr_t kbo_scan_named_league_ptr(uint32_t league_id, SIZE_T max_region_size, 
     char best_name[96] = {0};
     char best_logo[128] = {0};
 
-    uintptr_t address = 0x10000u;
+    uintptr_t address = KBO_RUNTIME_MIN_USER_POINTER;
     MEMORY_BASIC_INFORMATION mbi;
     while (VirtualQuery((void*)address, &mbi, sizeof(mbi)) != 0) {
         uintptr_t base = (uintptr_t)mbi.BaseAddress;
@@ -74,7 +74,7 @@ uintptr_t kbo_scan_named_league_ptr(uint32_t league_id, SIZE_T max_region_size, 
         }
 
         address = end;
-        if (address >= (uintptr_t)0x0000800000000000ull) {
+        if (address >= KBO_RUNTIME_USER_SCAN_END) {
             break;
         }
     }
@@ -157,7 +157,7 @@ int kbo_scan_named_league_ptrs_for_ids(const uint32_t* league_ids, int league_co
     }
 
     int found = kbo_hub_count_cached_league_ids(league_ids, league_count);
-    uintptr_t address = 0x10000u;
+    uintptr_t address = KBO_RUNTIME_MIN_USER_POINTER;
     MEMORY_BASIC_INFORMATION mbi;
     while (VirtualQuery((void*)address, &mbi, sizeof(mbi)) != 0) {
         uintptr_t base = (uintptr_t)mbi.BaseAddress;
@@ -221,7 +221,7 @@ int kbo_scan_named_league_ptrs_for_ids(const uint32_t* league_ids, int league_co
         }
 
         address = end;
-        if (address >= (uintptr_t)0x0000800000000000ull) {
+        if (address >= KBO_RUNTIME_USER_SCAN_END) {
             break;
         }
     }

@@ -45,7 +45,26 @@ static LARGE_INTEGER g_qpc_frequency;
 static volatile int64_t g_bench_sink = 0;
 static BenchReadabilityMode g_bench_readability_mode = BENCH_READABILITY_FAST;
 volatile LONG g_kbo_custom_foreign_pending_offer_generation = 0;
+volatile LONG g_kbo_foreign_waiver_rights_generation = 1;
 int g_kbo_foreign_injury_replacement_count = 0;
+
+LONG kbo_custom_foreign_pending_offer_generation_for_team(uint32_t team_id)
+{
+    (void)team_id;
+    return InterlockedCompareExchange(&g_kbo_custom_foreign_pending_offer_generation, 0, 0);
+}
+
+int kbo_foreign_ai_controller_enabled(void)
+{
+    return 0;
+}
+
+int kbo_nation_is_asian_quota_candidate(uint32_t nation_id)
+{
+    return nation_id != 0u
+        && nation_id != OOTP27_KBO_KOREA_NATION_ID
+        && nation_id != 840u;
+}
 
 typedef struct BenchReadableRange {
     uintptr_t start;

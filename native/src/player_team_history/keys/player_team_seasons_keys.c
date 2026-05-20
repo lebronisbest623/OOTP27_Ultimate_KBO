@@ -57,7 +57,7 @@ int kbo_player_team_seasons_copy_player_export_keys(uint8_t* player, char keys[]
     }
 
     int count = 0;
-    static const uint32_t export_key_offsets[] = { 0x1140u, 0x1188u, 0x11a0u };
+    static const uint32_t export_key_offsets[] = OOTP27_PLAYER_EXPORT_KEY_STRING_OFFSETS;
     for (int i = 0; i < (int)(sizeof(export_key_offsets) / sizeof(export_key_offsets[0])); i++) {
         uint32_t offset = export_key_offsets[i];
         char text[64] = {0};

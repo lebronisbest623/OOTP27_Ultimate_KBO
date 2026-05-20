@@ -36,9 +36,8 @@ static int kbo_foreign_waiver_scanner_sync_consumer(
     }
 
     char save_path[MAX_PATH] = {0};
-    char readiness_path[MAX_PATH] = {0};
     if (!kbo_get_current_save_path(save_path, sizeof(save_path))
-            || !kbo_get_save_scoped_data_file("foreign_waiver_commands.txt", readiness_path, sizeof(readiness_path))) {
+            || !kbo_foreign_waiver_command_file_ready()) {
         return 0;
     }
     process_foreign_waiver_commands();
@@ -70,9 +69,8 @@ static DWORD WINAPI kbo_foreign_waiver_scanner_thread(LPVOID parameter)
         KBO_PROFILE_BEGIN(profile_foreign_waiver_scanner_tick);
         tick++;
         char save_path[MAX_PATH] = {0};
-        char readiness_path[MAX_PATH] = {0};
         if (!kbo_get_current_save_path(save_path, sizeof(save_path))
-                || !kbo_get_save_scoped_data_file("foreign_waiver_commands.txt", readiness_path, sizeof(readiness_path))) {
+                || !kbo_foreign_waiver_command_file_ready()) {
             static LONG waiting_logged = 0;
             if (InterlockedCompareExchange(&waiting_logged, 1, 0) == 0) {
                 kbo_log_runtime_line("foreign waiver worker waiting: save path not ready");

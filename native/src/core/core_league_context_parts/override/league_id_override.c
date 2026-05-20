@@ -7,6 +7,7 @@
 #include "../api/league_context_lookup.h"
 #include "../../files/save_paths/core_save_paths.h"
 #include "../../logging/core_log.h"
+#include "../../product/ootp_product.h"
 
 uint32_t kbo_read_kbo_league_id_override(void)
 {
@@ -21,7 +22,7 @@ uint32_t kbo_read_kbo_league_id_override(void)
     last_checked_ms = now_ms;
 
     char path[MAX_PATH] = {0};
-    if (!kbo_get_global_data_file("kbo_league_id.txt", path, sizeof(path))) {
+    if (!kbo_get_global_data_file(KBO_PRODUCT_LEAGUE_ID_FILE, path, sizeof(path))) {
         static LONG missing_logged = 0;
         if (InterlockedCompareExchange(&missing_logged, 1, 0) == 0) {
             kbo_log_runtime_line("KBO league id override: global data path unavailable");

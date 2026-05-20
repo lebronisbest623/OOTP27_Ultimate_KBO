@@ -9,34 +9,34 @@ internal static class OotpBuildGuard
             using var stream = File.Open(exePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
             using var reader = new BinaryReader(stream);
 
-            if (stream.Length < 0x100)
+            if (stream.Length < PeImageConstants.DosHeaderMinBytes)
             {
                 return OotpBuildInfo.Fail("file too small");
             }
 
             stream.Position = 0;
-            if (reader.ReadUInt16() != 0x5A4D)
+            if (reader.ReadUInt16() != PeImageConstants.DosSignature)
             {
                 return OotpBuildInfo.Fail("invalid DOS signature");
             }
 
-            stream.Position = 0x3C;
+            stream.Position = PeImageConstants.PeHeaderPointerOffset;
             var peHeaderOffset = reader.ReadInt32();
-            if (peHeaderOffset <= 0 || peHeaderOffset + 0x58 > stream.Length)
+            if (peHeaderOffset <= 0 || peHeaderOffset + PeImageConstants.BuildIdentityHeaderBytes > stream.Length)
             {
                 return OotpBuildInfo.Fail("invalid PE header offset");
             }
 
             stream.Position = peHeaderOffset;
-            if (reader.ReadUInt32() != 0x00004550)
+            if (reader.ReadUInt32() != PeImageConstants.PeSignature)
             {
                 return OotpBuildInfo.Fail("invalid PE signature");
             }
 
-            stream.Position = peHeaderOffset + 8;
+            stream.Position = peHeaderOffset + PeImageConstants.TimestampOffsetFromPeHeader;
             var timestamp = reader.ReadUInt32();
 
-            stream.Position = peHeaderOffset + 24 + 0x38;
+            stream.Position = peHeaderOffset + PeImageConstants.SizeOfImageOffsetFromPeHeader;
             var sizeOfImage = reader.ReadUInt32();
 
             return new OotpBuildInfo(true, timestamp, sizeOfImage, null);

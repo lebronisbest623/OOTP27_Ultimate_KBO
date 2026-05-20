@@ -65,7 +65,7 @@ static int readable_region_cache_hit(uintptr_t start, uintptr_t end, DWORD now)
 
 static void readable_region_cache_store(uintptr_t region_base, uintptr_t region_end, DWORD now)
 {
-    if (region_base < 0x10000u || region_end <= region_base) {
+    if (region_base < KBO_RUNTIME_MIN_USER_POINTER || region_end <= region_base) {
         return;
     }
 
@@ -81,7 +81,7 @@ int memory_range_readable(const void* address, SIZE_T size)
         return 0;
     }
     uintptr_t start = (uintptr_t)address;
-    if (start < 0x10000u) {
+    if (start < KBO_RUNTIME_MIN_USER_POINTER) {
         return 0;
     }
     uintptr_t end = start + size;
@@ -235,7 +235,7 @@ uintptr_t get_ootp_global_database(void)
         for (DWORD off = 0; off <= limit; off += sizeof(uintptr_t)) {
             uintptr_t v = *(uintptr_t*)(sec + off);
             /* Skip obvious non-pointers quickly before doing VirtualQuery. */
-            if (v < 0x10000u || v > (uintptr_t)0x7FFFFFFFFFFFFFFFllu) {
+            if (v < KBO_RUNTIME_MIN_USER_POINTER || v > KBO_RUNTIME_MAX_USER_POINTER) {
                 continue;
             }
             if (!looks_like_ootp_global_db(v)) {

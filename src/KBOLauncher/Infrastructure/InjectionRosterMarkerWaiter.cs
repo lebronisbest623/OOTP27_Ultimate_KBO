@@ -18,7 +18,7 @@ internal static class InjectionRosterMarkerWaiter
         var attempt = 0;
 
         Console.WriteLine(
-            $"Waiting for marked and fully saved OOTP .lg save before KBOFix injection, timeout={FormatTimeout(timeout)}.");
+            $"Waiting for marked and fully saved OOTP {OotpProduct.SaveGameExtension} save before KBOFix injection, timeout={FormatTimeout(timeout)}.");
         Log(logPath, $"roster_marker_wait started pid={pid} timeout_seconds={(int)timeout.TotalSeconds} min_save_completed_at=\"{(minSaveCompletedAt is null ? "" : minSaveCompletedAt.Value.ToString("O"))}\"");
 
         while (DateTimeOffset.Now <= deadline)

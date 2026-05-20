@@ -19,9 +19,9 @@ void kbo_hub_prewarm_league_display_cache(void)
     }
 
     ULONGLONG started_ms = GetTickCount64();
-    int found = kbo_scan_named_league_ptrs_for_ids(league_ids, league_count, (SIZE_T)0x00040000u);
+    int found = kbo_scan_named_league_ptrs_for_ids(league_ids, league_count, KBO_RUNTIME_FAST_LEAGUE_SCAN_BYTES);
     if (found < league_count) {
-        found = kbo_scan_named_league_ptrs_for_ids(league_ids, league_count, (SIZE_T)0x00400000u);
+        found = kbo_scan_named_league_ptrs_for_ids(league_ids, league_count, KBO_RUNTIME_BOUNDED_SCAN_MAX_BYTES);
     }
     g_kbo_league_display_cache_prewarmed_global = global;
     kbo_log_runtimef(
@@ -97,9 +97,9 @@ uintptr_t kbo_find_league_ptr(uint32_t league_id)
 
     int score = -1000;
     char name[96] = {0};
-    uintptr_t league_ptr = kbo_scan_named_league_ptr(league_id, (SIZE_T)0x00040000u, &score, name, sizeof(name));
+    uintptr_t league_ptr = kbo_scan_named_league_ptr(league_id, KBO_RUNTIME_FAST_LEAGUE_SCAN_BYTES, &score, name, sizeof(name));
     if (score < KBO_NAMED_LEAGUE_SCAN_MIN_SCORE) {
-        league_ptr = kbo_scan_named_league_ptr(league_id, (SIZE_T)0x00400000u, &score, name, sizeof(name));
+        league_ptr = kbo_scan_named_league_ptr(league_id, KBO_RUNTIME_BOUNDED_SCAN_MAX_BYTES, &score, name, sizeof(name));
     }
 
     if (league_ptr != 0 && score >= KBO_NAMED_LEAGUE_SCAN_MIN_SCORE) {

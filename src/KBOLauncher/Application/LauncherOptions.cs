@@ -37,7 +37,7 @@ record LauncherOptions(
 
     private static RootCommand BuildCommand()
     {
-        var cmd = new RootCommand("KBOLauncher — OOTP 27 KBO mod launcher");
+        var cmd = new RootCommand($"KBOLauncher — {OotpProduct.ProductShortFolderName} KBO mod launcher");
         cmd.AddOption(OotpPathOpt);
         cmd.AddOption(DllPathOpt);
         cmd.AddOption(AttachPidOpt);
@@ -128,8 +128,8 @@ record LauncherOptions(
 
         Safety:
           KBOFix injection is disabled unless {0} matches a verified build.
-          KBOFix injection also requires the currently opened OOTP .lg save description.txt
+          KBOFix injection also requires the currently opened OOTP {1} save {2}
           to contain the official roster marker URL and a completed save flag.
-        """, OotpProduct.ExecutableFileName);
+        """, OotpProduct.ExecutableFileName, OotpProduct.SaveGameExtension, OotpProduct.DescriptionFileName);
     }
 }

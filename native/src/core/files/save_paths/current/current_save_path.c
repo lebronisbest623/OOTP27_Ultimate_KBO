@@ -21,6 +21,9 @@ typedef LONG (WINAPI* KboNtQuerySystemInformationFn)(ULONG, PVOID, ULONG, PULONG
 #define KBO_SYSTEM_HANDLE_TABLE_ENTRY_SIZE 40u
 #define KBO_SYSTEM_HANDLE_TABLE_ENTRY_PID_OFFSET 8u
 #define KBO_SYSTEM_HANDLE_TABLE_ENTRY_HANDLE_OFFSET 16u
+#define KBO_SYSTEM_EXTENDED_HANDLE_INFORMATION_CLASS 64u
+#define KBO_SYSTEM_HANDLE_QUERY_INITIAL_BYTES 0x10000u
+#define KBO_NTSTATUS_INFO_LENGTH_MISMATCH ((LONG)0xC0000004u)
 #define KBO_CURRENT_SAVE_CACHE_TTL_MS 1000ull
 #define KBO_CURRENT_SAVE_STALE_GRACE_MS 3000ull
 #define KBO_CURRENT_SAVE_HANDLE_PROBE_MIN_INTERVAL_MS 2000ull
@@ -171,7 +174,7 @@ static int kbo_get_current_save_path_from_own_file_handles(char* out, size_t out
         return 0;
     }
 
-    ULONG buffer_size = 0x10000u;
+    ULONG buffer_size = KBO_SYSTEM_HANDLE_QUERY_INITIAL_BYTES;
     BYTE* buffer = NULL;
     LONG status = 0;
     ULONG returned = 0;
@@ -180,16 +183,16 @@ static int kbo_get_current_save_path_from_own_file_handles(char* out, size_t out
         if (buffer == NULL) {
             return 0;
         }
-        status = nt_query(64u, buffer, buffer_size, &returned);
+        status = nt_query(KBO_SYSTEM_EXTENDED_HANDLE_INFORMATION_CLASS, buffer, buffer_size, &returned);
         if (status == 0) {
             break;
         }
         HeapFree(GetProcessHeap(), 0, buffer);
         buffer = NULL;
-        if (status != (LONG)0xC0000004u) {
+        if (status != KBO_NTSTATUS_INFO_LENGTH_MISMATCH) {
             return 0;
         }
-        buffer_size = returned > buffer_size ? returned + 0x10000u : buffer_size * 2u;
+        buffer_size = returned > buffer_size ? returned + KBO_SYSTEM_HANDLE_QUERY_INITIAL_BYTES : buffer_size * 2u;
     }
     if (buffer == NULL || status != 0) {
         if (buffer != NULL) {
@@ -277,12 +280,18 @@ static int kbo_get_current_save_path_from_launcher_cache_file(char* out, size_t 
     }
 
     char cache_path[KBO_UTF8_PATH_BYTES] = {0};
+    char cache_file_name[64] = {0};
+    snprintf(
+        cache_file_name,
+        sizeof(cache_file_name),
+        KBO_PRODUCT_CURRENT_SAVE_PATH_FILE_FORMAT,
+        (unsigned long)GetCurrentProcessId());
     snprintf(
         cache_path,
         sizeof(cache_path),
-        "%s\\" KBO_PRODUCT_LOCAL_DATA_DIR "\\current_save_path_%lu.txt",
+        "%s\\" KBO_PRODUCT_LOCAL_DATA_DIR "\\%s",
         local_app_data,
-        (unsigned long)GetCurrentProcessId());
+        cache_file_name);
     HANDLE file = kbo_create_file_read_utf8(cache_path);
     if (file == INVALID_HANDLE_VALUE) {
         return 0;

@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "../../../core/files/save_paths/core_save_paths.h"
+#include "../../../core/product/ootp_product.h"
 
 static volatile LONG g_kbo_profiler_header_written = 0;
 
@@ -14,11 +15,11 @@ static int kbo_profiler_get_output_path(char* out, size_t out_size)
     }
 
     char dir[MAX_PATH] = {0};
-    if (!kbo_get_global_data_subdir("perf", dir, sizeof(dir))) {
+    if (!kbo_get_global_data_subdir(KBO_PRODUCT_PERF_DIR, dir, sizeof(dir))) {
         return 0;
     }
 
-    snprintf(out, out_size, "%s\\kbo_perf_%lu.csv", dir, GetCurrentProcessId());
+    snprintf(out, out_size, "%s\\" KBO_PRODUCT_PERF_FILE_FORMAT, dir, GetCurrentProcessId());
     return 1;
 }
 

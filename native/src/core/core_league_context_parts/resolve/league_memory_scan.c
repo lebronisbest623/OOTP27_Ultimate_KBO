@@ -7,11 +7,12 @@
 #include "named_scan/league_named_scan.h"
 #include "../../../bootstrap/abi/ootp_offsets.h"
 #include "../../logging/core_log.h"
+#include "../../../runtime_memory/runtime_memory.h"
 
 #define KBO_LEAGUE_PTR_SCAN_COOLDOWN_MS 60000ull
 #define KBO_LEAGUE_PTR_RETRY_COOLDOWN_MS 2000ull
 #define KBO_LEAGUE_PTR_BUSY_LOG_COOLDOWN_MS 10000ull
-#define KBO_LEAGUE_PTR_BOUNDED_SCAN_MAX_REGION ((SIZE_T)0x00400000u)
+#define KBO_LEAGUE_PTR_BOUNDED_SCAN_MAX_REGION KBO_RUNTIME_BOUNDED_SCAN_MAX_BYTES
 
 static volatile LONG g_kbo_league_ptr_memory_scan_in_progress = 0;
 
@@ -33,7 +34,7 @@ static uintptr_t kbo_find_league_ptr_by_bounded_id_scan(
         OOTP27_KBO_LEAGUE_ID_OFFSET + 8u
     };
 
-    uintptr_t address = 0x10000u;
+    uintptr_t address = KBO_RUNTIME_MIN_USER_POINTER;
     MEMORY_BASIC_INFORMATION mbi;
     while (VirtualQuery((void*)address, &mbi, sizeof(mbi)) != 0) {
         uintptr_t base = (uintptr_t)mbi.BaseAddress;
@@ -77,7 +78,7 @@ static uintptr_t kbo_find_league_ptr_by_bounded_id_scan(
 
         address = end;
 #if UINTPTR_MAX > 0xffffffffu
-        if (address >= (uintptr_t)0x0000800000000000ull) {
+        if (address >= KBO_RUNTIME_USER_SCAN_END) {
             break;
         }
 #endif

@@ -31,7 +31,7 @@ void kbo_tooltip_scan_rating_panels(
             offset <= KBO_TOOLTIP_RATING_PANEL_LAST_OFFSET;
             offset += sizeof(uintptr_t), ++index) {
         uintptr_t ptr = *(uintptr_t*)(base + offset);
-        if (ptr < 0x10000u || !memory_range_readable((uint8_t*)ptr, 0x100u)) {
+        if (ptr < KBO_RUNTIME_MIN_USER_POINTER || !memory_range_readable((uint8_t*)ptr, 0x100u)) {
             kbo_tooltip_appendf(out, out_size, pos, "panel%d tooltip+0x%04Ix ptr=NULL\n", index, offset);
             continue;
         }

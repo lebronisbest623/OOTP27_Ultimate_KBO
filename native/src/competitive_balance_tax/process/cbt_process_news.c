@@ -63,13 +63,13 @@ void kbo_cbt_copy_team_name(uint32_t team_id, char* out, size_t out_size)
 
     uint8_t* team = find_kbo_team_by_numeric_id_any_league(team_id, 1);
     if (team != NULL && memory_range_readable(team, OOTP27_KBO_TEAM_READABLE_BYTES)) {
-        static const uint32_t string_offsets[] = { 0x10u, 0x28u, 0x40u, 0x58u, 0x70u, 0x100u };
+        static const uint32_t string_offsets[] = OOTP27_KBO_TEAM_SEARCH_STRING_OFFSETS;
         char city[64] = {0};
         char nickname[64] = {0};
         char full_name[96] = {0};
-        copy_ootp_string_object_text(team, 0x10u, city, sizeof(city));
-        copy_ootp_string_object_text(team, 0x28u, nickname, sizeof(nickname));
-        copy_ootp_string_object_text(team, 0x40u, full_name, sizeof(full_name));
+        copy_ootp_string_object_text(team, OOTP27_KBO_TEAM_CITY_STRING_OFFSET, city, sizeof(city));
+        copy_ootp_string_object_text(team, OOTP27_KBO_TEAM_NICKNAME_STRING_OFFSET, nickname, sizeof(nickname));
+        copy_ootp_string_object_text(team, OOTP27_KBO_TEAM_FULL_NAME_STRING_OFFSET, full_name, sizeof(full_name));
         if (full_name[0] != '\0'
                 && (strchr(full_name, ' ') != NULL || kbo_ootp_text_has_non_ascii(full_name))) {
             snprintf(out, out_size, "%s", full_name);
