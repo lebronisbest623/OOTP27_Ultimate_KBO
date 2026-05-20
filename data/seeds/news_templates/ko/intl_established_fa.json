@@ -13,6 +13,6 @@
   "intl_established_fa.summary.body.v3": "국제 FA 시장의 새 명단이 공개됐습니다. {season}시즌 기준 후보자는 {total_count}명으로 집계됐습니다.\n\n이름이 오른 선수들은 아직 계약서에 사인한 상태가 아닙니다. 다만 외국인 선수 교체를 검토하는 구단에는 선택지를 넓혀 주는 명단입니다. 특히 포지션 공백이 뚜렷한 팀들은 이 풀을 바탕으로 협상 순서를 다시 짤 가능성이 큽니다.\n\n주요 후보\n{player_list}\n시장 초반 평가는 나이, 포지션, 쿼터 적합성, 예상 이적 비용에서 갈릴 전망입니다.",
   "intl_established_fa.summary.body.v4": "스카우트들이 바빠질 시간이 됐습니다. {season}시즌 국제 FA 풀에 {total_count}명이 이름을 올렸습니다.\n\n이들은 아직 계약 대기 상태입니다. 하지만 포지션 공백이 있는 구단에는 지금 당장 검토를 시작해야 할 이유가 생겼습니다. 더 좋은 이름을 먼저 잡는 팀이 유리한 위치에 섭니다.\n\n주요 후보\n{player_list}\n몸값 협상, 아시아 쿼터 적합성, 나이와 포지션 균형. 구단마다 기준이 다르고, 접촉 순서가 달라집니다.",
   "intl_established_fa.summary.body.v5": "{season}시즌 국제 FA 후보 {total_count}명, 명단 공개.\n\n주요 후보\n{player_list}\n각 구단은 포지션, 나이, 쿼터, 몸값을 놓고 접촉 순서를 정합니다.",
-  "intl_established_fa.player_line": "{rank}. {player_link}, {position}, {age}세, {quota}, 평가 {score}",
+  "intl_established_fa.player_line": "{rank}. {player_link}, {position}, {age}세",
   "intl_established_fa.none": "- 아직 확인된 주요 후보 없음"
 }

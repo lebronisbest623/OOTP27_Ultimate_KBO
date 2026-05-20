@@ -53,6 +53,77 @@ void kbo_intl_established_fa_postscan_try_run(void)
     InterlockedExchange(&g_kbo_intl_established_fa_postscan.pending, 0);
 }
 
+int kbo_intl_established_fa_postscan_run_pending_now(
+    uint32_t event_yyyymmdd,
+    const char* source)
+{
+    if (event_yyyymmdd == 0u
+            || !kbo_runtime_pause_for_save_if_needed("intl_established_fa_postscan_event")) {
+        return 0;
+    }
+
+    if (InterlockedCompareExchange(&g_kbo_intl_established_fa_postscan.pending, 2, 1) != 1) {
+        return 0;
+    }
+
+    KboIntlEstablishedFaPostscanState batch = g_kbo_intl_established_fa_postscan;
+    if (!kbo_intl_established_fa_postscan_batch_matches_event_date(&batch, event_yyyymmdd)) {
+        InterlockedExchange(&g_kbo_intl_established_fa_postscan.pending, 1);
+        kbo_log_runtimef(
+            "international established FA postscan event force deferred source=%s event_date=%u scheduled=%u reason=date_mismatch",
+            source != NULL ? source : "",
+            event_yyyymmdd,
+            batch.scheduled_date);
+        return 0;
+    }
+
+    ULONGLONG now = GetTickCount64();
+    int32_t player_count = 0;
+    int vector_ready = find_kbo_global_player_vector(NULL, &player_count, NULL);
+    if (!vector_ready) {
+        g_kbo_intl_established_fa_postscan.attempts = batch.attempts + 1;
+        g_kbo_intl_established_fa_postscan.due_tick = now + KBO_INTL_ESTABLISHED_FA_POSTSCAN_RETRY_MS;
+        InterlockedExchange(&g_kbo_intl_established_fa_postscan.pending, 1);
+        kbo_log_runtimef(
+            "international established FA postscan event force deferred source=%s batch=%ld event_date=%u attempt=%d reason=no_player_vector",
+            source != NULL ? source : "",
+            batch.batch_id,
+            event_yyyymmdd,
+            batch.attempts + 1);
+        return 0;
+    }
+
+    if (batch.before_count > 0
+            && batch.expected_count > 0
+            && player_count < batch.before_count + batch.expected_count) {
+        g_kbo_intl_established_fa_postscan.attempts = batch.attempts + 1;
+        g_kbo_intl_established_fa_postscan.due_tick = now + KBO_INTL_ESTABLISHED_FA_POSTSCAN_RETRY_MS;
+        InterlockedExchange(&g_kbo_intl_established_fa_postscan.pending, 1);
+        kbo_log_runtimef(
+            "international established FA postscan event force deferred source=%s batch=%ld event_date=%u attempt=%d reason=waiting_for_players before=%d after=%d expected=%d",
+            source != NULL ? source : "",
+            batch.batch_id,
+            event_yyyymmdd,
+            batch.attempts + 1,
+            batch.before_count,
+            player_count,
+            batch.expected_count);
+        return 0;
+    }
+
+    g_kbo_intl_established_fa_postscan.due_tick = now;
+    kbo_intl_established_fa_postscan_run(&batch);
+    InterlockedExchange(&g_kbo_intl_established_fa_postscan.pending, 0);
+    kbo_log_runtimef(
+        "international established FA postscan event force ran source=%s batch=%ld event_date=%u after_count=%d expected=%d",
+        source != NULL ? source : "",
+        batch.batch_id,
+        event_yyyymmdd,
+        player_count,
+        batch.expected_count);
+    return 1;
+}
+
 DWORD WINAPI kbo_intl_established_fa_postscan_thread(LPVOID parameter)
 {
     (void)parameter;

@@ -15,6 +15,8 @@ $IndependentAcquisitionCashFlowTestSrc = Join-Path $PSScriptRoot "test_independe
 $IndependentAcquisitionCashFlowTestExe = Join-Path $PSScriptRoot "test_independent_acquisition_cash_flow.exe"
 $IntlEstablishedFaMarketNormalizeTestSrc = Join-Path $PSScriptRoot "test_intl_established_fa_market_normalize.c"
 $IntlEstablishedFaMarketNormalizeTestExe = Join-Path $PSScriptRoot "test_intl_established_fa_market_normalize.exe"
+$IntlEstablishedFaEventTimingTestSrc = Join-Path $PSScriptRoot "test_intl_established_fa_event_timing.c"
+$IntlEstablishedFaEventTimingTestExe = Join-Path $PSScriptRoot "test_intl_established_fa_event_timing.exe"
 $AsianGamesHandlerSaveContextTestSrc = Join-Path $PSScriptRoot "test_asian_games_handler_save_context.c"
 $AsianGamesHandlerSaveContextTestExe = Join-Path $PSScriptRoot "test_asian_games_handler_save_context.exe"
 $AsianGamesPlayerEligibilityTestSrc = Join-Path $PSScriptRoot "test_asian_games_player_eligibility.c"
@@ -172,6 +174,22 @@ if ($LASTEXITCODE -ne 0) {
 if ($LASTEXITCODE -ne 0) {
     throw "International established FA market normalization tests failed"
 }
+
+& $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
+    -I $Root `
+    -I (Join-Path $Root "src") `
+    -o $IntlEstablishedFaEventTimingTestExe `
+    $IntlEstablishedFaEventTimingTestSrc `
+    (Join-Path $Root "src\foreign\intl_established_fa_postscan\timing\intl_established_fa_event_timing.c")
+if ($LASTEXITCODE -ne 0) {
+    throw "International established FA event timing test build failed"
+}
+
+& $IntlEstablishedFaEventTimingTestExe
+if ($LASTEXITCODE -ne 0) {
+    throw "International established FA event timing tests failed"
+}
+
 & $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
     -I $Root `
     -I (Join-Path $Root "src") `
@@ -188,6 +206,7 @@ if ($LASTEXITCODE -ne 0) {
 if ($LASTEXITCODE -ne 0) {
     throw "Asian Games handler save-context tests failed"
 }
+
 & $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
     -I $Root `
     -I (Join-Path $Root "src") `

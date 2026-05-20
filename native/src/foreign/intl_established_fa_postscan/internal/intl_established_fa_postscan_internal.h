@@ -115,6 +115,12 @@ int kbo_intl_established_fa_postscan_persist_state(
 int kbo_intl_established_fa_postscan_load_state(
     KboIntlEstablishedFaPostscanState* out,
     const char* source);
+int kbo_intl_established_fa_postscan_batch_matches_event_date(
+    const KboIntlEstablishedFaPostscanState* batch,
+    uint32_t event_yyyymmdd);
+int kbo_intl_established_fa_event_is_stale(
+    uint32_t event_yyyymmdd,
+    uint32_t today_yyyymmdd);
 int kbo_intl_established_fa_postscan_candidate_matches(
     const KboIntlEstablishedFaPostscanState* batch,
     int32_t index,
@@ -129,6 +135,9 @@ int kbo_intl_established_fa_normalize_market_state(
     KboIntlEstablishedFaMarketNormalization* out);
 void kbo_intl_established_fa_postscan_run(const KboIntlEstablishedFaPostscanState* batch);
 void kbo_intl_established_fa_postscan_try_run(void);
+int kbo_intl_established_fa_postscan_run_pending_now(
+    uint32_t event_yyyymmdd,
+    const char* source);
 DWORD WINAPI kbo_intl_established_fa_postscan_thread(LPVOID parameter);
 void start_kbo_intl_established_fa_postscan_thread(void);
 
