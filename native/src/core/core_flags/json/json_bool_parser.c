@@ -116,15 +116,15 @@ static int kbo_json_token_subtree_end(const jsmntok_t* tokens, int parsed, int i
         return index + 1;
     }
 
-    int cursor = index + 1;
-    int children = tokens[index].size;
-    if (children <= 0) {
-        return cursor;
+    if (tokens[index].start < 0 || tokens[index].end < tokens[index].start) {
+        return index + 1;
     }
 
-    int child_tokens = tokens[index].type == JSMN_OBJECT ? children * 2 : children;
-    for (int i = 0; i < child_tokens && cursor < parsed; i++) {
-        cursor = kbo_json_token_subtree_end(tokens, parsed, cursor);
+    int cursor = index + 1;
+    while (cursor < parsed
+            && tokens[cursor].start >= tokens[index].start
+            && tokens[cursor].end <= tokens[index].end) {
+        cursor++;
     }
     return cursor;
 }
@@ -323,7 +323,9 @@ static int kbo_find_value_token_in_json(const char* json, DWORD json_size, const
     }
 
     int cursor = 1;
-    for (int pair = 0; pair < tokens[0].size && cursor + 1 < parsed; pair++) {
+    while (cursor + 1 < parsed
+            && tokens[cursor].start >= tokens[0].start
+            && tokens[cursor].end <= tokens[0].end) {
         int key_index = cursor;
         int value_index = cursor + 1;
         if (tokens[key_index].type == JSMN_STRING && kbo_token_equals_key(json, &tokens[key_index], key)) {

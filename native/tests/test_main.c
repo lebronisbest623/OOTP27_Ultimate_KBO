@@ -308,6 +308,24 @@ static void test_json_flags_parser(void)
     assert(!kbo_find_json_value_span(json, (DWORD)strlen(json), " 5 ", &start, &end));
     assert(!kbo_find_flag_value_in_json(json, (DWORD)strlen(json), "ignored", &value));
 
+    const char cbt_rules_json[] =
+        "{\r\n"
+        "  \"enabled\": true,\r\n"
+        "  \"top_player_count\": 40,\r\n"
+        "  \"thresholds\": [\r\n"
+        "    { \"season\": 2026, \"threshold\": 10300000 },\r\n"
+        "    { \"season\": 2027, \"threshold\": 10800000 }\r\n"
+        "  ],\r\n"
+        "  \"tax_rate_1\": 50,\r\n"
+        "  \"exception_deadline_days_after_opening\": 6,\r\n"
+        "  \"announcement_days_after_opening\": 7\r\n"
+        "}\r\n";
+    assert(kbo_find_int_value_in_json(cbt_rules_json, (DWORD)strlen(cbt_rules_json), "tax_rate_1", &value));
+    assert(value == 50);
+    assert(kbo_find_int_value_in_json(cbt_rules_json, (DWORD)strlen(cbt_rules_json), "announcement_days_after_opening", &value));
+    assert(value == 7);
+    assert(!kbo_find_int_value_in_json(cbt_rules_json, (DWORD)strlen(cbt_rules_json), "season", &value));
+
     const char ui_json[] =
         "{\r\n"
         "  \"MOD INFO\": \"모드 정보\",\r\n"

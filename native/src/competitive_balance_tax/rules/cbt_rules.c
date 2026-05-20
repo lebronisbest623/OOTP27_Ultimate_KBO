@@ -211,8 +211,18 @@ void kbo_cbt_rules_load(KboCbtRules* out)
     if (ReadFile(file, buf, size, &read, NULL) && read > 0) {
         buf[read] = '\0';
         kbo_cbt_rules_parse_json(out, buf, read);
-        kbo_log_runtimef("KBO CBT rules loaded path=%s enabled=%u top=%u override=%d",
-            json_path, (uint32_t)out->enabled, out->top_player_count, out->threshold_override);
+        kbo_log_runtimef(
+            "KBO CBT rules loaded path=%s enabled=%u top=%u override=%d rates=%u/%u/%u windows=%u/%u thresholds=%u",
+            json_path,
+            (uint32_t)out->enabled,
+            out->top_player_count,
+            out->threshold_override,
+            out->tax_rate_1,
+            out->tax_rate_2,
+            out->tax_rate_3plus,
+            out->exception_deadline_days_after_opening,
+            out->announcement_days_after_opening,
+            out->threshold_count);
     }
     CloseHandle(file);
     HeapFree(GetProcessHeap(), 0, buf);
