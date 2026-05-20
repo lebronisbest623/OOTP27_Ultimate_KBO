@@ -350,10 +350,7 @@ int patch_kbo_allstar_team_names_for_known_exhibition_teams(const char* source)
 
 int patch_kbo_allstar_team_names_for_configured_league(const char* source)
 {
-    uint32_t league_id = kbo_get_foreign_waiver_league_id();
-    if (league_id == 0u) {
-        league_id = kbo_resolve_kbo_league_id();
-    }
+    uint32_t league_id = kbo_resolve_kbo_league_id();
     return patch_kbo_allstar_team_names_for_league_id(league_id, source);
 }
 

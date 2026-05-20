@@ -68,10 +68,7 @@ int scan_kbo_custom_events_once_for_date(uint32_t current_yyyymmdd, const char* 
         return -1;
     }
 
-    uint32_t configured_league_id = kbo_get_foreign_waiver_league_id();
-    if (configured_league_id == 0u) {
-        configured_league_id = kbo_resolve_kbo_league_id();
-    }
+    uint32_t configured_league_id = kbo_resolve_kbo_league_id();
 
     KboCustomEventIdleScanCache cached = g_kbo_custom_event_idle_scan_cache;
     DWORD now = GetTickCount();

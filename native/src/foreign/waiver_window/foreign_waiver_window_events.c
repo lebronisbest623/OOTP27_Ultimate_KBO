@@ -7,6 +7,7 @@
 #include "../../bootstrap/abi/ootp_offsets.h"
 #include "../../core/files/atomic/core_atomic_file.h"
 #include "../../core/core_flags/api/flags_api.h"
+#include "../../core/core_league_context_parts/api/league_context_lookup.h"
 #include "../../core/core_league_context_parts/event_manager/event_manager.h"
 #include "../../core/events/core_league_events.h"
 #include "../../core/logging/core_log.h"
@@ -89,7 +90,7 @@ void kbo_flush_pending_foreign_priority_events(const char* source)
         year,
         month,
         day,
-        kbo_get_foreign_waiver_league_id(),
+        kbo_resolve_kbo_league_id(),
         OOTP27_EVENT_TYPE_CUSTOM_EVENT,
         title,
         0,

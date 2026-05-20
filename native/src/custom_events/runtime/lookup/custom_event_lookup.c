@@ -36,10 +36,7 @@ uint32_t kbo_get_latest_offseason_starts_event(uint32_t today_yyyymmdd)
     if (today_yyyymmdd == 0u) {
         return 0u;
     }
-    uint32_t league_id = kbo_get_foreign_waiver_league_id();
-    if (league_id == 0u) {
-        league_id = kbo_resolve_kbo_league_id();
-    }
+    uint32_t league_id = kbo_resolve_kbo_league_id();
 
     uintptr_t event_manager = get_kbo_league_event_manager();
     if (event_manager == 0

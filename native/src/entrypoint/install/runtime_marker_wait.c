@@ -50,10 +50,7 @@ static int kbo_runtime_marker_wait_date_matches_save_state(
         }
     }
 
-    uint32_t league_id = kbo_get_foreign_waiver_league_id();
-    if (league_id == 0u) {
-        league_id = kbo_resolve_kbo_league_id();
-    }
+    uint32_t league_id = kbo_resolve_kbo_league_id();
     if (out_league_id != NULL) {
         *out_league_id = league_id;
     }

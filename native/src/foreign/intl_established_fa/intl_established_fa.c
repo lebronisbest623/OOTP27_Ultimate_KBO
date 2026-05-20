@@ -36,10 +36,7 @@ static int kbo_intl_established_fa_league_matches(uintptr_t league_ptr, uint32_t
         *out_fallback_id = fallback_id;
     }
 
-    uint32_t configured_id = kbo_get_foreign_waiver_league_id();
-    if (configured_id == 0u) {
-        configured_id = kbo_resolve_kbo_league_id();
-    }
+    uint32_t configured_id = kbo_resolve_kbo_league_id();
     if (configured_id == 0u) {
         return 0;
     }

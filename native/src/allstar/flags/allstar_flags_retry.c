@@ -28,10 +28,7 @@ static DWORD WINAPI kbo_allstar_force_retry_thread(LPVOID parameter)
 
     const KboRuntimeTuningPolicy* tuning = kbo_runtime_tuning_policy();
     for (int attempt = 1; attempt <= tuning->allstar_force_retry_attempts; attempt++) {
-        uint32_t league_id = kbo_get_foreign_waiver_league_id();
-        if (league_id == 0u) {
-            league_id = kbo_resolve_kbo_league_id();
-        }
+        uint32_t league_id = kbo_resolve_kbo_league_id();
 
         uintptr_t captured = (uintptr_t)InterlockedCompareExchangePointer(
             (PVOID volatile*)&g_allstar_schedule_import_league_ptr,

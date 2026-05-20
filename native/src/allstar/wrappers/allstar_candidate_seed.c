@@ -57,7 +57,7 @@ __declspec(noinline) int ootp_kbo_allstar_candidate_push_filter(
         KBO_HOOK_PROFILE_RETURN(profile_hook, "allstar.candidate_push_filter", 1);
     }
 
-    uint32_t league_id = kbo_get_foreign_waiver_league_id();
+    uint32_t league_id = kbo_resolve_kbo_league_id();
     if (league_id == 0u) {
         league_id = kbo_league_role_main_league_id();
     }
@@ -155,7 +155,7 @@ __declspec(noinline) int ootp_kbo_seed_single_division_allstar_candidate_teams(
         KBO_HOOK_PROFILE_RETURN(profile_hook, "allstar.candidate_team_seed", 0);
     }
 
-    uint32_t league_id = kbo_get_foreign_waiver_league_id();
+    uint32_t league_id = kbo_resolve_kbo_league_id();
     if (league_id == 0u) {
         league_id = kbo_league_role_main_league_id();
     }

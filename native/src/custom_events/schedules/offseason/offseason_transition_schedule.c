@@ -248,10 +248,7 @@ int kbo_custom_event_monitor_check_offseason_transition(
         return kbo_custom_event_schedule_pending_offseason_transition(today_yyyymmdd, source);
     }
 
-    uint32_t league_id = kbo_get_foreign_waiver_league_id();
-    if (league_id == 0u) {
-        league_id = kbo_resolve_kbo_league_id();
-    }
+    uint32_t league_id = kbo_resolve_kbo_league_id();
 
     uint32_t known_offseason_start = kbo_get_latest_offseason_starts_event(today_yyyymmdd);
     KboSeasonPhaseInfo phase_info;

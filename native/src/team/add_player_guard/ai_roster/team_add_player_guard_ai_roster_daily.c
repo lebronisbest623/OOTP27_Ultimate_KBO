@@ -135,7 +135,7 @@ static uintptr_t kbo_ai_roster_daily_choose_candidate(
         return 0u;
     }
 
-    uint32_t kbo_league_id = kbo_get_foreign_waiver_league_id();
+    uint32_t kbo_league_id = kbo_resolve_kbo_league_id();
     if (kbo_league_id == 0u) {
         return 0u;
     }

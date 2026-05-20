@@ -87,10 +87,7 @@ static void kbo_foreign_injury_replacement_scan_for_date_mode(
         KBO_PROFILE_END(profile_foreign_injury_scan, "foreign_injury.scan.no_player_vector");
         return;
     }
-    uint32_t configured_league_id = kbo_get_foreign_waiver_league_id();
-    if (configured_league_id == 0u) {
-        configured_league_id = kbo_resolve_kbo_league_id();
-    }
+    uint32_t configured_league_id = kbo_resolve_kbo_league_id();
     int slot_opening_allowed = kbo_foreign_injury_replacement_in_season_window(
         configured_league_id,
         today,

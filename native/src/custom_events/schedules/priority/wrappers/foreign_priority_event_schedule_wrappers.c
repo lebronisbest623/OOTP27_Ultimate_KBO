@@ -21,10 +21,7 @@ int kbo_schedule_foreign_priority_custom_events_for_anchor(
         return -1;
     }
 
-    uint32_t league_id = kbo_get_foreign_waiver_league_id();
-    if (league_id == 0u) {
-        league_id = kbo_resolve_kbo_league_id();
-    }
+    uint32_t league_id = kbo_resolve_kbo_league_id();
     return kbo_schedule_foreign_priority_custom_events_at_anchor(
         source,
         today,
@@ -37,10 +34,7 @@ int kbo_schedule_foreign_priority_custom_events_for_anchor_on_date(
     uint32_t today,
     uint32_t offseason_starts_yyyymmdd)
 {
-    uint32_t league_id = kbo_get_foreign_waiver_league_id();
-    if (league_id == 0u) {
-        league_id = kbo_resolve_kbo_league_id();
-    }
+    uint32_t league_id = kbo_resolve_kbo_league_id();
     if (today == 0u) {
         kbo_log_runtimef(
             "KBO custom event schedule skipped source=%s reason=ssot_date_unavailable",
@@ -58,10 +52,7 @@ int kbo_schedule_foreign_priority_custom_events_for_date(
     const char* source,
     uint32_t today)
 {
-    uint32_t league_id = kbo_get_foreign_waiver_league_id();
-    if (league_id == 0u) {
-        league_id = kbo_resolve_kbo_league_id();
-    }
+    uint32_t league_id = kbo_resolve_kbo_league_id();
     if (today == 0u) {
         kbo_log_runtimef(
             "KBO custom event schedule skipped source=%s reason=ssot_date_unavailable",

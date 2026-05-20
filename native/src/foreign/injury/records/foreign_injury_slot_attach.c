@@ -61,10 +61,7 @@ int kbo_attach_foreign_injury_replacement_after_signing(
 
     uint32_t today = 0u;
     kbo_current_date_tick_latest_published_date(&today);
-    uint32_t league_id = kbo_get_foreign_waiver_league_id();
-    if (league_id == 0u) {
-        league_id = kbo_resolve_kbo_league_id();
-    }
+    uint32_t league_id = kbo_resolve_kbo_league_id();
     if (!kbo_foreign_injury_replacement_in_season_window(
             league_id,
             today,

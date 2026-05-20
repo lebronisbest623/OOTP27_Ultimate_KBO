@@ -12,10 +12,7 @@ int kbo_military_resolve_application_window(
         return 0;
     }
 
-    uint32_t league_id = kbo_get_foreign_waiver_league_id();
-    if (league_id == 0u) {
-        league_id = kbo_resolve_kbo_league_id();
-    }
+    uint32_t league_id = kbo_resolve_kbo_league_id();
 
     uint32_t anchor = kbo_get_latest_offseason_starts_event(today);
     if (anchor == 0u) {

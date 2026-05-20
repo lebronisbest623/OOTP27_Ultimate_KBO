@@ -136,10 +136,7 @@ int kbo_schedule_asian_games_custom_events_for_date(uint32_t today, const char* 
         return 0;
     }
 
-    uint32_t league_id = kbo_get_foreign_waiver_league_id();
-    if (league_id == 0u) {
-        league_id = kbo_resolve_kbo_league_id();
-    }
+    uint32_t league_id = kbo_resolve_kbo_league_id();
     if (league_id == 0u) {
         kbo_log_runtimef(
             "KBO Asian Games schedule skipped source=%s reason=league_id_unavailable year=%u",

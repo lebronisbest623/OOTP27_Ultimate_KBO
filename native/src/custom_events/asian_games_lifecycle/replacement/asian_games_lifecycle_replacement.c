@@ -43,10 +43,7 @@ int kbo_asian_games_find_replacement_for_entry(
         return 0;
     }
 
-    uint32_t kbo_league_id = kbo_get_foreign_waiver_league_id();
-    if (kbo_league_id == 0u) {
-        kbo_league_id = kbo_resolve_kbo_league_id();
-    }
+    uint32_t kbo_league_id = kbo_resolve_kbo_league_id();
     uint32_t allowed_leagues[KBO_ASIAN_GAMES_MAX_ALLOWED_LEAGUES] = {0};
     int allowed_league_count = 0;
     if (kbo_league_id != 0u) {

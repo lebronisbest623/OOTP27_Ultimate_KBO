@@ -334,10 +334,7 @@ uintptr_t find_kbo_allstar_core_fallback_league(uint32_t league_id)
 
 void force_kbo_allstar_flags_for_configured_league(const char* source)
 {
-    uint32_t league_id = kbo_get_foreign_waiver_league_id();
-    if (league_id == 0u) {
-        league_id = kbo_resolve_kbo_league_id();
-    }
+    uint32_t league_id = kbo_resolve_kbo_league_id();
     uintptr_t league_ptr = kbo_find_allstar_league_ptr(league_id);
     int enabled = 0;
     if (league_ptr != 0) {
@@ -362,10 +359,7 @@ void force_kbo_allstar_flags_for_configured_league(const char* source)
 
 int force_kbo_allstar_flags_for_league_pointer(uintptr_t league_ptr, const char* source)
 {
-    uint32_t league_id = kbo_get_foreign_waiver_league_id();
-    if (league_id == 0u) {
-        league_id = kbo_resolve_kbo_league_id();
-    }
+    uint32_t league_id = kbo_resolve_kbo_league_id();
 
     if (!enable_kbo_allstar_flags_for_core_league(
             league_ptr,

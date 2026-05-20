@@ -262,7 +262,7 @@ uint32_t kbo_fa_market_resolve_league_id(uint32_t requested_league_id)
 {
     (void)requested_league_id;
 
-    uint32_t league_id = kbo_get_foreign_waiver_league_id();
+    uint32_t league_id = kbo_resolve_kbo_league_id();
     if (league_id != 0u) {
         return league_id;
     }

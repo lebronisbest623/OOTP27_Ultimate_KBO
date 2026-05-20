@@ -30,7 +30,7 @@ static uint8_t* kbo_ai_roster_daily_resolve_active_team(uint8_t* player, uint32_
         *(uint32_t*)(player + OOTP27_PLAYER_ACTIVE_TEAM_ID_OFFSET),
         *(uint32_t*)(player + OOTP27_PLAYER_ORIGINAL_TEAM_ID_OFFSET),
     };
-    uint32_t kbo_league_id = kbo_get_foreign_waiver_league_id();
+    uint32_t kbo_league_id = kbo_resolve_kbo_league_id();
     for (uint32_t i = 0u; i < 3u; i++) {
         uint32_t org_team_id = kbo_ai_roster_daily_parent_team_id(team_ids[i]);
         if (org_team_id == 0u) {
@@ -64,7 +64,7 @@ int kbo_ai_roster_daily_minor_callup_allows(int32_t team_arg, uint8_t* player, u
         return 0;
     }
 
-    uint32_t kbo_league_id = kbo_get_foreign_waiver_league_id();
+    uint32_t kbo_league_id = kbo_resolve_kbo_league_id();
     uint32_t current_league_id = *(uint32_t*)(player + OOTP27_PLAYER_CURRENT_LEAGUE_ID_OFFSET);
     int minor_league_match = kbo_league_id != 0u
         && (current_league_id == kbo_league_id + 1u || (uint32_t)team_arg == kbo_league_id + 1u);

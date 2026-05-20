@@ -8,10 +8,7 @@ int32_t kbo_no_minor_resolve_current_league_id(void)
             || !memory_range_readable(
                 (void*)(global_db + OOTP27_GLOBAL_CURRENT_LEAGUE_OFFSET),
                 sizeof(uintptr_t))) {
-        uint32_t fallback_league_id = kbo_get_foreign_waiver_league_id();
-        if (fallback_league_id == 0u) {
-            fallback_league_id = kbo_resolve_kbo_league_id();
-        }
+        uint32_t fallback_league_id = kbo_resolve_kbo_league_id();
         int32_t result = fallback_league_id > 0u && fallback_league_id <= 100000u
             ? (int32_t)fallback_league_id
             : 0;
@@ -24,10 +21,7 @@ int32_t kbo_no_minor_resolve_current_league_id(void)
             || !memory_range_readable(
                 (void*)(current_league_context + OOTP27_GLOBAL_CURRENT_LEAGUE_ID_OFFSET),
                 sizeof(int32_t))) {
-        uint32_t fallback_league_id = kbo_get_foreign_waiver_league_id();
-        if (fallback_league_id == 0u) {
-            fallback_league_id = kbo_resolve_kbo_league_id();
-        }
+        uint32_t fallback_league_id = kbo_resolve_kbo_league_id();
         int32_t result = fallback_league_id > 0u && fallback_league_id <= 100000u
             ? (int32_t)fallback_league_id
             : 0;
@@ -37,10 +31,7 @@ int32_t kbo_no_minor_resolve_current_league_id(void)
 
     int32_t league_id = *(int32_t*)(current_league_context + OOTP27_GLOBAL_CURRENT_LEAGUE_ID_OFFSET);
     if (league_id <= 0 || league_id > 100000) {
-        uint32_t fallback_league_id = kbo_get_foreign_waiver_league_id();
-        if (fallback_league_id == 0u) {
-            fallback_league_id = kbo_resolve_kbo_league_id();
-        }
+        uint32_t fallback_league_id = kbo_resolve_kbo_league_id();
         int32_t result = fallback_league_id > 0u && fallback_league_id <= 100000u
             ? (int32_t)fallback_league_id
             : 0;

@@ -153,10 +153,7 @@ void run_foreign_waiver_ai_core_once(void)
     }
     kbo_prune_expired_foreign_waiver_rights(today);
 
-    uint32_t configured_league_id = kbo_get_foreign_waiver_league_id();
-    if (configured_league_id == 0u) {
-        configured_league_id = kbo_resolve_kbo_league_id();
-    }
+    uint32_t configured_league_id = kbo_resolve_kbo_league_id();
 
     uintptr_t player_vector = 0;
     int32_t player_count = 0;

@@ -6,6 +6,7 @@
 
 #include "../../bootstrap/profiling/profiler.h"
 #include "../../core/core_flags/api/flags_api.h"
+#include "../../core/core_league_context_parts/api/league_context_lookup.h"
 #include "../../core/csv/core_csv.h"
 #include "../../core/dates/core_text_date.h"
 #include "../../core/dates/tick/current_date_tick_capture.h"
@@ -49,7 +50,7 @@ int kbo_advance_foreign_waiver_window(uint32_t today_yyyymmdd, uint32_t today_se
         return 0;
     }
 
-    uint32_t configured_league_id = kbo_get_foreign_waiver_league_id();
+    uint32_t configured_league_id = kbo_resolve_kbo_league_id();
     if (configured_league_id == 0u) {
         kbo_log_runtime_line("foreign waiver auto: missing configured league id; skip season-end evaluation");
         KBO_PROFILE_END(profile_foreign_waiver_advance, "foreign_waiver.advance.no_league_id");
@@ -352,7 +353,7 @@ int kbo_get_foreign_waiver_window_status_text(char* out, size_t out_size)
 
     char start_text[16] = {0};
     char end_text[16] = {0};
-    uint32_t configured_league_id = kbo_get_foreign_waiver_league_id();
+    uint32_t configured_league_id = kbo_resolve_kbo_league_id();
     if (!kbo_format_ymd(file_start, start_text, sizeof(start_text))
             || !kbo_format_ymd(file_end, end_text, sizeof(end_text))) {
         snprintf(start_text, sizeof(start_text), "-");

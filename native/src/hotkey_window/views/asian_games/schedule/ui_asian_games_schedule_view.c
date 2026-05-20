@@ -124,10 +124,7 @@ void kbo_webview_append_asian_games_schedule_view(KboWindowTextBuffer* buffer)
     uint32_t today = 0u;
     kbo_current_date_tick_latest_published_date(&today);
 
-    uint32_t league_id = kbo_get_foreign_waiver_league_id();
-    if (league_id == 0u) {
-        league_id = kbo_resolve_kbo_league_id();
-    }
+    uint32_t league_id = kbo_resolve_kbo_league_id();
 
     uint32_t selection_date = has_schedule ? schedule.selection_date : 0u;
     uint32_t departure_date = has_schedule ? schedule.departure_date : 0u;

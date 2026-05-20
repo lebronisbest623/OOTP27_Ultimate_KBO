@@ -29,10 +29,7 @@ uint32_t kbo_custom_foreign_policy_extra_slots_for_candidate(
 
     uint32_t today = 0u;
     kbo_get_foreign_waiver_current_yyyymmdd(&today);
-    uint32_t league_id = kbo_get_foreign_waiver_league_id();
-    if (league_id == 0u) {
-        league_id = kbo_resolve_kbo_league_id();
-    }
+    uint32_t league_id = kbo_resolve_kbo_league_id();
 
     uint8_t candidate_asian = kbo_player_is_asian_quota_slot_candidate(candidate) ? 1u : 0u;
     uint32_t cached_extra_slots = 0u;

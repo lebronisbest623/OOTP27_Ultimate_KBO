@@ -118,7 +118,7 @@ __declspec(noinline) void ootp_kbo_prepare_allstar_voting_begin(uintptr_t league
     if (scoped_context) {
         enable_kbo_allstar_flags(league_ptr, "allstar_voting_begin");
     } else {
-        uint32_t configured_league_id = kbo_get_foreign_waiver_league_id();
+        uint32_t configured_league_id = kbo_resolve_kbo_league_id();
         if (configured_league_id == 0u) {
             configured_league_id = kbo_league_role_main_league_id();
         }

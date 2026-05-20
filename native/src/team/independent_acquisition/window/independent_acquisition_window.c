@@ -235,10 +235,7 @@ int kbo_independent_team_acquisition_window_active(
         return 0;
     }
 
-    uint32_t league_id = kbo_get_foreign_waiver_league_id();
-    if (league_id == 0u) {
-        league_id = kbo_resolve_kbo_league_id();
-    }
+    uint32_t league_id = kbo_resolve_kbo_league_id();
 
     KboSeasonPhaseInfo phase_info;
     if (!kbo_season_phase_resolve(league_id, today, 0u, &phase_info)) {

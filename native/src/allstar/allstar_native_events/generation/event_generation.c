@@ -32,7 +32,7 @@ int run_kbo_allstar_native_event_generation(uintptr_t league_ptr, const char* so
             break;
         }
 
-        uint32_t configured_league_id = kbo_get_foreign_waiver_league_id();
+        uint32_t configured_league_id = kbo_resolve_kbo_league_id();
         if (configured_league_id == 0u) {
             configured_league_id = kbo_league_role_main_league_id();
         }

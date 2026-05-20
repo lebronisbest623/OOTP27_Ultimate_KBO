@@ -71,10 +71,7 @@ int kbo_schedule_independent_team_acquisition_custom_events_for_date(
         return 0;
     }
 
-    uint32_t event_league_id = kbo_get_foreign_waiver_league_id();
-    if (event_league_id == 0u) {
-        event_league_id = kbo_resolve_kbo_league_id();
-    }
+    uint32_t event_league_id = kbo_resolve_kbo_league_id();
     if (event_league_id == 0u) {
         kbo_log_runtimef(
             "KBO independent futures acquisition schedule skipped source=%s reason=event_league_id_unavailable today=%u seed_rows=%d leagues=%d",

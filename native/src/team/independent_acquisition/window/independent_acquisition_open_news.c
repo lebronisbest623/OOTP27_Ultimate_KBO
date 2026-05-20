@@ -18,10 +18,7 @@
 
 static uint32_t kbo_independent_team_acquisition_event_league_id(void)
 {
-    uint32_t league_id = kbo_get_foreign_waiver_league_id();
-    if (league_id == 0u) {
-        league_id = kbo_resolve_kbo_league_id();
-    }
+    uint32_t league_id = kbo_resolve_kbo_league_id();
     return league_id;
 }
 

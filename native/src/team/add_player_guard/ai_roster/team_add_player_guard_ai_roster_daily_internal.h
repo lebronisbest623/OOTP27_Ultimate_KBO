@@ -8,6 +8,7 @@
 
 #include "../../../bootstrap/abi/ootp_offsets.h"
 #include "../../../core/core_flags/api/flags_api.h"
+#include "../../../core/core_league_context_parts/api/league_context_lookup.h"
 #include "../../../core/logging/core_log.h"
 #include "../../../foreign/common/policy/foreign_player_policy.h"
 #include "../../../foreign/common/policy/foreign_waiver_policy.h"

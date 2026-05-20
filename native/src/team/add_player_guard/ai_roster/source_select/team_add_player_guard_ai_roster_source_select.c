@@ -5,6 +5,7 @@
 
 #include "../../../../bootstrap/abi/ootp_offsets.h"
 #include "../../../../core/core_flags/api/flags_api.h"
+#include "../../../../core/core_league_context_parts/api/league_context_lookup.h"
 #include "../../../../core/sync/lock.h"
 #include "../../../../foreign/common/policy/foreign_waiver_policy.h"
 #include "../../../../foreign/common/player_eval/foreign_waiver_player_eval.h"
@@ -183,7 +184,7 @@ static uint8_t* kbo_ai_roster_resolve_active_team(uint8_t* player, uint32_t* out
         *(uint32_t*)(player + OOTP27_PLAYER_ACTIVE_TEAM_ID_OFFSET),
         *(uint32_t*)(player + OOTP27_PLAYER_ORIGINAL_TEAM_ID_OFFSET),
     };
-    uint32_t kbo_league_id = kbo_get_foreign_waiver_league_id();
+    uint32_t kbo_league_id = kbo_resolve_kbo_league_id();
     for (uint32_t i = 0u; i < 3u; i++) {
         uint32_t org_team_id = kbo_ai_roster_parent_team_id(team_ids[i]);
         if (org_team_id == 0u) {
@@ -224,7 +225,7 @@ int kbo_ai_roster_minor_foreign_callup_allows(
         return 0;
     }
 
-    uint32_t kbo_league_id = kbo_get_foreign_waiver_league_id();
+    uint32_t kbo_league_id = kbo_resolve_kbo_league_id();
     uint32_t current_league_id = *(uint32_t*)(player + OOTP27_PLAYER_CURRENT_LEAGUE_ID_OFFSET);
     int minor_league_match = kbo_league_id != 0u
         && (current_league_id == kbo_league_id + 1u || (uint32_t)team_arg == kbo_league_id + 1u);
@@ -299,7 +300,7 @@ uintptr_t kbo_ai_roster_choose_source_select_rescue_candidate(
     int64_t best_score = INT64_MIN;
     KboAiRosterForeignCandidateSummary best_summary = {0};
     best_summary.index = -1;
-    uint32_t kbo_league_id = kbo_get_foreign_waiver_league_id();
+    uint32_t kbo_league_id = kbo_resolve_kbo_league_id();
 
     for (int32_t i = 0; i < scanned_count; i++) {
         uintptr_t candidate_ptr = kbo_pointer_vector_value_at(source_vector_ptr, i, source_count);

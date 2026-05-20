@@ -152,10 +152,7 @@ int kbo_announce_foreign_waiver_results(uint32_t event_yyyymmdd, const char* sou
         return 0;
     }
 
-    uint32_t league_id = kbo_get_foreign_waiver_league_id();
-    if (league_id == 0u) {
-        league_id = kbo_resolve_kbo_league_id();
-    }
+    uint32_t league_id = kbo_resolve_kbo_league_id();
     if (league_id == 0u) {
                 do {
             KboLogFields audit_fields;

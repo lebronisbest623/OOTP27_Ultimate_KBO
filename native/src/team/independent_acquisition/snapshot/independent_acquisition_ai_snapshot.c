@@ -119,10 +119,7 @@ int kbo_run_independent_team_acquisition_ai_with_snapshot_for_date(
         goto cleanup;
     }
 
-    uint32_t kbo_league_id = kbo_get_foreign_waiver_league_id();
-    if (kbo_league_id == 0u) {
-        kbo_league_id = kbo_resolve_kbo_league_id();
-    }
+    uint32_t kbo_league_id = kbo_resolve_kbo_league_id();
     uint32_t buyer_team_ids[KBO_INDEPENDENT_ACQUISITION_MAX_BUYERS] = {0};
     int scanned = 0;
     int unreadable = 0;

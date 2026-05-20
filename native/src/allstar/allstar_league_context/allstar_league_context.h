@@ -7,6 +7,7 @@
 #include "../../bootstrap/abi/ootp_offsets.h"
 #include "../../build_verify/build_verify.h"
 #include "../../core/core_flags/api/flags_api.h"
+#include "../../core/core_league_context_parts/api/league_context_lookup.h"
 #include "../../core/logging/core_log.h"
 #include "../../core/dates/core_text_date.h"
 #include "../../runtime_memory/runtime_memory.h"
@@ -52,7 +53,6 @@ void load_allstar_team_rules_once(void);
 int copy_ootp_string_object_text(uint8_t* object_base, uint32_t string_offset, char* out, size_t out_size);
 int team_has_ootp_string_text(uint8_t* team, const char* expected);
 int is_kbo_historical_league_context(uintptr_t league_ptr);
-uint32_t kbo_get_foreign_waiver_league_id(void);
 
 /* context_enabled.c */
 int kbo_allstar_league_context_enabled(uintptr_t league_ptr);

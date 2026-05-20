@@ -30,10 +30,7 @@ int kbo_emit_asian_games_replacement_news(
         return 0;
     }
 
-    uint32_t league_id = kbo_get_foreign_waiver_league_id();
-    if (league_id == 0u) {
-        league_id = kbo_resolve_kbo_league_id();
-    }
+    uint32_t league_id = kbo_resolve_kbo_league_id();
     if (league_id == 0u) {
         return 0;
     }
@@ -147,10 +144,7 @@ int kbo_emit_asian_games_replacement_news_batch(
             source);
     }
 
-    uint32_t league_id = kbo_get_foreign_waiver_league_id();
-    if (league_id == 0u) {
-        league_id = kbo_resolve_kbo_league_id();
-    }
+    uint32_t league_id = kbo_resolve_kbo_league_id();
     if (league_id == 0u) {
         return 0;
     }

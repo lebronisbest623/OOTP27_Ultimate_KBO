@@ -2,10 +2,7 @@
 #include <windows.h>
 
 #include "foreign_waiver_policy.h"
-#include "../config/foreign_waiver_config.h"
 #include "../../../core/core_flags/api/flags_api.h"
-#include "../../../core/core_league_context_parts/api/league_context_lookup.h"
-#include "../../../core/logging/core_log.h"
 #include "../../../core/core_flags/keys/runtime_flag_keys.generated.h"
 
 int kbo_foreign_waiver_ai_enabled(void)
@@ -30,19 +27,3 @@ int kbo_custom_foreign_policy_enabled(void)
     }
     return kbo_fix_enabled() && disabled != 1;
 }
-
-uint32_t kbo_get_foreign_waiver_league_id(void)
-{
-    static uint32_t cached_league_id = 0u;
-    if (cached_league_id == 0u) {
-        cached_league_id = read_u32_leading_number_from_file("foreign_waiver_league_id.txt");
-        if (cached_league_id == 0u) {
-            cached_league_id = kbo_resolve_kbo_league_id();
-        }
-        if (cached_league_id != 0u) {
-            kbo_log_runtimef("foreign waiver: resolved league id=%u", cached_league_id);
-        }
-    }
-    return cached_league_id;
-}
-

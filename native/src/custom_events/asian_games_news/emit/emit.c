@@ -84,10 +84,7 @@ int kbo_emit_asian_games_news(uint32_t event_yyyymmdd, const char* template_pref
         return 0;
     }
 
-    uint32_t league_id = kbo_get_foreign_waiver_league_id();
-    if (league_id == 0u) {
-        league_id = kbo_resolve_kbo_league_id();
-    }
+    uint32_t league_id = kbo_resolve_kbo_league_id();
     if (league_id == 0u) {
         kbo_log_runtimef(
             "KBO Asian Games news skipped source=%s title=%s reason=league_id_unavailable",

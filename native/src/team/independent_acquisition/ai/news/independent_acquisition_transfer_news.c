@@ -193,7 +193,7 @@ int kbo_emit_independent_acquisition_transfer_news(
 
     uint32_t league_id = *(uint32_t*)(buyer_team + OOTP27_KBO_TEAM_LEAGUE_ID_OFFSET);
     if (league_id == 0u) {
-        league_id = kbo_get_foreign_waiver_league_id();
+        league_id = kbo_resolve_kbo_league_id();
     }
     if (league_id == 0u) {
         league_id = kbo_resolve_kbo_league_id();

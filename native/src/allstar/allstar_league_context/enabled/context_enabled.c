@@ -84,7 +84,7 @@ int kbo_allstar_raw_kbo_league_context_enabled(uintptr_t league_ptr)
         return 1;
     }
 
-    uint32_t configured_league_id = kbo_get_foreign_waiver_league_id();
+    uint32_t configured_league_id = kbo_resolve_kbo_league_id();
     if (configured_league_id == 0u) {
         configured_league_id = kbo_league_role_main_league_id();
     }
@@ -125,7 +125,7 @@ int kbo_allstar_league_context_enabled(uintptr_t league_ptr)
         return 0;
     }
 
-    uint32_t configured_league_id = kbo_get_foreign_waiver_league_id();
+    uint32_t configured_league_id = kbo_resolve_kbo_league_id();
     uint32_t primary_league_id = kbo_allstar_read_u32(league, layout.league_id_primary_offset);
     uint32_t fallback_league_id = kbo_allstar_read_u32(league, layout.league_id_fallback_offset);
     if (primary_league_id == configured_league_id || fallback_league_id == configured_league_id) {

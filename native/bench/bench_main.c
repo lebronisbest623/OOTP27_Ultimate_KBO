@@ -1364,11 +1364,6 @@ int kbo_custom_foreign_policy_enabled(void)
     return 1;
 }
 
-uint32_t kbo_get_foreign_waiver_league_id(void)
-{
-    return 1u;
-}
-
 int kbo_get_foreign_waiver_current_yyyymmdd(uint32_t* out_today)
 {
     if (out_today != NULL) {

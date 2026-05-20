@@ -22,10 +22,7 @@ __declspec(noinline) void ootp_kbo_enable_allstar_setting(uintptr_t league_ptr)
         KBO_HOOK_PROFILE_RETURN_VOID(profile_hook, "allstar.enable_setting");
     }
 
-    uint32_t league_id = kbo_get_foreign_waiver_league_id();
-    if (league_id == 0u) {
-        league_id = kbo_resolve_kbo_league_id();
-    }
+    uint32_t league_id = kbo_resolve_kbo_league_id();
     if (enable_kbo_allstar_flags_for_core_league(league_ptr, league_id, "allstar_settings_ui_core_fallback")) {
         kbo_log_runtimef(
             "KBO all-star settings UI wrote real league flags by core fallback league_id=%u league=%p",
