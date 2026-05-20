@@ -13,7 +13,6 @@ extern volatile LONG g_kbo_independent_acquisition_ai_last_processed_date;
 extern volatile LONG g_kbo_independent_acquisition_ai_running;
 extern char g_kbo_independent_acquisition_ai_cursor_save_path[MAX_PATH];
 
-#define KBO_INDEPENDENT_ACQUISITION_AI_CURSOR_FILE "independent_acquisition_ai_cursor.txt"
 #define KBO_INDEPENDENT_ACQUISITION_AI_MAX_CATCHUP_DAYS 220
 
 typedef struct KboIndependentAcquisitionSellerAvailability {

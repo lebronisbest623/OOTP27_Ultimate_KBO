@@ -52,6 +52,16 @@ The first migrated subsystems are:
   formerly `foreign_waiver_negotiation_window.txt`.
 - `foreign_waiver_announcements`: result-news idempotency and body ledger,
   formerly `foreign_waiver_announcements.txt`.
+- `amateur_reputation_history`: high-school/college team reputation replay
+  history, formerly `amateur_reputation_history.csv`.
+- `season_calendar`: observed KBO league opening-day cache, formerly
+  `season_calendar.csv`.
+- `custom_news_runs`: shared custom-news completion ledger, formerly
+  `custom_news_runs.jsonl`.
+- `independent_acquisition_window`: independent Futures acquisition open-date
+  state, formerly `independent_acquisition_window.txt`.
+- `independent_acquisition_ai_cursor`: independent Futures acquisition AI
+  processed-date cursor, formerly `independent_acquisition_ai_cursor.txt`.
 
 The shared SQLite opener lives in:
 
@@ -96,11 +106,15 @@ the old CSV/TXT/JSONL names retired for new saves:
   `asian_games_roster_history.csv`, `asian_games_tournament_history.csv`,
   `military_service_resolved.csv`, `military_selection_results.csv`.
 - Other durable gameplay state: `captains_YYYY.csv`,
-  `foreign_injury_replacements.csv`, `amateur_reputation_history.csv`,
-  `season_calendar.csv`.
-- Idempotency and cursors: `*_news_markers.txt`, `custom_news_runs.jsonl`,
-  `*_window.txt`, `*_cursor.txt`, `*_state.txt`, and small state JSON files
-  such as `kbo_daily_audit_state.json`.
+  `foreign_injury_replacements.csv`.
+  `amateur_reputation_history.csv` is retired for new saves and now lives in
+  `amateur_reputation_history`; `season_calendar.csv` now lives in
+  `season_calendar`.
+- Idempotency and cursors: `custom_news_runs.jsonl` and the news marker files
+  now live in `custom_news_runs`; `independent_acquisition_window.txt` now
+  lives in `independent_acquisition_window`; `independent_acquisition_ai_cursor.txt`
+  now lives in `independent_acquisition_ai_cursor`; `*_state.txt` and small
+  state JSON files such as `kbo_daily_audit_state.json` still need table owners.
 
 ### Move Under `logs\`
 

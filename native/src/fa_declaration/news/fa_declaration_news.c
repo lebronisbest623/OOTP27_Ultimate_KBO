@@ -7,7 +7,6 @@
 #include "fa_declaration_news.h"
 #include "../../bootstrap/abi/ootp_offsets.h"
 #include "../../core/core_flags/api/flags_api.h"
-#include "../../core/files/save_paths/core_save_paths.h"
 #include "../../core/logging/core_log.h"
 #include "../../core/news/ledger/core_news_ledger.h"
 #include "../../core/news/live/core_live_news.h"
@@ -22,68 +21,12 @@
 #define KBO_FA_DECLARATION_NEWS_DEFERRED_LIMIT 6
 #define KBO_FA_DECLARATION_NEWS_LEDGER_DOMAIN "fa_declaration"
 
-static int kbo_get_fa_declaration_news_marker_path(char* out, size_t out_size)
-{
-    if (out == NULL || out_size == 0u) {
-        return 0;
-    }
-    return kbo_get_save_scoped_data_file("fa_declaration_news_markers.txt", out, out_size);
-}
-
 static int kbo_fa_declaration_news_marker_exists(const char* marker)
 {
     if (marker == NULL || marker[0] == '\0') {
         return 0;
     }
-    if (kbo_custom_news_ledger_completed(KBO_FA_DECLARATION_NEWS_LEDGER_DOMAIN, marker)) {
-        return 1;
-    }
-
-    char path[MAX_PATH] = {0};
-    if (!kbo_get_fa_declaration_news_marker_path(path, sizeof(path))) {
-        return 0;
-    }
-
-    HANDLE file = CreateFileA(
-        path,
-        GENERIC_READ,
-        FILE_SHARE_READ | FILE_SHARE_WRITE,
-        NULL,
-        OPEN_EXISTING,
-        FILE_ATTRIBUTE_NORMAL,
-        NULL);
-    if (file == INVALID_HANDLE_VALUE) {
-        return 0;
-    }
-
-    DWORD size = GetFileSize(file, NULL);
-    if (size == INVALID_FILE_SIZE || size == 0u || size > 1024u * 1024u) {
-        CloseHandle(file);
-        return 0;
-    }
-
-    char* buffer = (char*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, (SIZE_T)size + 1u);
-    if (buffer == NULL) {
-        CloseHandle(file);
-        return 0;
-    }
-
-    DWORD read = 0;
-    int found = 0;
-    if (ReadFile(file, buffer, size, &read, NULL)) {
-        buffer[read] = '\0';
-        found = strstr(buffer, marker) != NULL;
-    }
-    CloseHandle(file);
-    HeapFree(GetProcessHeap(), 0, buffer);
-    if (found) {
-        kbo_custom_news_ledger_record_completed(
-            KBO_FA_DECLARATION_NEWS_LEDGER_DOMAIN,
-            marker,
-            "legacy_marker_backfill",
-            "fa_declaration_news_marker_exists");
-    }
-    return found;
+    return kbo_custom_news_ledger_completed(KBO_FA_DECLARATION_NEWS_LEDGER_DOMAIN, marker);
 }
 
 static void kbo_fa_declaration_news_persist_marker(const char* marker, const char* source)
@@ -91,51 +34,11 @@ static void kbo_fa_declaration_news_persist_marker(const char* marker, const cha
     if (marker == NULL || marker[0] == '\0') {
         return;
     }
-
-    char path[MAX_PATH] = {0};
-    if (!kbo_get_fa_declaration_news_marker_path(path, sizeof(path))) {
-        return;
-    }
-
-    char dir[MAX_PATH] = {0};
-    snprintf(dir, sizeof(dir), "%s", path);
-    char* slash = strrchr(dir, '\\');
-    if (slash != NULL) {
-        *slash = '\0';
-        CreateDirectoryA(dir, NULL);
-    }
-
-    HANDLE file = CreateFileA(
-        path,
-        FILE_APPEND_DATA,
-        FILE_SHARE_READ | FILE_SHARE_WRITE,
-        NULL,
-        OPEN_ALWAYS,
-        FILE_ATTRIBUTE_NORMAL,
-        NULL);
-    if (file == INVALID_HANDLE_VALUE) {
-        kbo_log_runtimef(
-            "KBO FA declaration news marker skipped source=%s marker=%s reason=open_failed gle=%lu path=%s",
-            source != NULL ? source : "",
-            marker,
-            GetLastError(),
-            path);
-        return;
-    }
-
-    DWORD written = 0;
-    DWORD marker_len = (DWORD)strlen(marker);
-    int marker_written = WriteFile(file, marker, marker_len, &written, NULL);
-    DWORD newline_written = 0;
-    int newline_ok = WriteFile(file, "\r\n", 2u, &newline_written, NULL);
-    if (marker_written && written == marker_len && newline_ok && newline_written == 2u) {
-        kbo_custom_news_ledger_record_completed(
-            KBO_FA_DECLARATION_NEWS_LEDGER_DOMAIN,
-            marker,
-            "legacy_marker_persist",
-            source);
-    }
-    CloseHandle(file);
+    kbo_custom_news_ledger_record_completed(
+        KBO_FA_DECLARATION_NEWS_LEDGER_DOMAIN,
+        marker,
+        "news_marker_persist",
+        source);
 }
 
 int kbo_emit_fa_declaration_retry_news(

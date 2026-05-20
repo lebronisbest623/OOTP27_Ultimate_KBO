@@ -6,15 +6,16 @@
 
 #include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "../../../core/dates/core_text_date.h"
 #include "../../../core/dates/constants/kbo_date_constants.h"
 #include "../../../core/files/save_paths/core_save_paths.h"
 #include "../../../core/logging/core_log.h"
+#include "../../../core/sql/save_state/save_state_sqlite.h"
 #include "../../../foreign/common/dates/foreign_waiver_date.h"
 #include "../../../foreign/common/policy/foreign_player_policy.h"
+#include "sql/independent_acquisition_ai_cursor_sql_store.h"
 #include "../window/independent_acquisition_window.h"
 
 volatile LONG g_kbo_independent_acquisition_ai_last_processed_date = 0;
@@ -32,44 +33,19 @@ uint32_t kbo_independent_acquisition_next_date(uint32_t today)
 
 static int kbo_independent_acquisition_ai_cursor_path(char* out, size_t out_size)
 {
-    return kbo_get_save_scoped_data_file(
-        KBO_INDEPENDENT_ACQUISITION_AI_CURSOR_FILE,
-        out,
-        out_size);
+    return kbo_save_state_db_path(out, out_size);
 }
 
 static uint32_t kbo_independent_acquisition_load_processed_date(void)
 {
-    char path[MAX_PATH] = {0};
-    if (!kbo_independent_acquisition_ai_cursor_path(path, sizeof(path))) {
+    uint32_t value = 0u;
+    if (!kbo_independent_acquisition_ai_cursor_sql_load(&value)) {
         return 0u;
     }
-
-    HANDLE file = CreateFileA(
-        path,
-        GENERIC_READ,
-        FILE_SHARE_READ | FILE_SHARE_WRITE,
-        NULL,
-        OPEN_EXISTING,
-        FILE_ATTRIBUTE_NORMAL,
-        NULL);
-    if (file == INVALID_HANDLE_VALUE) {
-        return 0u;
-    }
-
-    char text[32] = {0};
-    DWORD read = 0u;
-    int ok = ReadFile(file, text, sizeof(text) - 1u, &read, NULL) && read > 0u;
-    CloseHandle(file);
-    if (!ok) {
-        return 0u;
-    }
-
-    unsigned long value = strtoul(text, NULL, 10);
     if (value < KBO_SEASON_DATE_MIN || value > KBO_SIM_DATE_MAX) {
         return 0u;
     }
-    return (uint32_t)value;
+    return value;
 }
 
 static void kbo_independent_acquisition_persist_processed_date(uint32_t today, const char* source)
@@ -79,37 +55,13 @@ static void kbo_independent_acquisition_persist_processed_date(uint32_t today, c
         return;
     }
 
-    char text[32] = {0};
-    snprintf(text, sizeof(text), "%u\r\n", today);
-    HANDLE file = CreateFileA(
-        path,
-        GENERIC_WRITE,
-        FILE_SHARE_READ | FILE_SHARE_WRITE,
-        NULL,
-        CREATE_ALWAYS,
-        FILE_ATTRIBUTE_NORMAL,
-        NULL);
-    if (file == INVALID_HANDLE_VALUE) {
+    if (!kbo_independent_acquisition_ai_cursor_sql_store(today, source)) {
         kbo_log_runtimef(
-            "independent acquisition AI cursor persist skipped source=%s date=%u gle=%lu path=%s",
+            "independent acquisition AI cursor persist failed source=%s date=%u reason=sqlite_write_failed path=%s",
             source != NULL ? source : "",
             today,
-            (unsigned long)GetLastError(),
-            path);
-        return;
-    }
-
-    DWORD written = 0u;
-    DWORD len = (DWORD)strlen(text);
-    if (!WriteFile(file, text, len, &written, NULL) || written != len) {
-        kbo_log_runtimef(
-            "independent acquisition AI cursor persist failed source=%s date=%u gle=%lu path=%s",
-            source != NULL ? source : "",
-            today,
-            (unsigned long)GetLastError(),
             path);
     }
-    CloseHandle(file);
 }
 
 static uint32_t kbo_independent_acquisition_observed_processed_date(void)

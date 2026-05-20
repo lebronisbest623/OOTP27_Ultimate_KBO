@@ -3,34 +3,29 @@
 
 #include "independent_acquisition_window.h"
 #include "independent_acquisition_open_news.h"
+#include "sql/independent_acquisition_window_sql_store.h"
 
 #include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 #include "../../../bootstrap/abi/ootp_offsets.h"
 #include "../../../core/core_league_context_parts/api/league_context_lookup.h"
 #include "../../../custom_events/runtime/dates/custom_event_dates.h"
 #include "../../../custom_events/runtime/ledger/custom_event_ledger.h"
 #include "../../../core/dates/constants/kbo_date_constants.h"
-#include "../../../core/files/save_paths/core_save_paths.h"
 #include "../../../core/dates/core_text_date.h"
 #include "../../../core/logging/core_log.h"
 #include "../../../core/season/phase/season_phase.h"
+#include "../../../core/sql/save_state/save_state_sqlite.h"
 #include "../../../foreign/common/policy/foreign_waiver_policy.h"
 
 static volatile LONG g_kbo_independent_team_acquisition_open_date = 0;
 
-#define KBO_INDEPENDENT_TEAM_ACQUISITION_WINDOW_FILE "independent_acquisition_window.txt"
 #define KBO_INDEPENDENT_ACQUISITION_REGULAR_SEASON_PLANNING_DAYS 160u
 
 static int kbo_independent_team_acquisition_window_path(char* out, size_t out_size)
 {
-    return kbo_get_save_scoped_data_file(
-        KBO_INDEPENDENT_TEAM_ACQUISITION_WINDOW_FILE,
-        out,
-        out_size);
+    return kbo_save_state_db_path(out, out_size);
 }
 
 static void kbo_independent_team_acquisition_persist_open_date(
@@ -43,71 +38,25 @@ static void kbo_independent_team_acquisition_persist_open_date(
         return;
     }
 
-    char text[32] = {0};
-    snprintf(text, sizeof(text), "%u\r\n", event_yyyymmdd);
-    HANDLE file = CreateFileA(
-        path,
-        GENERIC_WRITE,
-        FILE_SHARE_READ | FILE_SHARE_WRITE,
-        NULL,
-        CREATE_ALWAYS,
-        FILE_ATTRIBUTE_NORMAL,
-        NULL);
-    if (file == INVALID_HANDLE_VALUE) {
+    if (!kbo_independent_acquisition_window_sql_store_open_date(event_yyyymmdd, source)) {
         kbo_log_runtimef(
-            "KBO independent futures acquisition window persist skipped source=%s date=%u gle=%lu path=%s",
+            "KBO independent futures acquisition window persist failed source=%s date=%u reason=sqlite_write_failed path=%s",
             source != NULL ? source : "",
             event_yyyymmdd,
-            (unsigned long)GetLastError(),
-            path);
-        return;
-    }
-
-    DWORD written = 0u;
-    DWORD len = (DWORD)strlen(text);
-    if (!WriteFile(file, text, len, &written, NULL) || written != len) {
-        kbo_log_runtimef(
-            "KBO independent futures acquisition window persist failed source=%s date=%u gle=%lu path=%s",
-            source != NULL ? source : "",
-            event_yyyymmdd,
-            (unsigned long)GetLastError(),
             path);
     }
-    CloseHandle(file);
 }
 
 static uint32_t kbo_independent_team_acquisition_load_open_date(void)
 {
-    char path[MAX_PATH] = {0};
-    if (!kbo_independent_team_acquisition_window_path(path, sizeof(path))) {
+    uint32_t value = 0u;
+    if (!kbo_independent_acquisition_window_sql_load_open_date(&value)) {
         return 0u;
     }
-
-    HANDLE file = CreateFileA(
-        path,
-        GENERIC_READ,
-        FILE_SHARE_READ | FILE_SHARE_WRITE,
-        NULL,
-        OPEN_EXISTING,
-        FILE_ATTRIBUTE_NORMAL,
-        NULL);
-    if (file == INVALID_HANDLE_VALUE) {
-        return 0u;
-    }
-
-    char text[32] = {0};
-    DWORD read = 0u;
-    int ok = ReadFile(file, text, sizeof(text) - 1u, &read, NULL) && read > 0u;
-    CloseHandle(file);
-    if (!ok) {
-        return 0u;
-    }
-
-    unsigned long value = strtoul(text, NULL, 10);
     if (value < KBO_SEASON_DATE_MIN || value > KBO_SIM_DATE_MAX) {
         return 0u;
     }
-    return (uint32_t)value;
+    return value;
 }
 
 int kbo_handle_independent_team_acquisition_open_event(

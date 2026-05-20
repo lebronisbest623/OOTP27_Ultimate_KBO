@@ -6,7 +6,6 @@
 #include <string.h>
 
 #include "../../../bootstrap/abi/ootp_offsets.h"
-#include "../../../core/files/save_paths/core_save_paths.h"
 #include "../../../core/logging/core_log.h"
 #include "../../../core/news/ledger/core_news_ledger.h"
 #include "../../../core/news/templates/core_news_templates.h"
@@ -21,52 +20,16 @@
 
 #define KBO_MILITARY_RETURN_PREVIEW_NEWS_LEDGER_DOMAIN "military_return_preview"
 
-static int kbo_military_return_preview_marker_path(char* out, size_t out_size)
-{
-    return kbo_get_save_scoped_data_file("military_return_preview_news_markers.txt", out, out_size);
-}
-
 int kbo_military_return_preview_marker_exists(const char* key)
 {
     if (key == NULL || key[0] == '\0') {
         return 1;
     }
-    if (kbo_custom_news_ledger_completed(KBO_MILITARY_RETURN_PREVIEW_NEWS_LEDGER_DOMAIN, key)) {
-        return 1;
-    }
-
     char path[MAX_PATH] = {0};
-    if (!kbo_military_return_preview_marker_path(path, sizeof(path))) {
+    if (!kbo_custom_news_ledger_path(path, sizeof(path))) {
         return 1;
     }
-
-    FILE* file = fopen(path, "rb");
-    if (file == NULL) {
-        return 0;
-    }
-
-    char line[256] = {0};
-    size_t key_len = strlen(key);
-    int found = 0;
-    while (fgets(line, sizeof(line), file) != NULL) {
-        size_t len = strlen(line);
-        while (len > 0u && (line[len - 1u] == '\n' || line[len - 1u] == '\r')) {
-            line[--len] = '\0';
-        }
-        if (len == key_len && memcmp(line, key, key_len) == 0) {
-            found = 1;
-            break;
-        }
-    }
-    fclose(file);
-    if (found) {
-        kbo_custom_news_ledger_record_completed(
-            KBO_MILITARY_RETURN_PREVIEW_NEWS_LEDGER_DOMAIN,
-            key,
-            "legacy_marker_backfill",
-            "military_return_preview_marker_exists");
-    }
-    return found;
+    return kbo_custom_news_ledger_completed(KBO_MILITARY_RETURN_PREVIEW_NEWS_LEDGER_DOMAIN, key);
 }
 
 void kbo_military_return_preview_persist_marker(const char* key, const char* source)
@@ -74,53 +37,11 @@ void kbo_military_return_preview_persist_marker(const char* key, const char* sou
     if (key == NULL || key[0] == '\0' || kbo_military_return_preview_marker_exists(key)) {
         return;
     }
-
-    char path[MAX_PATH] = {0};
-    if (!kbo_military_return_preview_marker_path(path, sizeof(path))) {
-        kbo_log_runtimef(
-            "KBO military return preview marker skipped source=%s key=%s reason=path_unavailable",
-            source != NULL ? source : "",
-            key);
-        return;
-    }
-
-    HANDLE file = CreateFileA(
-        path,
-        FILE_APPEND_DATA,
-        FILE_SHARE_READ,
-        NULL,
-        OPEN_ALWAYS,
-        FILE_ATTRIBUTE_NORMAL,
-        NULL);
-    if (file == INVALID_HANDLE_VALUE) {
-        kbo_log_runtimef(
-            "KBO military return preview marker skipped source=%s key=%s reason=open_failed gle=%lu path=%s",
-            source != NULL ? source : "",
-            key,
-            (unsigned long)GetLastError(),
-            path);
-        return;
-    }
-
-    char line[288] = {0};
-    snprintf(line, sizeof(line), "%s\r\n", key);
-    DWORD written = 0;
-    DWORD bytes = (DWORD)strlen(line);
-    if (!WriteFile(file, line, bytes, &written, NULL) || written != bytes) {
-        kbo_log_runtimef(
-            "KBO military return preview marker write failed source=%s key=%s gle=%lu path=%s",
-            source != NULL ? source : "",
-            key,
-            (unsigned long)GetLastError(),
-            path);
-    } else {
-        kbo_custom_news_ledger_record_completed(
-            KBO_MILITARY_RETURN_PREVIEW_NEWS_LEDGER_DOMAIN,
-            key,
-            "legacy_marker_persist",
-            source);
-    }
-    CloseHandle(file);
+    kbo_custom_news_ledger_record_completed(
+        KBO_MILITARY_RETURN_PREVIEW_NEWS_LEDGER_DOMAIN,
+        key,
+        "news_marker_persist",
+        source);
 }
 
 static int kbo_military_return_preview_compare(

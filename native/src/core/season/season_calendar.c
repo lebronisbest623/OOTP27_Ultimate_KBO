@@ -9,19 +9,16 @@
 #include "../core_league_context_parts/api/league_context_lookup.h"
 #include "../dates/core_text_date.h"
 #include "../dates/tick/current_date_tick_capture.h"
-#include "../files/save_paths/core_save_paths.h"
 #include "../logging/core_log.h"
+#include "../sql/save_state/save_state_sqlite.h"
 #include "../../bootstrap/abi/ootp_offsets.h"
 #include "../../runtime_memory/runtime_memory.h"
 #include "../dates/constants/kbo_date_constants.h"
-
-#define KBO_SEASON_CALENDAR_FILE "season_calendar.csv"
-
-static SRWLOCK g_kbo_season_calendar_lock = SRWLOCK_INIT;
+#include "sql/season_calendar_sql_store.h"
 
 static int kbo_season_calendar_path(char* out, size_t out_size)
 {
-    return kbo_get_save_scoped_data_file(KBO_SEASON_CALENDAR_FILE, out, out_size);
+    return kbo_save_state_db_path(out, out_size);
 }
 
 static int kbo_season_calendar_opening_day_valid(uint32_t season, uint32_t opening_day)
@@ -87,16 +84,7 @@ int kbo_season_calendar_read_league_opening_day(uintptr_t league_ptr, uint32_t* 
     return 1;
 }
 
-static int kbo_season_calendar_file_exists_nonempty(const char* path)
-{
-    WIN32_FILE_ATTRIBUTE_DATA attrs;
-    return path != NULL
-        && path[0] != '\0'
-        && GetFileAttributesExA(path, GetFileExInfoStandard, &attrs)
-        && (attrs.nFileSizeHigh != 0u || attrs.nFileSizeLow != 0u);
-}
-
-static int kbo_season_calendar_load_opening_day_no_lock(
+static int kbo_season_calendar_load_opening_day_details(
     uint32_t league_id,
     uint32_t season,
     uint32_t* out_opening_day,
@@ -117,54 +105,18 @@ static int kbo_season_calendar_load_opening_day_no_lock(
         return 0;
     }
 
-    char path[MAX_PATH] = {0};
-    if (!kbo_season_calendar_path(path, sizeof(path))) {
+    KboSeasonCalendarOpeningDayRow row = {0};
+    if (!kbo_season_calendar_sql_load_opening_day(league_id, season, &row)
+            || !kbo_season_calendar_opening_day_valid(row.season, row.opening_day)) {
         return 0;
     }
 
-    FILE* file = fopen(path, "r");
-    if (file == NULL) {
-        return 0;
-    }
-
-    char line[256] = {0};
-    uint32_t found_opening_day = 0u;
-    uint32_t found_observed_date = 0u;
-    char found_source[64] = {0};
-    while (fgets(line, sizeof(line), file) != NULL) {
-        unsigned int row_league_id = 0u;
-        unsigned int row_season = 0u;
-        unsigned int row_opening_day = 0u;
-        unsigned int row_observed_date = 0u;
-        char row_source[64] = {0};
-        int parsed = sscanf(
-            line,
-            "%u,%u,%u,%u,%63[^,\r\n]",
-            &row_league_id,
-            &row_season,
-            &row_opening_day,
-            &row_observed_date,
-            row_source);
-        if (parsed >= 3
-                && (league_id == 0u || (uint32_t)row_league_id == league_id)
-                && (uint32_t)row_season == season
-                && kbo_season_calendar_opening_day_valid(season, (uint32_t)row_opening_day)) {
-            found_opening_day = (uint32_t)row_opening_day;
-            found_observed_date = parsed >= 4 ? (uint32_t)row_observed_date : 0u;
-            snprintf(found_source, sizeof(found_source), "%s", parsed >= 5 ? row_source : "");
-        }
-    }
-    fclose(file);
-
-    if (found_opening_day == 0u) {
-        return 0;
-    }
-    *out_opening_day = found_opening_day;
+    *out_opening_day = row.opening_day;
     if (out_observed_date != NULL) {
-        *out_observed_date = found_observed_date;
+        *out_observed_date = row.observed_date;
     }
     if (out_source != NULL && out_source_size > 0u) {
-        snprintf(out_source, out_source_size, "%s", found_source);
+        snprintf(out_source, out_source_size, "%s", row.source);
     }
     return 1;
 }
@@ -174,16 +126,13 @@ int kbo_season_calendar_load_opening_day(
     uint32_t season,
     uint32_t* out_opening_day)
 {
-    AcquireSRWLockShared(&g_kbo_season_calendar_lock);
-    int ok = kbo_season_calendar_load_opening_day_no_lock(
+    return kbo_season_calendar_load_opening_day_details(
         league_id,
         season,
         out_opening_day,
         NULL,
         NULL,
         0u);
-    ReleaseSRWLockShared(&g_kbo_season_calendar_lock);
-    return ok;
 }
 
 int kbo_season_calendar_store_opening_day(
@@ -208,11 +157,10 @@ int kbo_season_calendar_store_opening_day(
     char safe_source[64] = {0};
     kbo_season_calendar_sanitize_source(source, safe_source, sizeof(safe_source));
 
-    AcquireSRWLockExclusive(&g_kbo_season_calendar_lock);
     uint32_t cached_opening_day = 0u;
     uint32_t cached_observed_date = 0u;
     char cached_source[64] = {0};
-    if (kbo_season_calendar_load_opening_day_no_lock(
+    if (kbo_season_calendar_load_opening_day_details(
             league_id,
             season,
             &cached_opening_day,
@@ -220,16 +168,17 @@ int kbo_season_calendar_store_opening_day(
             cached_source,
             sizeof(cached_source))
             && cached_opening_day == opening_day) {
-        ReleaseSRWLockExclusive(&g_kbo_season_calendar_lock);
         return 1;
     }
 
-    int write_header = !kbo_season_calendar_file_exists_nonempty(path);
-    FILE* file = fopen(path, "a");
-    if (file == NULL) {
-        ReleaseSRWLockExclusive(&g_kbo_season_calendar_lock);
+    if (!kbo_season_calendar_sql_store_opening_day(
+            league_id,
+            season,
+            opening_day,
+            observed_date,
+            safe_source)) {
         kbo_log_runtimef(
-            "KBO season calendar opening day store skipped league=%u season=%u opening_day=%u reason=open_failed path=%s",
+            "KBO season calendar opening day store skipped league=%u season=%u opening_day=%u reason=sqlite_write_failed path=%s",
             league_id,
             season,
             opening_day,
@@ -237,16 +186,9 @@ int kbo_season_calendar_store_opening_day(
         return 0;
     }
 
-    if (write_header) {
-        fprintf(file, "league_id,season,opening_day,observed_date,source\n");
-    }
-    fprintf(file, "%u,%u,%u,%u,%s\n", league_id, season, opening_day, observed_date, safe_source);
-    fclose(file);
-    ReleaseSRWLockExclusive(&g_kbo_season_calendar_lock);
-
     if (cached_opening_day != 0u && cached_opening_day != opening_day) {
         kbo_log_runtimef(
-            "KBO season calendar opening day updated league=%u season=%u previous=%u previous_observed=%u previous_source=%s opening_day=%u observed_date=%u source=%s path=%s",
+            "KBO season calendar opening day updated league=%u season=%u previous=%u previous_observed=%u previous_source=%s opening_day=%u observed_date=%u source=%s path=%s store=sqlite",
             league_id,
             season,
             cached_opening_day,
@@ -258,7 +200,7 @@ int kbo_season_calendar_store_opening_day(
             path);
     } else {
         kbo_log_runtimef(
-            "KBO season calendar opening day stored league=%u season=%u opening_day=%u observed_date=%u source=%s path=%s",
+            "KBO season calendar opening day stored league=%u season=%u opening_day=%u observed_date=%u source=%s path=%s store=sqlite",
             league_id,
             season,
             opening_day,

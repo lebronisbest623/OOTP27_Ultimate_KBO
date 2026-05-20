@@ -1,6 +1,7 @@
 #include "../internal/amateur_assignment_internal.h"
 #include "../../core/dates/tick/current_date_tick_capture.h"
 #include "../../runtime_memory/runtime_memory.h"
+#include "sql/amateur_reputation_sql_store.h"
 
 int kbo_find_amateur_team_reputation_by_memory_team(uint32_t league_id, uint8_t* team, uint8_t* out_reputation)
 {
@@ -117,72 +118,16 @@ int kbo_append_amateur_reputation_history(
         return 0;
     }
 
-    int write_header = 1;
-    DWORD attrs = GetFileAttributesA(path);
-    if (attrs != INVALID_FILE_ATTRIBUTES && !(attrs & FILE_ATTRIBUTE_DIRECTORY)) {
-        HANDLE existing = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-        if (existing != INVALID_HANDLE_VALUE) {
-            LARGE_INTEGER size = {0};
-            if (GetFileSizeEx(existing, &size) && size.QuadPart > 0) {
-                write_header = 0;
-            }
-            CloseHandle(existing);
-        }
-    }
-
-    HANDLE file = CreateFileA(path, FILE_APPEND_DATA, FILE_SHARE_READ, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (file == INVALID_HANDLE_VALUE) {
-        kbo_log_runtimef("amateur reputation history write failed source=%s league=%u year=%u path=%s error=%lu",
-            source != NULL ? source : "", league_id, year, path, GetLastError());
-        return 0;
-    }
-
-    char line[512] = {0};
-    DWORD written = 0;
-    int ok = 1;
-    if (write_header) {
-        int len = snprintf(
-            line,
-            sizeof(line),
-            "# Save-scoped amateur reputation history. Seed files are not modified.\r\n"
-            "# TODO: add playoff-result memory offsets once verified.\r\n"
-            "year,league_id,team_id,old_reputation,delta,new_reputation,wins,losses,ties,score,rank,source\r\n");
-        ok = len > 0 && (size_t)len < sizeof(line)
-            && WriteFile(file, line, (DWORD)len, &written, NULL)
-            && written == (DWORD)len;
-    }
-
-    for (int i = 0; ok && i < row_count; i++) {
-        const KboAmateurReputationUpdateRow* row = &rows[i];
-        int32_t delta = (int32_t)row->new_reputation - (int32_t)row->old_reputation;
-        int len = snprintf(
-            line,
-            sizeof(line),
-            "%u,%u,%u,%u,%d,%u,%u,%u,%u,%d,%d,%s\r\n",
+    if (!kbo_amateur_reputation_sql_history_append(league_id, rows, row_count, source, year)) {
+        kbo_log_runtimef(
+            "amateur reputation history write failed source=%s league=%u year=%u path=%s store=sqlite",
+            source != NULL ? source : "",
+            league_id,
             year,
-            row->league_id,
-            row->team_id,
-            (uint32_t)row->old_reputation,
-            delta,
-            (uint32_t)row->new_reputation,
-            (uint32_t)row->wins,
-            (uint32_t)row->losses,
-            (uint32_t)row->ties,
-            row->score,
-            i + 1,
-            source != NULL ? source : "");
-        ok = len > 0 && (size_t)len < sizeof(line)
-            && WriteFile(file, line, (DWORD)len, &written, NULL)
-            && written == (DWORD)len;
-    }
-
-    CloseHandle(file);
-    if (!ok) {
-        kbo_log_runtimef("amateur reputation history write incomplete source=%s league=%u year=%u path=%s",
-            source != NULL ? source : "", league_id, year, path);
+            path);
         return 0;
     }
-    kbo_log_runtimef("amateur reputation history appended source=%s league=%u year=%u rows=%d path=%s",
+    kbo_log_runtimef("amateur reputation history appended source=%s league=%u year=%u rows=%d path=%s store=sqlite",
         source != NULL ? source : "", league_id, year, row_count, path);
     return 1;
 }

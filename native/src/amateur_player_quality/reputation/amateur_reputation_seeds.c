@@ -1,6 +1,10 @@
 #include "../internal/amateur_assignment_internal.h"
 #include "../../core/csv/core_csv.h"
+#include "../../core/sql/save_state/save_state_sqlite.h"
 #include "../../core/sync/spin_lock.h"
+#include "sql/amateur_reputation_sql_store.h"
+
+#define KBO_AMATEUR_REPUTATION_HISTORY_LOAD_MAX 32768
 
 void kbo_lock_amateur_reputation_seeds(void)
 {
@@ -135,42 +139,12 @@ int kbo_get_amateur_reputation_history_path(char* out, size_t out_size)
         return 0;
     }
     out[0] = '\0';
-    return kbo_get_save_scoped_data_file("amateur_reputation_history.csv", out, out_size);
+    return kbo_save_state_db_path(out, out_size);
 }
 
 int kbo_amateur_reputation_history_has_year(uint32_t league_id, uint32_t year)
 {
-    char path[MAX_PATH] = {0};
-    if (!kbo_get_amateur_reputation_history_path(path, sizeof(path))) {
-        return 0;
-    }
-
-    KboCsvReader* reader = kbo_csv_reader_open(path);
-    if (reader == NULL) {
-        return 0;
-    }
-
-    int found = 0;
-    while (kbo_csv_reader_next_row(reader)) {
-        char fields[2][128];
-        int field_count = kbo_csv_reader_read_trimmed_fields(reader, (char*)fields, sizeof(fields[0]), 2);
-        if (field_count <= 1
-                || fields[0][0] == '\0'
-                || fields[0][0] == '#'
-                || _stricmp(fields[0], "year") == 0) {
-            continue;
-        }
-
-        uint32_t row_year = kbo_csv_parse_u32_text(fields[0], 10);
-        uint32_t row_league_id = kbo_csv_parse_u32_text(fields[1], 10);
-        if (row_year == year && row_league_id == league_id) {
-            found = 1;
-            break;
-        }
-    }
-
-    kbo_csv_reader_close(reader);
-    return found;
+    return kbo_amateur_reputation_sql_history_has_year(league_id, year);
 }
 
 static int kbo_amateur_reputation_cached_value(uint32_t league_id, uint32_t team_id, uint8_t* out_reputation)
@@ -195,35 +169,24 @@ static int kbo_amateur_reputation_cached_value(uint32_t league_id, uint32_t team
     return 0;
 }
 
-int kbo_apply_amateur_reputation_history_to_cache(void)
+static int kbo_apply_amateur_reputation_history_rows_to_cache(
+    const KboAmateurReputationHistoryRow* rows,
+    int row_count,
+    const char* path)
 {
-    char path[MAX_PATH] = {0};
-    if (!kbo_get_amateur_reputation_history_path(path, sizeof(path))) {
-        return 0;
-    }
-
-    KboCsvReader* reader = kbo_csv_reader_open(path);
-    if (reader == NULL) {
+    if (rows == NULL || row_count <= 0) {
         return 0;
     }
 
     int applied = 0;
     int repaired = 0;
-    while (kbo_csv_reader_next_row(reader)) {
-        char fields[6][128];
-        int field_count = kbo_csv_reader_read_trimmed_fields(reader, (char*)fields, sizeof(fields[0]), 6);
-        if (field_count <= 5
-                || fields[0][0] == '\0'
-                || fields[0][0] == '#'
-                || _stricmp(fields[0], "year") == 0) {
-            continue;
-        }
-
-        uint32_t league_id = kbo_csv_parse_u32_text(fields[1], 10);
-        uint32_t team_id = kbo_csv_parse_u32_text(fields[2], 10);
-        uint32_t old_reputation = kbo_csv_parse_u32_text(fields[3], 10);
-        int32_t delta = (int32_t)strtol(fields[4], NULL, 10);
-        uint32_t recorded_new_reputation = kbo_csv_parse_u32_text(fields[5], 10);
+    for (int i = 0; i < row_count; i++) {
+        const KboAmateurReputationHistoryRow* row = &rows[i];
+        uint32_t league_id = row->league_id;
+        uint32_t team_id = row->team_id;
+        uint32_t old_reputation = row->old_reputation;
+        int32_t delta = row->delta;
+        uint32_t recorded_new_reputation = row->new_reputation;
         uint32_t new_reputation = recorded_new_reputation;
         uint8_t current_reputation = 0u;
         if (old_reputation != 0u
@@ -244,8 +207,34 @@ int kbo_apply_amateur_reputation_history_to_cache(void)
         }
     }
 
-    kbo_csv_reader_close(reader);
-    kbo_log_runtimef("amateur reputation history replayed rows=%d repaired=%d path=%s", applied, repaired, path);
+    kbo_log_runtimef(
+        "amateur reputation history replayed rows=%d repaired=%d path=%s store=sqlite",
+        applied,
+        repaired,
+        path != NULL ? path : "");
+    return applied;
+}
+
+int kbo_apply_amateur_reputation_history_to_cache(void)
+{
+    char path[MAX_PATH] = {0};
+    kbo_get_amateur_reputation_history_path(path, sizeof(path));
+
+    KboAmateurReputationHistoryRow* rows = (KboAmateurReputationHistoryRow*)HeapAlloc(
+        GetProcessHeap(),
+        HEAP_ZERO_MEMORY,
+        sizeof(KboAmateurReputationHistoryRow) * KBO_AMATEUR_REPUTATION_HISTORY_LOAD_MAX);
+    if (rows == NULL) {
+        return 0;
+    }
+
+    int row_count = 0;
+    int ok = kbo_amateur_reputation_sql_history_load(
+        rows,
+        KBO_AMATEUR_REPUTATION_HISTORY_LOAD_MAX,
+        &row_count);
+    int applied = ok ? kbo_apply_amateur_reputation_history_rows_to_cache(rows, row_count, path) : 0;
+    HeapFree(GetProcessHeap(), 0, rows);
     return applied;
 }
 
@@ -265,6 +254,18 @@ void kbo_ensure_amateur_reputation_seeds_loaded(void)
         return;
     }
 
+    KboAmateurReputationHistoryRow* history_rows = (KboAmateurReputationHistoryRow*)HeapAlloc(
+        GetProcessHeap(),
+        HEAP_ZERO_MEMORY,
+        sizeof(KboAmateurReputationHistoryRow) * KBO_AMATEUR_REPUTATION_HISTORY_LOAD_MAX);
+    int history_count = 0;
+    if (history_rows != NULL) {
+        kbo_amateur_reputation_sql_history_load(
+            history_rows,
+            KBO_AMATEUR_REPUTATION_HISTORY_LOAD_MAX,
+            &history_count);
+    }
+
     kbo_lock_amateur_reputation_seeds();
     memset(g_kbo_amateur_reputation_seeds, 0, sizeof(g_kbo_amateur_reputation_seeds));
     g_kbo_amateur_reputation_seed_count = 0;
@@ -274,12 +275,17 @@ void kbo_ensure_amateur_reputation_seeds_loaded(void)
     if (college_path[0] != '\0') {
         kbo_load_reputation_seed_path_into_cache(college_path);
     }
-    kbo_apply_amateur_reputation_history_to_cache();
+    if (history_rows != NULL) {
+        kbo_apply_amateur_reputation_history_rows_to_cache(history_rows, history_count, history_path);
+    }
     strncpy(g_kbo_amateur_reputation_seed_loaded_path, loaded_key, sizeof(g_kbo_amateur_reputation_seed_loaded_path) - 1u);
     g_kbo_amateur_reputation_seed_loaded_path[sizeof(g_kbo_amateur_reputation_seed_loaded_path) - 1u] = '\0';
     InterlockedExchange(&g_kbo_amateur_reputation_seed_loaded, 1);
     int count = g_kbo_amateur_reputation_seed_count;
     kbo_unlock_amateur_reputation_seeds();
+    if (history_rows != NULL) {
+        HeapFree(GetProcessHeap(), 0, history_rows);
+    }
     kbo_log_runtimef("team reputation seeds ready count=%d", count);
 }
 
