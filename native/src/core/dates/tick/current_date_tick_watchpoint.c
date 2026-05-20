@@ -13,10 +13,15 @@
 static volatile LONG g_kbo_current_date_tick_watchpoint_started = 0;
 static volatile LONG g_kbo_current_date_tick_watchpoint_hits = 0;
 static volatile LONG g_kbo_current_date_tick_watchpoint_published = 0;
+static volatile LONG g_kbo_current_date_tick_watchpoint_suppressed = 0;
+static volatile LONG g_kbo_current_date_tick_watchpoint_suppressed_log_count = 0;
 static volatile LONG g_kbo_current_date_tick_watchpoint_context_sets = 0;
 static volatile uintptr_t g_kbo_current_date_tick_watchpoint_address = 0u;
 static volatile uintptr_t g_kbo_current_date_tick_watchpoint_last_rip = 0u;
 static volatile LONG g_kbo_current_date_tick_watchpoint_last_date = 0;
+static volatile LONG g_kbo_current_date_tick_watchpoint_last_suppressed_date = 0;
+static volatile LONG g_kbo_current_date_tick_watchpoint_last_suppressed_previous = 0;
+static volatile LONG g_kbo_current_date_tick_watchpoint_last_suppressed_expected = 0;
 static PVOID g_kbo_current_date_tick_watchpoint_handler = NULL;
 
 int kbo_current_date_tick_watchpoint_enabled(void)
@@ -57,6 +62,16 @@ static uint32_t kbo_current_date_tick_watchpoint_read_date(uintptr_t field)
     return year * 10000u + month * 100u + day;
 }
 
+static int kbo_current_date_tick_watchpoint_log_allowed(LONG* log_count)
+{
+    if (log_count == NULL) {
+        return 1;
+    }
+
+    LONG index = InterlockedIncrement(log_count);
+    return index <= 80 || (index % 500) == 0;
+}
+
 static LONG CALLBACK kbo_current_date_tick_watchpoint_exception_handler(
     EXCEPTION_POINTERS* exception_info)
 {
@@ -80,15 +95,45 @@ static LONG CALLBACK kbo_current_date_tick_watchpoint_exception_handler(
     context->Dr6 = 0u;
     context->EFlags &= ~0x100u;
     uint32_t date = kbo_current_date_tick_watchpoint_read_date(field);
+    uint32_t before_date = 0u;
+    int had_before_date = kbo_current_date_tick_latest_published_date(&before_date);
     uint32_t previous_date = 0u;
-    int had_previous_date = kbo_current_date_tick_latest_published_date(&previous_date);
-    (void)kbo_current_date_tick_publish_and_dispatch(
+    uint32_t expected_next = 0u;
+    int publishable = kbo_current_date_tick_live_candidate_publishable(
         date,
-        KBO_CURRENT_DATE_TICK_WATCHPOINT_SITE_RVA);
-    uint32_t latest_date = 0u;
-    int published = kbo_current_date_tick_latest_published_date(&latest_date)
-        && latest_date == date
-        && (!had_previous_date || previous_date != date);
+        KBO_CURRENT_DATE_TICK_WATCHPOINT_SITE_RVA,
+        &previous_date,
+        &expected_next);
+    int published = 0;
+    if (publishable) {
+        (void)kbo_current_date_tick_publish_and_dispatch(
+            date,
+            KBO_CURRENT_DATE_TICK_WATCHPOINT_SITE_RVA);
+        uint32_t latest_date = 0u;
+        published = kbo_current_date_tick_latest_published_date(&latest_date)
+            && latest_date == date
+            && (!had_before_date || before_date != date);
+    } else {
+        InterlockedIncrement(&g_kbo_current_date_tick_watchpoint_suppressed);
+        InterlockedExchange(
+            &g_kbo_current_date_tick_watchpoint_last_suppressed_date,
+            (LONG)date);
+        InterlockedExchange(
+            &g_kbo_current_date_tick_watchpoint_last_suppressed_previous,
+            (LONG)previous_date);
+        InterlockedExchange(
+            &g_kbo_current_date_tick_watchpoint_last_suppressed_expected,
+            (LONG)expected_next);
+        if (kbo_current_date_tick_watchpoint_log_allowed(
+                (LONG*)&g_kbo_current_date_tick_watchpoint_suppressed_log_count)) {
+            kbo_log_runtimef(
+                "KBO current date tick watchpoint transient suppressed date=%u previous=%u expected=%u rip=%p",
+                date,
+                previous_date,
+                expected_next,
+                (void*)context->Rip);
+        }
+    }
 
     g_kbo_current_date_tick_watchpoint_last_rip = (uintptr_t)context->Rip;
     InterlockedExchange(&g_kbo_current_date_tick_watchpoint_last_date, (LONG)date);
@@ -222,17 +267,37 @@ static DWORD WINAPI kbo_current_date_tick_watchpoint_thread(LPVOID parameter)
                 &g_kbo_current_date_tick_watchpoint_published,
                 0,
                 0);
+            LONG suppressed = InterlockedCompareExchange(
+                &g_kbo_current_date_tick_watchpoint_suppressed,
+                0,
+                0);
             LONG date = InterlockedCompareExchange(
                 &g_kbo_current_date_tick_watchpoint_last_date,
                 0,
                 0);
+            LONG suppressed_date = InterlockedCompareExchange(
+                &g_kbo_current_date_tick_watchpoint_last_suppressed_date,
+                0,
+                0);
+            LONG suppressed_previous = InterlockedCompareExchange(
+                &g_kbo_current_date_tick_watchpoint_last_suppressed_previous,
+                0,
+                0);
+            LONG suppressed_expected = InterlockedCompareExchange(
+                &g_kbo_current_date_tick_watchpoint_last_suppressed_expected,
+                0,
+                0);
             kbo_log_runtimef(
-                "KBO current date tick watchpoint hits=%ld published=%ld field=%p rip=%p date=%ld contexts=%ld",
+                "KBO current date tick watchpoint hits=%ld published=%ld suppressed=%ld field=%p rip=%p date=%ld suppressed_date=%ld suppressed_previous=%ld suppressed_expected=%ld contexts=%ld",
                 (long)hits,
                 (long)published,
+                (long)suppressed,
                 (void*)g_kbo_current_date_tick_watchpoint_address,
                 (void*)g_kbo_current_date_tick_watchpoint_last_rip,
                 (long)date,
+                (long)suppressed_date,
+                (long)suppressed_previous,
+                (long)suppressed_expected,
                 (long)InterlockedCompareExchange(
                     &g_kbo_current_date_tick_watchpoint_context_sets,
                     0,

@@ -459,6 +459,9 @@ static void kbo_test_reset_current_date_tick_state(void)
     InterlockedExchange(&g_kbo_current_date_tick_last_published_date, 0);
     memset(g_kbo_current_date_tick_event_dates, 0, sizeof(g_kbo_current_date_tick_event_dates));
     memset(g_kbo_current_date_tick_event_site_rvas, 0, sizeof(g_kbo_current_date_tick_event_site_rvas));
+    memset(g_kbo_current_date_tick_event_source_kinds, 0, sizeof(g_kbo_current_date_tick_event_source_kinds));
+    memset(g_kbo_current_date_tick_event_save_epochs, 0, sizeof(g_kbo_current_date_tick_event_save_epochs));
+    kbo_date_boundary_reset("test", "reset_current_date_tick_state");
     g_test_current_yyyymmdd = 0u;
     g_test_current_save_path[0] = '\0';
 }
@@ -608,10 +611,121 @@ static void test_current_date_tick_publish_rejects_non_adjacent_live_dates(void)
     printf("test_current_date_tick_publish_rejects_non_adjacent_live_dates: PASS\n");
 }
 
+static void test_current_date_tick_live_candidate_publishable_filters_transient_dates(void)
+{
+    kbo_test_reset_current_date_tick_state();
+
+    uint32_t previous = 0u;
+    uint32_t expected = 0u;
+    assert(kbo_current_date_tick_live_candidate_publishable(
+        20260430u,
+        KBO_CURRENT_DATE_TICK_WATCHPOINT_SITE_RVA,
+        &previous,
+        &expected));
+    assert(previous == 0u);
+    assert(expected == 0u);
+
+    assert(kbo_current_date_tick_publish(
+        20260430u,
+        KBO_CURRENT_DATE_TICK_WATCHPOINT_SITE_RVA));
+
+    previous = 0u;
+    expected = 0u;
+    assert(!kbo_current_date_tick_live_candidate_publishable(
+        20260530u,
+        KBO_CURRENT_DATE_TICK_WATCHPOINT_SITE_RVA,
+        &previous,
+        &expected));
+    assert(previous == 20260430u);
+    assert(expected == 20260501u);
+
+    previous = 0u;
+    expected = 0u;
+    assert(kbo_current_date_tick_live_candidate_publishable(
+        20260501u,
+        KBO_CURRENT_DATE_TICK_WATCHPOINT_SITE_RVA,
+        &previous,
+        &expected));
+    assert(previous == 20260430u);
+    assert(expected == 20260501u);
+
+    previous = 0u;
+    expected = 0u;
+    assert(kbo_current_date_tick_live_candidate_publishable(
+        20260430u,
+        KBO_CURRENT_DATE_TICK_WATCHPOINT_SITE_RVA,
+        &previous,
+        &expected));
+    assert(previous == 20260430u);
+
+    previous = 0u;
+    expected = 0u;
+    assert(!kbo_current_date_tick_live_candidate_publishable(
+        20260431u,
+        KBO_CURRENT_DATE_TICK_WATCHPOINT_SITE_RVA,
+        &previous,
+        &expected));
+
+    kbo_test_reset_current_date_tick_state();
+    printf("test_current_date_tick_live_candidate_publishable_filters_transient_dates: PASS\n");
+}
+
+static void test_current_date_boundary_context_records_source_and_epoch(void)
+{
+    kbo_test_reset_current_date_tick_state();
+    snprintf(g_test_current_save_path, sizeof(g_test_current_save_path), "C:\\test\\saved_games\\Boundary A.lg");
+
+    KboCurrentDateTickCursor cursor = {0};
+    KboCurrentDateTickEvent event = {0};
+    KboDateBoundaryContext context = {0};
+    kbo_current_date_tick_cursor_init(&cursor);
+
+    assert(kbo_current_date_tick_publish(20260401u, 0x4444u));
+    assert(kbo_current_date_tick_latest_boundary_context(&context));
+    assert(context.date == 20260401u);
+    assert(context.sequence == 1u);
+    assert(context.source_kind == KBO_DATE_BOUNDARY_SOURCE_LIVE_POST_ADVANCE);
+    assert((context.flags & KBO_DATE_BOUNDARY_FLAG_ACCEPTED) != 0u);
+    assert((context.flags & KBO_DATE_BOUNDARY_FLAG_TRUSTED) != 0u);
+    assert((context.flags & KBO_DATE_BOUNDARY_FLAG_FIRST_DATE) != 0u);
+    assert((context.flags & KBO_DATE_BOUNDARY_FLAG_SAVE_SCOPE_KNOWN) != 0u);
+    assert((context.flags & KBO_DATE_BOUNDARY_FLAG_SAVE_SCOPE_CHANGED) != 0u);
+    assert(strcmp(context.save_path, g_test_current_save_path) == 0);
+
+    assert(kbo_current_date_tick_next(&cursor, &event));
+    assert(event.date == context.date);
+    assert(event.source_kind == context.source_kind);
+    assert(event.save_epoch == context.save_epoch);
+
+    uint32_t first_epoch = context.save_epoch;
+    assert(kbo_current_date_tick_publish(20260402u, 0x5555u));
+    assert(kbo_current_date_tick_latest_boundary_context(&context));
+    assert(context.date == 20260402u);
+    assert(context.previous_date == 20260401u);
+    assert(context.expected_next_date == 20260402u);
+    assert(context.save_epoch == first_epoch);
+    assert((context.flags & KBO_DATE_BOUNDARY_FLAG_SAVE_SCOPE_CHANGED) == 0u);
+
+    snprintf(g_test_current_save_path, sizeof(g_test_current_save_path), "C:\\test\\saved_games\\Boundary B.lg");
+    assert(kbo_current_date_tick_publish(20450401u, 0x6666u));
+    assert(kbo_current_date_tick_latest_boundary_context(&context));
+    assert(context.date == 20450401u);
+    assert(context.previous_date == 0u);
+    assert(context.save_epoch != first_epoch);
+    assert((context.flags & KBO_DATE_BOUNDARY_FLAG_SAVE_SCOPE_CHANGED) != 0u);
+    assert((context.flags & KBO_DATE_BOUNDARY_FLAG_FIRST_DATE) != 0u);
+
+    kbo_test_reset_current_date_tick_state();
+    printf("test_current_date_boundary_context_records_source_and_epoch: PASS\n");
+}
+
 static int g_test_current_date_tick_sync_calls = 0;
 static uint32_t g_test_current_date_tick_sync_date = 0u;
 static uint32_t g_test_current_date_tick_sync_site = 0u;
 static int g_test_current_date_tick_sync_result = 1;
+static int g_test_current_date_tick_phase_order[8];
+static int g_test_current_date_tick_phase_order_count = 0;
+static int g_test_current_date_tick_phase_context_ids[3] = {1, 2, 3};
 
 static int kbo_test_current_date_tick_sync_consumer(
     uint32_t date,
@@ -623,6 +737,55 @@ static int kbo_test_current_date_tick_sync_consumer(
     g_test_current_date_tick_sync_date = date;
     g_test_current_date_tick_sync_site = site_rva;
     return result != NULL ? *result : 1;
+}
+
+static int kbo_test_current_date_tick_phase_consumer(
+    uint32_t date,
+    uint32_t site_rva,
+    void* context)
+{
+    (void)date;
+    (void)site_rva;
+    int* id = (int*)context;
+    if (id != NULL
+            && g_test_current_date_tick_phase_order_count
+                < (int)(sizeof(g_test_current_date_tick_phase_order)
+                    / sizeof(g_test_current_date_tick_phase_order[0]))) {
+        g_test_current_date_tick_phase_order[g_test_current_date_tick_phase_order_count++] = *id;
+    }
+    return 1;
+}
+
+static void test_current_date_tick_sync_consumers_run_by_phase(void)
+{
+    kbo_test_reset_current_date_tick_state();
+    memset(g_test_current_date_tick_phase_order, 0, sizeof(g_test_current_date_tick_phase_order));
+    g_test_current_date_tick_phase_order_count = 0;
+
+    assert(kbo_current_date_tick_register_sync_consumer_ex(
+        "test_phase_domain",
+        KBO_CURRENT_DATE_TICK_SYNC_PHASE_DOMAIN,
+        kbo_test_current_date_tick_phase_consumer,
+        &g_test_current_date_tick_phase_context_ids[2]));
+    assert(kbo_current_date_tick_register_sync_consumer_ex(
+        "test_phase_context",
+        KBO_CURRENT_DATE_TICK_SYNC_PHASE_CONTEXT,
+        kbo_test_current_date_tick_phase_consumer,
+        &g_test_current_date_tick_phase_context_ids[0]));
+    assert(kbo_current_date_tick_register_sync_consumer_ex(
+        "test_phase_events",
+        KBO_CURRENT_DATE_TICK_SYNC_PHASE_EVENTS,
+        kbo_test_current_date_tick_phase_consumer,
+        &g_test_current_date_tick_phase_context_ids[1]));
+
+    assert(kbo_current_date_tick_publish_and_dispatch(20260403u, 0x7777u));
+    assert(g_test_current_date_tick_phase_order_count == 3);
+    assert(g_test_current_date_tick_phase_order[0] == 1);
+    assert(g_test_current_date_tick_phase_order[1] == 2);
+    assert(g_test_current_date_tick_phase_order[2] == 3);
+
+    kbo_test_reset_current_date_tick_state();
+    printf("test_current_date_tick_sync_consumers_run_by_phase: PASS\n");
 }
 
 static void test_current_date_tick_publish_and_dispatch_waits_sync_consumers(void)
@@ -2549,6 +2712,9 @@ int main(void)
     test_current_date_tick_consumer_preserves_hooks_before_save_path_ready();
     test_current_date_tick_consumer_requires_published_dates();
     test_current_date_tick_publish_rejects_non_adjacent_live_dates();
+    test_current_date_tick_live_candidate_publishable_filters_transient_dates();
+    test_current_date_boundary_context_records_source_and_epoch();
+    test_current_date_tick_sync_consumers_run_by_phase();
     test_current_date_tick_publish_and_dispatch_waits_sync_consumers();
     test_current_date_tick_save_enter_does_not_advance_live_date();
     test_current_date_tick_force_resync_allows_save_enter_rebase();

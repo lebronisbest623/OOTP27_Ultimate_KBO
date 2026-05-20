@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <windows.h>
 
+#include "../boundary/current_date_boundary.h"
+
 #define KBO_CURRENT_DATE_TICK_EVENT_RING_SIZE 256u
 #define KBO_CURRENT_DATE_TICK_EVENT_RING_MASK (KBO_CURRENT_DATE_TICK_EVENT_RING_SIZE - 1u)
 
@@ -11,6 +13,8 @@ typedef struct KboCurrentDateTickEvent {
     uint32_t sequence;
     uint32_t date;
     uint32_t site_rva;
+    uint32_t source_kind;
+    uint32_t save_epoch;
 } KboCurrentDateTickEvent;
 
 typedef struct KboCurrentDateTickCursor {
@@ -23,6 +27,8 @@ typedef struct KboCurrentDateTickWork {
     uint32_t site_rva;
     uint32_t sequence;
     uint32_t missed_events;
+    uint32_t source_kind;
+    uint32_t save_epoch;
     int gap;
 } KboCurrentDateTickWork;
 
@@ -46,6 +52,11 @@ typedef int (*KboCurrentDateTickSyncConsumerFn)(
     uint32_t site_rva,
     void* context);
 
+#define KBO_CURRENT_DATE_TICK_SYNC_PHASE_CONTEXT 0u
+#define KBO_CURRENT_DATE_TICK_SYNC_PHASE_EVENTS 10u
+#define KBO_CURRENT_DATE_TICK_SYNC_PHASE_DOMAIN 20u
+#define KBO_CURRENT_DATE_TICK_SYNC_PHASE_REPAIR 30u
+
 #define KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER 1u
 #define KBO_CURRENT_DATE_TICK_SAVE_ENTER_SITE_RVA 0xffffffefu
 #define KBO_CURRENT_DATE_TICK_WATCHPOINT_SITE_RVA 0xfffffff0u
@@ -55,11 +66,24 @@ extern volatile LONG g_kbo_current_date_tick_event_published_sequence;
 extern volatile LONG g_kbo_current_date_tick_last_published_date;
 extern uint32_t g_kbo_current_date_tick_event_dates[KBO_CURRENT_DATE_TICK_EVENT_RING_SIZE];
 extern uint32_t g_kbo_current_date_tick_event_site_rvas[KBO_CURRENT_DATE_TICK_EVENT_RING_SIZE];
+extern uint32_t g_kbo_current_date_tick_event_source_kinds[KBO_CURRENT_DATE_TICK_EVENT_RING_SIZE];
+extern uint32_t g_kbo_current_date_tick_event_save_epochs[KBO_CURRENT_DATE_TICK_EVENT_RING_SIZE];
 
 int kbo_current_date_tick_publish(uint32_t date, uint32_t site_rva);
 int kbo_current_date_tick_publish_and_dispatch(uint32_t date, uint32_t site_rva);
 int kbo_current_date_tick_latest_published_date(uint32_t* out_date);
+int kbo_current_date_tick_live_candidate_publishable(
+    uint32_t date,
+    uint32_t site_rva,
+    uint32_t* out_previous_date,
+    uint32_t* out_expected_next_date);
+int kbo_current_date_tick_latest_boundary_context(KboDateBoundaryContext* out_context);
 void kbo_current_date_tick_force_resync(const char* label, const char* reason);
+int kbo_current_date_tick_register_sync_consumer_ex(
+    const char* label,
+    uint32_t phase,
+    KboCurrentDateTickSyncConsumerFn callback,
+    void* context);
 int kbo_current_date_tick_register_sync_consumer(
     const char* label,
     KboCurrentDateTickSyncConsumerFn callback,
