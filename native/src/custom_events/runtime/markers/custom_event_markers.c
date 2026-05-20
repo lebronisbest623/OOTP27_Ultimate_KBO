@@ -6,14 +6,15 @@
 #include "../../../bootstrap/abi/ootp_offsets.h"
 #include "../../../core/logging/core_log.h"
 #include "../../../core/dates/core_current_date.h"
-#include "../../../core/files/save_paths/core_save_paths.h"
 #include "../../../core/dates/core_text_date.h"
 #include "../../../core/core_flags/api/flags_api.h"
+#include "../../../core/sql/save_state/save_state_sqlite.h"
 #include "../../../runtime_memory/runtime_memory.h"
+#include "../sql/custom_event_sql_store.h"
 
 int kbo_get_custom_event_processed_marker_path(char* out, size_t out_size)
 {
-    return kbo_get_save_scoped_data_file("custom_events_processed.txt", out, out_size);
+    return kbo_save_state_db_path(out, out_size);
 }
 
 int kbo_custom_event_processed_marker_exists(uint32_t event_yyyymmdd, const char* name)
@@ -22,68 +23,7 @@ int kbo_custom_event_processed_marker_exists(uint32_t event_yyyymmdd, const char
         return 0;
     }
     kbo_prune_rewound_custom_event_markers("marker_exists");
-
-    char path[MAX_PATH] = {0};
-    if (!kbo_get_custom_event_processed_marker_path(path, sizeof(path))) {
-        return 0;
-    }
-
-    HANDLE file = CreateFileA(
-        path,
-        GENERIC_READ,
-        FILE_SHARE_READ | FILE_SHARE_WRITE,
-        NULL,
-        OPEN_EXISTING,
-        FILE_ATTRIBUTE_NORMAL,
-        NULL);
-    if (file == INVALID_HANDLE_VALUE) {
-        return 0;
-    }
-
-    DWORD high = 0;
-    DWORD size = GetFileSize(file, &high);
-    if (size == INVALID_FILE_SIZE || high != 0 || size == 0u || size > (256u * 1024u)) {
-        CloseHandle(file);
-        return 0;
-    }
-
-    char* buffer = (char*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, (SIZE_T)size + 1u);
-    if (buffer == NULL) {
-        CloseHandle(file);
-        return 0;
-    }
-
-    DWORD read = 0;
-    int found = 0;
-    if (ReadFile(file, buffer, size, &read, NULL) && read > 0u) {
-        buffer[read] = '\0';
-
-        char key[192] = {0};
-        int key_len = snprintf(key, sizeof(key), "%u|%s", event_yyyymmdd, name);
-        if (key_len > 0 && key_len < (int)sizeof(key)) {
-            char* cursor = buffer;
-            char* end = buffer + read;
-            while (cursor < end) {
-                char* line_end = cursor;
-                while (line_end < end && *line_end != '\n' && *line_end != '\r') {
-                    line_end++;
-                }
-                size_t line_len = (size_t)(line_end - cursor);
-                if (line_len == (size_t)key_len && memcmp(cursor, key, line_len) == 0) {
-                    found = 1;
-                    break;
-                }
-                while (line_end < end && (*line_end == '\n' || *line_end == '\r')) {
-                    line_end++;
-                }
-                cursor = line_end;
-            }
-        }
-    }
-
-    HeapFree(GetProcessHeap(), 0, buffer);
-    CloseHandle(file);
-    return found;
+    return kbo_custom_event_sql_marker_exists(event_yyyymmdd, name);
 }
 
 int kbo_custom_event_processed_marker_exists_for_kind(uint32_t event_yyyymmdd, KboCustomEventKind kind)
@@ -92,73 +32,7 @@ int kbo_custom_event_processed_marker_exists_for_kind(uint32_t event_yyyymmdd, K
         return 0;
     }
     kbo_prune_rewound_custom_event_markers("marker_exists_kind");
-
-    char path[MAX_PATH] = {0};
-    if (!kbo_get_custom_event_processed_marker_path(path, sizeof(path))) {
-        return 0;
-    }
-
-    HANDLE file = CreateFileA(
-        path,
-        GENERIC_READ,
-        FILE_SHARE_READ | FILE_SHARE_WRITE,
-        NULL,
-        OPEN_EXISTING,
-        FILE_ATTRIBUTE_NORMAL,
-        NULL);
-    if (file == INVALID_HANDLE_VALUE) {
-        return 0;
-    }
-
-    DWORD high = 0;
-    DWORD size = GetFileSize(file, &high);
-    if (size == INVALID_FILE_SIZE || high != 0 || size == 0u || size > (256u * 1024u)) {
-        CloseHandle(file);
-        return 0;
-    }
-
-    char* buffer = (char*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, (SIZE_T)size + 1u);
-    if (buffer == NULL) {
-        CloseHandle(file);
-        return 0;
-    }
-
-    DWORD read = 0;
-    int found = 0;
-    if (ReadFile(file, buffer, size, &read, NULL) && read > 0u) {
-        buffer[read] = '\0';
-
-        char* cursor = buffer;
-        char* end = buffer + read;
-        while (cursor < end) {
-            char* line_end = cursor;
-            while (line_end < end && *line_end != '\n' && *line_end != '\r') {
-                line_end++;
-            }
-            size_t line_len = (size_t)(line_end - cursor);
-            if (kbo_custom_event_marker_parse_date(cursor, line_len) == event_yyyymmdd && line_len > 9u) {
-                char marker_name[160] = {0};
-                size_t marker_name_len = line_len - 9u;
-                if (marker_name_len >= sizeof(marker_name)) {
-                    marker_name_len = sizeof(marker_name) - 1u;
-                }
-                memcpy(marker_name, cursor + 9, marker_name_len);
-                marker_name[marker_name_len] = '\0';
-                if (kbo_custom_event_name_is_kind(marker_name, kind)) {
-                    found = 1;
-                    break;
-                }
-            }
-            while (line_end < end && (*line_end == '\n' || *line_end == '\r')) {
-                line_end++;
-            }
-            cursor = line_end;
-        }
-    }
-
-    HeapFree(GetProcessHeap(), 0, buffer);
-    CloseHandle(file);
-    return found;
+    return kbo_custom_event_sql_marker_exists_for_kind(event_yyyymmdd, kind);
 }
 
 void kbo_persist_custom_event_processed_marker(uint32_t event_yyyymmdd, const char* name, const char* source)
@@ -169,51 +43,7 @@ void kbo_persist_custom_event_processed_marker(uint32_t event_yyyymmdd, const ch
     if (kbo_custom_event_processed_marker_exists(event_yyyymmdd, name)) {
         return;
     }
-
-    char path[MAX_PATH] = {0};
-    if (!kbo_get_custom_event_processed_marker_path(path, sizeof(path))) {
-        kbo_log_runtimef(
-            "KBO custom event marker skipped source=%s name=%s date=%u reason=path_unavailable",
-            source != NULL ? source : "",
-            name,
-            event_yyyymmdd);
-        return;
-    }
-
-    HANDLE file = CreateFileA(
-        path,
-        FILE_APPEND_DATA,
-        FILE_SHARE_READ | FILE_SHARE_WRITE,
-        NULL,
-        OPEN_ALWAYS,
-        FILE_ATTRIBUTE_NORMAL,
-        NULL);
-    if (file == INVALID_HANDLE_VALUE) {
-        kbo_log_runtimef(
-            "KBO custom event marker skipped source=%s name=%s date=%u reason=open_failed gle=%lu path=%s",
-            source != NULL ? source : "",
-            name,
-            event_yyyymmdd,
-            (unsigned long)GetLastError(),
-            path);
-        return;
-    }
-
-    char line[256] = {0};
-    int len = snprintf(line, sizeof(line), "%u|%s\r\n", event_yyyymmdd, name);
-    DWORD written = 0;
-    if (len <= 0 || len >= (int)sizeof(line)
-            || !WriteFile(file, line, (DWORD)len, &written, NULL)
-            || written != (DWORD)len) {
-        kbo_log_runtimef(
-            "KBO custom event marker write failed source=%s name=%s date=%u gle=%lu path=%s",
-            source != NULL ? source : "",
-            name,
-            event_yyyymmdd,
-            (unsigned long)GetLastError(),
-            path);
-    }
-    CloseHandle(file);
+    kbo_custom_event_sql_marker_record(event_yyyymmdd, name, source);
 }
 
 void kbo_mark_custom_event_over(uintptr_t event_ptr)

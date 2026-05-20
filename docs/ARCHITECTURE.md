@@ -165,7 +165,8 @@ Runtime booleans live in:
 Native callers read canonical JSON keys from `kbo_flags.json`; callers may pass
 old `.txt`-shaped names only as a local normalization convenience.
 Status files, command files, seeds, CSVs, and save-scoped persistence remain
-separate files.
+separate files. New save-scoped gameplay state should move toward the
+mod-owned `kbo_state.sqlite3` described in `docs/SAVE_SYSTEM.md`.
 
 The F2 hub intentionally exposes recovery flags so users can disable risky
 runtime paths without editing JSON by hand. Runtime flag metadata is sourced
@@ -202,6 +203,8 @@ Core uses the following internal grouping:
 - `files/`: atomic writes, message-body temp files, and save-scoped paths.
   `save_paths/` is split into `platform/` Win32 UTF-8 path helpers,
   `current/` current-save discovery, and `scope/` save-scoped data paths.
+- `sql/save_state/`: the mod-owned save-state SQLite opener for
+  `%LOCALAPPDATA%\OOTP-KBO\saves\<save_id>\kbo_state.sqlite3`.
 - `logging/`: native log output and profiling bridge
 - `news/`: live-news emission, news-object creation, and history stubs
 - `sql/`: SQL escaping plus league-news/history transaction helpers
@@ -477,7 +480,8 @@ trigger decisions, and in-season captain repair.
 
 Bundled seed/config data lives under `data/seeds/`. Runtime setup copies those
 files into `%LOCALAPPDATA%\OOTP-KBO\`. Native modules read save-scoped data
-first, then global local-app-data inputs as fallback. Generated/cache/output
+first, then global local-app-data inputs as fallback. New durable gameplay
+state should use the save-scoped `kbo_state.sqlite3`; generated/cache/output
 files should be written to the save scope or the owning module's documented
 path, not guessed global destinations.
 

@@ -23,6 +23,7 @@ internal static class OotpProduct
     public const string LeagueIdFileName = "kbo_league_id.txt";
     public const string FlagsFileName = "kbo_flags.json";
     public const string SettingsFileName = "kbo_settings.json";
+    public const string SaveStateSqliteFileName = "kbo_state.sqlite3";
     public const string LauncherLogFileName = "launcher.log";
     public const string PathDiscoveryStatusFileName = "launcher_path_discovery_status.txt";
     public const string RosterMarkerGuardStatusFileName = "launcher_roster_marker_guard_status.txt";

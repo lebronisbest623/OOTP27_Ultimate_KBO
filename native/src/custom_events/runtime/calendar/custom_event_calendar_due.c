@@ -5,14 +5,14 @@
 #include <windows.h>
 
 #include "../../../competitive_balance_tax/events/cbt_events.h"
-#include "../../../core/files/atomic/core_atomic_file.h"
-#include "../../../core/files/save_paths/core_save_paths.h"
 #include "../../../core/logging/core_log.h"
+#include "../../../core/sql/save_state/save_state_sqlite.h"
 #include "../../asian_games_lifecycle/maintenance/asian_games_lifecycle_maintenance.h"
 #include "../../asian_games/schedule/asian_games_schedule.h"
 #include "../../schedules/independent/independent_team_acquisition_schedule.h"
 #include "../../schedules/priority/foreign_priority_event_schedule.h"
 #include "../scan/custom_event_scan.h"
+#include "../sql/custom_event_sql_store.h"
 
 #define KBO_CUSTOM_EVENT_SCAN_MAX_ATTEMPTS 32
 #define KBO_CUSTOM_EVENT_IDLE_LOG_INITIAL_BURST 20
@@ -28,11 +28,6 @@ typedef struct KboCustomEventDueResults {
     int scanned;
 } KboCustomEventDueResults;
 
-static int kbo_custom_event_calendar_cursor_path(char* out, size_t out_size)
-{
-    return kbo_get_save_scoped_data_file("custom_event_calendar_cursor.txt", out, out_size);
-}
-
 static volatile LONG g_kbo_custom_event_calendar_cursor_cached_initialized = 0;
 static volatile LONG g_kbo_custom_event_calendar_cursor_cached_value = 0;
 static volatile LONG g_kbo_custom_event_calendar_due_processing = 0;
@@ -44,7 +39,11 @@ static void kbo_custom_event_calendar_cache_cursor(const char* path, uint32_t cu
     if (path == NULL) {
         return;
     }
-    snprintf(g_kbo_custom_event_calendar_cursor_cached_path, sizeof(g_kbo_custom_event_calendar_cursor_cached_path), "%s", path);
+    snprintf(
+        g_kbo_custom_event_calendar_cursor_cached_path,
+        sizeof(g_kbo_custom_event_calendar_cursor_cached_path),
+        "%s",
+        path);
     InterlockedExchange(&g_kbo_custom_event_calendar_cursor_cached_value, (LONG)cursor);
     InterlockedExchange(&g_kbo_custom_event_calendar_cursor_cached_initialized, 1);
 }
@@ -52,7 +51,7 @@ static void kbo_custom_event_calendar_cache_cursor(const char* path, uint32_t cu
 static uint32_t kbo_custom_event_calendar_read_cursor(void)
 {
     char path[MAX_PATH] = {0};
-    if (!kbo_custom_event_calendar_cursor_path(path, sizeof(path))) {
+    if (!kbo_save_state_db_path(path, sizeof(path))) {
         return 0u;
     }
 
@@ -61,16 +60,7 @@ static uint32_t kbo_custom_event_calendar_read_cursor(void)
         return (uint32_t)InterlockedCompareExchange(&g_kbo_custom_event_calendar_cursor_cached_value, 0, 0);
     }
 
-    FILE* file = fopen(path, "r");
-    if (file == NULL) {
-        kbo_custom_event_calendar_cache_cursor(path, 0u);
-        return 0u;
-    }
-
-    unsigned int value = 0u;
-    int matched = fscanf(file, "%u", &value);
-    fclose(file);
-    uint32_t cursor = matched == 1 ? (uint32_t)value : 0u;
+    uint32_t cursor = kbo_custom_event_sql_calendar_cursor_read("custom_event_calendar_read_cursor");
     kbo_custom_event_calendar_cache_cursor(path, cursor);
     return cursor;
 }
@@ -78,7 +68,7 @@ static uint32_t kbo_custom_event_calendar_read_cursor(void)
 static void kbo_custom_event_calendar_write_cursor(uint32_t today_yyyymmdd, const char* source)
 {
     char path[MAX_PATH] = {0};
-    if (!kbo_custom_event_calendar_cursor_path(path, sizeof(path))) {
+    if (!kbo_save_state_db_path(path, sizeof(path))) {
         kbo_log_runtimef(
             "KBO custom event calendar cursor skipped source=%s reason=path_unavailable today=%u",
             source != NULL ? source : "",
@@ -86,44 +76,9 @@ static void kbo_custom_event_calendar_write_cursor(uint32_t today_yyyymmdd, cons
         return;
     }
 
-    char tmp_path[MAX_PATH] = {0};
-    HANDLE file = kbo_atomic_open_tmp(path, tmp_path, sizeof(tmp_path));
-    if (file == INVALID_HANDLE_VALUE) {
-        kbo_log_runtimef(
-            "KBO custom event calendar cursor skipped source=%s reason=open_failed today=%u path=%s gle=%lu",
-            source != NULL ? source : "",
-            today_yyyymmdd,
-            path,
-            GetLastError());
-        return;
+    if (kbo_custom_event_sql_calendar_cursor_write(today_yyyymmdd, source)) {
+        kbo_custom_event_calendar_cache_cursor(path, today_yyyymmdd);
     }
-
-    char line[16] = {0};
-    int len = snprintf(line, sizeof(line), "%u\n", today_yyyymmdd);
-    DWORD written = 0;
-    int ok = len > 0
-        && WriteFile(file, line, (DWORD)len, &written, NULL)
-        && written == (DWORD)len;
-    if (!ok) {
-        kbo_atomic_abort(file, tmp_path);
-        kbo_log_runtimef(
-            "KBO custom event calendar cursor skipped source=%s reason=write_failed today=%u path=%s gle=%lu",
-            source != NULL ? source : "",
-            today_yyyymmdd,
-            path,
-            GetLastError());
-        return;
-    }
-    if (!kbo_atomic_commit(file, tmp_path, path)) {
-        kbo_log_runtimef(
-            "KBO custom event calendar cursor skipped source=%s reason=commit_failed today=%u path=%s gle=%lu",
-            source != NULL ? source : "",
-            today_yyyymmdd,
-            path,
-            GetLastError());
-        return;
-    }
-    kbo_custom_event_calendar_cache_cursor(path, today_yyyymmdd);
 }
 
 static int kbo_custom_event_calendar_should_log_idle_due(

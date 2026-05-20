@@ -25,6 +25,7 @@
 #define KBO_OOTP_TEXT_DATA_SQLITE_FILE "text_data.sqlite3"
 #define KBO_PRODUCT_FLAGS_JSON_FILE "kbo_flags.json"
 #define KBO_PRODUCT_SETTINGS_JSON_FILE "kbo_settings.json"
+#define KBO_PRODUCT_SAVE_STATE_SQLITE_FILE "kbo_state.sqlite3"
 #define KBO_PRODUCT_LEAGUE_ID_FILE "kbo_league_id.txt"
 #define KBO_PRODUCT_CURRENT_SAVE_PATH_FILE_FORMAT "current_save_path_%lu.txt"
 #define KBO_PRODUCT_ROSTER_MARKER_STATUS_FILE "launcher_roster_marker_guard_status.txt"
