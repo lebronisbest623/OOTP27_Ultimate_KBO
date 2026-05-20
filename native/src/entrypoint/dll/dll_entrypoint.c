@@ -114,7 +114,7 @@ DWORD WINAPI patch_thread(LPVOID parameter)
         install_kbo_ai_roster_select_trace_patch();
         install_kbo_ai_roster_primary_apply_flow_trace_patch();
         install_kbo_ai_roster_apply_selection_trace_patch();
-        start_kbo_foreign_roster_daily_audit_thread();
+        start_kbo_foreign_daily_maintenance_thread();
     } else {
         kbo_log_runtime_line("KBO foreign AI roster management skipped: enable_foreign_ai_roster_management is false");
     }
@@ -262,7 +262,7 @@ static DWORD WINAPI kbo_hot_reinject_ai_roster_management_thread(LPVOID paramete
         install_kbo_ai_roster_select_trace_patch();
         install_kbo_ai_roster_primary_apply_flow_trace_patch();
         install_kbo_ai_roster_apply_selection_trace_patch();
-        start_kbo_foreign_roster_daily_audit_thread();
+        start_kbo_foreign_daily_maintenance_thread();
     }
     kbo_log_runtime_line("KBO hot reinject runtime refresh finished");
     return 0;

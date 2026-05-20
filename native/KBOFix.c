@@ -18,8 +18,8 @@
 #include "src/build_verify/build_verify.h"
 
 /*
- * Hybrid native shell: legacy feature fragments remain include-ordered here,
- * while migrated responsibilities are linked as explicit .c/.h modules.
+ * Native assembly shell: public module headers are included here while
+ * implementations are linked as owned .c/.h translation units.
  */
 #include "src/captain/api/captain_selection.h"
 #include "src/core/logging/core_log.h"

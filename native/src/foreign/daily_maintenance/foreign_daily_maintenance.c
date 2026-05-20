@@ -1,13 +1,20 @@
-#include "../internal/foreign_roster_audit_internal.h"
-#include "../../../team/add_player_guard/team_add_player_guard_ai_roster.h"
-#include "../../../team/independent_acquisition/independent_acquisition_ai.h"
-#include "../../retention_guard/foreign_retention_guard.h"
-#include "../../rights/query/foreign_waiver_rights_query.h"
-#include "../../../fa_declaration/fa_declaration.h"
-#include "../../../bootstrap/profiling/profiler.h"
-#include "../../../core/dates/tick/current_date_tick_capture.h"
-#include "../../../core/runtime_tuning/runtime_tuning_policy.h"
-#include "../../../core/dates/constants/kbo_date_constants.h"
+#include "foreign_daily_maintenance.h"
+#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
+#include "../roster_audit/api/foreign_roster_audit.h"
+#include "../../team/add_player_guard/team_add_player_guard_ai_roster.h"
+#include "../../team/independent_acquisition/independent_acquisition_ai.h"
+#include "../retention_guard/foreign_retention_guard.h"
+#include "../rights/query/foreign_waiver_rights_query.h"
+#include "../../fa_declaration/fa_declaration.h"
+#include "../../bootstrap/profiling/profiler.h"
+#include "../../core/core_flags/api/flags_api.h"
+#include "../../core/dates/tick/current_date_tick_capture.h"
+#include "../../core/files/save_paths/core_save_paths.h"
+#include "../../core/logging/core_log.h"
+#include "../../core/runtime_tuning/runtime_tuning_policy.h"
+#include "../../core/dates/constants/kbo_date_constants.h"
 
 enum {
     KBO_FOREIGN_ROSTER_DAILY_FA_REPAIR_CURRENT_MIN_WALL_MS = 30000u,
@@ -21,7 +28,7 @@ static int kbo_foreign_roster_daily_abort_if_save(const char* stage, uint32_t to
     }
 
     kbo_log_runtimef(
-        "foreign roster daily audit deferred reason=save_in_progress stage=%s today=%u",
+        "foreign daily maintenance deferred reason=save_in_progress stage=%s today=%u",
         stage != NULL ? stage : "",
         today);
     return 1;
@@ -39,6 +46,7 @@ typedef struct KboForeignRosterDailyState {
 
 static KboForeignRosterDailyState g_kbo_foreign_roster_daily_sync_state;
 static KboForeignRosterDailyState g_kbo_foreign_roster_daily_background_state;
+static volatile LONG g_kbo_foreign_daily_maintenance_started = 0;
 
 static int kbo_foreign_roster_daily_refresh_save_scope(
     KboForeignRosterDailyState* state,
@@ -219,22 +227,22 @@ static int kbo_foreign_roster_daily_sync_consumer(
         source);
 }
 
-DWORD WINAPI kbo_foreign_roster_daily_audit_thread(LPVOID parameter)
+DWORD WINAPI kbo_foreign_daily_maintenance_thread(LPVOID parameter)
 {
     (void)parameter;
-    kbo_log_runtime_line("foreign roster daily audit thread started");
+    kbo_log_runtime_line("foreign daily maintenance thread started");
 
     KboCurrentDateTickConsumer consumer = {0};
     kbo_current_date_tick_consumer_init(
         &consumer,
-        "foreign_roster_daily_audit",
+        "foreign_daily_maintenance_background",
         KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER);
 
     while (kbo_runtime_threads_should_continue()) {
         if (!kbo_runtime_sleep_should_continue((uint32_t)kbo_runtime_tuning_policy()->foreign_roster_daily_audit_sleep_ms)) {
             break;
         }
-        if (!kbo_runtime_pause_for_save_if_needed("foreign_roster_daily_audit")) {
+        if (!kbo_runtime_pause_for_save_if_needed("foreign_daily_maintenance_background")) {
             break;
         }
 
@@ -262,23 +270,23 @@ DWORD WINAPI kbo_foreign_roster_daily_audit_thread(LPVOID parameter)
         }
     }
 
-    InterlockedExchange(&g_kbo_foreign_roster_daily_audit_started, 0);
-    kbo_log_runtime_line("foreign roster daily audit thread stopped");
+    InterlockedExchange(&g_kbo_foreign_daily_maintenance_started, 0);
+    kbo_log_runtime_line("foreign daily maintenance thread stopped");
     return 0;
 }
 
-void start_kbo_foreign_roster_daily_audit_thread(void)
+void start_kbo_foreign_daily_maintenance_thread(void)
 {
-    if (InterlockedCompareExchange(&g_kbo_foreign_roster_daily_audit_started, 1, 0) != 0) {
+    if (InterlockedCompareExchange(&g_kbo_foreign_daily_maintenance_started, 1, 0) != 0) {
         return;
     }
     kbo_current_date_tick_register_sync_consumer(
-        "foreign_roster_daily_audit",
+        "foreign_daily_maintenance",
         kbo_foreign_roster_daily_sync_consumer,
         NULL);
     kbo_mark_foreign_ai_roster_daily_callup_dirty("foreign_roster_daily_thread_start");
 
-    if (!kbo_start_runtime_thread(kbo_foreign_roster_daily_audit_thread, NULL, "foreign roster daily audit")) {
-        InterlockedExchange(&g_kbo_foreign_roster_daily_audit_started, 0);
+    if (!kbo_start_runtime_thread(kbo_foreign_daily_maintenance_thread, NULL, "foreign daily maintenance")) {
+        InterlockedExchange(&g_kbo_foreign_daily_maintenance_started, 0);
     }
 }

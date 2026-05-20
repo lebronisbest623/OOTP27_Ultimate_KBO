@@ -40,7 +40,6 @@ extern KboForeignRosterAuditState g_kbo_foreign_roster_audit[KBO_FOREIGN_ROSTER_
 extern int g_kbo_foreign_roster_audit_count;
 extern uint32_t g_kbo_foreign_roster_audit_generation;
 extern char g_kbo_foreign_roster_audit_save_path[MAX_PATH];
-extern LONG g_kbo_foreign_roster_daily_audit_started;
 
 int kbo_foreign_roster_audit_csv_empty(HANDLE file);
 uint32_t kbo_foreign_roster_audit_get_player_original_team_id(uint8_t* player);
@@ -72,7 +71,5 @@ void kbo_close_foreign_roster_snapshot_file(HANDLE file);
 void audit_foreign_roster_state(const char* source, int write_snapshot);
 uint32_t kbo_foreign_roster_daily_load_last_audit_date(const char* source);
 void kbo_foreign_roster_daily_persist_last_audit_date(uint32_t today, const char* source);
-DWORD WINAPI kbo_foreign_roster_daily_audit_thread(LPVOID parameter);
-void start_kbo_foreign_roster_daily_audit_thread(void);
 
 #endif

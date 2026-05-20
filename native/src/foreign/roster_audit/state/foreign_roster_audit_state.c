@@ -41,7 +41,6 @@ KboForeignRosterAuditState g_kbo_foreign_roster_audit[KBO_FOREIGN_ROSTER_AUDIT_M
 int g_kbo_foreign_roster_audit_count = 0;
 uint32_t g_kbo_foreign_roster_audit_generation = 0u;
 char g_kbo_foreign_roster_audit_save_path[MAX_PATH] = {0};
-LONG g_kbo_foreign_roster_daily_audit_started = 0;
 
 const char* kbo_foreign_roster_audit_change_type(
     const KboForeignRosterAuditState* old_state,

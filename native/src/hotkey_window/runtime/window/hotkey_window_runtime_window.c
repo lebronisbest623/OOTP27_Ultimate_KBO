@@ -159,6 +159,11 @@ LRESULT CALLBACK kbo_hotkey_window_proc(HWND hwnd, UINT message, WPARAM wparam, 
     }
 
     case WM_TIMER:
+        if (wparam == 1u && !kbo_runtime_threads_should_continue()) {
+            kbo_hub_save_window_placement(hwnd);
+            DestroyWindow(hwnd);
+            return 0;
+        }
         if (wparam == 1u
                 && (GetAsyncKeyState(VK_F2) & 1) != 0
                 && kbo_foreground_is_this_process()) {
@@ -232,6 +237,9 @@ LRESULT CALLBACK kbo_hotkey_window_proc(HWND hwnd, UINT message, WPARAM wparam, 
         g_kbo_foreign_release_button = NULL;
         g_kbo_hotkey_edit_original_proc = NULL;
         kbo_hub_delete_gdi_objects();
+        InterlockedExchange(&g_kbo_hotkey_window_started, 0);
+        g_kbo_hotkey_thread_id = 0;
+        PostQuitMessage(0);
         return 0;
     }
 

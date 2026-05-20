@@ -1,0 +1,10 @@
+#ifndef KBOFIX_SRC_FOREIGN_DAILY_MAINTENANCE_FOREIGN_DAILY_MAINTENANCE_H_
+#define KBOFIX_SRC_FOREIGN_DAILY_MAINTENANCE_FOREIGN_DAILY_MAINTENANCE_H_
+
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+
+DWORD WINAPI kbo_foreign_daily_maintenance_thread(LPVOID parameter);
+void start_kbo_foreign_daily_maintenance_thread(void);
+
+#endif

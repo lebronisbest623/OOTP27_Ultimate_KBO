@@ -262,6 +262,9 @@ void process_foreign_waiver_commands(void)
     if (!kbo_foreign_waiver_ai_enabled() || !kbo_fix_enabled()) {
         return;
     }
+    if (!kbo_is_foreign_waiver_negotiation_window_open()) {
+        return;
+    }
 
     char path[MAX_PATH] = {0};
     if (!kbo_get_foreign_waiver_command_path(path, sizeof(path))) {
