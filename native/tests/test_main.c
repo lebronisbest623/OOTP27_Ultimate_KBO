@@ -3356,6 +3356,11 @@ void kbo_profiler_record_us(const char* name, unsigned long long elapsed_us)
 
 void kbo_profiler_reset_enabled_cache(void) {}
 
+int kbo_current_build_rva_matches(uintptr_t rva, uint32_t canonical_rva)
+{
+    return rva == (uintptr_t)canonical_rva;
+}
+
 int kbo_get_save_scoped_data_file(const char* file_name, char* out, size_t out_size)
 {
     (void)file_name;
