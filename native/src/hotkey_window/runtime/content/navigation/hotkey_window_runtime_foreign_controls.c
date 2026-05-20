@@ -107,6 +107,12 @@ void kbo_refresh_foreign_rights_controls(void)
     }
 
     int selected_index = -1;
+    uint32_t today = 0u;
+    uint32_t window_end = 0u;
+    kbo_get_foreign_waiver_current_yyyymmdd(&today);
+    kbo_current_foreign_waiver_window_dates(NULL, &window_end);
+    kbo_ensure_foreign_waiver_rights_loaded_for_lookup();
+    int window_open = kbo_is_foreign_waiver_negotiation_window_open();
     for (int32_t i = 0; i < player_count; i++) {
         uintptr_t player_ptr = *(uintptr_t*)(player_vector + ((uintptr_t)i * sizeof(uintptr_t)));
         if (!kbo_player_pointer_plausible(player_ptr)) {
@@ -115,13 +121,30 @@ void kbo_refresh_foreign_rights_controls(void)
 
         uint8_t* player = (uint8_t*)player_ptr;
         uint32_t player_id = *(uint32_t*)(player + OOTP27_PLAYER_ID_OFFSET);
-        uint32_t active_team_id = *(uint32_t*)(player + OOTP27_PLAYER_ACTIVE_TEAM_ID_OFFSET);
-        uint32_t current_team_id = *(uint32_t*)(player + OOTP27_PLAYER_CURRENT_TEAM_ID_OFFSET);
+        uint32_t decision_team_id = kbo_get_foreign_waiver_decision_team_id(player);
+        char latest_action[16] = {0};
+        int has_decision = kbo_foreign_waiver_latest_decision_action(
+            window_end,
+            g_kbo_hub_selected_team_id,
+            player_id,
+            latest_action,
+            sizeof(latest_action));
+        int has_active_right = today != 0u
+            && kbo_has_active_foreign_waiver_right(g_kbo_hub_selected_team_id, player_id, today)
+            && (!has_decision || _stricmp(latest_action, "SKIP") != 0);
+        const char* decision_status = "Pending";
+        if (has_active_right) {
+            decision_status = "Retained";
+        } else if (has_decision && _stricmp(latest_action, "SKIP") == 0) {
+            decision_status = "Skipped";
+        } else if (has_decision && _stricmp(latest_action, "RETAIN") == 0) {
+            decision_status = "RetainQueued";
+        }
         if (player_id == 0u
                 || !kbo_player_is_foreign_for_kbo_rights(player)
-                || (current_team_id != g_kbo_hub_selected_team_id
-                    && active_team_id != g_kbo_hub_selected_team_id
-                    && !kbo_player_current_assignment_matches_team_or_affiliate(player, g_kbo_hub_selected_team_id))) {
+                || (window_open
+                    ? decision_team_id != g_kbo_hub_selected_team_id
+                    : !has_active_right)) {
             continue;
         }
 
@@ -136,10 +159,11 @@ void kbo_refresh_foreign_rights_controls(void)
         snprintf(
             label,
             sizeof(label),
-            "%-28.28s   ID %-8u   Nation %-4u   %s%s%s",
+            "%-28.28s   ID %-8u   Nation %-4u   %-12.12s %s%s%s",
             player_name,
             player_id,
             nation_id,
+            decision_status,
             restricted ? "Restricted " : "",
             dfa ? "DFA " : "",
             inj_active ? "Injured" : "Active");

@@ -22,6 +22,40 @@
 #include "../../support/actions/ui_team_actions.h"
 #include "../../ui_html_helpers/position_helpers.h"
 
+static void kbo_webview_append_rights_action(
+    KboWindowTextBuffer* buffer,
+    const char* class_name,
+    const char* command,
+    const char* title,
+    const char* disabled_title,
+    const char* symbol,
+    uint32_t player_id,
+    const char* player_name,
+    int enabled)
+{
+    if (enabled) {
+        kbo_window_text_appendf(
+            buffer,
+            "<a class='rightsAction %s' title='%s' href='kbo://%s/%u' data-player='",
+            class_name,
+            title,
+            command,
+            player_id);
+    } else {
+        kbo_window_text_appendf(
+            buffer,
+            "<span class='rightsAction %s disabled' title='%s' data-player='",
+            class_name,
+            disabled_title);
+    }
+    kbo_html_append_escaped(buffer, player_name != NULL && player_name[0] != '\0' ? player_name : "알 수 없는 선수");
+    kbo_window_text_appendf(
+        buffer,
+        "'>%s</%s>",
+        symbol,
+        enabled ? "a" : "span");
+}
+
 static void kbo_webview_append_candidate_card(
     KboWindowTextBuffer* buffer,
     uint8_t* player,
@@ -33,7 +67,9 @@ static void kbo_webview_append_candidate_card(
     uint32_t expires_on,
     uint32_t selected_foreign_player_id,
     int action_available,
-    int window_open)
+    int window_open,
+    int retain_chosen,
+    int skip_chosen)
 {
     char player_name[96] = {0};
     char team_abbrev[16] = {0};
@@ -53,22 +89,30 @@ static void kbo_webview_append_candidate_card(
         buffer,
         "<tr%s><td class='roAction'><span class='rightsActions'>",
         player_id == selected_foreign_player_id ? " class='selected'" : "");
-    if (action_available && window_open) {
-        kbo_window_text_appendf(
-            buffer,
-            "<a class='rightsAction rightsRelease' title='보류권 해제' href='kbo://release/%u' data-player='",
-            player_id);
-    } else {
-        kbo_window_text_appendf(
-            buffer,
-            "<span class='rightsAction rightsRelease disabled' title='%s' data-player='",
-            window_open ? "내가 맡은 구단이 아닙니다" : "보류권 처리 기간이 아닙니다");
-    }
-    kbo_html_append_escaped(buffer, player_name[0] != '\0' ? player_name : "알 수 없는 선수");
+    const char* blocked_title = window_open ? "내가 맡은 구단이 아닙니다" : "보류권 처리 기간이 아닙니다";
+    kbo_webview_append_rights_action(
+        buffer,
+        "rightsAdd",
+        "retain",
+        "보류권 행사",
+        retain_chosen ? "이미 보류권을 행사했습니다" : blocked_title,
+        "+",
+        player_id,
+        player_name,
+        action_available && window_open && !retain_chosen);
+    kbo_webview_append_rights_action(
+        buffer,
+        "rightsRelease",
+        "release",
+        "보류권 미행사",
+        skip_chosen ? "이미 미행사 처리했습니다" : blocked_title,
+        "-",
+        player_id,
+        player_name,
+        action_available && window_open && !skip_chosen);
     kbo_window_text_appendf(
         buffer,
-        "'>-</%s></span></td><td class='roPo'>%s</td><td class='roNum'>",
-        action_available && window_open ? "a" : "span",
+        "</span></td><td class='roPo'>%s</td><td class='roNum'>",
         kbo_webview_player_position_label(player, 0u));
     kbo_html_append_escaped(buffer, uniform_number);
     kbo_window_text_appendf(buffer, "</td>");
@@ -122,6 +166,7 @@ void kbo_webview_append_foreign_rights_view(
             uint32_t today = 0u;
             kbo_current_foreign_waiver_window_dates(&window_start, &window_end);
             kbo_get_foreign_waiver_current_yyyymmdd(&today);
+            kbo_ensure_foreign_waiver_rights_loaded_for_lookup();
             int window_open = kbo_is_foreign_waiver_negotiation_window_open();
             int action_available = kbo_hub_ui_team_action_available(
                 selected_team_id,
@@ -137,14 +182,24 @@ void kbo_webview_append_foreign_rights_view(
                     if (!kbo_player_pointer_plausible(player_ptr)) { continue; }
                     uint8_t* player = (uint8_t*)player_ptr;
                     uint32_t player_id = *(uint32_t*)(player + OOTP27_PLAYER_ID_OFFSET);
-                    if (player_id == 0u || today == 0u
-                            || !kbo_has_active_foreign_waiver_right(selected_team_id, player_id, today)
-                            || !kbo_player_is_foreign_for_kbo_rights(player)) {
-                        continue;
-                    }
+                    uint32_t decision_team_id = kbo_get_foreign_waiver_decision_team_id(player);
                     char latest_action[16] = {0};
-                    if (kbo_foreign_waiver_latest_decision_action(window_end, selected_team_id, player_id, latest_action, sizeof(latest_action))
-                            && _stricmp(latest_action, "SKIP") == 0) {
+                    int has_decision = kbo_foreign_waiver_latest_decision_action(
+                        window_end,
+                        selected_team_id,
+                        player_id,
+                        latest_action,
+                        sizeof(latest_action));
+                    int has_active_right = today != 0u
+                        && kbo_has_active_foreign_waiver_right(selected_team_id, player_id, today)
+                        && (!has_decision || _stricmp(latest_action, "SKIP") != 0);
+                    int skip_chosen = has_decision && _stricmp(latest_action, "SKIP") == 0;
+                    int retain_requested = has_decision && _stricmp(latest_action, "RETAIN") == 0;
+                    if (player_id == 0u
+                            || !kbo_player_is_foreign_for_kbo_rights(player)
+                            || (window_open
+                                ? decision_team_id != selected_team_id
+                                : !has_active_right)) {
                         continue;
                     }
                     char flags[96] = {0};
@@ -154,28 +209,46 @@ void kbo_webview_append_foreign_rights_view(
                         player[OOTP27_PLAYER_DFA_FLAG_OFFSET] ? "DFA " : "",
                         player[OOTP27_PLAYER_LOAN_ACTIVE_FLAG_OFFSET] ? "임대 " : "",
                         player[OOTP27_PLAYER_INJURY_ACTIVE_OFFSET] ? "부상 " : "");
-                    if (flags[0] == '\0') { snprintf(flags, sizeof(flags), "보류"); }
+                    char status[128] = {0};
+                    const char* state_label = "미결정";
+                    if (has_active_right) {
+                        state_label = "행사";
+                    } else if (skip_chosen) {
+                        state_label = "미행사";
+                    } else if (retain_requested) {
+                        state_label = "행사 요청";
+                    }
+                    if (flags[0] != '\0') {
+                        snprintf(status, sizeof(status), "%s %s", state_label, flags);
+                    } else {
+                        snprintf(status, sizeof(status), "%s", state_label);
+                    }
                     uint32_t retained_on = 0u;
                     uint32_t expires_on = 0u;
-                    kbo_get_active_foreign_waiver_right_dates(
-                        selected_team_id,
-                        player_id,
-                        today,
-                        &retained_on,
-                        &expires_on);
+                    if (has_active_right) {
+                        kbo_get_active_foreign_waiver_right_dates(
+                            selected_team_id,
+                            player_id,
+                            today,
+                            &retained_on,
+                            &expires_on);
+                    }
                     uint32_t nation_id = *(uint32_t*)(player + OOTP27_PLAYER_NATION_ID_OFFSET);
+                    uint32_t current_team_id = *(uint32_t*)(player + OOTP27_PLAYER_CURRENT_TEAM_ID_OFFSET);
                     kbo_webview_append_candidate_card(
                         buffer,
                         player,
                         player_id,
-                        selected_team_id,
+                        current_team_id,
                         nation_id,
-                        flags,
+                        status,
                         retained_on,
                         expires_on,
                         selected_foreign_player_id != NULL ? *selected_foreign_player_id : 0u,
                         action_available,
-                        window_open);
+                        window_open,
+                        has_active_right || retain_requested,
+                        skip_chosen);
                     rendered++;
                 }
             }
