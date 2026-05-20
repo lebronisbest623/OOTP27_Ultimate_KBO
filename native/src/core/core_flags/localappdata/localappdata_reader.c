@@ -1,12 +1,11 @@
 #include "localappdata_reader.h"
 
 #include "../json/json_bool_parser.h"
+#include "../../files/save_paths/platform/core_path_io.h"
 
 #include <stdio.h>
 #include <string.h>
-#include <windows.h>
 
-#define KBO_WIDE_PATH_CHARS 32768
 #define KBO_FLAGS_JSON_FILE "kbo_flags.json"
 #define KBO_SETTINGS_JSON_FILE "kbo_settings.json"
 
