@@ -1,4 +1,4 @@
-#include "../hotkey_window_runtime_content_internal.h"
+#include "../hotkey_window_runtime_content.h"
 #include "../../hotkey_window_domain_contract.h"
 
 RECT kbo_hub_nav_item_rect(int index, int width, int height)

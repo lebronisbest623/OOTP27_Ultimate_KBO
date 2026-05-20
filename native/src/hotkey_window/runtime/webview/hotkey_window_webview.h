@@ -1,7 +1,7 @@
-#ifndef KBOFIX_SRC_HOTKEY_WINDOW_RUNTIME_WEBVIEW_HOTKEY_WINDOW_WEBVIEW_INTERNAL_H_
-#define KBOFIX_SRC_HOTKEY_WINDOW_RUNTIME_WEBVIEW_HOTKEY_WINDOW_WEBVIEW_INTERNAL_H_
+#ifndef KBOFIX_SRC_HOTKEY_WINDOW_RUNTIME_WEBVIEW_HOTKEY_WINDOW_WEBVIEW_H_
+#define KBOFIX_SRC_HOTKEY_WINDOW_RUNTIME_WEBVIEW_HOTKEY_WINDOW_WEBVIEW_H_
 
-#include "../content/hotkey_window_runtime_content_internal.h"
+#include "../content/hotkey_window_runtime_content.h"
 #include "player_tooltip/hotkey_window_player_tooltip.h"
 
 typedef HRESULT (STDAPICALLTYPE *KboCreateCoreWebView2EnvironmentWithOptionsFn)(

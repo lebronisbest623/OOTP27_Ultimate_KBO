@@ -1,4 +1,4 @@
-#include "../hotkey_window_runtime_content_internal.h"
+#include "../hotkey_window_runtime_content.h"
 #include "../../webview/player_tooltip/hotkey_window_player_tooltip.h"
 
 int kbo_hub_estimate_visible_edit_lines(void)

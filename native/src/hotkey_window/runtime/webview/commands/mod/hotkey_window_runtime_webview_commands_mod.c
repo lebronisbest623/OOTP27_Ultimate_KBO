@@ -1,4 +1,4 @@
-#include "../../hotkey_window_webview_internal.h"
+#include "../../hotkey_window_webview.h"
 #include "../../../../../perf_snapshot/perf_snapshot.h"
 
 int kbo_webview_handle_mod_settings_command(const char* cmd)

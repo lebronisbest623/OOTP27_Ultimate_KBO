@@ -1,4 +1,4 @@
-#include "../../hotkey_window_webview_internal.h"
+#include "../../hotkey_window_webview.h"
 
 static int kbo_webview_settings_command_allowed_for_current_mode(const char* cmd)
 {

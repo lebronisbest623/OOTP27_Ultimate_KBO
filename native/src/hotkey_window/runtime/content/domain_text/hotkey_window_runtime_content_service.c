@@ -1,4 +1,4 @@
-#include "../hotkey_window_runtime_content_internal.h"
+#include "../hotkey_window_runtime_content.h"
 #include "../../hotkey_window_domain_contract.h"
 
 int kbo_hub_count_service_players(uint32_t service_team_id, int* out_due_60, int* out_due_now)

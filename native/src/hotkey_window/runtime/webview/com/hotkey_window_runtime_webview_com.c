@@ -1,4 +1,4 @@
-#include "../hotkey_window_webview_internal.h"
+#include "../hotkey_window_webview.h"
 
 typedef struct KboWebViewNavigationCompletedHandler {
     ICoreWebView2NavigationCompletedEventHandler iface;

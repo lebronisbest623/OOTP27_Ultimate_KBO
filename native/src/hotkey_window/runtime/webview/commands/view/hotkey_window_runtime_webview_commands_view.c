@@ -1,4 +1,4 @@
-#include "../../hotkey_window_webview_internal.h"
+#include "../../hotkey_window_webview.h"
 #include "../../../../../competitive_balance_tax/exceptions/cbt_exceptions.h"
 #include "../../../../../fa_salary_snapshot/grading/salary_snapshot_grade_rows.h"
 

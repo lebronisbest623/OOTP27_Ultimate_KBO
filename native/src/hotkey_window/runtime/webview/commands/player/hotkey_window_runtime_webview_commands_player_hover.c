@@ -1,4 +1,4 @@
-#include "../../hotkey_window_webview_internal.h"
+#include "../../hotkey_window_webview.h"
 #include "../../../player_hover/player_hover_manager_probe.h"
 #include "../../../../support/assets/paths/ui_image_sources.h"
 #include "../../../../../core/files/save_paths/core_save_paths.h"

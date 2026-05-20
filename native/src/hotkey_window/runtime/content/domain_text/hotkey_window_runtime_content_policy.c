@@ -1,4 +1,4 @@
-#include "../hotkey_window_runtime_content_internal.h"
+#include "../hotkey_window_runtime_content.h"
 #include "../../hotkey_window_domain_contract.h"
 
 void kbo_build_foreign_injury_replacement_hub_text(char* out, size_t out_size)

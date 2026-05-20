@@ -1,4 +1,4 @@
-#include "../hotkey_window_webview_internal.h"
+#include "../hotkey_window_webview.h"
 
 #define KBO_PLAYER_TOOLTIP_CLASS_NAME "OOTPKBOPlayerTooltipWindow"
 #define KBO_PLAYER_TOOLTIP_HTML_MAX   (128u * 1024u)

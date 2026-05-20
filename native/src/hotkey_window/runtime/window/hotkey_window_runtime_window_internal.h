@@ -1,8 +1,8 @@
 #ifndef KBOFIX_SRC_HOTKEY_WINDOW_RUNTIME_WINDOW_INTERNAL_H_
 #define KBOFIX_SRC_HOTKEY_WINDOW_RUNTIME_WINDOW_INTERNAL_H_
 
-#include "../content/hotkey_window_runtime_content_internal.h"
-#include "../webview/hotkey_window_webview_internal.h"
+#include "../content/hotkey_window_runtime_content.h"
+#include "../webview/hotkey_window_webview.h"
 
 BOOL CALLBACK kbo_enum_main_window_proc(HWND hwnd, LPARAM lparam);
 HWND kbo_find_ootp_main_window(void);

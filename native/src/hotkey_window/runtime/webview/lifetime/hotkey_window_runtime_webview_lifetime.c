@@ -1,4 +1,4 @@
-#include "../hotkey_window_webview_internal.h"
+#include "../hotkey_window_webview.h"
 #include "../../../support/actions/ui_team_actions.h"
 
 int kbo_webview_team_action_allowed(uint32_t team_id, const char* source)

@@ -1,4 +1,4 @@
-#include "../../hotkey_window_webview_internal.h"
+#include "../../hotkey_window_webview.h"
 
 int kbo_webview_handle_selection_dropdown_command(const char* cmd, HWND hwnd)
 {

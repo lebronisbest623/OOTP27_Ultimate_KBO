@@ -1,4 +1,4 @@
-#include "../../hotkey_window_webview_internal.h"
+#include "../../hotkey_window_webview.h"
 #include "../../../hotkey_window_domain_contract.h"
 
 int kbo_webview_handle_event_and_fa_command(const char* cmd)

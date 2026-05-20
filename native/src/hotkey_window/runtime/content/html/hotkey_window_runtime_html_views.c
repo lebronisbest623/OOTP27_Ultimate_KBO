@@ -1,4 +1,4 @@
-#include "../hotkey_window_runtime_content_internal.h"
+#include "../hotkey_window_runtime_content.h"
 #include "../../hotkey_window_domain_contract.h"
 #include "../../../../fa_market_classification/api/fa_market_classification.h"
 
