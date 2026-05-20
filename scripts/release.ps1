@@ -48,10 +48,16 @@ $OptimizerSource = Join-Path $RepoRoot "tools\kbo_optimizer.py"
 $OptimizerLibSource = Join-Path $RepoRoot "tools\kbo_optimizer_lib"
 $PyInstallerWork = Join-Path $RepoRoot "obj\pyinstaller"
 $OptimizerExe = Join-Path $RepoRoot "tools\kbo_optimizer.exe"
+$OptimizerNewestSourceTime = (Get-Item -LiteralPath $OptimizerSource).LastWriteTimeUtc
+Get-ChildItem -LiteralPath $OptimizerLibSource -Recurse -Filter *.py | ForEach-Object {
+    if ($_.LastWriteTimeUtc -gt $OptimizerNewestSourceTime) {
+        $OptimizerNewestSourceTime = $_.LastWriteTimeUtc
+    }
+}
 
 $OptimizerNeedsBuild = $RebuildOptimizer `
     -or -not (Test-Path -LiteralPath $OptimizerExe -PathType Leaf) `
-    -or ((Get-Item -LiteralPath $OptimizerExe).LastWriteTimeUtc -lt (Get-Item -LiteralPath $OptimizerSource).LastWriteTimeUtc)
+    -or ((Get-Item -LiteralPath $OptimizerExe).LastWriteTimeUtc -lt $OptimizerNewestSourceTime)
 
 if ($OptimizerNeedsBuild) {
     if (Test-Path -LiteralPath $OptimizerExe) {

@@ -6,6 +6,24 @@
 #include "../logging/core_log.h"
 #include "kbo_optimizer.h"
 
+static volatile LONG g_kbo_optimizer_result_temp_sequence = 0;
+
+static int kbo_optimizer_make_temp_result_path(const char* result_path, char* out, size_t out_size)
+{
+    if (result_path == NULL || result_path[0] == '\0' || out == NULL || out_size == 0) {
+        return 0;
+    }
+    LONG sequence = InterlockedIncrement(&g_kbo_optimizer_result_temp_sequence);
+    int written = snprintf(
+        out,
+        out_size,
+        "%s.tmp.%lu.%ld",
+        result_path,
+        (unsigned long)GetCurrentProcessId(),
+        (long)sequence);
+    return written > 0 && (size_t)written < out_size;
+}
+
 static int kbo_optimizer_get_tool_path(char* out, size_t out_size, int* out_is_python_script)
 {
     if (out == NULL || out_size == 0) {
@@ -76,7 +94,14 @@ int kbo_optimizer_run_mode(
         return 0;
     }
 
+    char temp_result_path[MAX_PATH * 3] = {0};
+    if (!kbo_optimizer_make_temp_result_path(result_path, temp_result_path, sizeof(temp_result_path))) {
+        kbo_log_runtimef("KBO optimizer temp result path unavailable mode=%s result=%s", mode, result_path);
+        return 0;
+    }
+
     DeleteFileA(result_path);
+    DeleteFileA(temp_result_path);
 
     char command[MAX_PATH * 10] = {0};
     if (is_python_script) {
@@ -87,7 +112,7 @@ int kbo_optimizer_run_mode(
             tool_path,
             mode,
             request_path,
-            result_path);
+            temp_result_path);
     } else {
         snprintf(
             command,
@@ -96,7 +121,7 @@ int kbo_optimizer_run_mode(
             tool_path,
             mode,
             request_path,
-            result_path);
+            temp_result_path);
     }
 
     STARTUPINFOA si;
@@ -119,6 +144,7 @@ int kbo_optimizer_run_mode(
     DWORD exit_code = 1u;
     if (wait == WAIT_TIMEOUT) {
         TerminateProcess(pi.hProcess, 1);
+        WaitForSingleObject(pi.hProcess, 1000u);
         kbo_log_runtimef("KBO optimizer timed out mode=%s timeout_ms=%lu", mode, timeout_ms != 0u ? timeout_ms : 8000u);
     } else {
         GetExitCodeProcess(pi.hProcess, &exit_code);
@@ -128,8 +154,22 @@ int kbo_optimizer_run_mode(
 
     int ok = wait != WAIT_TIMEOUT
         && exit_code == 0u
-        && GetFileAttributesA(result_path) != INVALID_FILE_ATTRIBUTES;
+        && GetFileAttributesA(temp_result_path) != INVALID_FILE_ATTRIBUTES;
+    if (ok) {
+        DeleteFileA(result_path);
+        if (!MoveFileExA(temp_result_path, result_path, MOVEFILE_REPLACE_EXISTING | MOVEFILE_COPY_ALLOWED)) {
+            kbo_log_runtimef(
+                "KBO optimizer result promote failed mode=%s gle=%lu temp=%s result=%s",
+                mode,
+                GetLastError(),
+                temp_result_path,
+                result_path);
+            ok = 0;
+        }
+    }
     if (!ok) {
+        DeleteFileA(temp_result_path);
+        DeleteFileA(result_path);
         static volatile LONG fail_count = 0;
         if (InterlockedIncrement(&fail_count) <= 8) {
             kbo_log_runtimef("KBO optimizer failed mode=%s exit=%lu result=%s", mode, exit_code, result_path);

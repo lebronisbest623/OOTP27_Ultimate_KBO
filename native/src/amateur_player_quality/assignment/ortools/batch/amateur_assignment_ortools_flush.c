@@ -320,7 +320,7 @@ int kbo_amateur_flush_league_batch_ortools(const char* reason, int force)
         kbo_amateur_apply_deferred_original_fallback(deferred_team_adds, deferred_count, league_id, "write_failed");
         return 0;
     }
-    if (!kbo_optimizer_run_mode("amateur_assignment", request_path, result_path, 8000u)) {
+    if (!kbo_optimizer_run_mode("amateur_assignment", request_path, result_path, 30000u)) {
         kbo_amateur_audit_ortools_batch(
             "fallback", "ortools_failed", reason, league_id,
             optimizer_player_count, accumulated_teams, count, -1, deferred_count, -1, 0u);
