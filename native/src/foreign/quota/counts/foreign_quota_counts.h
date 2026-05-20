@@ -25,6 +25,13 @@ void kbo_foreign_org_count_cache_note_player_assignment_change(
     uint32_t after_loan_team_id,
     uint32_t player_id,
     int asian_quota);
+void kbo_foreign_org_count_cache_note_observed_assignment_change(
+    uint32_t before_current_team_id,
+    uint32_t before_active_team_id,
+    uint32_t before_loan_team_id,
+    uint32_t after_current_team_id,
+    uint32_t after_active_team_id,
+    uint32_t after_loan_team_id);
 #ifdef KBO_BENCHMARK_BUILD
 void kbo_foreign_org_count_seed_benchmark_snapshot(
     uint32_t team_id,

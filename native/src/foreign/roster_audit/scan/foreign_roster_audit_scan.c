@@ -16,25 +16,20 @@ static int kbo_foreign_roster_audit_assignment_changed(
 
 static void kbo_foreign_roster_audit_note_quota_assignment_change(
     const KboForeignRosterAuditState* old_state,
-    const KboForeignRosterAuditState* new_state,
-    uint8_t* player)
+    const KboForeignRosterAuditState* new_state)
 {
     if (!kbo_foreign_roster_audit_assignment_changed(old_state, new_state)
-            || new_state->player_id == 0u
-            || player == NULL
-            || !memory_range_readable(player, OOTP27_PLAYER_SCAN_BYTES)) {
+            || new_state->player_id == 0u) {
         return;
     }
 
-    kbo_foreign_org_count_cache_note_player_assignment_change(
+    kbo_foreign_org_count_cache_note_observed_assignment_change(
         old_state->current_team_id,
         old_state->active_team_id,
         old_state->loan_team_id,
         new_state->current_team_id,
         new_state->active_team_id,
-        new_state->loan_team_id,
-        new_state->player_id,
-        kbo_player_is_asian_quota_candidate(player));
+        new_state->loan_team_id);
 }
 
 void audit_foreign_roster_state(const char* source, int write_snapshot)
@@ -174,7 +169,7 @@ void audit_foreign_roster_state(const char* source, int write_snapshot)
             continue;
         }
 
-        kbo_foreign_roster_audit_note_quota_assignment_change(&old, &current, player);
+        kbo_foreign_roster_audit_note_quota_assignment_change(&old, &current);
 
         const char* change_type = kbo_foreign_roster_audit_change_type(&old, &current);
         if (audit_file == INVALID_HANDLE_VALUE) {

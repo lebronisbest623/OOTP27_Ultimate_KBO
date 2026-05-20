@@ -172,6 +172,32 @@ static void kbo_foreign_org_snapshot_cache_all_locked(DWORD now)
     }
 }
 
+static void kbo_foreign_org_assignment_orgs(
+    uint32_t current_team_id,
+    uint32_t active_team_id,
+    uint32_t loan_team_id,
+    uint32_t* orgs,
+    int* org_count)
+{
+    if (orgs == NULL || org_count == NULL) {
+        return;
+    }
+    kbo_foreign_org_list_add(orgs, org_count, kbo_foreign_org_team_id_for_team_id(current_team_id));
+    kbo_foreign_org_list_add(orgs, org_count, kbo_foreign_org_team_id_for_team_id(active_team_id));
+    kbo_foreign_org_list_add(orgs, org_count, kbo_foreign_org_team_id_for_team_id(loan_team_id));
+}
+
+static void kbo_foreign_org_invalidate_org_list(const uint32_t* orgs, int org_count)
+{
+    if (orgs == NULL) {
+        return;
+    }
+    for (int i = 0; i < org_count; i++) {
+        kbo_foreign_org_count_cache_invalidate_team(orgs[i]);
+        kbo_foreign_org_count_bump_team_generation(orgs[i]);
+    }
+}
+
 void kbo_foreign_org_count_cache_note_player_assignment_change(
     uint32_t before_current_team_id,
     uint32_t before_active_team_id,
@@ -187,21 +213,21 @@ void kbo_foreign_org_count_cache_note_player_assignment_change(
     int before_count = 0;
     int after_count = 0;
 
-    kbo_foreign_org_list_add(&before_orgs[0], &before_count, kbo_foreign_org_team_id_for_team_id(before_current_team_id));
-    kbo_foreign_org_list_add(&before_orgs[0], &before_count, kbo_foreign_org_team_id_for_team_id(before_active_team_id));
-    kbo_foreign_org_list_add(&before_orgs[0], &before_count, kbo_foreign_org_team_id_for_team_id(before_loan_team_id));
-    kbo_foreign_org_list_add(&after_orgs[0], &after_count, kbo_foreign_org_team_id_for_team_id(after_current_team_id));
-    kbo_foreign_org_list_add(&after_orgs[0], &after_count, kbo_foreign_org_team_id_for_team_id(after_active_team_id));
-    kbo_foreign_org_list_add(&after_orgs[0], &after_count, kbo_foreign_org_team_id_for_team_id(after_loan_team_id));
+    kbo_foreign_org_assignment_orgs(
+        before_current_team_id,
+        before_active_team_id,
+        before_loan_team_id,
+        before_orgs,
+        &before_count);
+    kbo_foreign_org_assignment_orgs(
+        after_current_team_id,
+        after_active_team_id,
+        after_loan_team_id,
+        after_orgs,
+        &after_count);
 
-    for (int i = 0; i < before_count; i++) {
-        kbo_foreign_org_count_cache_invalidate_team(before_orgs[i]);
-        kbo_foreign_org_count_bump_team_generation(before_orgs[i]);
-    }
-    for (int i = 0; i < after_count; i++) {
-        kbo_foreign_org_count_cache_invalidate_team(after_orgs[i]);
-        kbo_foreign_org_count_bump_team_generation(after_orgs[i]);
-    }
+    kbo_foreign_org_invalidate_org_list(before_orgs, before_count);
+    kbo_foreign_org_invalidate_org_list(after_orgs, after_count);
 
     if (g_kbo_foreign_org_snapshot_tick == 0u) {
         return;
@@ -222,6 +248,45 @@ void kbo_foreign_org_count_cache_note_player_assignment_change(
         kbo_foreign_org_snapshot_cache_team_list_locked(before_orgs, before_count, now);
         kbo_foreign_org_snapshot_cache_team_list_locked(after_orgs, after_count, now);
     }
+    kbo_lock_leave(&g_kbo_foreign_org_snapshot_lock);
+}
+
+void kbo_foreign_org_count_cache_note_observed_assignment_change(
+    uint32_t before_current_team_id,
+    uint32_t before_active_team_id,
+    uint32_t before_loan_team_id,
+    uint32_t after_current_team_id,
+    uint32_t after_active_team_id,
+    uint32_t after_loan_team_id)
+{
+    uint32_t before_orgs[3] = {0u, 0u, 0u};
+    uint32_t after_orgs[3] = {0u, 0u, 0u};
+    int before_count = 0;
+    int after_count = 0;
+
+    kbo_foreign_org_assignment_orgs(
+        before_current_team_id,
+        before_active_team_id,
+        before_loan_team_id,
+        before_orgs,
+        &before_count);
+    kbo_foreign_org_assignment_orgs(
+        after_current_team_id,
+        after_active_team_id,
+        after_loan_team_id,
+        after_orgs,
+        &after_count);
+
+    if (before_count == 0 && after_count == 0) {
+        return;
+    }
+
+    kbo_foreign_org_invalidate_org_list(before_orgs, before_count);
+    kbo_foreign_org_invalidate_org_list(after_orgs, after_count);
+
+    kbo_lock_enter(&g_kbo_foreign_org_snapshot_lock);
+    g_kbo_foreign_org_snapshot_tick = 0u;
+    g_kbo_foreign_org_snapshot_count = 0;
     kbo_lock_leave(&g_kbo_foreign_org_snapshot_lock);
 }
 
