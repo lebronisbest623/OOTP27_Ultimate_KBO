@@ -14,7 +14,7 @@ int get_kbo_foreign_waiver_event_path(char* out, size_t out_size)
     if (out == NULL || out_size < 2) {
         return 0;
     }
-    return kbo_get_save_scoped_data_file("foreign_waiver_negotiation_window.txt", out, out_size);
+    return kbo_save_state_db_path(out, out_size);
 }
 
 int kbo_get_foreign_waiver_rights_path(char* out, size_t out_size)

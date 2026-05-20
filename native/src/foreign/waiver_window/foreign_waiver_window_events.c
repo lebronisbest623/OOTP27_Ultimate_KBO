@@ -5,7 +5,6 @@
 #include <string.h>
 
 #include "../../bootstrap/abi/ootp_offsets.h"
-#include "../../core/files/atomic/core_atomic_file.h"
 #include "../../core/core_flags/api/flags_api.h"
 #include "../../core/core_league_context_parts/api/league_context_lookup.h"
 #include "../../core/core_league_context_parts/event_manager/event_manager.h"
@@ -20,6 +19,7 @@
 #include "../common/policy/foreign_player_policy.h"
 #include "../common/policy/foreign_waiver_policy.h"
 #include "events/foreign_waiver_window_events.h"
+#include "sql/foreign_waiver_window_sql_store.h"
 #include "state/foreign_waiver_window_state.h"
 #include "../../core/dates/constants/kbo_date_constants.h"
 #include "../../core/core_flags/keys/runtime_flag_keys.generated.h"
@@ -193,34 +193,8 @@ uint32_t kbo_detect_offseason_starts_event(uint32_t today_yyyymmdd, uint32_t lea
 int kbo_write_foreign_waiver_window(uint32_t start_yyyymmdd, uint32_t end_yyyymmdd, const char* reason)
 {
     char path[MAX_PATH] = {0};
-    if (!get_kbo_foreign_waiver_event_path(path, sizeof(path))) {
-        return 0;
-    }
-
-    char dir[MAX_PATH] = {0};
-    snprintf(dir, sizeof(dir), "%s", path);
-    char* slash = strrchr(dir, '\\');
-    if (slash != NULL) {
-        *slash = '\0';
-        CreateDirectoryA(dir, NULL);
-    }
-
-    char tmp_path[MAX_PATH] = {0};
-    HANDLE file = kbo_atomic_open_tmp(path, tmp_path, sizeof(tmp_path));
-    if (file == INVALID_HANDLE_VALUE) {
-        kbo_log_runtimef("foreign priority negotiation: failed to write window file error=%lu", GetLastError());
-        return 0;
-    }
-
-    char line[128] = {0};
-    int len = snprintf(line, sizeof(line), "%08u,%08u\r\n", start_yyyymmdd, end_yyyymmdd);
-    DWORD written = 0;
-    int ok = WriteFile(file, line, (DWORD)len, &written, NULL) && written == (DWORD)len;
-    if (!ok) {
-        kbo_atomic_abort(file, tmp_path);
-    } else if (!kbo_atomic_commit(file, tmp_path, path)) {
-        ok = 0;
-    }
+    int path_ok = get_kbo_foreign_waiver_event_path(path, sizeof(path));
+    int ok = kbo_foreign_waiver_window_sql_write(start_yyyymmdd, end_yyyymmdd, reason);
 
     static uint32_t last_logged_start = 0u;
     static uint32_t last_logged_end = 0u;
@@ -235,7 +209,7 @@ int kbo_write_foreign_waiver_window(uint32_t start_yyyymmdd, uint32_t end_yyyymm
             end_yyyymmdd,
             reason == NULL ? "" : reason,
             ok,
-            path);
+            path_ok ? path : "");
     }
     return ok;
 }

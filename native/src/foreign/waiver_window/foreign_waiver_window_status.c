@@ -7,7 +7,6 @@
 #include "../../bootstrap/profiling/profiler.h"
 #include "../../core/core_flags/api/flags_api.h"
 #include "../../core/core_league_context_parts/api/league_context_lookup.h"
-#include "../../core/csv/core_csv.h"
 #include "../../core/dates/core_text_date.h"
 #include "../../core/dates/tick/current_date_tick_capture.h"
 #include "../../core/logging/core_log.h"
@@ -18,6 +17,7 @@
 #include "../common/policy/foreign_waiver_policy.h"
 #include "../waiver_core/api/foreign_waiver_core.h"
 #include "events/foreign_waiver_window_events.h"
+#include "sql/foreign_waiver_window_sql_store.h"
 #include "state/foreign_waiver_window_state.h"
 #include "../../core/dates/constants/kbo_date_constants.h"
 
@@ -191,47 +191,7 @@ int kbo_read_foreign_waiver_window(uint32_t* out_start, uint32_t* out_end)
     *out_start = 0;
     *out_end = 0;
 
-    char path[MAX_PATH] = {0};
-    if (!get_kbo_foreign_waiver_event_path(path, sizeof(path))) {
-        return 0;
-    }
-
-    HANDLE file = CreateFileA(
-        path,
-        GENERIC_READ,
-        FILE_SHARE_READ,
-        NULL,
-        OPEN_EXISTING,
-        FILE_ATTRIBUTE_NORMAL,
-        NULL);
-    if (file == INVALID_HANDLE_VALUE) {
-        return 0;
-    }
-
-    char raw[128] = {0};
-    DWORD read = 0;
-    if (!ReadFile(file, raw, sizeof(raw) - 1, &read, NULL)) {
-        CloseHandle(file);
-        return 0;
-    }
-    CloseHandle(file);
-    if (read == 0) {
-        return 0;
-    }
-
-    char fields[2][32];
-    int field_count = kbo_csv_read_trimmed_line_fields(raw, (char*)fields, sizeof(fields[0]), 2);
-    if (field_count < 2 || fields[0][0] == '#') {
-        return 0;
-    }
-
-    if (!kbo_parse_yyyymmdd(fields[0], out_start)) {
-        return 0;
-    }
-    if (!kbo_parse_yyyymmdd(fields[1], out_end)) {
-        return 0;
-    }
-    return 1;
+    return kbo_foreign_waiver_window_sql_read(out_start, out_end);
 }
 
 int kbo_read_foreign_waiver_window_cached(uint32_t today, uint32_t* out_start, uint32_t* out_end)
@@ -348,7 +308,7 @@ int kbo_get_foreign_waiver_window_status_text(char* out, size_t out_size)
     uint32_t file_end = 0;
     const char* source = "auto detector";
     if (kbo_read_foreign_waiver_window(&file_start, &file_end)) {
-        source = "override file";
+        source = "save-state";
     }
 
     char start_text[16] = {0};
