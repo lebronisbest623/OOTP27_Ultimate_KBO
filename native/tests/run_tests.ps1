@@ -17,6 +17,8 @@ $IntlEstablishedFaMarketNormalizeTestSrc = Join-Path $PSScriptRoot "test_intl_es
 $IntlEstablishedFaMarketNormalizeTestExe = Join-Path $PSScriptRoot "test_intl_established_fa_market_normalize.exe"
 $AsianGamesPlayerEligibilityTestSrc = Join-Path $PSScriptRoot "test_asian_games_player_eligibility.c"
 $AsianGamesPlayerEligibilityTestExe = Join-Path $PSScriptRoot "test_asian_games_player_eligibility.exe"
+$AsianGamesRestrictedMaintenancePolicyTestSrc = Join-Path $PSScriptRoot "test_asian_games_restricted_maintenance_policy.c"
+$AsianGamesRestrictedMaintenancePolicyTestExe = Join-Path $PSScriptRoot "test_asian_games_restricted_maintenance_policy.exe"
 $FaDeclarationRepairTestSrc = Join-Path $PSScriptRoot "test_fa_declaration_repair.c"
 $FaDeclarationRepairTestExe = Join-Path $PSScriptRoot "test_fa_declaration_repair.exe"
 $WebViewCommandRouterTestSrc = Join-Path $PSScriptRoot "test_webview_command_router.c"
@@ -168,16 +170,35 @@ if ($LASTEXITCODE -ne 0) {
 if ($LASTEXITCODE -ne 0) {
     throw "International established FA market normalization tests failed"
 }
-Write-Host "Building Asian Games player eligibility tests..."
-& $Compiler $AsianGamesPlayerEligibilityTestSrc (Join-Path $PSScriptRoot "..\src\custom_events\asian_games\player_eval\asian_games_player_eligibility.c") /Fe:$AsianGamesPlayerEligibilityTestExe /I (Join-Path $PSScriptRoot "..\src") /link /subsystem:console
+& $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
+    -I $Root `
+    -I (Join-Path $Root "src") `
+    -o $AsianGamesPlayerEligibilityTestExe `
+    $AsianGamesPlayerEligibilityTestSrc `
+    (Join-Path $Root "src\custom_events\asian_games\player_eval\asian_games_player_eligibility.c")
 if ($LASTEXITCODE -ne 0) {
-    throw "Failed to build Asian Games player eligibility tests"
+    throw "Asian Games player eligibility test build failed"
 }
 
-Write-Host "Running Asian Games player eligibility tests..."
 & $AsianGamesPlayerEligibilityTestExe
 if ($LASTEXITCODE -ne 0) {
     throw "Asian Games player eligibility tests failed"
+}
+
+& $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
+    -I $Root `
+    -I (Join-Path $Root "src") `
+    -o $AsianGamesRestrictedMaintenancePolicyTestExe `
+    $AsianGamesRestrictedMaintenancePolicyTestSrc `
+    (Join-Path $Root "src\custom_events\asian_games_lifecycle\maintenance\asian_games_lifecycle_maintenance_policy.c") `
+    (Join-Path $Root "src\core\dates\core_text_date.c")
+if ($LASTEXITCODE -ne 0) {
+    throw "Asian Games restricted maintenance policy test build failed"
+}
+
+& $AsianGamesRestrictedMaintenancePolicyTestExe
+if ($LASTEXITCODE -ne 0) {
+    throw "Asian Games restricted maintenance policy tests failed"
 }
 
 & $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `

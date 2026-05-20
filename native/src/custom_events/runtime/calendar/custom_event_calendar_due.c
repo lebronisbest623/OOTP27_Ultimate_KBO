@@ -7,6 +7,7 @@
 #include "../../../competitive_balance_tax/events/cbt_events.h"
 #include "../../../core/files/save_paths/core_save_paths.h"
 #include "../../../core/logging/core_log.h"
+#include "../../asian_games_lifecycle/maintenance/asian_games_lifecycle_maintenance.h"
 #include "../../asian_games/schedule/asian_games_schedule.h"
 #include "../../schedules/independent/independent_team_acquisition_schedule.h"
 #include "../../schedules/priority/foreign_priority_event_schedule.h"
@@ -161,6 +162,7 @@ int kbo_process_custom_events_due_through(uint32_t today_yyyymmdd, const char* s
     int cbt_schedule = kbo_schedule_cbt_custom_events_for_date(today_yyyymmdd, source);
     int independent_schedule = kbo_schedule_independent_team_acquisition_custom_events_for_date(today_yyyymmdd, source);
     int scanned = kbo_custom_event_calendar_scan_until_idle(today_yyyymmdd, source);
+    int asian_restricted_hold = kbo_maintain_asian_games_restricted_players(today_yyyymmdd, source);
 
     int critical_schedule_deferred = asian_schedule < 0
         || cbt_schedule < 0
@@ -177,12 +179,13 @@ int kbo_process_custom_events_due_through(uint32_t today_yyyymmdd, const char* s
 
     if (deferred) {
         kbo_log_runtimef(
-            "KBO custom event calendar due-through source=%s previous_cursor=%u today=%u foreign=%d asian=%d cbt=%d independent=%d scanned=%d schedule_blocked=%d deferred=%d",
+            "KBO custom event calendar due-through source=%s previous_cursor=%u today=%u foreign=%d asian=%d asian_hold=%d cbt=%d independent=%d scanned=%d schedule_blocked=%d deferred=%d",
             source != NULL ? source : "",
             previous_cursor,
             today_yyyymmdd,
             foreign_schedule,
             asian_schedule,
+            asian_restricted_hold,
             cbt_schedule,
             independent_schedule,
             scanned,
@@ -191,15 +194,21 @@ int kbo_process_custom_events_due_through(uint32_t today_yyyymmdd, const char* s
         InterlockedExchange(&g_kbo_custom_event_calendar_due_processing, 0);
         return -1;
     }
-    int changed = foreign_schedule > 0 || asian_schedule > 0 || cbt_schedule > 0 || independent_schedule > 0 || scanned > 0;
+    int changed = foreign_schedule > 0
+        || asian_schedule > 0
+        || asian_restricted_hold > 0
+        || cbt_schedule > 0
+        || independent_schedule > 0
+        || scanned > 0;
     if (kbo_custom_event_calendar_should_log_idle_due(changed, deferred, schedule_blocked)) {
         kbo_log_runtimef(
-            "KBO custom event calendar due-through source=%s previous_cursor=%u today=%u foreign=%d asian=%d cbt=%d independent=%d scanned=%d schedule_blocked=%d deferred=%d",
+            "KBO custom event calendar due-through source=%s previous_cursor=%u today=%u foreign=%d asian=%d asian_hold=%d cbt=%d independent=%d scanned=%d schedule_blocked=%d deferred=%d",
             source != NULL ? source : "",
             previous_cursor,
             today_yyyymmdd,
             foreign_schedule,
             asian_schedule,
+            asian_restricted_hold,
             cbt_schedule,
             independent_schedule,
             scanned,

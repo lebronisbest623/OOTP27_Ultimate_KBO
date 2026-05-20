@@ -2,6 +2,7 @@
 #include "../../core/core_league_context_parts/api/league_context_lookup.h"
 #include "../../core/dates/core_current_date.h"
 #include "../../core/dates/core_text_date.h"
+#include "../../custom_events/asian_games_lifecycle/maintenance/asian_games_lifecycle_maintenance.h"
 #include "../../custom_events/asian_games/schedule/asian_games_schedule.h"
 #include "../../custom_events/schedules/independent/independent_team_acquisition_schedule.h"
 #include "../../custom_events/schedules/priority/foreign_priority_event_schedule.h"
@@ -79,15 +80,17 @@ static void kbo_prime_startup_custom_event_schedules(uint32_t today)
     const char* source = "runtime_marker_wait_startup";
     int foreign = kbo_schedule_foreign_priority_custom_events_for_date(source, today);
     int asian = kbo_schedule_asian_games_custom_events_for_date(today, source);
+    int asian_hold = kbo_maintain_asian_games_restricted_players(today, source);
     int cbt = kbo_schedule_cbt_custom_events_for_date(today, source);
     int independent = kbo_schedule_independent_team_acquisition_custom_events_for_date(today, source);
 
     kbo_log_runtimef(
-        "KBO startup custom event schedules primed source=%s today=%u foreign=%d asian=%d cbt=%d independent=%d",
+        "KBO startup custom event schedules primed source=%s today=%u foreign=%d asian=%d asian_hold=%d cbt=%d independent=%d",
         source,
         today,
         foreign,
         asian,
+        asian_hold,
         cbt,
         independent);
 }

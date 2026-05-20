@@ -149,6 +149,20 @@ int kbo_asian_games_finalize_selected_players(uint32_t event_yyyymmdd, const cha
             continue;
         }
 
+        uint32_t current_team_id = *(uint32_t*)(player + OOTP27_PLAYER_CURRENT_TEAM_ID_OFFSET);
+        uint32_t active_team_id = *(uint32_t*)(player + OOTP27_PLAYER_ACTIVE_TEAM_ID_OFFSET);
+        uint8_t* current_team = current_team_id != 0u && current_team_id != team_id
+            ? find_kbo_team_by_numeric_id_any_league(current_team_id, 0)
+            : NULL;
+        uint8_t* active_team = active_team_id != 0u && active_team_id != team_id && active_team_id != current_team_id
+            ? find_kbo_team_by_numeric_id_any_league(active_team_id, 0)
+            : NULL;
+        int removed_current = current_team != NULL
+            ? kbo_remove_player_id_from_known_team_roster_arrays(current_team, entry->player_id)
+            : 0;
+        int removed_active = active_team != NULL
+            ? kbo_remove_player_id_from_known_team_roster_arrays(active_team, entry->player_id)
+            : 0;
         int removed_restricted = kbo_remove_player_id_from_team_fixed_array(team, OOTP27_TEAM_RESTRICTED_PLAYER_IDS_OFFSET, entry->player_id);
         int added_assignment = kbo_add_player_id_to_team_assignment_arrays(team, entry->player_id);
         *(uint32_t*)(player + OOTP27_PLAYER_CURRENT_TEAM_ID_OFFSET) = team_id;
@@ -171,7 +185,7 @@ int kbo_asian_games_finalize_selected_players(uint32_t event_yyyymmdd, const cha
         entry->returned = 1u;
         returned++;
         kbo_log_runtimef(
-            "KBO Asian Games finalized #%ld player_id=%u team=%u league=%u result=%u gold=%d exempted=%u removed_restricted=%d added_assignment=%d restored_restricted=%u restored_secondary=%u restored_injury=%u restored_days=%d",
+            "KBO Asian Games finalized #%ld player_id=%u team=%u league=%u result=%u gold=%d exempted=%u removed_restricted=%d removed_current=%d removed_active=%d added_assignment=%d restored_restricted=%u restored_secondary=%u restored_injury=%u restored_days=%d",
             i + 1,
             entry->player_id,
             team_id,
@@ -180,6 +194,8 @@ int kbo_asian_games_finalize_selected_players(uint32_t event_yyyymmdd, const cha
             gold_won,
             (uint32_t)player[OOTP27_PLAYER_MILITARY_EXEMPT_OFFSET],
             removed_restricted,
+            removed_current,
+            removed_active,
             added_assignment,
             (uint32_t)entry->old_restricted,
             (uint32_t)entry->old_secondary_restricted,
