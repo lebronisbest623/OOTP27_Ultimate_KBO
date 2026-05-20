@@ -83,13 +83,8 @@ public sealed partial class SeasonReplayCaptainLifecycleTests
         }
 
         var calendarRecovery = CaptainCalendarSeasonRecoveryActive(date, inputs.LeagueSeason, inputs.Phase);
-        var calendarPreseason = CaptainCalendarPreseasonWindowActive(date, inputs.LeagueSeason, inputs.Phase);
-        var seedStartup = calendarPreseason && inputs.SeedAvailable;
-        var calendarPreseasonStart = CaptainCalendarPreseasonStartActive(
-            date,
-            inputs.LeagueSeason,
-            inputs.Phase,
-            calendarPreseason);
+        var seedStartup = CaptainSeedStartupWindowActive(date, effectiveSeason) && inputs.SeedAvailable;
+        var preseasonFirstDay = CaptainPreseasonFirstDayActive(date, inputs.LeagueSeason, inputs.Phase);
         var actions = new List<CaptainMaintenanceAction>();
 
         if (inputs.CsvExists && inputs.SummaryRowsAvailable)
@@ -102,28 +97,28 @@ public sealed partial class SeasonReplayCaptainLifecycleTests
             });
         }
 
-        if (inputs.Phase == 2 && !inputs.CsvExists)
+        if (seedStartup && !inputs.CsvExists)
         {
-            actions.Add(CaptainBootstrapAction(effectiveSeason, "phase_preseason_missing_csv"));
+            actions.Add(CaptainBootstrapAction(effectiveSeason, "seed_startup_missing_csv"));
             return actions;
         }
-        if ((seedStartup || calendarPreseasonStart) && !inputs.CsvExists)
+        if (preseasonFirstDay && !inputs.CsvExists)
         {
-            actions.Add(CaptainBootstrapAction(
-                effectiveSeason,
-                seedStartup ? "seed_startup_missing_csv" : "calendar_preseason_start_missing_csv"));
+            actions.Add(CaptainBootstrapAction(effectiveSeason, "preseason_first_day_missing_csv"));
             return actions;
         }
         if (inputs.Phase == 3)
         {
-            actions.Add(inputs.CsvExists
-                ? new CaptainMaintenanceAction
+            if (inputs.CsvExists)
+            {
+                actions.Add(new CaptainMaintenanceAction
                 {
                     Action = "inseason_repair",
                     Season = effectiveSeason,
                     Reason = "regular_season_existing_csv",
-                }
-                : CaptainBootstrapAction(effectiveSeason, "regular_season_missing_csv"));
+                });
+            }
+
             return actions;
         }
         if (calendarRecovery && inputs.CsvExists)
@@ -352,31 +347,11 @@ public sealed partial class SeasonReplayCaptainLifecycleTests
             && phase != 3;
     }
 
-    private static bool CaptainCalendarPreseasonWindowActive(DateOnly date, int leagueSeason, int phase)
+    private static bool CaptainPreseasonFirstDayActive(DateOnly date, int leagueSeason, int phase)
     {
-        if (!CaptainYearPlausible(leagueSeason) || phase == 2 || phase == 3)
-        {
-            return false;
-        }
-
-        var effectiveSeason = CaptainEffectiveSeason(date, leagueSeason);
-        return date.Year == effectiveSeason
-            && MonthDay(date) >= 301
-            && MonthDay(date) <= 415;
-    }
-
-    private static bool CaptainCalendarPreseasonStartActive(
-        DateOnly date,
-        int leagueSeason,
-        int phase,
-        bool calendarPreseason)
-    {
-        return calendarPreseason
-            && phase != 2
-            && phase != 3
+        return phase == 2
             && date.Year == CaptainEffectiveSeason(date, leagueSeason)
-            && MonthDay(date) >= 310
-            && MonthDay(date) <= 415;
+            && MonthDay(date) == 301;
     }
 
     private static bool CaptainSeedStartupWindowActive(DateOnly date, int season)

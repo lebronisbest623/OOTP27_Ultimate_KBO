@@ -78,3 +78,30 @@ int kbo_captain_calendar_preseason_window_active(
 
     return month_day >= 301u && month_day <= 415u;
 }
+
+int kbo_captain_preseason_first_day_active(
+    uint32_t date_yyyymmdd,
+    uint32_t league_season,
+    uint8_t phase)
+{
+    if (!kbo_captain_date_plausible(date_yyyymmdd) || phase != 2u) {
+        return 0;
+    }
+
+    uint32_t effective_season = kbo_captain_effective_season(date_yyyymmdd, league_season);
+    return (date_yyyymmdd / 10000u) == effective_season
+        && (date_yyyymmdd % 10000u) == 301u;
+}
+
+int kbo_captain_seed_startup_window_active(uint32_t date_yyyymmdd, uint32_t season)
+{
+    if (!kbo_captain_date_plausible(date_yyyymmdd) || !kbo_captain_year_plausible(season)) {
+        return 0;
+    }
+
+    uint32_t date_year = date_yyyymmdd / 10000u;
+    uint32_t month_day = date_yyyymmdd % 10000u;
+    return date_year == season
+        && month_day >= 301u
+        && month_day <= 415u;
+}

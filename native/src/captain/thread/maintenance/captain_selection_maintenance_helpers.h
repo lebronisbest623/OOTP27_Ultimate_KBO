@@ -16,7 +16,7 @@ void kbo_captain_audit_maintenance(
     int calendar_recovery,
     int calendar_preseason,
     int seed_startup,
-    int calendar_preseason_start);
+    int preseason_first_day);
 
 int kbo_captain_emit_initial_selection_news_from_csv_or_defer(
     uint32_t date,
@@ -28,7 +28,7 @@ int kbo_captain_emit_initial_selection_news_from_csv_or_defer(
     int calendar_recovery,
     int calendar_preseason,
     int seed_startup,
-    int calendar_preseason_start,
+    int preseason_first_day,
     const char* source);
 
 int kbo_captain_write_missing_csv_or_defer(

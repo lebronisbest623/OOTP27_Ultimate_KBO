@@ -127,11 +127,6 @@ int kbo_emit_captain_replacement_news(
     const KboCaptainSelectionRow* new_row,
     const char* source);
 int kbo_captain_current_yyyymmdd(uint32_t* out_date);
-int kbo_captain_calendar_preseason_start_active(
-    uint32_t date,
-    uint32_t league_season,
-    uint8_t phase,
-    int calendar_preseason);
 void kbo_captain_log_phase_observed(
     const char* source,
     uint32_t date,

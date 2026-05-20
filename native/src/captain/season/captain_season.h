@@ -12,5 +12,10 @@ int kbo_captain_calendar_preseason_window_active(
     uint32_t date_yyyymmdd,
     uint32_t league_season,
     uint8_t phase);
+int kbo_captain_preseason_first_day_active(
+    uint32_t date_yyyymmdd,
+    uint32_t league_season,
+    uint8_t phase);
+int kbo_captain_seed_startup_window_active(uint32_t date_yyyymmdd, uint32_t season);
 
 #endif

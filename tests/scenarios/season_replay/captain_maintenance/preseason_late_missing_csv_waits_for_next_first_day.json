@@ -1,0 +1,13 @@
+{
+  "name": "captain late preseason missing csv waits for next first day",
+  "kind": "captain.maintenance_decision",
+  "inputs": {
+    "date": "2026-03-10",
+    "league_season": 2026,
+    "phase": 2,
+    "league_ptr_available": true,
+    "csv_exists": false,
+    "seed_available": false
+  },
+  "expected_maintenance": []
+}

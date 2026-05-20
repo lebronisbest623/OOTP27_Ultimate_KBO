@@ -31,14 +31,10 @@ int kbo_run_captain_preseason_selection_once(const char* source)
     uint32_t league_season = phase_info.league_year;
     uint8_t phase = phase_info.effective_phase;
     uint32_t season = kbo_captain_effective_season(date, league_season);
-    int calendar_preseason = kbo_captain_calendar_preseason_window_active(date, league_season, phase);
-    int seed_startup = calendar_preseason && kbo_captain_seed_available_for_season(season, league_id);
-    int calendar_preseason_start = kbo_captain_calendar_preseason_start_active(
-        date,
-        league_season,
-        phase,
-        calendar_preseason);
-    if (season < 1982u || season > 2200u || (phase != 2u && !seed_startup && !calendar_preseason_start)) {
+    int preseason_first_day = kbo_captain_preseason_first_day_active(date, league_season, phase);
+    int seed_startup = kbo_captain_seed_startup_window_active(date, season)
+        && kbo_captain_seed_available_for_season(season, league_id);
+    if (season < 1982u || season > 2200u || (!preseason_first_day && !seed_startup)) {
         return 0;
     }
 
@@ -51,7 +47,7 @@ int kbo_run_captain_preseason_selection_once(const char* source)
             ? source
             : (seed_startup
                 ? "captain_seed_startup"
-                : (calendar_preseason_start ? "captain_calendar_preseason_start" : "captain_preseason_phase2")));
+                : "captain_preseason_first_day"));
 }
 
 static int kbo_captain_selection_sync_consumer(

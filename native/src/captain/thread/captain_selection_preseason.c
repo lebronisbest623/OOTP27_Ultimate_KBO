@@ -18,32 +18,6 @@ int kbo_captain_current_yyyymmdd(uint32_t* out_date)
     return 1;
 }
 
-int kbo_captain_calendar_preseason_start_active(
-    uint32_t date,
-    uint32_t league_season,
-    uint8_t phase,
-    int calendar_preseason)
-{
-    if (!calendar_preseason || phase == 2u || phase == 3u) {
-        return 0;
-    }
-    uint32_t effective_season = kbo_captain_effective_season(date, league_season);
-    return (date / 10000u) == effective_season
-        && (date % 10000u) >= 310u
-        && (date % 10000u) <= 415u;
-}
-
-static int kbo_captain_seed_startup_window_active(uint32_t date, uint32_t season)
-{
-    uint32_t date_year = date / 10000u;
-    uint32_t month_day = date % 10000u;
-    return season >= 1982u
-        && season <= 2200u
-        && date_year == season
-        && month_day >= 301u
-        && month_day <= 415u;
-}
-
 int kbo_captain_find_row_index_by_team(
     const KboCaptainSelectionRow* rows,
     int row_count,

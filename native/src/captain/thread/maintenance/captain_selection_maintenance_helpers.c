@@ -16,7 +16,7 @@ void kbo_captain_audit_maintenance(
     int calendar_recovery,
     int calendar_preseason,
     int seed_startup,
-    int calendar_preseason_start)
+    int preseason_first_day)
 {
     KboLogFields audit_fields;
     kbo_log_fields_init(&audit_fields);
@@ -29,7 +29,7 @@ void kbo_captain_audit_maintenance(
     kbo_log_field_i32(&audit_fields, "calendar_recovery", calendar_recovery);
     kbo_log_field_i32(&audit_fields, "calendar_preseason", calendar_preseason);
     kbo_log_field_i32(&audit_fields, "seed_startup", seed_startup);
-    kbo_log_field_i32(&audit_fields, "calendar_preseason_start", calendar_preseason_start);
+    kbo_log_field_i32(&audit_fields, "preseason_first_day", preseason_first_day);
     kbo_rule_audit_emit_fields(
         "captain.maintenance",
         decision,
@@ -48,7 +48,7 @@ int kbo_captain_emit_initial_selection_news_from_csv_or_defer(
     int calendar_recovery,
     int calendar_preseason,
     int seed_startup,
-    int calendar_preseason_start,
+    int preseason_first_day,
     const char* source)
 {
     if (kbo_captain_initial_selection_news_exists(season, league_id)) {
@@ -72,7 +72,7 @@ int kbo_captain_emit_initial_selection_news_from_csv_or_defer(
             calendar_recovery,
             calendar_preseason,
             seed_startup,
-            calendar_preseason_start);
+            preseason_first_day);
         return -1;
     }
 
@@ -96,7 +96,7 @@ int kbo_captain_emit_initial_selection_news_from_csv_or_defer(
             calendar_recovery,
             calendar_preseason,
             seed_startup,
-            calendar_preseason_start);
+            preseason_first_day);
         return 0;
     }
 
@@ -113,7 +113,7 @@ int kbo_captain_emit_initial_selection_news_from_csv_or_defer(
         calendar_recovery,
         calendar_preseason,
         seed_startup,
-        calendar_preseason_start);
+        preseason_first_day);
     int result = kbo_emit_captain_initial_selection_news(
         date,
         season,
@@ -138,7 +138,7 @@ int kbo_captain_emit_initial_selection_news_from_csv_or_defer(
         calendar_recovery,
         calendar_preseason,
         seed_startup,
-        calendar_preseason_start);
+        preseason_first_day);
     return -1;
 }
 

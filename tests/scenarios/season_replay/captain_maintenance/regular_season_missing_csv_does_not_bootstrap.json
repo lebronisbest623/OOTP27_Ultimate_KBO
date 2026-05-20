@@ -1,0 +1,13 @@
+{
+  "name": "captain regular season missing csv does not bootstrap",
+  "kind": "captain.maintenance_decision",
+  "inputs": {
+    "date": "2026-04-21",
+    "league_season": 2026,
+    "phase": 3,
+    "league_ptr_available": true,
+    "csv_exists": false,
+    "seed_available": false
+  },
+  "expected_maintenance": []
+}

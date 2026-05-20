@@ -1,5 +1,5 @@
 {
-  "name": "captain preseason phase bootstraps missing csv",
+  "name": "captain seed startup bootstraps with league pointer",
   "kind": "captain.maintenance_decision",
   "inputs": {
     "date": "2026-03-10",
@@ -7,13 +7,13 @@
     "phase": 2,
     "league_ptr_available": true,
     "csv_exists": false,
-    "seed_available": false
+    "seed_available": true
   },
   "expected_maintenance": [
     {
       "action": "write_missing_selection_csv",
       "season": 2026,
-      "reason": "phase_preseason_missing_csv"
+      "reason": "seed_startup_missing_csv"
     }
   ]
 }
