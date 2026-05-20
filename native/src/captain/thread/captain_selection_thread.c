@@ -51,19 +51,6 @@ int kbo_run_captain_preseason_selection_once(const char* source)
                 : "captain_preseason_first_day"));
 }
 
-static int kbo_captain_selection_sync_consumer(
-    uint32_t date,
-    uint32_t site_rva,
-    void* context)
-{
-    (void)context;
-    const char* source = site_rva == KBO_CURRENT_DATE_TICK_SAVE_ENTER_SITE_RVA
-        ? "captain_selection_sync_save_enter"
-        : "captain_selection_sync_post_advance";
-    int result = kbo_run_captain_selection_maintenance_for_date(date, source);
-    return result >= 0 && !kbo_runtime_save_in_progress();
-}
-
 DWORD WINAPI kbo_captain_preseason_selection_thread(LPVOID parameter)
 {
     (void)parameter;
@@ -82,7 +69,13 @@ DWORD WINAPI kbo_captain_preseason_selection_thread(LPVOID parameter)
 
         KboCurrentDateTickWork work = {0};
         while (kbo_current_date_tick_consumer_next(&consumer, &work)) {
-            (void)work;
+            const char* source = work.site_rva == KBO_CURRENT_DATE_TICK_SAVE_ENTER_SITE_RVA
+                ? "captain_selection_background_save_enter"
+                : "captain_selection_background_post_advance";
+            int result = kbo_run_captain_selection_maintenance_for_date(work.date, source);
+            if (result < 0 || kbo_runtime_save_in_progress()) {
+                break;
+            }
             kbo_current_date_tick_consumer_mark_processed(&consumer);
         }
 
@@ -101,10 +94,6 @@ void start_kbo_captain_preseason_selection_thread(void)
     if (InterlockedCompareExchange(&g_kbo_captain_preseason_thread_started, 1, 0) != 0) {
         return;
     }
-    kbo_current_date_tick_register_sync_consumer(
-        "captain_selection_thread",
-        kbo_captain_selection_sync_consumer,
-        NULL);
 
     if (!kbo_start_runtime_thread(kbo_captain_preseason_selection_thread, NULL, "captain selection maintenance")) {
         InterlockedExchange(&g_kbo_captain_preseason_thread_started, 0);

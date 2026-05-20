@@ -96,16 +96,6 @@ static int kbo_foreign_roster_daily_process_date_critical(
 
     KBO_PROFILE_BEGIN(profile_foreign_roster_daily_tick);
 
-    if (kbo_foreign_roster_daily_abort_if_save("before_independent_acquisition", today)) {
-        KBO_PROFILE_END(profile_foreign_roster_daily_tick, "foreign_roster.daily.sync.date_critical.save_abort.before_independent_acquisition");
-        return 0;
-    }
-    KBO_PROFILE_BEGIN(profile_foreign_roster_daily_independent_acquisition);
-    kbo_run_independent_team_acquisition_ai_for_date(
-        today,
-        source != NULL ? source : "foreign_roster_daily_sync");
-    KBO_PROFILE_END(profile_foreign_roster_daily_independent_acquisition, "foreign_roster.daily.sync.independent_acquisition");
-
     if (kbo_foreign_roster_daily_abort_if_save("before_rights_sync", today)) {
         KBO_PROFILE_END(profile_foreign_roster_daily_tick, "foreign_roster.daily.sync.date_critical.save_abort.before_rights_sync");
         return 0;
@@ -139,6 +129,16 @@ static int kbo_foreign_roster_daily_process_background_date(
     }
 
     KBO_PROFILE_BEGIN(profile_foreign_roster_daily_tick);
+
+    if (kbo_foreign_roster_daily_abort_if_save("before_independent_acquisition", today)) {
+        KBO_PROFILE_END(profile_foreign_roster_daily_tick, "foreign_roster.daily.background.save_abort.before_independent_acquisition");
+        return 0;
+    }
+    KBO_PROFILE_BEGIN(profile_foreign_roster_daily_independent_acquisition);
+    kbo_run_independent_team_acquisition_ai_for_date(
+        today,
+        source != NULL ? source : "foreign_roster_daily_background");
+    KBO_PROFILE_END(profile_foreign_roster_daily_independent_acquisition, "foreign_roster.daily.background.independent_acquisition");
 
     if (kbo_foreign_roster_daily_abort_if_save("before_dirty_ai_callup", today)) {
         KBO_PROFILE_END(profile_foreign_roster_daily_tick, "foreign_roster.daily.background.save_abort.before_dirty_ai_callup");

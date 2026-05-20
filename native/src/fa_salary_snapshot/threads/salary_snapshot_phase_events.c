@@ -156,21 +156,6 @@ static void kbo_fa_salary_snapshot_try_pending_phase_event(uint32_t date)
     }
 }
 
-static int kbo_fa_salary_snapshot_phase_sync_consumer(
-    uint32_t date,
-    uint32_t site_rva,
-    void* context)
-{
-    (void)site_rva;
-    (void)context;
-    if (!kbo_fix_enabled()) {
-        return 1;
-    }
-    kbo_fa_salary_snapshot_drain_phase_events_once();
-    kbo_fa_salary_snapshot_try_pending_phase_event(date);
-    return 1;
-}
-
 static DWORD WINAPI kbo_fa_salary_snapshot_phase_event_thread(LPVOID parameter)
 {
     (void)parameter;
@@ -224,10 +209,6 @@ void start_kbo_fa_salary_snapshot_phase_event_thread(void)
     if (InterlockedCompareExchange(&g_kbo_fa_salary_snapshot_phase_event_thread_started, 1, 0) != 0) {
         return;
     }
-    kbo_current_date_tick_register_sync_consumer(
-        "fa_salary_snapshot_phase_events",
-        kbo_fa_salary_snapshot_phase_sync_consumer,
-        NULL);
 
     if (!kbo_start_runtime_thread(
             kbo_fa_salary_snapshot_phase_event_thread,

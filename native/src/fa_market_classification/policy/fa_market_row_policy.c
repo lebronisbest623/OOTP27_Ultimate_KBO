@@ -1,6 +1,41 @@
 #include "../internal/fa_market_policy_internal.h"
 #include "../../core/dates/constants/kbo_date_constants.h"
 
+static void kbo_fa_market_reason_append(char* reason, size_t reason_size, const char* text)
+{
+    if (reason == NULL || reason_size == 0u || text == NULL) {
+        return;
+    }
+
+    size_t pos = 0u;
+    while (pos < reason_size && reason[pos] != '\0') {
+        pos++;
+    }
+    if (pos >= reason_size) {
+        reason[reason_size - 1u] = '\0';
+        return;
+    }
+
+    for (size_t i = 0u; text[i] != '\0' && pos + 1u < reason_size; i++) {
+        reason[pos++] = text[i];
+    }
+    reason[pos] = '\0';
+}
+
+static void kbo_fa_market_reason_append_u32(char* reason, size_t reason_size, uint32_t value)
+{
+    char text[16] = {0};
+    snprintf(text, sizeof(text), "%u", value);
+    kbo_fa_market_reason_append(reason, reason_size, text);
+}
+
+static void kbo_fa_market_reason_append_i32(char* reason, size_t reason_size, int32_t value)
+{
+    char text[16] = {0};
+    snprintf(text, sizeof(text), "%d", value);
+    kbo_fa_market_reason_append(reason, reason_size, text);
+}
+
 int kbo_fa_market_row_is_undrafted_domestic(const KboFaMarketClassification* row)
 {
     if (row == NULL
@@ -288,15 +323,10 @@ int kbo_fa_market_apply_age_grade_override(KboFaMarketClassification* row, const
     if (_stricmp(row->grade, rules->age_grade) != 0) {
         snprintf(row->grade, sizeof(row->grade), "%s", rules->age_grade);
         row->fa_grade_auto = 1u;
-        char previous_reason[224] = {0};
-        snprintf(previous_reason, sizeof(previous_reason), "%s", row->reason);
-        snprintf(
-            row->reason,
-            sizeof(row->reason),
-            "%s; age >= %u FA grade override=%s",
-            previous_reason,
-            rules->age_grade_min_age,
-            rules->age_grade);
+        kbo_fa_market_reason_append(row->reason, sizeof(row->reason), "; age >= ");
+        kbo_fa_market_reason_append_u32(row->reason, sizeof(row->reason), rules->age_grade_min_age);
+        kbo_fa_market_reason_append(row->reason, sizeof(row->reason), " FA grade override=");
+        kbo_fa_market_reason_append(row->reason, sizeof(row->reason), rules->age_grade);
     }
     snprintf(row->fa_grade_flag, sizeof(row->fa_grade_flag), "AGE_%u_%s", rules->age_grade_min_age, rules->age_grade);
     return 1;
@@ -345,17 +375,14 @@ void kbo_fa_market_apply_salary_snapshot_grade(
             && !kbo_fa_market_grade_is_unknown(grade->grade)) {
         snprintf(row->grade, sizeof(row->grade), "%s", grade->grade);
         row->fa_grade_auto = 1u;
-        char previous_reason[224] = {0};
-        snprintf(previous_reason, sizeof(previous_reason), "%s", row->reason);
-        snprintf(
-            row->reason,
-            sizeof(row->reason),
-            "%s; opening-day salary grade=%s salary=%d overall_rank=%u team_rank=%u",
-            previous_reason,
-            row->grade,
-            row->fa_grade_salary,
-            row->fa_grade_overall_rank,
-            row->fa_grade_team_rank);
+        kbo_fa_market_reason_append(row->reason, sizeof(row->reason), "; opening-day salary grade=");
+        kbo_fa_market_reason_append(row->reason, sizeof(row->reason), row->grade);
+        kbo_fa_market_reason_append(row->reason, sizeof(row->reason), " salary=");
+        kbo_fa_market_reason_append_i32(row->reason, sizeof(row->reason), row->fa_grade_salary);
+        kbo_fa_market_reason_append(row->reason, sizeof(row->reason), " overall_rank=");
+        kbo_fa_market_reason_append_u32(row->reason, sizeof(row->reason), row->fa_grade_overall_rank);
+        kbo_fa_market_reason_append(row->reason, sizeof(row->reason), " team_rank=");
+        kbo_fa_market_reason_append_u32(row->reason, sizeof(row->reason), row->fa_grade_team_rank);
     }
 
     if (row->original_team_id != 0u
