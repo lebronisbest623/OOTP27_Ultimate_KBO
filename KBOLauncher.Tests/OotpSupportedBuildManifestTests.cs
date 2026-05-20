@@ -21,8 +21,8 @@ public sealed class OotpSupportedBuildManifestTests
             .ToArray();
         var nativeBuilds = ReadNativeGeneratedBuilds();
 
-        managedBuilds.Should().Equal(manifestBuilds);
-        nativeBuilds.Should().Equal(manifestBuilds.Select(build => build.NativeRow).ToArray());
+        managedBuilds.Should().Equal(manifestBuilds.Select(build => build.ManagedRow));
+        nativeBuilds.Should().Equal(manifestBuilds.Select(build => build.NativeRow));
     }
 
     [Fact]
@@ -38,12 +38,33 @@ public sealed class OotpSupportedBuildManifestTests
     }
 
     [Fact]
-    public void NativeBuildSpecificRvaResolver_CoversEveryOfficialExperimentalBuildForCriticalRvas()
+    public void BuildRvaManifest_MatchesGeneratedNativeRvaTableAndCanonicalHeader()
     {
-        var officialExperimentalBuilds = ReadManifestBuilds()
-            .Where(build => build.ExperimentalSignature && build.Label.Contains("Official", StringComparison.OrdinalIgnoreCase))
+        var nativePatchBuilds = ReadManifestBuilds()
+            .Where(build => build.NativePatchesSupported)
             .ToArray();
-        var resolverText = File.ReadAllText(RepoPath("native", "src", "build_verify", "build_verify.c"));
+        var manifestRvas = ReadRvaManifestRows();
+        var expectedNativeRows = nativePatchBuilds
+            .SelectMany(build => manifestRvas.Select(rva => new NativeRvaRow(
+                build.Timestamp,
+                build.SizeOfImage,
+                rva.CanonicalRva,
+                rva.BuildRvas[build.Id],
+                rva.Name)))
+            .ToArray();
+        var expectedCanonicalRvas = manifestRvas.ToDictionary(row => row.Name, row => row.CanonicalRva);
+
+        ReadNativeGeneratedRvaRows().Should().Equal(expectedNativeRows);
+        ReadGeneratedCanonicalRvas().Should().Equal(expectedCanonicalRvas);
+    }
+
+    [Fact]
+    public void NativePatchSupportedBuilds_HaveCriticalRvasMapped()
+    {
+        var nativePatchBuilds = ReadManifestBuilds()
+            .Where(build => build.NativePatchesSupported)
+            .ToArray();
+        var manifestRvas = ReadRvaManifestRows().ToDictionary(row => row.Name);
         var criticalRvas = new[]
         {
             "OOTP27_CREATE_LEAGUE_EVENT_RVA",
@@ -54,63 +75,50 @@ public sealed class OotpSupportedBuildManifestTests
             "OOTP27_CREATE_MESSAGE_CORE_RVA",
             "OOTP27_UI_OPERATOR_NEW_RVA",
             "OOTP27_LEAGUE_FINANCIALS_LOOKUP_RVA",
-        };
-
-        foreach (var build in officialExperimentalBuilds)
-        {
-            var token = ToNativeBuildMacroToken(build.Label);
-            resolverText.Should().Contain($"KBO_SUPPORTED_OOTP_BUILD_{token}_TIMESTAMP");
-            resolverText.Should().Contain($"KBO_SUPPORTED_OOTP_BUILD_{token}_SIZE_OF_IMAGE");
-        }
-
-        foreach (var rva in criticalRvas)
-        {
-            Regex.Matches(resolverText, $"case {rva}:").Count.Should().Be(officialExperimentalBuilds.Length);
-        }
-    }
-
-    [Fact]
-    public void OfficialBuilds_OnlyEnableNativePatchesWhenDirectFunctionRvasAreMapped()
-    {
-        var officialBuilds = ReadManifestBuilds()
-            .Where(build => build.ExperimentalSignature && build.Label.Contains("Official", StringComparison.OrdinalIgnoreCase))
-            .ToArray();
-        var resolverText = File.ReadAllText(RepoPath("native", "src", "build_verify", "build_verify.c"));
-        var requiredDirectFunctionRvas = new[]
-        {
             "OOTP27_ALLSTAR_TEAM_SETUP_FUNC_RVA",
             "OOTP27_ALLSTAR_CANDIDATE_REBUILD_FUNC_RVA",
             "OOTP27_MAKE_ALLSTAR_GAME_EVENTS_RVA",
+            "OOTP27_AMATEUR_GENERATION_TEAM_ADD_CALLER_00A30BA0_RVA",
+            "OOTP27_ARBITRATION_NON_TENDER_RETURN_006820C6_RVA",
         };
 
-        if (officialBuilds.Length == 0)
+        foreach (var rva in criticalRvas)
         {
-            resolverText.Should().NotContain("KBO_SUPPORTED_OOTP_BUILD_OFFICIAL");
-            return;
-        }
-
-        foreach (var build in officialBuilds.Where(build => build.NativePatchesSupported))
-        {
-            var token = ToNativeBuildMacroToken(build.Label);
-            resolverText.Should().Contain($"KBO_SUPPORTED_OOTP_BUILD_{token}_TIMESTAMP");
-            foreach (var rva in requiredDirectFunctionRvas)
+            manifestRvas.Should().ContainKey(rva);
+            foreach (var build in nativePatchBuilds)
             {
-                resolverText.Should().Contain($"case {rva}:");
+                manifestRvas[rva].BuildRvas.Should().ContainKey(build.Id);
             }
         }
     }
 
-    private static SupportedBuildRow[] ReadManifestBuilds()
+    private static SupportedBuildManifestRow[] ReadManifestBuilds()
     {
         using var doc = JsonDocument.Parse(File.ReadAllText(RepoPath("config", "ootp-supported-builds.json")));
         return doc.RootElement.GetProperty("builds")
             .EnumerateArray()
-            .Select(build => new SupportedBuildRow(
+            .Select(build => new SupportedBuildManifestRow(
+                build.GetProperty("id").GetString()!,
                 ParseHexUInt32(build.GetProperty("timestamp").GetString()!),
                 ParseHexUInt32(build.GetProperty("sizeOfImage").GetString()!),
                 build.GetProperty("label").GetString()!,
                 build.TryGetProperty("experimentalSignature", out var experimentalSignature) && experimentalSignature.GetBoolean(),
                 build.TryGetProperty("nativePatchesSupported", out var nativePatchesSupported) && nativePatchesSupported.GetBoolean()))
+            .ToArray();
+    }
+
+    private static RvaManifestRow[] ReadRvaManifestRows()
+    {
+        using var doc = JsonDocument.Parse(File.ReadAllText(RepoPath("config", "ootp-build-rvas.json")));
+        doc.RootElement.GetProperty("canonicalBuildId").GetString().Should().NotBeNullOrWhiteSpace();
+        return doc.RootElement.GetProperty("rvas")
+            .EnumerateArray()
+            .Select(row => new RvaManifestRow(
+                row.GetProperty("name").GetString()!,
+                ParseHexUInt32(row.GetProperty("canonicalRva").GetString()!),
+                row.GetProperty("builds")
+                    .EnumerateObject()
+                    .ToDictionary(build => build.Name, build => ParseHexUInt32(build.Value.GetString()!))))
             .ToArray();
     }
 
@@ -126,6 +134,32 @@ public sealed class OotpSupportedBuildManifestTests
                 match.Groups["label"].Value,
                 match.Groups["native"].Value == "1"))
             .ToArray();
+    }
+
+    private static NativeRvaRow[] ReadNativeGeneratedRvaRows()
+    {
+        var text = File.ReadAllText(RepoPath("native", "src", "build_verify", "build_rvas.generated.c"));
+        return Regex.Matches(
+                text,
+                "\\{0x(?<timestamp>[0-9A-Fa-f]{8})u, 0x(?<size>[0-9A-Fa-f]{8})u, 0x(?<canonical>[0-9A-Fa-f]{8})u, 0x(?<build>[0-9A-Fa-f]{8})u, \"(?<name>[^\"]+)\"\\},")
+            .Select(match => new NativeRvaRow(
+                Convert.ToUInt32(match.Groups["timestamp"].Value, 16),
+                Convert.ToUInt32(match.Groups["size"].Value, 16),
+                Convert.ToUInt32(match.Groups["canonical"].Value, 16),
+                Convert.ToUInt32(match.Groups["build"].Value, 16),
+                match.Groups["name"].Value))
+            .ToArray();
+    }
+
+    private static Dictionary<string, uint> ReadGeneratedCanonicalRvas()
+    {
+        var text = File.ReadAllText(RepoPath("native", "src", "bootstrap", "abi", "ootp_rvas.generated.h"));
+        return Regex.Matches(
+                text,
+                "#define (?<name>OOTP27_[A-Z0-9_]+_RVA) 0x(?<rva>[0-9A-Fa-f]{8})u")
+            .ToDictionary(
+                match => match.Groups["name"].Value,
+                match => Convert.ToUInt32(match.Groups["rva"].Value, 16));
     }
 
     private static uint ParseHexUInt32(string value)
@@ -150,20 +184,17 @@ public sealed class OotpSupportedBuildManifestTests
         throw new FileNotFoundException("Could not find repository file.", Path.Combine(parts));
     }
 
-    private static string ToNativeBuildMacroToken(string label)
+    private sealed record SupportedBuildManifestRow(
+        string Id,
+        uint Timestamp,
+        uint SizeOfImage,
+        string Label,
+        bool ExperimentalSignature,
+        bool NativePatchesSupported)
     {
-        var version = Regex.Match(label, @"\d+\.\d+\.\d+");
-        if (label.Contains("Official", StringComparison.OrdinalIgnoreCase) && version.Success)
-        {
-            return "OFFICIAL_" + version.Value.Replace('.', '_');
-        }
+        public SupportedBuildRow ManagedRow => new(Timestamp, SizeOfImage, Label, ExperimentalSignature, NativePatchesSupported);
 
-        if (label.Contains("Steam", StringComparison.OrdinalIgnoreCase))
-        {
-            return "STEAM_" + Regex.Replace(label, @"[^0-9]+", "_").Trim('_');
-        }
-
-        return Regex.Replace(label.ToUpperInvariant(), "[^A-Z0-9]+", "_").Trim('_');
+        public NativeBuildRow NativeRow => new(Timestamp, SizeOfImage, Label, NativePatchesSupported);
     }
 
     private sealed record SupportedBuildRow(
@@ -171,10 +202,11 @@ public sealed class OotpSupportedBuildManifestTests
         uint SizeOfImage,
         string Label,
         bool ExperimentalSignature,
-        bool NativePatchesSupported)
-    {
-        public NativeBuildRow NativeRow => new(Timestamp, SizeOfImage, Label, NativePatchesSupported);
-    }
+        bool NativePatchesSupported);
 
     private sealed record NativeBuildRow(uint Timestamp, uint SizeOfImage, string Label, bool NativePatchesSupported);
+
+    private sealed record RvaManifestRow(string Name, uint CanonicalRva, Dictionary<string, uint> BuildRvas);
+
+    private sealed record NativeRvaRow(uint Timestamp, uint SizeOfImage, uint CanonicalRva, uint BuildRva, string Name);
 }

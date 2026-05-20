@@ -1,4 +1,5 @@
 #include "../no_withdraw/arbitration_no_withdraw_patch_module.h"
+#include "../../../build_verify/build_verify.h"
 
 int32_t kbo_salary_arbitration_resolve_minimum_salary(uint32_t league_id)
 {
@@ -18,9 +19,9 @@ uintptr_t kbo_salary_arbitration_caller_rva(void* return_address)
 
 int kbo_salary_arbitration_is_known_non_tender_return(uintptr_t caller_rva)
 {
-    return caller_rva == 0x0067C0F1u
-        || caller_rva == 0x00681B6Bu
-        || caller_rva == 0x006820C6u;
+    return kbo_current_build_caller_rva_matches(caller_rva, OOTP27_ARBITRATION_NON_TENDER_RETURN_0067C0F1_RVA)
+        || kbo_current_build_caller_rva_matches(caller_rva, OOTP27_ARBITRATION_NON_TENDER_RETURN_00681B6B_RVA)
+        || kbo_current_build_caller_rva_matches(caller_rva, OOTP27_ARBITRATION_NON_TENDER_RETURN_006820C6_RVA);
 }
 
 int patch_kbo_salary_arbitration_r11_detour_at(

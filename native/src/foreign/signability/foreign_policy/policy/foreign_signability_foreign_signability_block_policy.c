@@ -1,5 +1,6 @@
 #include "../internal/foreign_signability_internal.h"
 #include "foreign_signability_reserve_log.h"
+#include "../../../../build_verify/build_verify.h"
 #include "../../../../core/core_flags/keys/runtime_flag_keys.generated.h"
 
 /* Foreign-player signability block and adjustment policy. */
@@ -235,7 +236,7 @@ int kbo_enforce_foreign_waiver_signability(
             }
 
             uint32_t team_id = (uint32_t)requesting_team_id;
-            if (caller_rva == OOTP27_FOREIGN_SIGNABILITY_FA_LIST_DISPLAY_CALLER_RVA
+            if (kbo_current_build_caller_rva_matches(caller_rva, OOTP27_FOREIGN_SIGNABILITY_FA_LIST_DISPLAY_CALLER_RVA)
                     && team_id != holder_team_id) {
                 kbo_log_foreign_reserve_blocked_display_signability(
                     player,

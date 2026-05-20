@@ -1,6 +1,7 @@
 #include "season_phase.h"
 
 #include "../../../bootstrap/abi/ootp_offsets.h"
+#include "../../../build_verify/build_verify.h"
 #include "../../dates/core_text_date.h"
 #include "../../dates/constants/kbo_date_constants.h"
 
@@ -67,8 +68,8 @@ int kbo_season_phase_is_preseason_or_regular(uint8_t phase)
 
 int kbo_season_phase_site_is_offseason_transition(uint32_t site_rva)
 {
-    return site_rva == OOTP27_SEASON_PHASE_WRITE_1_RVA
-        || site_rva == OOTP27_SEASON_PHASE_WRITE_0_RVA;
+    return kbo_current_build_rva_matches(site_rva, OOTP27_SEASON_PHASE_WRITE_1_RVA)
+        || kbo_current_build_rva_matches(site_rva, OOTP27_SEASON_PHASE_WRITE_0_RVA);
 }
 
 int kbo_season_phase_info_has_today_offseason_transition_capture(

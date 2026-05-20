@@ -278,19 +278,7 @@ int kbo_fa_filing_find_latest_player(
 
 int kbo_fa_filing_is_official_transition_caller(uintptr_t caller_rva)
 {
-    if (caller_rva == OOTP27_FA_FILING_OFFICIAL_TRANSITION_RETURN_RVA) {
-        return 1;
-    }
-
-    HMODULE exe = GetModuleHandleA(NULL);
-    void* mapped = kbo_resolve_build_specific_rva_ptr(
-        exe,
-        OOTP27_FA_FILING_OFFICIAL_TRANSITION_RETURN_RVA);
-    if (exe == NULL || mapped == NULL || (uintptr_t)mapped < (uintptr_t)exe) {
-        return 0;
-    }
-
-    return caller_rva == (uintptr_t)mapped - (uintptr_t)exe;
+    return kbo_current_build_caller_rva_matches(caller_rva, OOTP27_FA_FILING_OFFICIAL_TRANSITION_RETURN_RVA);
 }
 
 uint32_t kbo_fa_filing_team_league_id(uint32_t team_id)

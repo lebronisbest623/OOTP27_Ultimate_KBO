@@ -2,9 +2,9 @@
 #include <windows.h>
 
 #include "build_verify.h"
-#include "../bootstrap/abi/ootp_offsets.h"
 #include "../core/logging/core_log.h"
 
+#include "build_rvas.generated.h"
 #include "supported_builds.generated.h"
 
 OotpBuildInfo read_ootp_build_info(void)
@@ -48,6 +48,27 @@ const OotpSupportedBuild* kbo_supported_ootp_build_at(size_t index)
     return &KBO_SUPPORTED_OOTP_BUILDS[index];
 }
 
+static OotpBuildInfo kbo_cached_ootp_build_info(void)
+{
+    static volatile LONG state = 0;
+    static OotpBuildInfo cached_info = {0};
+
+    if (InterlockedCompareExchange(&state, 2, 2) == 2) {
+        return cached_info;
+    }
+
+    if (InterlockedCompareExchange(&state, 1, 0) == 0) {
+        cached_info = read_ootp_build_info();
+        InterlockedExchange(&state, 2);
+        return cached_info;
+    }
+
+    while (InterlockedCompareExchange(&state, 2, 2) != 2) {
+        Sleep(0);
+    }
+    return cached_info;
+}
+
 int kbo_ootp_build_is_steam_2026_05_04(OotpBuildInfo info)
 {
     return info.ok
@@ -55,19 +76,104 @@ int kbo_ootp_build_is_steam_2026_05_04(OotpBuildInfo info)
         && info.size_of_image == KBO_SUPPORTED_OOTP_BUILD_STEAM_2026_05_04_SIZE_OF_IMAGE;
 }
 
-void* kbo_resolve_build_specific_rva_ptr(HMODULE exe, uint32_t steam_rva)
+static const OotpBuildRva* kbo_find_build_rva(OotpBuildInfo info, uint32_t canonical_rva)
+{
+    if (!info.ok) {
+        return NULL;
+    }
+
+    for (size_t i = 0; i < KBO_BUILD_RVA_COUNT; ++i) {
+        const OotpBuildRva* rva = &KBO_BUILD_RVAS[i];
+        if (rva->timestamp == info.timestamp
+                && rva->size_of_image == info.size_of_image
+                && rva->canonical_rva == canonical_rva) {
+            return rva;
+        }
+    }
+
+    return NULL;
+}
+
+int kbo_resolve_build_specific_rva(uint32_t canonical_rva, uint32_t* out_rva)
+{
+    if (out_rva == NULL) {
+        return 0;
+    }
+    *out_rva = 0u;
+
+    OotpBuildInfo info = kbo_cached_ootp_build_info();
+    const OotpBuildRva* rva = kbo_find_build_rva(info, canonical_rva);
+    if (rva == NULL || rva->build_rva == 0u) {
+        return 0;
+    }
+
+    *out_rva = rva->build_rva;
+    return 1;
+}
+
+void* kbo_resolve_build_specific_rva_ptr(HMODULE exe, uint32_t canonical_rva)
 {
     if (exe == NULL) {
         return NULL;
     }
 
-    OotpBuildInfo info = read_ootp_build_info();
     uint32_t rva = 0u;
-    if (kbo_ootp_build_is_steam_2026_05_04(info)) {
-        rva = steam_rva;
+    if (!kbo_resolve_build_specific_rva(canonical_rva, &rva)) {
+        return NULL;
     }
 
-    return rva != 0u ? (void*)((uint8_t*)exe + rva) : NULL;
+    return (void*)((uint8_t*)exe + rva);
+}
+
+int kbo_resolve_build_specific_rva_delta(
+    uint32_t from_canonical_rva,
+    uint32_t to_canonical_rva,
+    intptr_t* out_delta)
+{
+    if (out_delta == NULL) {
+        return 0;
+    }
+    *out_delta = 0;
+
+    uint32_t from_rva = 0u;
+    uint32_t to_rva = 0u;
+    if (!kbo_resolve_build_specific_rva(from_canonical_rva, &from_rva)
+            || !kbo_resolve_build_specific_rva(to_canonical_rva, &to_rva)) {
+        return 0;
+    }
+
+    *out_delta = (intptr_t)((int64_t)to_rva - (int64_t)from_rva);
+    return 1;
+}
+
+void* kbo_resolve_build_specific_rva_related_ptr(
+    HMODULE exe,
+    void* from_ptr,
+    uint32_t from_canonical_rva,
+    uint32_t to_canonical_rva)
+{
+    if (exe == NULL || from_ptr == NULL) {
+        return NULL;
+    }
+
+    intptr_t delta = 0;
+    if (!kbo_resolve_build_specific_rva_delta(from_canonical_rva, to_canonical_rva, &delta)) {
+        return NULL;
+    }
+
+    return (void*)((uint8_t*)from_ptr + delta);
+}
+
+int kbo_current_build_rva_matches(uintptr_t rva, uint32_t canonical_rva)
+{
+    uint32_t build_rva = 0u;
+    return kbo_resolve_build_specific_rva(canonical_rva, &build_rva)
+        && rva == (uintptr_t)build_rva;
+}
+
+int kbo_current_build_caller_rva_matches(uintptr_t caller_rva, uint32_t canonical_rva)
+{
+    return kbo_current_build_rva_matches(caller_rva, canonical_rva);
 }
 
 int verify_ootp_build(void)

@@ -205,9 +205,9 @@ __declspec(noinline) void ootp_kbo_fa_offer_player_demand_floor_probe(
 {
     KBO_HOOK_PROFILE_BEGIN(profile_hook);
     const char* source = "offer_build";
-    if (source_rva == OOTP27_NO_MINOR_CONTRACT_FA_OFFER_DEMAND_FLOOR_17A79BB_RVA) {
+    if (kbo_current_build_rva_matches(source_rva, OOTP27_NO_MINOR_CONTRACT_FA_OFFER_DEMAND_FLOOR_17A79BB_RVA)) {
         source = "offer_build_17A79BB";
-    } else if (source_rva == OOTP27_NO_MINOR_CONTRACT_FA_OFFER_DEMAND_FLOOR_17B50B4_RVA) {
+    } else if (kbo_current_build_rva_matches(source_rva, OOTP27_NO_MINOR_CONTRACT_FA_OFFER_DEMAND_FLOOR_17B50B4_RVA)) {
         source = "offer_build_17B50B4";
     }
     kbo_no_minor_clamp_player_demand_salary(player_ptr, screen_ptr, source);

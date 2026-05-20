@@ -93,7 +93,15 @@ int install_allstar_voting_begin_prepare_patch(void)
         log_extended_context("KBO all-star voting begin prepare hook", target, 16, 96);
     } else {
         void* return_address = target + sizeof(april_expected);
-        void* no_game_address = target + (OOTP27_ALLSTAR_VOTING_BEGIN_NO_GAME_RVA - OOTP27_ALLSTAR_VOTING_BEGIN_PREP_SITE_RVA);
+        void* no_game_address = kbo_resolve_build_specific_rva_related_ptr(
+            exe,
+            target,
+            OOTP27_ALLSTAR_VOTING_BEGIN_PREP_SITE_RVA,
+            OOTP27_ALLSTAR_VOTING_BEGIN_NO_GAME_RVA);
+        if (no_game_address == NULL) {
+            kbo_log_runtime_line("KBO all-star voting begin prepare hook skipped: no-game target unresolved");
+            return 0;
+        }
         void* allstar_team_setup_address = resolve_allstar_team_setup_address();
         uint8_t* stub = build_allstar_voting_begin_prepare_stub(return_address, no_game_address, allstar_team_setup_address, layout.game_flag_offset);
         if (stub == NULL) {

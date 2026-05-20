@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "../../bootstrap/abi/ootp_offsets.h"
+#include "../../build_verify/build_verify.h"
 #include "../../core/logging/core_log.h"
 #include "../../core/dates/core_current_date.h"
 #include "../../core/files/save_paths/core_save_paths.h"
@@ -32,7 +33,16 @@ uint8_t* resolve_patch_target_by_rva_or_context_pattern(
         return NULL;
     }
 
-    uint8_t* target = NULL;
+    uint8_t* target = (uint8_t*)kbo_resolve_build_specific_rva_ptr(exe, rva);
+    if (memory_range_readable(target, expected_size) && memcmp(target, expected, expected_size) == 0) {
+        kbo_log_runtimef(
+            "%s resolved by RVA table target=%p rva=0x%llx original_rva=0x%08X",
+            patch_label,
+            target,
+            (unsigned long long)((uintptr_t)target - (uintptr_t)exe),
+            rva);
+        return target;
+    }
 
     uint8_t* base = (uint8_t*)exe;
     IMAGE_DOS_HEADER* dos = (IMAGE_DOS_HEADER*)base;
@@ -141,7 +151,16 @@ uint8_t* resolve_patch_target_by_rva_or_masked_context_pattern(
         return NULL;
     }
 
-    uint8_t* target = NULL;
+    uint8_t* target = (uint8_t*)kbo_resolve_build_specific_rva_ptr(exe, rva);
+    if (memory_range_readable(target, expected_size) && memcmp(target, expected, expected_size) == 0) {
+        kbo_log_runtimef(
+            "%s resolved by RVA table target=%p rva=0x%llx original_rva=0x%08X",
+            patch_label,
+            target,
+            (unsigned long long)((uintptr_t)target - (uintptr_t)exe),
+            rva);
+        return target;
+    }
 
     uint8_t* base = (uint8_t*)exe;
     IMAGE_DOS_HEADER* dos = (IMAGE_DOS_HEADER*)base;
@@ -250,7 +269,17 @@ uint8_t* resolve_patch_target_by_rva_or_masked_context_and_expected_pattern(
         return NULL;
     }
 
-    uint8_t* target = NULL;
+    uint8_t* target = (uint8_t*)kbo_resolve_build_specific_rva_ptr(exe, rva);
+    if (memory_range_readable(target, expected_size)
+            && kbo_memory_matches_masked_pattern(target, expected, expected_mask, expected_size)) {
+        kbo_log_runtimef(
+            "%s resolved by RVA table target=%p rva=0x%llx original_rva=0x%08X",
+            patch_label,
+            target,
+            (unsigned long long)((uintptr_t)target - (uintptr_t)exe),
+            rva);
+        return target;
+    }
 
     uint8_t* base = (uint8_t*)exe;
     IMAGE_DOS_HEADER* dos = (IMAGE_DOS_HEADER*)base;

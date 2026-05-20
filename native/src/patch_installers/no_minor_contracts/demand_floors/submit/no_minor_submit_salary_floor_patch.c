@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "../../../../bootstrap/abi/ootp_offsets.h"
+#include "../../../../build_verify/build_verify.h"
 #include "../../../../core/logging/core_log.h"
 #include "../../../../core/dates/core_current_date.h"
 #include "../../../../core/files/save_paths/core_save_paths.h"
@@ -63,10 +64,30 @@ int install_kbo_no_minor_contract_submit_salary_floor_patch(HMODULE exe)
         return 0;
     }
 
+    uint8_t* zero_error_target = (uint8_t*)kbo_resolve_build_specific_rva_related_ptr(
+        exe,
+        target,
+        OOTP27_NO_MINOR_CONTRACT_SUBMIT_SALARY_FLOOR_13B0712_RVA,
+        OOTP27_NO_MINOR_CONTRACT_SUBMIT_ZERO_ERROR_13B072C_RVA);
+    uint8_t* min_check_target = (uint8_t*)kbo_resolve_build_specific_rva_related_ptr(
+        exe,
+        target,
+        OOTP27_NO_MINOR_CONTRACT_SUBMIT_SALARY_FLOOR_13B0712_RVA,
+        OOTP27_NO_MINOR_CONTRACT_SUBMIT_MIN_CHECK_13B07BB_RVA);
+    uint8_t* after_min_check_target = (uint8_t*)kbo_resolve_build_specific_rva_related_ptr(
+        exe,
+        target,
+        OOTP27_NO_MINOR_CONTRACT_SUBMIT_SALARY_FLOOR_13B0712_RVA,
+        OOTP27_NO_MINOR_CONTRACT_SUBMIT_AFTER_MIN_CHECK_13B0860_RVA);
+    if (zero_error_target == NULL || min_check_target == NULL || after_min_check_target == NULL) {
+        kbo_log_runtime_line("KBO no-minor submit salary floor skipped: branch targets unresolved");
+        return 0;
+    }
+
     uint8_t* stub = build_kbo_no_minor_contract_submit_salary_floor_stub(
-        target + (OOTP27_NO_MINOR_CONTRACT_SUBMIT_ZERO_ERROR_13B072C_RVA - OOTP27_NO_MINOR_CONTRACT_SUBMIT_SALARY_FLOOR_13B0712_RVA),
-        target + (OOTP27_NO_MINOR_CONTRACT_SUBMIT_MIN_CHECK_13B07BB_RVA - OOTP27_NO_MINOR_CONTRACT_SUBMIT_SALARY_FLOOR_13B0712_RVA),
-        target + (OOTP27_NO_MINOR_CONTRACT_SUBMIT_AFTER_MIN_CHECK_13B0860_RVA - OOTP27_NO_MINOR_CONTRACT_SUBMIT_SALARY_FLOOR_13B0712_RVA));
+        zero_error_target,
+        min_check_target,
+        after_min_check_target);
     if (stub == NULL) {
         kbo_log_runtime_line("failed to allocate KBO no-minor submit salary floor detour stub");
         return 0;

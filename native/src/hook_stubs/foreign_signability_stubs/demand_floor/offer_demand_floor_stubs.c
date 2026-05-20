@@ -11,7 +11,7 @@
 #include "../../../patch_helpers/patch_helpers.h"
 #include "../../../bootstrap/abi/hook_entrypoints.h"
 
-uint8_t* build_kbo_fa_offer_player_demand_floor_17a79bb_stub(void* continuation)
+uint8_t* build_kbo_fa_offer_player_demand_floor_17a79bb_stub(uint32_t source_rva, void* continuation)
 {
     uint8_t code[96] = {
         0x50,                                           // push rax
@@ -48,7 +48,7 @@ uint8_t* build_kbo_fa_offer_player_demand_floor_17a79bb_stub(void* continuation)
         0xCC, 0xCC, 0xCC, 0xCC
     };
 
-    write_u32(&code[23], OOTP27_NO_MINOR_CONTRACT_FA_OFFER_DEMAND_FLOOR_17A79BB_RVA);
+    write_u32(&code[23], source_rva);
     write_u64(&code[29], (uint64_t)(uintptr_t)&ootp_kbo_fa_offer_player_demand_floor_probe);
     write_u64(&code[70], (uint64_t)(uintptr_t)continuation);
 
@@ -61,7 +61,7 @@ uint8_t* build_kbo_fa_offer_player_demand_floor_17a79bb_stub(void* continuation)
     return memory;
 }
 
-uint8_t* build_kbo_fa_offer_player_demand_floor_17b50b4_stub(void* continuation)
+uint8_t* build_kbo_fa_offer_player_demand_floor_17b50b4_stub(uint32_t source_rva, void* continuation)
 {
     uint8_t code[112] = {
         0x50,                                           // push rax
@@ -101,7 +101,7 @@ uint8_t* build_kbo_fa_offer_player_demand_floor_17b50b4_stub(void* continuation)
         0xCC, 0xCC, 0xCC, 0xCC
     };
 
-    write_u32(&code[23], OOTP27_NO_MINOR_CONTRACT_FA_OFFER_DEMAND_FLOOR_17B50B4_RVA);
+    write_u32(&code[23], source_rva);
     write_u64(&code[29], (uint64_t)(uintptr_t)&ootp_kbo_fa_offer_player_demand_floor_probe);
     write_u64(&code[76], (uint64_t)(uintptr_t)continuation);
 
@@ -170,7 +170,7 @@ uint8_t* build_kbo_no_minor_demand_write_floor_aab739_stub(
     return memory;
 }
 
-uint8_t* build_kbo_no_minor_demand_write_floor_1077952_stub(void* continuation)
+uint8_t* build_kbo_no_minor_demand_write_floor_1077952_stub(uint32_t source_rva, void* continuation)
 {
     uint8_t code[96] = {
         0x51,                                           // push rcx
@@ -205,7 +205,7 @@ uint8_t* build_kbo_no_minor_demand_write_floor_1077952_stub(void* continuation)
         0xCC, 0xCC, 0xCC, 0xCC
     };
 
-    write_u32(&code[18], OOTP27_NO_MINOR_CONTRACT_FA_DEMAND_WRITE_1077952_RVA);
+    write_u32(&code[18], source_rva);
     write_u64(&code[27], (uint64_t)(uintptr_t)&ootp_kbo_no_minor_demand_write_floor_probe);
     write_u64(&code[66], (uint64_t)(uintptr_t)continuation);
 
@@ -218,7 +218,7 @@ uint8_t* build_kbo_no_minor_demand_write_floor_1077952_stub(void* continuation)
     return memory;
 }
 
-uint8_t* build_kbo_foreign_fa_demand_baseline_prepare_aab624_stub(void* continuation)
+uint8_t* build_kbo_foreign_fa_demand_baseline_prepare_aab624_stub(uint32_t source_rva, void* continuation)
 {
     uint8_t code[112] = {
         0x50,                                           // push rax
@@ -258,7 +258,7 @@ uint8_t* build_kbo_foreign_fa_demand_baseline_prepare_aab624_stub(void* continua
         0xCC, 0xCC
     };
 
-    write_u32(&code[23], OOTP27_FOREIGN_FA_DEMAND_BASELINE_PREPARE_AAB624_RVA);
+    write_u32(&code[23], source_rva);
     write_u64(&code[29], (uint64_t)(uintptr_t)&ootp_kbo_foreign_fa_demand_baseline_prepare_wrapper);
     write_u64(&code[76], (uint64_t)(uintptr_t)continuation);
 

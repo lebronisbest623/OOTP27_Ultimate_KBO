@@ -1,4 +1,26 @@
 #include "arbitration_no_withdraw_patch_module.h"
+#include "../../../build_verify/build_verify.h"
+
+static uint8_t* kbo_arbitration_related_target(
+    HMODULE exe,
+    uint8_t* target,
+    uint32_t from_canonical_rva,
+    uint32_t to_canonical_rva,
+    const char* label)
+{
+    uint8_t* related = (uint8_t*)kbo_resolve_build_specific_rva_related_ptr(
+        exe,
+        target,
+        from_canonical_rva,
+        to_canonical_rva);
+    if (related == NULL) {
+        kbo_log_runtimef("%s skipped: related target unresolved", label);
+    }
+    return related;
+}
+
+#define KBO_ARBITRATION_RELATED_TARGET(target, from_rva, to_rva, label) \
+    kbo_arbitration_related_target(exe, (target), (from_rva), (to_rva), (label))
 
 int install_kbo_salary_arbitration_no_withdraw_patch(void)
 {
@@ -189,18 +211,21 @@ int install_kbo_salary_arbitration_no_withdraw_patch(void)
         16u,
         "KBO salary arbitration AI final zero-offer tender floor");
     if (final_zero_target != NULL) {
-        uint8_t* final_zero_stub = build_kbo_salary_arbitration_final_zero_tender_stub(
-            final_zero_target + sizeof(expected_final_zero_tender_gate),
-            final_zero_target + (OOTP27_ARBITRATION_AI_FINAL_ZERO_TENDER_CONTINUE_RVA - OOTP27_ARBITRATION_AI_FINAL_ZERO_TENDER_GATE_RVA));
-        if (final_zero_stub != NULL) {
+        uint8_t* final_zero_continue = KBO_ARBITRATION_RELATED_TARGET(final_zero_target, OOTP27_ARBITRATION_AI_FINAL_ZERO_TENDER_GATE_RVA, OOTP27_ARBITRATION_AI_FINAL_ZERO_TENDER_CONTINUE_RVA, "KBO salary arbitration AI final zero-offer tender floor");
+        if (final_zero_continue != NULL) {
+            uint8_t* final_zero_stub = build_kbo_salary_arbitration_final_zero_tender_stub(
+                final_zero_target + sizeof(expected_final_zero_tender_gate),
+                final_zero_continue);
+            if (final_zero_stub != NULL) {
             ok |= patch_kbo_salary_arbitration_r11_detour_at(
                 "KBO salary arbitration AI final zero-offer tender floor",
                 final_zero_target,
                 expected_final_zero_tender_gate,
                 sizeof(expected_final_zero_tender_gate),
                 final_zero_stub);
-        } else {
-            kbo_log_runtime_line("failed to allocate KBO salary arbitration final zero-offer tender floor stub");
+            } else {
+                kbo_log_runtime_line("failed to allocate KBO salary arbitration final zero-offer tender floor stub");
+            }
         }
     } else {
         kbo_log_runtime_line("KBO salary arbitration AI final zero-offer tender floor target unresolved");
@@ -216,18 +241,22 @@ int install_kbo_salary_arbitration_no_withdraw_patch(void)
         16u,
         "KBO salary arbitration AI offer floor 681012");
     if (ai_offer_target_681012 != NULL) {
-        uint8_t* ai_offer_stub_681012 = build_kbo_salary_arbitration_ai_offer_write_681012_stub(
-            ai_offer_target_681012 + (OOTP27_ARBITRATION_AI_OFFER_WRITE_681012_FLOOR_RETURN_RVA - OOTP27_ARBITRATION_AI_OFFER_WRITE_681012_RVA),
-            ai_offer_target_681012 + (OOTP27_ARBITRATION_AI_OFFER_WRITE_681012_PASS_RETURN_RVA - OOTP27_ARBITRATION_AI_OFFER_WRITE_681012_RVA));
-        if (ai_offer_stub_681012 != NULL) {
+        uint8_t* ai_offer_floor_return_681012 = KBO_ARBITRATION_RELATED_TARGET(ai_offer_target_681012, OOTP27_ARBITRATION_AI_OFFER_WRITE_681012_RVA, OOTP27_ARBITRATION_AI_OFFER_WRITE_681012_FLOOR_RETURN_RVA, "KBO salary arbitration AI offer floor 681012");
+        uint8_t* ai_offer_pass_return_681012 = KBO_ARBITRATION_RELATED_TARGET(ai_offer_target_681012, OOTP27_ARBITRATION_AI_OFFER_WRITE_681012_RVA, OOTP27_ARBITRATION_AI_OFFER_WRITE_681012_PASS_RETURN_RVA, "KBO salary arbitration AI offer floor 681012");
+        if (ai_offer_floor_return_681012 != NULL && ai_offer_pass_return_681012 != NULL) {
+            uint8_t* ai_offer_stub_681012 = build_kbo_salary_arbitration_ai_offer_write_681012_stub(
+                ai_offer_floor_return_681012,
+                ai_offer_pass_return_681012);
+            if (ai_offer_stub_681012 != NULL) {
             ok |= patch_kbo_salary_arbitration_r11_detour_at(
             "KBO salary arbitration AI offer floor 681012",
             ai_offer_target_681012,
             expected_ai_offer_write_681012,
             sizeof(expected_ai_offer_write_681012),
             ai_offer_stub_681012);
-        } else {
-            kbo_log_runtime_line("failed to allocate KBO salary arbitration AI offer floor 681012 stub");
+            } else {
+                kbo_log_runtime_line("failed to allocate KBO salary arbitration AI offer floor 681012 stub");
+            }
         }
     } else {
         kbo_log_runtime_line("KBO salary arbitration AI offer floor 681012 target unresolved");
@@ -243,18 +272,22 @@ int install_kbo_salary_arbitration_no_withdraw_patch(void)
         16u,
         "KBO salary arbitration AI zero-offer final check 682089");
     if (zero_offer_target_682089 != NULL) {
-        uint8_t* zero_offer_check_stub_682089 = build_kbo_salary_arbitration_zero_offer_check_682089_stub(
-            zero_offer_target_682089 + (OOTP27_ARBITRATION_AI_ZERO_OFFER_CHECK_682089_TENDER_RETURN_RVA - OOTP27_ARBITRATION_AI_ZERO_OFFER_CHECK_682089_RVA),
-            zero_offer_target_682089 + (OOTP27_ARBITRATION_AI_ZERO_OFFER_CHECK_682089_PASS_RETURN_RVA - OOTP27_ARBITRATION_AI_ZERO_OFFER_CHECK_682089_RVA));
-        if (zero_offer_check_stub_682089 != NULL) {
+        uint8_t* zero_offer_tender_return_682089 = KBO_ARBITRATION_RELATED_TARGET(zero_offer_target_682089, OOTP27_ARBITRATION_AI_ZERO_OFFER_CHECK_682089_RVA, OOTP27_ARBITRATION_AI_ZERO_OFFER_CHECK_682089_TENDER_RETURN_RVA, "KBO salary arbitration AI zero-offer final check 682089");
+        uint8_t* zero_offer_pass_return_682089 = KBO_ARBITRATION_RELATED_TARGET(zero_offer_target_682089, OOTP27_ARBITRATION_AI_ZERO_OFFER_CHECK_682089_RVA, OOTP27_ARBITRATION_AI_ZERO_OFFER_CHECK_682089_PASS_RETURN_RVA, "KBO salary arbitration AI zero-offer final check 682089");
+        if (zero_offer_tender_return_682089 != NULL && zero_offer_pass_return_682089 != NULL) {
+            uint8_t* zero_offer_check_stub_682089 = build_kbo_salary_arbitration_zero_offer_check_682089_stub(
+                zero_offer_tender_return_682089,
+                zero_offer_pass_return_682089);
+            if (zero_offer_check_stub_682089 != NULL) {
             ok |= patch_kbo_salary_arbitration_r11_detour_at(
             "KBO salary arbitration AI zero-offer final check 682089",
             zero_offer_target_682089,
             expected_zero_offer_check_682089,
             sizeof(expected_zero_offer_check_682089),
             zero_offer_check_stub_682089);
-        } else {
-            kbo_log_runtime_line("failed to allocate KBO salary arbitration AI zero-offer final check 682089 stub");
+            } else {
+                kbo_log_runtime_line("failed to allocate KBO salary arbitration AI zero-offer final check 682089 stub");
+            }
         }
     } else {
         kbo_log_runtime_line("KBO salary arbitration AI zero-offer final check 682089 target unresolved");
@@ -290,18 +323,23 @@ int install_kbo_salary_arbitration_no_withdraw_patch(void)
         16u,
         "KBO salary arbitration high-limit non-tender gate 6820af");
     if (high_limit_non_tender_target_6820af != NULL) {
-        uint8_t* high_limit_non_tender_stub_6820af = build_kbo_salary_arbitration_high_limit_non_tender_6820af_stub(
-            high_limit_non_tender_target_6820af + (OOTP27_ARBITRATION_HIGH_LIMIT_NON_TENDER_6820AF_PASS_RETURN_RVA - OOTP27_ARBITRATION_HIGH_LIMIT_NON_TENDER_GATE_RVA),
-            high_limit_non_tender_target_6820af + (OOTP27_ARBITRATION_HIGH_LIMIT_NON_TENDER_6820AF_FLOOR_RETURN_RVA - OOTP27_ARBITRATION_HIGH_LIMIT_NON_TENDER_GATE_RVA));
-        if (high_limit_non_tender_stub_6820af != NULL) {
+        uint8_t* high_limit_non_tender_pass_return_6820af = KBO_ARBITRATION_RELATED_TARGET(high_limit_non_tender_target_6820af, OOTP27_ARBITRATION_HIGH_LIMIT_NON_TENDER_GATE_RVA, OOTP27_ARBITRATION_HIGH_LIMIT_NON_TENDER_6820AF_PASS_RETURN_RVA, "KBO salary arbitration high-limit non-tender gate 6820af");
+        uint8_t* high_limit_non_tender_floor_return_6820af = KBO_ARBITRATION_RELATED_TARGET(high_limit_non_tender_target_6820af, OOTP27_ARBITRATION_HIGH_LIMIT_NON_TENDER_GATE_RVA, OOTP27_ARBITRATION_HIGH_LIMIT_NON_TENDER_6820AF_FLOOR_RETURN_RVA, "KBO salary arbitration high-limit non-tender gate 6820af");
+        if (high_limit_non_tender_pass_return_6820af != NULL
+                && high_limit_non_tender_floor_return_6820af != NULL) {
+            uint8_t* high_limit_non_tender_stub_6820af = build_kbo_salary_arbitration_high_limit_non_tender_6820af_stub(
+                high_limit_non_tender_pass_return_6820af,
+                high_limit_non_tender_floor_return_6820af);
+            if (high_limit_non_tender_stub_6820af != NULL) {
             ok |= patch_kbo_salary_arbitration_r11_detour_at(
                 "KBO salary arbitration high-limit non-tender gate 6820af",
                 high_limit_non_tender_target_6820af,
                 expected_high_limit_non_tender_gate_6820af,
                 sizeof(expected_high_limit_non_tender_gate_6820af),
                 high_limit_non_tender_stub_6820af);
-        } else {
-            kbo_log_runtime_line("failed to allocate KBO salary arbitration high-limit non-tender gate 6820af stub");
+            } else {
+                kbo_log_runtime_line("failed to allocate KBO salary arbitration high-limit non-tender gate 6820af stub");
+            }
         }
     } else {
         kbo_log_runtime_line("KBO salary arbitration high-limit non-tender gate 6820af target unresolved");
@@ -322,18 +360,21 @@ int install_kbo_salary_arbitration_no_withdraw_patch(void)
         if (ai_offer_superstar_source_6827cd == NULL) {
             kbo_log_runtime_line("failed to resolve KBO salary arbitration AI offer floor 6827cd superstar source");
         } else {
-            uint8_t* ai_offer_stub_6827cd = build_kbo_salary_arbitration_ai_offer_write_6827cd_stub(
-                ai_offer_superstar_source_6827cd,
-                ai_offer_target_6827cd + (OOTP27_ARBITRATION_AI_OFFER_WRITE_6827CD_RETURN_RVA - OOTP27_ARBITRATION_AI_OFFER_WRITE_6827CD_RVA));
-            if (ai_offer_stub_6827cd != NULL) {
+            uint8_t* ai_offer_return_6827cd = KBO_ARBITRATION_RELATED_TARGET(ai_offer_target_6827cd, OOTP27_ARBITRATION_AI_OFFER_WRITE_6827CD_RVA, OOTP27_ARBITRATION_AI_OFFER_WRITE_6827CD_RETURN_RVA, "KBO salary arbitration AI offer floor 6827cd");
+            if (ai_offer_return_6827cd != NULL) {
+                uint8_t* ai_offer_stub_6827cd = build_kbo_salary_arbitration_ai_offer_write_6827cd_stub(
+                    ai_offer_superstar_source_6827cd,
+                    ai_offer_return_6827cd);
+                if (ai_offer_stub_6827cd != NULL) {
                 ok |= patch_kbo_salary_arbitration_r11_detour_at(
                     "KBO salary arbitration AI offer floor 6827cd",
                     ai_offer_target_6827cd,
                     expected_ai_offer_write_6827cd,
                     sizeof(expected_ai_offer_write_6827cd),
                     ai_offer_stub_6827cd);
-            } else {
-                kbo_log_runtime_line("failed to allocate KBO salary arbitration AI offer floor 6827cd stub");
+                } else {
+                    kbo_log_runtime_line("failed to allocate KBO salary arbitration AI offer floor 6827cd stub");
+                }
             }
         }
     } else {
@@ -346,3 +387,4 @@ int install_kbo_salary_arbitration_no_withdraw_patch(void)
     return ok;
 }
 
+#undef KBO_ARBITRATION_RELATED_TARGET

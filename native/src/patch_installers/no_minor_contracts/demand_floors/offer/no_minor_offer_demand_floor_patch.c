@@ -41,9 +41,10 @@ int install_kbo_no_minor_contract_offer_player_demand_floor_patch(
         return 0;
     }
 
+    uint32_t source_rva = (uint32_t)((uintptr_t)target - (uintptr_t)exe);
     uint8_t* stub = alt_path
-        ? build_kbo_fa_offer_player_demand_floor_17b50b4_stub(target + stolen_len)
-        : build_kbo_fa_offer_player_demand_floor_17a79bb_stub(target + stolen_len);
+        ? build_kbo_fa_offer_player_demand_floor_17b50b4_stub(source_rva, target + stolen_len)
+        : build_kbo_fa_offer_player_demand_floor_17a79bb_stub(source_rva, target + stolen_len);
     if (stub == NULL) {
         kbo_log_runtimef("failed to allocate %s detour stub", label);
         return 0;

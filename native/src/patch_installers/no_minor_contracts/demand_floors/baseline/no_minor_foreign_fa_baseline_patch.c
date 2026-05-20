@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "../../../../bootstrap/abi/ootp_offsets.h"
+#include "../../../../build_verify/build_verify.h"
 #include "../../../../core/logging/core_log.h"
 #include "../../../../core/dates/core_current_date.h"
 #include "../../../../core/files/save_paths/core_save_paths.h"
@@ -61,7 +62,9 @@ int install_kbo_foreign_fa_demand_baseline_prepare_patch(HMODULE exe)
         return 0;
     }
 
-    uint8_t* stub = build_kbo_foreign_fa_demand_baseline_prepare_aab624_stub(target + sizeof(expected));
+    uint8_t* stub = build_kbo_foreign_fa_demand_baseline_prepare_aab624_stub(
+        (uint32_t)((uintptr_t)target - (uintptr_t)exe),
+        target + sizeof(expected));
     if (stub == NULL) {
         kbo_log_runtime_line("failed to allocate KBO foreign FA demand baseline prepare detour stub");
         return 0;

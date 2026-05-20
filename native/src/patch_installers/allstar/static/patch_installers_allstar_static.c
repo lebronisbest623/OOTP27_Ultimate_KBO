@@ -6,6 +6,7 @@
 #include "../../../allstar/allstar_league_context/allstar_league_context.h"
 #include "../../../bootstrap/abi/hook_entrypoints.h"
 #include "../../../bootstrap/abi/ootp_offsets.h"
+#include "../../../build_verify/build_verify.h"
 #include "../../../core/logging/core_log.h"
 #include "../../../hook_stubs/allstar/candidate/hook_stubs_allstar_candidate.h"
 #include "../../../hook_stubs/allstar/events/hook_stubs_allstar_events.h"
@@ -24,7 +25,9 @@ static int install_allstar_prep_single_division_gate_patch(HMODULE exe)
 
     uint8_t* target = find_ootp_executable_pattern(expected, sizeof(expected));
     if (target == NULL) {
-        target = (uint8_t*)exe + OOTP27_ALLSTAR_PREP_SINGLE_DIVISION_GATE_RVA;
+        target = (uint8_t*)kbo_resolve_build_specific_rva_ptr(
+            exe,
+            OOTP27_ALLSTAR_PREP_SINGLE_DIVISION_GATE_RVA);
     }
 
     if (target == NULL || !memory_range_readable(target, sizeof(expected))) {
@@ -94,7 +97,9 @@ static int install_allstar_roster_single_division_gate_patch(HMODULE exe)
 
     uint8_t* target = find_ootp_executable_pattern(expected, sizeof(expected));
     if (target == NULL) {
-        target = (uint8_t*)exe + OOTP27_ALLSTAR_ROSTER_SINGLE_DIVISION_GATE_RVA;
+        target = (uint8_t*)kbo_resolve_build_specific_rva_ptr(
+            exe,
+            OOTP27_ALLSTAR_ROSTER_SINGLE_DIVISION_GATE_RVA);
     }
 
     if (target == NULL || !memory_range_readable(target, sizeof(expected))) {
@@ -305,7 +310,9 @@ int install_allstar_team_setup_single_division_patch(void)
         0xB9, 0xD8, 0x00, 0x00, 0x00
     };
 
-    uint8_t* target = (uint8_t*)exe + OOTP27_ALLSTAR_TEAM_SETUP_SINGLE_DIVISION_GATE_RVA;
+    uint8_t* target = (uint8_t*)kbo_resolve_build_specific_rva_ptr(
+        exe,
+        OOTP27_ALLSTAR_TEAM_SETUP_SINGLE_DIVISION_GATE_RVA);
     if (!memory_range_readable(target, sizeof(expected))
             || (memcmp(target, expected, sizeof(expected)) != 0
                 && !is_rip_absolute_jump_patch(target)

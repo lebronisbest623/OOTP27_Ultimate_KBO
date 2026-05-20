@@ -6,6 +6,7 @@
 #include "../../../allstar/allstar_league_context/allstar_league_context.h"
 #include "../../../bootstrap/abi/hook_entrypoints.h"
 #include "../../../bootstrap/abi/ootp_offsets.h"
+#include "../../../build_verify/build_verify.h"
 #include "../../../core/logging/core_log.h"
 #include "../../../hook_stubs/allstar/candidate/hook_stubs_allstar_candidate.h"
 #include "../../../hook_stubs/allstar/events/hook_stubs_allstar_events.h"
@@ -65,7 +66,15 @@ int install_allstar_candidate_team_split_patch(void)
         log_extended_context("KBO all-star candidate team split hook", target, 16, 96);
     } else {
         void* return_address = target + sizeof(april_expected);
-        void* seeded_address = target + (OOTP27_ALLSTAR_CANDIDATE_TEAM_SPLIT_DONE_RVA - OOTP27_ALLSTAR_CANDIDATE_TEAM_SPLIT_SITE_RVA);
+        void* seeded_address = kbo_resolve_build_specific_rva_related_ptr(
+            exe,
+            target,
+            OOTP27_ALLSTAR_CANDIDATE_TEAM_SPLIT_SITE_RVA,
+            OOTP27_ALLSTAR_CANDIDATE_TEAM_SPLIT_DONE_RVA);
+        if (seeded_address == NULL) {
+            kbo_log_runtime_line("KBO all-star candidate team split hook skipped: seeded target unresolved");
+            return 0;
+        }
         void* vector_push_back_address = resolve_relative_call_target(
             target + OOTP27_ALLSTAR_CANDIDATE_TEAM_SPLIT_VECTOR_CALL_OFFSET);
         if (vector_push_back_address == NULL) {
@@ -129,7 +138,9 @@ int install_allstar_candidate_team_roster_push_filter_patch(void)
         0x49, 0x8B, 0xCF
     };
 
-    uint8_t* rva_target = (uint8_t*)exe + OOTP27_ALLSTAR_CANDIDATE_TEAM_ROSTER_PUSH_SITE_RVA;
+    uint8_t* rva_target = (uint8_t*)kbo_resolve_build_specific_rva_ptr(
+        exe,
+        OOTP27_ALLSTAR_CANDIDATE_TEAM_ROSTER_PUSH_SITE_RVA);
     uint8_t* target = NULL;
     if (memory_range_readable(rva_target, sizeof(expected))
             && (is_rip_absolute_jump_patch(rva_target) || is_rax_absolute_jump_patch(rva_target))) {
@@ -224,7 +235,9 @@ int install_allstar_candidate_player_push_filter_patch(void)
     };
     const size_t context_target_offset = 11u;
 
-    uint8_t* rva_target = (uint8_t*)exe + OOTP27_ALLSTAR_CANDIDATE_PLAYER_PUSH_SITE_RVA;
+    uint8_t* rva_target = (uint8_t*)kbo_resolve_build_specific_rva_ptr(
+        exe,
+        OOTP27_ALLSTAR_CANDIDATE_PLAYER_PUSH_SITE_RVA);
     uint8_t* target = NULL;
     if (memory_range_readable(rva_target, sizeof(expected))
             && (is_rip_absolute_jump_patch(rva_target) || is_rax_absolute_jump_patch(rva_target))) {

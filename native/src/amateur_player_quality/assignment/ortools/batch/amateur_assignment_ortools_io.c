@@ -1,4 +1,5 @@
 #include "..\amateur_assignment_ortools.h"
+#include "../../../../build_verify/build_verify.h"
 
 uint32_t kbo_amateur_batch_resolve_source_team_id(uint8_t* player, uintptr_t source_team_ptr)
 {
@@ -287,17 +288,12 @@ int kbo_amateur_local_player_list_has_id(uintptr_t* players, int32_t count, uint
 
 int kbo_amateur_generation_team_add_caller(uint32_t caller_rva)
 {
-    switch (caller_rva) {
-    case 0x00A30BA0u:
-    case 0x00A3105Bu:
-    case 0x00A312A7u:
-    case 0x00A3150Fu:
-    case 0x00A3175Bu:
-    case 0x00A319A8u:
-        return 1;
-    default:
-        return 0;
-    }
+    return kbo_current_build_caller_rva_matches(caller_rva, OOTP27_AMATEUR_GENERATION_TEAM_ADD_CALLER_00A30BA0_RVA)
+        || kbo_current_build_caller_rva_matches(caller_rva, OOTP27_AMATEUR_GENERATION_TEAM_ADD_CALLER_00A3105B_RVA)
+        || kbo_current_build_caller_rva_matches(caller_rva, OOTP27_AMATEUR_GENERATION_TEAM_ADD_CALLER_00A312A7_RVA)
+        || kbo_current_build_caller_rva_matches(caller_rva, OOTP27_AMATEUR_GENERATION_TEAM_ADD_CALLER_00A3150F_RVA)
+        || kbo_current_build_caller_rva_matches(caller_rva, OOTP27_AMATEUR_GENERATION_TEAM_ADD_CALLER_00A3175B_RVA)
+        || kbo_current_build_caller_rva_matches(caller_rva, OOTP27_AMATEUR_GENERATION_TEAM_ADD_CALLER_00A319A8_RVA);
 }
 
 void kbo_amateur_league_batch_clear(uint32_t league_id)

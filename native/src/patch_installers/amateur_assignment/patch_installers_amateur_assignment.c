@@ -2,6 +2,7 @@
 #include <string.h>
 #include "../../bootstrap/abi/ootp_offsets.h"
 #include "../../bootstrap/abi/hook_entrypoints.h"
+#include "../../build_verify/build_verify.h"
 #include "../../core/logging/core_log.h"
 #include "../../hook_stubs/amateur_assignment/hook_stubs_amateur_assignment.h"
 #include "../../patch_helpers/patch_helpers.h"
@@ -21,7 +22,9 @@ int install_kbo_amateur_assignment_batch_probe_patch(void)
         0x45, 0x84, 0xFF,
         0x0F, 0x85, 0xCF, 0x00, 0x00, 0x00
     };
-    uint8_t* rva_target = (uint8_t*)exe + OOTP27_AMATEUR_ASSIGNMENT_BATCH_PREP_RVA;
+    uint8_t* rva_target = (uint8_t*)kbo_resolve_build_specific_rva_ptr(
+        exe,
+        OOTP27_AMATEUR_ASSIGNMENT_BATCH_PREP_RVA);
     if (memory_range_readable(rva_target, sizeof(expected)) && is_rax_absolute_jump_patch(rva_target)) {
         kbo_log_runtimef("KBO amateur assignment batch probe patch already installed target=%p", rva_target);
         return 1;

@@ -3,6 +3,7 @@
 #include <stdint.h>
 
 #include "../../../../bootstrap/abi/ootp_offsets.h"
+#include "../../../../build_verify/build_verify.h"
 #include "../../../../core/dates/tick/current_date_tick_capture.h"
 #include "../../../../core/logging/core_log.h"
 #include "../../../../foreign/common/dates/foreign_waiver_date.h"
@@ -22,7 +23,7 @@ void kbo_team_add_log_foreign_retention_result(
     uint32_t before_active_team_id,
     uint32_t before_original_team_id)
 {
-    if (caller_rva != OOTP27_TEAM_ADD_PLAYER_FOREIGN_MARKET_MINOR_CALLER_PRIMARY_RVA
+    if (!kbo_current_build_caller_rva_matches(caller_rva, OOTP27_TEAM_ADD_PLAYER_FOREIGN_MARKET_MINOR_CALLER_PRIMARY_RVA)
             || team_ptr == 0
             || !memory_range_readable((void*)team_ptr, OOTP27_KBO_TEAM_READABLE_BYTES)
             || !kbo_player_pointer_plausible(player_ptr)) {

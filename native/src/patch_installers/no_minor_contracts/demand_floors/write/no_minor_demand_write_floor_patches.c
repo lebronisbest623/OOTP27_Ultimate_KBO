@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "../../../../bootstrap/abi/ootp_offsets.h"
+#include "../../../../build_verify/build_verify.h"
 #include "../../../../core/logging/core_log.h"
 #include "../../../../core/dates/core_current_date.h"
 #include "../../../../core/files/save_paths/core_save_paths.h"
@@ -70,10 +71,20 @@ int install_kbo_no_minor_contract_demand_write_floor_aab739_patch(HMODULE exe)
         kbo_log_runtime_line("failed to resolve KBO no-minor demand write floor AAB739 notify call");
         return 0;
     }
+    uint8_t* done_target = (uint8_t*)kbo_resolve_build_specific_rva_related_ptr(
+        exe,
+        target,
+        OOTP27_NO_MINOR_CONTRACT_FA_DEMAND_WRITE_AAB739_RVA,
+        OOTP27_NO_MINOR_CONTRACT_FA_DEMAND_WRITE_AAB739_DONE_RVA);
+    if (done_target == NULL) {
+        kbo_log_runtime_line("failed to resolve KBO no-minor demand write floor AAB739 done target");
+        return 0;
+    }
+
     uint8_t* stub = build_kbo_no_minor_demand_write_floor_aab739_stub(
         (uint32_t)((uintptr_t)target - (uintptr_t)exe),
         notify_target,
-        target + (OOTP27_NO_MINOR_CONTRACT_FA_DEMAND_WRITE_AAB739_DONE_RVA - OOTP27_NO_MINOR_CONTRACT_FA_DEMAND_WRITE_AAB739_RVA));
+        done_target);
     if (stub == NULL) {
         kbo_log_runtime_line("failed to allocate KBO no-minor demand write floor AAB739 detour stub");
         return 0;
@@ -152,7 +163,9 @@ int install_kbo_no_minor_contract_demand_write_floor_1077952_patch(HMODULE exe)
         return 0;
     }
 
-    uint8_t* stub = build_kbo_no_minor_demand_write_floor_1077952_stub(target + sizeof(expected));
+    uint8_t* stub = build_kbo_no_minor_demand_write_floor_1077952_stub(
+        (uint32_t)((uintptr_t)target - (uintptr_t)exe),
+        target + sizeof(expected));
     if (stub == NULL) {
         kbo_log_runtime_line("failed to allocate KBO no-minor demand write floor 1077952 detour stub");
         return 0;

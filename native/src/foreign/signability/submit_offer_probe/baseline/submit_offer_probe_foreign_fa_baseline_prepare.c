@@ -148,9 +148,13 @@ void kbo_prepare_foreign_fa_offer_demand_baseline(uintptr_t player_ptr, const ch
 
     uint32_t source_rva = 0u;
     if (source != NULL && strstr(source, "17B50B4") != NULL) {
-        source_rva = OOTP27_NO_MINOR_CONTRACT_FA_OFFER_DEMAND_FLOOR_17B50B4_RVA;
+        kbo_resolve_build_specific_rva(
+            OOTP27_NO_MINOR_CONTRACT_FA_OFFER_DEMAND_FLOOR_17B50B4_RVA,
+            &source_rva);
     } else if (source != NULL && strstr(source, "17A79BB") != NULL) {
-        source_rva = OOTP27_NO_MINOR_CONTRACT_FA_OFFER_DEMAND_FLOOR_17A79BB_RVA;
+        kbo_resolve_build_specific_rva(
+            OOTP27_NO_MINOR_CONTRACT_FA_OFFER_DEMAND_FLOOR_17A79BB_RVA,
+            &source_rva);
     }
 
     ootp_kbo_foreign_fa_demand_baseline_prepare_wrapper((uintptr_t)financials, player_ptr, source_rva);
