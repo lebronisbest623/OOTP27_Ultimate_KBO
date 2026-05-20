@@ -65,7 +65,7 @@ __declspec(noinline) void ootp_kbo_foreign_fa_demand_baseline_prepare_wrapper(
     if (!kbo_player_is_foreign_for_kbo_rights(player)) {
         KBO_HOOK_PROFILE_RETURN_VOID(profile_hook, "foreign.fa_demand_baseline_prepare");
     }
-    int asian_quota = kbo_player_is_asian_quota_candidate(player);
+    int asian_quota = kbo_player_is_asian_quota_slot_candidate(player);
     uint32_t reserve_holder_team_id = 0u;
     uint32_t reserve_today = 0u;
     int reserve_right = kbo_foreign_fa_player_has_active_reserve_right(

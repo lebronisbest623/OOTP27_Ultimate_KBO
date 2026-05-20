@@ -180,7 +180,7 @@ int kbo_independent_acquisition_ui_collect_offer_rows(
         uint8_t slot_type = 0u;
         uint32_t injured_player_id = 0u;
         int foreign_player = kbo_player_is_foreign_for_kbo_rights(player);
-        int asian_quota = foreign_player && kbo_player_is_asian_quota_candidate(player);
+        int asian_quota = foreign_player && kbo_player_is_asian_quota_slot_candidate(player);
         int policy_blocked = 0;
         if (foreign_player) {
             int allowed = kbo_custom_foreign_policy_team_allows_candidate(

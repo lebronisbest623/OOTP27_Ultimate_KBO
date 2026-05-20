@@ -254,7 +254,7 @@ void kbo_record_custom_foreign_pending_offer(uint32_t team_id, uint8_t* candidat
         return;
     }
 
-    uint8_t asian = kbo_player_is_asian_quota_candidate(candidate) ? 1u : 0u;
+    uint8_t asian = kbo_player_is_asian_quota_slot_candidate(candidate) ? 1u : 0u;
     kbo_custom_foreign_pending_offer_lock();
 
     int empty_slot = -1;

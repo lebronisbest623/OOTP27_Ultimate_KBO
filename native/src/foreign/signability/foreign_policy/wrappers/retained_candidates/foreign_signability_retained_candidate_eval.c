@@ -311,7 +311,7 @@ int kbo_ai_fa_status_evaluate_retained_market_candidate(
     candidate.draft_league_id = kbo_ai_fa_status_player_u32(player, OOTP27_PLAYER_DRAFT_LEAGUE_ID_OFFSET);
     candidate.position_group = player[OOTP27_PLAYER_POSITION_GROUP_OFFSET];
     candidate.position_role = player[OOTP27_PLAYER_POSITION_ROLE_OFFSET];
-    candidate.asian = kbo_player_is_asian_quota_candidate(player) ? 1u : 0u;
+    candidate.asian = kbo_player_is_asian_quota_slot_candidate(player) ? 1u : 0u;
     candidate.contract_level = kbo_ai_fa_status_player_u8(player, OOTP27_PLAYER_CONTRACT_LEVEL_FLAG_OFFSET);
     candidate.fa_demand = kbo_ai_fa_status_player_i32(player, OOTP27_PLAYER_FA_DEMAND_SALARY_OFFSET);
     kbo_ai_fa_status_refresh_candidate_assignment(player, requester_team_id, &candidate);

@@ -222,7 +222,7 @@ int32_t kbo_foreign_contract_salary_floor_for_player(
         return 0;
     }
 
-    int asian_quota = kbo_player_is_asian_quota_candidate(player) ? 1 : 0;
+    int asian_quota = kbo_player_is_asian_quota_slot_candidate(player) ? 1 : 0;
     int32_t floor = kbo_get_foreign_fa_demand_baseline_value_for_player(0, asian_quota);
     if (out_asian_quota != NULL) { *out_asian_quota = asian_quota; }
 

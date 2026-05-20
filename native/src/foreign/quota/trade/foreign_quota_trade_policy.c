@@ -87,6 +87,7 @@ void kbo_custom_foreign_policy_trade_adjust_counts_for_player(
         if (already_in_org) {
             return;
         }
+        asian_quota = kbo_player_is_asian_quota_slot_candidate(player);
         if (asian_quota) {
             (*asian_count)++;
         } else {

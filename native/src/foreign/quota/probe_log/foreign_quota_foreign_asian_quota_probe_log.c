@@ -18,7 +18,7 @@ int kbo_asian_quota_exception_available_for_candidate(
     kbo_count_team_asian_quota_probe(team_id, &foreign_count, &asian_count, &non_asian_count);
 
     uint32_t effective = kbo_effective_foreign_count_with_asian_quota(asian_count, non_asian_count);
-    int candidate_is_asian = kbo_player_is_asian_quota_candidate(candidate);
+    int candidate_is_asian = kbo_player_is_asian_quota_slot_candidate(candidate);
     int exception_available = candidate_is_asian && asian_count == 0u;
     uint32_t effective_after = effective;
     if (!exception_available) {
@@ -86,7 +86,7 @@ void kbo_log_asian_quota_signability_probe(
         player_id,
         team_id,
         nation_id,
-        kbo_player_is_asian_quota_candidate(player),
+        kbo_player_is_asian_quota_slot_candidate(player),
         exception_available,
         original_signability,
         team_foreign,
@@ -155,7 +155,7 @@ void kbo_log_asian_quota_offer_probe(
         player_id,
         team_id,
         nation_id,
-        kbo_nation_is_asian_quota_candidate(nation_id),
+        kbo_player_is_asian_quota_slot_candidate(player),
         (uint32_t)original_result,
         flag,
         exception_available,

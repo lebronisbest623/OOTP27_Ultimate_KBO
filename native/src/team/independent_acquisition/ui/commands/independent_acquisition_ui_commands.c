@@ -109,7 +109,7 @@ int kbo_independent_acquisition_ui_submit_offer(
     candidate.seller_league_id = seller->league_id;
     candidate.nation_id = *(uint32_t*)(player + OOTP27_PLAYER_NATION_ID_OFFSET);
     candidate.pitcher = *(uint8_t*)(player + OOTP27_PLAYER_POSITION_GROUP_OFFSET) == 1u ? 1u : 0u;
-    candidate.asian_quota = kbo_player_is_asian_quota_candidate(player) ? 1u : 0u;
+    candidate.asian_quota = kbo_player_is_asian_quota_slot_candidate(player) ? 1u : 0u;
     candidate.value_score = kbo_foreign_waiver_value_score(player);
     candidate.effective_before = buyer.effective_foreign_count;
     candidate.effective_after = buyer.effective_foreign_count;

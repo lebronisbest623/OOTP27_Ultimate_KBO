@@ -25,6 +25,7 @@
 #include "../src/captain/seed/parse/captain_seed_parse.h"
 #include "../src/patch_helpers/patch_helpers.h"
 #include "../src/awards/schedule/award_schedule_probe_module.h"
+#include "../src/core/core_flags/api/flags_api.h"
 
 static uint32_t g_test_current_yyyymmdd = 0u;
 static char g_test_current_save_path[MAX_PATH] = {0};
@@ -2208,6 +2209,31 @@ static void test_player_is_foreign_for_kbo_rights(void)
     printf("test_player_is_foreign_for_kbo_rights: PASS\n");
 }
 
+static void test_asian_quota_slot_candidate_ignores_unprepared_salary(void)
+{
+    uint8_t player[OOTP27_PLAYER_SCAN_BYTES];
+    memset(player, 0, sizeof(player));
+
+    *(uint32_t*)(player + OOTP27_PLAYER_NATION_ID_OFFSET) = 98u;  /* Japan */
+    assert(kbo_player_is_asian_quota_slot_candidate(player));
+    assert(!kbo_player_is_asian_quota_candidate(player));
+
+    *(uint32_t*)(player + OOTP27_PLAYER_NATION_ID_OFFSET) = 206u; /* United States */
+    assert(!kbo_player_is_asian_quota_slot_candidate(player));
+    assert(!kbo_player_is_asian_quota_candidate(player));
+
+    memset(player, 0, sizeof(player));
+    *(uint32_t*)(player + OOTP27_PLAYER_NATION_ID_OFFSET) = 98u;
+    int32_t limit = kbo_get_asian_quota_salary_limit();
+    if (limit > 0) {
+        *(int32_t*)(player + OOTP27_PLAYER_FA_DEMAND_SALARY_OFFSET) = limit;
+        assert(kbo_player_is_asian_quota_slot_candidate(player));
+        assert(kbo_player_is_asian_quota_candidate(player));
+    }
+
+    printf("test_asian_quota_slot_candidate_ignores_unprepared_salary: PASS\n");
+}
+
 static void test_foreign_injury_slot_label(void)
 {
     /* The two named slot types: regular foreign vs Asian quota. */
@@ -3080,6 +3106,7 @@ int main(void)
     test_foreign_waiver_read_player_i16();
     test_foreign_waiver_value_score();
     test_player_is_foreign_for_kbo_rights();
+    test_asian_quota_slot_candidate_ignores_unprepared_salary();
     test_foreign_injury_slot_label();
     test_foreign_injury_status_label();
     test_foreign_injury_policy_helpers();

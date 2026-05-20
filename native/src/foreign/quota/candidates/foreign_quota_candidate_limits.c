@@ -34,7 +34,7 @@ uint32_t kbo_custom_foreign_policy_extra_slots_for_candidate(
         league_id = kbo_resolve_kbo_league_id();
     }
 
-    uint8_t candidate_asian = kbo_player_is_asian_quota_candidate(candidate) ? 1u : 0u;
+    uint8_t candidate_asian = kbo_player_is_asian_quota_slot_candidate(candidate) ? 1u : 0u;
     uint32_t cached_extra_slots = 0u;
     if (kbo_custom_foreign_extra_slot_cache_hit(
             team_id,
@@ -176,7 +176,7 @@ int kbo_custom_foreign_policy_team_allows_candidate(
         && kbo_has_active_foreign_waiver_right(team_id, candidate_id, today);
     int counts_as_existing_candidate = already_in_org || retained_by_team;
     if (!counts_as_existing_candidate && !candidate_pending) {
-        if (kbo_player_is_asian_quota_candidate(candidate)) {
+        if (kbo_player_is_asian_quota_slot_candidate(candidate)) {
             asian_after++;
         } else {
             non_asian_after++;
@@ -194,7 +194,7 @@ int kbo_custom_foreign_policy_team_allows_candidate(
         KboForeignRetentionOpportunitySummary opportunity;
         memset(&opportunity, 0, sizeof(opportunity));
         if (kbo_retention_opportunity_get_summary(team_id, today, &opportunity)) {
-            uint8_t candidate_asian = kbo_player_is_asian_quota_candidate(candidate) ? 1u : 0u;
+            uint8_t candidate_asian = kbo_player_is_asian_quota_slot_candidate(candidate) ? 1u : 0u;
             uint32_t reserve_asian = opportunity.protectable_asian;
             uint32_t reserve_non_asian = opportunity.protectable_non_asian;
             if (retained_by_team) {
@@ -292,7 +292,7 @@ int kbo_custom_foreign_policy_team_allows_final_signing(
     uint32_t non_asian_after = non_asian_count;
     int already_in_org = kbo_player_current_assignment_matches_team_or_affiliate(candidate, team_id);
     if (!already_in_org) {
-        if (kbo_player_is_asian_quota_candidate(candidate)) {
+        if (kbo_player_is_asian_quota_slot_candidate(candidate)) {
             asian_after++;
         } else {
             non_asian_after++;

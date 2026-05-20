@@ -270,7 +270,7 @@ int kbo_retention_opportunity_probe_should_block(
     }
 
     int32_t candidate_score = kbo_foreign_waiver_value_score(candidate);
-    uint8_t candidate_asian = kbo_player_is_asian_quota_candidate(candidate) ? 1u : 0u;
+    uint8_t candidate_asian = kbo_player_is_asian_quota_slot_candidate(candidate) ? 1u : 0u;
     uint8_t candidate_pos_group = *(uint8_t*)(candidate + OOTP27_PLAYER_POSITION_GROUP_OFFSET);
     uint32_t reserve_asian = opportunity.protectable_asian;
     uint32_t reserve_non_asian = opportunity.protectable_non_asian;

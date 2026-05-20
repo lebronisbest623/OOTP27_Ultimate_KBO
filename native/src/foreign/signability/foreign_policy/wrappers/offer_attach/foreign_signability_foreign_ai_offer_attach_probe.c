@@ -131,7 +131,7 @@ static uint8_t kbo_foreign_ai_fast_fill_offer_final_gate(
             base_limit,
             pending_asian,
             pending_non_asian,
-            kbo_player_is_asian_quota_candidate(player) ? 1u : 0u,
+            kbo_player_is_asian_quota_slot_candidate(player) ? 1u : 0u,
             slot_type != 0u ? kbo_foreign_injury_slot_label(slot_type) : "none",
             injured_player_id,
             salary,

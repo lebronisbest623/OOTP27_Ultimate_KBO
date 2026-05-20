@@ -196,7 +196,7 @@ int32_t kbo_get_foreign_waiver_asian_value_threshold(void)
 
 int32_t kbo_get_foreign_waiver_value_threshold_for_player(uint8_t* player)
 {
-    if (player != NULL && kbo_player_is_asian_quota_candidate(player)) {
+    if (player != NULL && kbo_player_is_asian_quota_slot_candidate(player)) {
         return kbo_get_foreign_waiver_asian_value_threshold();
     }
     return kbo_get_foreign_waiver_value_threshold();
@@ -322,16 +322,22 @@ static int32_t kbo_cached_asian_quota_salary_limit(void)
 
 int kbo_player_is_asian_quota_candidate(uint8_t* player)
 {
+    if (!kbo_player_is_asian_quota_slot_candidate(player)) {
+        return 0;
+    }
+    int32_t salary = kbo_player_asian_quota_salary(player);
+    return salary > 0 && salary <= kbo_cached_asian_quota_salary_limit();
+}
+
+int kbo_player_is_asian_quota_slot_candidate(uint8_t* player)
+{
     if (player == NULL
             || !memory_range_readable(
                 player,
                 OOTP27_PLAYER_NATION_ID_OFFSET + sizeof(uint32_t))) {
         return 0;
     }
-    if (!kbo_nation_is_asian_quota_candidate(*(uint32_t*)(player + OOTP27_PLAYER_NATION_ID_OFFSET))) {
-        return 0;
-    }
-    int32_t salary = kbo_player_asian_quota_salary(player);
-    return salary > 0 && salary <= kbo_cached_asian_quota_salary_limit();
+    return kbo_nation_is_asian_quota_candidate(
+        *(uint32_t*)(player + OOTP27_PLAYER_NATION_ID_OFFSET));
 }
 

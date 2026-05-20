@@ -54,7 +54,7 @@ int kbo_foreign_injury_replacement_signing_exception_available(
     if (out_effective_count != NULL) { *out_effective_count = effective; }
     if (out_effective_limit != NULL) { *out_effective_limit = KBO_CUSTOM_FOREIGN_BASE_EFFECTIVE_LIMIT + 1u; }
 
-    int candidate_asian = kbo_player_is_asian_quota_candidate(candidate);
+    int candidate_asian = kbo_player_is_asian_quota_slot_candidate(candidate);
     uint32_t candidate_id = *(uint32_t*)(candidate + OOTP27_PLAYER_ID_OFFSET);
     uint32_t injured_player_id = 0u;
     if (candidate_asian

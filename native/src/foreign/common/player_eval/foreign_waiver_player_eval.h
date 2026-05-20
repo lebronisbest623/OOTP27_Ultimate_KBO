@@ -12,6 +12,9 @@ uint8_t* kbo_find_player_by_id(uint32_t player_id, uint32_t* out_current_team_id
 int kbo_player_is_foreign_for_kbo_rights(uint8_t* player);
 int kbo_load_asian_quota_nation_ids_once(void);
 int kbo_nation_is_asian_quota_candidate(uint32_t nation_id);
+/* Stable slot identity for prospective offers; independent of transient FA demand. */
+int kbo_player_is_asian_quota_slot_candidate(uint8_t* player);
+/* Current-contract AQ compliance for players already being counted on rosters. */
 int kbo_player_is_asian_quota_candidate(uint8_t* player);
 
 #endif

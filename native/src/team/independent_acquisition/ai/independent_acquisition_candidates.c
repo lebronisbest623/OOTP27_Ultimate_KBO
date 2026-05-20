@@ -30,7 +30,7 @@ static int64_t kbo_independent_acquisition_score_candidate(
     int64_t score = (int64_t)kbo_foreign_waiver_value_score(player);
     int pitcher = *(uint8_t*)(player + OOTP27_PLAYER_POSITION_GROUP_OFFSET) == 1u;
     int foreign = kbo_player_is_foreign_for_kbo_rights(player);
-    int asian = foreign && kbo_player_is_asian_quota_candidate(player);
+    int asian = foreign && kbo_player_is_asian_quota_slot_candidate(player);
 
     if (buyer->active_count < 28u) {
         score += (int64_t)(28u - buyer->active_count) * 4000;
@@ -184,7 +184,7 @@ int kbo_independent_acquisition_build_candidate_pool(
         entry->nation_id = *(uint32_t*)(player + OOTP27_PLAYER_NATION_ID_OFFSET);
         entry->pitcher = *(uint8_t*)(player + OOTP27_PLAYER_POSITION_GROUP_OFFSET) == 1u ? 1u : 0u;
         entry->foreign = foreign ? 1u : 0u;
-        entry->asian_quota = foreign && kbo_player_is_asian_quota_candidate(player) ? 1u : 0u;
+        entry->asian_quota = foreign && kbo_player_is_asian_quota_slot_candidate(player) ? 1u : 0u;
         entry->cash_cost = foreign
             ? kbo_get_independent_acquisition_foreign_cash_cost()
             : kbo_get_independent_acquisition_domestic_cash_cost();
