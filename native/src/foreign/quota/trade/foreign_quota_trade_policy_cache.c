@@ -1,8 +1,7 @@
 #include "foreign_quota_trade_policy_cache.h"
 
 enum {
-    KBO_CUSTOM_FOREIGN_TRADE_CACHE_SIZE = 128,
-    KBO_CUSTOM_FOREIGN_TRADE_CACHE_TTL_MS = 1000u
+    KBO_CUSTOM_FOREIGN_TRADE_CACHE_SIZE = 128
 };
 
 typedef struct KboCustomForeignTradePolicyCacheEntry {
@@ -12,7 +11,8 @@ typedef struct KboCustomForeignTradePolicyCacheEntry {
     uint32_t player_ids[KBO_CUSTOM_FOREIGN_TRADE_SIDE_COUNT][KBO_CUSTOM_FOREIGN_TRADE_PLAYER_SLOTS];
     uint32_t player_hash;
     uint32_t org_generations[KBO_CUSTOM_FOREIGN_TRADE_SIDE_COUNT];
-    int replacement_count;
+    uint32_t today;
+    uint64_t injury_replacement_fingerprint;
     DWORD tick;
     int allowed;
     int blocked_side;
@@ -123,7 +123,8 @@ int kbo_custom_foreign_trade_policy_cache_hit(
     const uint32_t player_ids[KBO_CUSTOM_FOREIGN_TRADE_SIDE_COUNT][KBO_CUSTOM_FOREIGN_TRADE_PLAYER_SLOTS],
     uint32_t player_hash,
     const uint32_t* org_generations,
-    int replacement_count,
+    uint32_t today,
+    uint64_t injury_replacement_fingerprint,
     int* out_blocked_side,
     uint32_t* out_team_id,
     uint32_t* out_incoming_player_id,
@@ -135,7 +136,6 @@ int kbo_custom_foreign_trade_policy_cache_hit(
     if (team_ids == NULL || player_ids == NULL || org_generations == NULL || out_allowed == NULL) {
         return 0;
     }
-    DWORD now = GetTickCount();
     uint32_t slot = kbo_custom_foreign_trade_policy_cache_slot(
         trade_ptr,
         requested_side,
@@ -151,9 +151,9 @@ int kbo_custom_foreign_trade_policy_cache_hit(
             || !kbo_custom_foreign_trade_policy_player_ids_match(entry.player_ids, player_ids)
             || entry.org_generations[0] != org_generations[0]
             || entry.org_generations[1] != org_generations[1]
-            || entry.replacement_count != replacement_count
-            || entry.tick == 0u
-            || now - entry.tick > KBO_CUSTOM_FOREIGN_TRADE_CACHE_TTL_MS) {
+            || entry.today != today
+            || entry.injury_replacement_fingerprint != injury_replacement_fingerprint
+            || entry.tick == 0u) {
         return 0;
     }
 
@@ -176,7 +176,8 @@ void kbo_custom_foreign_trade_policy_cache_store(
     const uint32_t player_ids[KBO_CUSTOM_FOREIGN_TRADE_SIDE_COUNT][KBO_CUSTOM_FOREIGN_TRADE_PLAYER_SLOTS],
     uint32_t player_hash,
     const uint32_t* org_generations,
-    int replacement_count,
+    uint32_t today,
+    uint64_t injury_replacement_fingerprint,
     int allowed,
     int blocked_side,
     uint32_t team_id,
@@ -207,7 +208,8 @@ void kbo_custom_foreign_trade_policy_cache_store(
     entry->player_hash = player_hash;
     entry->org_generations[0] = org_generations[0];
     entry->org_generations[1] = org_generations[1];
-    entry->replacement_count = replacement_count;
+    entry->today = today;
+    entry->injury_replacement_fingerprint = injury_replacement_fingerprint;
     entry->allowed = allowed;
     entry->blocked_side = blocked_side;
     entry->team_id = team_id;

@@ -50,6 +50,7 @@ typedef struct KboForeignInjuryLiveMemory {
 extern KboForeignInjuryReplacement g_kbo_foreign_injury_replacements[KBO_FOREIGN_INJURY_REPLACEMENT_MAX];
 extern int g_kbo_foreign_injury_replacement_count;
 
+uint64_t kbo_foreign_injury_replacement_fingerprint(void);
 const char* kbo_foreign_injury_slot_label(uint8_t slot_type);
 const char* kbo_foreign_injury_status_label(uint8_t status);
 int kbo_foreign_injury_status_uses_slot(uint8_t status);

@@ -12,6 +12,10 @@ static int kbo_count_team_asian_quota_scan_live(
     if (team_id == 0u) {
         return 0;
     }
+    uint32_t org_team_id = kbo_foreign_org_team_id_for_team_id(team_id);
+    if (org_team_id != 0u) {
+        team_id = org_team_id;
+    }
 
     uintptr_t player_vector = 0;
     int32_t player_count = 0;
@@ -92,6 +96,33 @@ void kbo_count_team_asian_quota_probe(
         return;
     }
 
+    DWORD now = GetTickCount();
+    uint32_t org_team_id = kbo_foreign_org_team_id_for_team_id(team_id);
+    int snapshot_rebuilt = 0;
+    if (kbo_foreign_org_snapshot_get(
+            org_team_id != 0u ? org_team_id : team_id,
+            now,
+            &foreign_count,
+            &asian_count,
+            &non_asian_count,
+            &snapshot_rebuilt)) {
+        if (out_foreign_count != NULL) { *out_foreign_count = foreign_count; }
+        if (out_asian_quota_count != NULL) { *out_asian_quota_count = asian_count; }
+        if (out_non_asian_foreign_count != NULL) { *out_non_asian_foreign_count = non_asian_count; }
+        if (team_id != 0u && team_id != org_team_id) {
+            kbo_foreign_org_count_cache_store(
+                team_id,
+                foreign_count,
+                asian_count,
+                non_asian_count,
+                now);
+        }
+        KBO_PROFILE_END(
+            profile_foreign_org_count,
+            snapshot_rebuilt ? "foreign_policy.org_count.snapshot_rebuild" : "foreign_policy.org_count.snapshot_hit");
+        return;
+    }
+
     uint32_t generation_before = kbo_foreign_org_count_cache_generation_for_team(team_id);
     int scanned = kbo_count_team_asian_quota_scan_live(
         team_id,
@@ -108,7 +139,7 @@ void kbo_count_team_asian_quota_probe(
             foreign_count,
             asian_count,
             non_asian_count,
-            GetTickCount());
+            now);
     }
     KBO_PROFILE_END(
         profile_foreign_org_count,

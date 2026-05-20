@@ -51,12 +51,14 @@ void kbo_foreign_org_count_bump_team_generation(uint32_t team_id)
 void kbo_foreign_org_count_cache_note_roster_mutation(void)
 {
     InterlockedIncrement(&g_kbo_foreign_org_count_cache_generation);
+    kbo_foreign_org_snapshot_note_mutation();
     for (int i = 0; i < KBO_FOREIGN_ORG_COUNT_CACHE_SIZE; i++) {
         g_kbo_foreign_org_count_cache[i].tick = 0u;
     }
     kbo_lock_enter(&g_kbo_foreign_org_snapshot_lock);
     g_kbo_foreign_org_snapshot_tick = 0u;
     g_kbo_foreign_org_snapshot_count = 0;
+    InterlockedExchange(&g_kbo_foreign_org_snapshot_published_generation, 0);
     kbo_lock_leave(&g_kbo_foreign_org_snapshot_lock);
 }
 

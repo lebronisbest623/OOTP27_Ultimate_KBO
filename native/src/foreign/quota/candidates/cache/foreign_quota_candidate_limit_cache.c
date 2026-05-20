@@ -12,7 +12,7 @@ typedef struct KboCustomForeignCandidateCacheEntry {
     uint32_t org_count_generation;
     LONG waiver_rights_generation;
     LONG pending_generation;
-    int replacement_count;
+    uint64_t injury_replacement_fingerprint;
     DWORD tick;
     uint32_t effective_before;
     uint32_t effective_after;
@@ -29,7 +29,7 @@ typedef struct KboCustomForeignExtraSlotCacheEntry {
     uint32_t today;
     uint32_t league_id;
     uintptr_t player_ptr;
-    int replacement_count;
+    uint64_t injury_replacement_fingerprint;
     DWORD tick;
     uint32_t extra_slots;
     uint32_t injured_player_id;
@@ -41,10 +41,8 @@ typedef struct KboCustomForeignExtraSlotCacheEntry {
 enum {
     KBO_CUSTOM_FOREIGN_CANDIDATE_CACHE_SIZE = 8192,
     KBO_CUSTOM_FOREIGN_CANDIDATE_CACHE_WAYS = 4,
-    KBO_CUSTOM_FOREIGN_CANDIDATE_CACHE_TTL_MS = 30000u,
     KBO_CUSTOM_FOREIGN_EXTRA_SLOT_CACHE_SIZE = 4096,
-    KBO_CUSTOM_FOREIGN_EXTRA_SLOT_CACHE_WAYS = 4,
-    KBO_CUSTOM_FOREIGN_EXTRA_SLOT_CACHE_TTL_MS = 2000u
+    KBO_CUSTOM_FOREIGN_EXTRA_SLOT_CACHE_WAYS = 4
 };
 
 static KboCustomForeignCandidateCacheEntry g_kbo_custom_foreign_candidate_cache[KBO_CUSTOM_FOREIGN_CANDIDATE_CACHE_SIZE];
@@ -120,7 +118,7 @@ void kbo_custom_foreign_candidate_cache_store(
     entry->org_count_generation = org_count_generation;
     entry->waiver_rights_generation = InterlockedCompareExchange(&g_kbo_foreign_waiver_rights_generation, 0, 0);
     entry->pending_generation = pending_generation;
-    entry->replacement_count = g_kbo_foreign_injury_replacement_count;
+    entry->injury_replacement_fingerprint = kbo_foreign_injury_replacement_fingerprint();
     entry->effective_before = effective_before;
     entry->effective_after = effective_after;
     entry->effective_limit = effective_limit;
@@ -142,8 +140,7 @@ int kbo_custom_foreign_extra_slot_cache_hit(
     uint32_t* out_injured_player_id,
     uint32_t* out_extra_slots)
 {
-    DWORD now = GetTickCount();
-    int replacement_count = g_kbo_foreign_injury_replacement_count;
+    uint64_t injury_replacement_fingerprint = kbo_foreign_injury_replacement_fingerprint();
     uint32_t base_slot = kbo_custom_foreign_extra_slot_cache_slot(team_id, candidate_id, today, league_id);
     KboCustomForeignExtraSlotCacheEntry* entry = NULL;
     for (uint32_t way = 0; way < KBO_CUSTOM_FOREIGN_EXTRA_SLOT_CACHE_WAYS; way++) {
@@ -156,9 +153,8 @@ int kbo_custom_foreign_extra_slot_cache_hit(
                 && candidate_entry->league_id == league_id
                 && candidate_entry->player_ptr == (uintptr_t)candidate
                 && candidate_entry->candidate_asian == candidate_asian
-                && candidate_entry->replacement_count == replacement_count
-                && candidate_entry->tick != 0u
-                && now - candidate_entry->tick <= KBO_CUSTOM_FOREIGN_EXTRA_SLOT_CACHE_TTL_MS) {
+                && candidate_entry->injury_replacement_fingerprint == injury_replacement_fingerprint
+                && candidate_entry->tick != 0u) {
             entry = candidate_entry;
             break;
         }
@@ -215,7 +211,7 @@ void kbo_custom_foreign_extra_slot_cache_store(
     entry->today = today;
     entry->league_id = league_id;
     entry->player_ptr = (uintptr_t)candidate;
-    entry->replacement_count = g_kbo_foreign_injury_replacement_count;
+    entry->injury_replacement_fingerprint = kbo_foreign_injury_replacement_fingerprint();
     entry->tick = GetTickCount();
     entry->extra_slots = extra_slots;
     entry->candidate_asian = candidate_asian;
@@ -239,11 +235,10 @@ int kbo_custom_foreign_candidate_cache_hit(
     uint32_t* out_injured_player_id,
     int* out_allowed)
 {
-    DWORD now = GetTickCount();
     LONG pending_generation = kbo_custom_foreign_pending_offer_generation_for_team(team_id);
     LONG waiver_rights_generation = InterlockedCompareExchange(&g_kbo_foreign_waiver_rights_generation, 0, 0);
     uint32_t org_count_generation = kbo_foreign_org_count_cache_generation_for_team(team_id);
-    int replacement_count = g_kbo_foreign_injury_replacement_count;
+    uint64_t injury_replacement_fingerprint = kbo_foreign_injury_replacement_fingerprint();
     uint32_t base_slot = kbo_custom_foreign_candidate_cache_slot(team_id, candidate_id);
     KboCustomForeignCandidateCacheEntry* entry = NULL;
     for (uint32_t way = 0; way < KBO_CUSTOM_FOREIGN_CANDIDATE_CACHE_WAYS; way++) {
@@ -260,9 +255,8 @@ int kbo_custom_foreign_candidate_cache_hit(
                 && candidate_entry->org_count_generation == org_count_generation
                 && candidate_entry->waiver_rights_generation == waiver_rights_generation
                 && candidate_entry->pending_generation == pending_generation
-                && candidate_entry->replacement_count == replacement_count
-                && candidate_entry->tick != 0u
-                && now - candidate_entry->tick <= KBO_CUSTOM_FOREIGN_CANDIDATE_CACHE_TTL_MS) {
+                && candidate_entry->injury_replacement_fingerprint == injury_replacement_fingerprint
+                && candidate_entry->tick != 0u) {
             entry = candidate_entry;
             break;
         }

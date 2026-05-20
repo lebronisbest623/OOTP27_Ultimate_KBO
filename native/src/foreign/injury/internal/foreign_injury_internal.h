@@ -78,6 +78,7 @@ extern KboLock g_kbo_foreign_injury_replacement_lock;
 extern char g_kbo_foreign_injury_replacement_loaded_path[MAX_PATH];
 extern LONG g_kbo_foreign_injury_date_tick_thread_started;
 
+uint64_t kbo_foreign_injury_replacement_fingerprint(void);
 int kbo_foreign_injury_replacement_enabled(void);
 int kbo_foreign_injury_status_uses_slot(uint8_t status);
 uint8_t kbo_foreign_injury_slot_type_for_player(uint8_t* player);

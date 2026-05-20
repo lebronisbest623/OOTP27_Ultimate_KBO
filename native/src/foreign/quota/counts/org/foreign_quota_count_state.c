@@ -5,6 +5,9 @@ KboForeignOrgSnapshotEntry g_kbo_foreign_org_snapshot[KBO_FOREIGN_ORG_SNAPSHOT_M
 int g_kbo_foreign_org_snapshot_count = 0;
 DWORD g_kbo_foreign_org_snapshot_tick = 0u;
 KboLock g_kbo_foreign_org_snapshot_lock = KBO_LOCK_INIT;
+volatile LONG g_kbo_foreign_org_snapshot_rebuild_in_progress = 0;
+volatile LONG g_kbo_foreign_org_snapshot_mutation_generation = 1;
+volatile LONG g_kbo_foreign_org_snapshot_published_generation = 0;
 volatile LONG g_kbo_foreign_org_count_cache_generation = 1;
 uint32_t g_kbo_foreign_org_team_generation_team_ids[KBO_FOREIGN_ORG_TEAM_GENERATION_CACHE_SIZE];
 LONG g_kbo_foreign_org_team_generations[KBO_FOREIGN_ORG_TEAM_GENERATION_CACHE_SIZE];

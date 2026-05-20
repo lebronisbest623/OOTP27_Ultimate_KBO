@@ -2,6 +2,40 @@
 #include "../../../core/dates/tick/current_date_tick_capture.h"
 #include "../../../team/assignment/org_query/team_org_assignment_query.h"
 
+static uint64_t kbo_foreign_injury_replacement_fingerprint_mix(uint64_t hash, uint64_t value)
+{
+    hash ^= value + 0x9e3779b97f4a7c15ull + (hash << 6) + (hash >> 2);
+    return hash;
+}
+
+uint64_t kbo_foreign_injury_replacement_fingerprint(void)
+{
+    kbo_ensure_foreign_injury_replacements_loaded();
+
+    uint64_t hash = 1469598103934665603ull;
+    kbo_lock_foreign_injury_replacements();
+    hash = kbo_foreign_injury_replacement_fingerprint_mix(
+        hash,
+        (uint64_t)(uint32_t)g_kbo_foreign_injury_replacement_count);
+    for (int i = 0; i < g_kbo_foreign_injury_replacement_count; i++) {
+        const KboForeignInjuryReplacement* rec = &g_kbo_foreign_injury_replacements[i];
+        hash = kbo_foreign_injury_replacement_fingerprint_mix(hash, rec->team_id);
+        hash = kbo_foreign_injury_replacement_fingerprint_mix(hash, rec->league_id);
+        hash = kbo_foreign_injury_replacement_fingerprint_mix(hash, rec->injured_player_id);
+        hash = kbo_foreign_injury_replacement_fingerprint_mix(hash, rec->replacement_player_id);
+        hash = kbo_foreign_injury_replacement_fingerprint_mix(hash, rec->opened_on_yyyymmdd);
+        hash = kbo_foreign_injury_replacement_fingerprint_mix(hash, rec->expected_end_yyyymmdd);
+        hash = kbo_foreign_injury_replacement_fingerprint_mix(hash, rec->injury_id);
+        hash = kbo_foreign_injury_replacement_fingerprint_mix(hash, rec->closed_on_yyyymmdd);
+        hash = kbo_foreign_injury_replacement_fingerprint_mix(hash, rec->slot_type);
+        hash = kbo_foreign_injury_replacement_fingerprint_mix(hash, rec->status);
+        hash = kbo_foreign_injury_replacement_fingerprint_mix(hash, rec->converted);
+        hash = kbo_foreign_injury_replacement_fingerprint_mix(hash, rec->close_choice);
+    }
+    kbo_unlock_foreign_injury_replacements();
+    return hash == 0ull ? 1ull : hash;
+}
+
 int kbo_persist_foreign_injury_replacements_locked(void)
 {
     char path[MAX_PATH] = {0};

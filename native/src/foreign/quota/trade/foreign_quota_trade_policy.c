@@ -271,7 +271,9 @@ int kbo_custom_foreign_policy_trade_allows(
         kbo_foreign_org_count_cache_generation_for_team(team_ids[0]),
         kbo_foreign_org_count_cache_generation_for_team(team_ids[1])
     };
-    int replacement_count = g_kbo_foreign_injury_replacement_count;
+    uint32_t today = 0u;
+    kbo_get_foreign_waiver_current_yyyymmdd(&today);
+    uint64_t injury_replacement_fingerprint = kbo_foreign_injury_replacement_fingerprint();
 
     int allowed = 1;
     if (kbo_custom_foreign_trade_policy_cache_hit(
@@ -281,7 +283,8 @@ int kbo_custom_foreign_policy_trade_allows(
             player_ids,
             player_hash,
             org_generations,
-            replacement_count,
+            today,
+            injury_replacement_fingerprint,
             out_blocked_side,
             out_team_id,
             out_incoming_player_id,
@@ -316,7 +319,8 @@ int kbo_custom_foreign_policy_trade_allows(
         player_ids,
         player_hash,
         org_generations,
-        replacement_count,
+        today,
+        injury_replacement_fingerprint,
         allowed,
         blocked_side,
         blocked_team_id,

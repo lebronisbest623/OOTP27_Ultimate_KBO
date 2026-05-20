@@ -44,6 +44,9 @@ extern KboForeignOrgSnapshotEntry g_kbo_foreign_org_snapshot[KBO_FOREIGN_ORG_SNA
 extern int g_kbo_foreign_org_snapshot_count;
 extern DWORD g_kbo_foreign_org_snapshot_tick;
 extern KboLock g_kbo_foreign_org_snapshot_lock;
+extern volatile LONG g_kbo_foreign_org_snapshot_rebuild_in_progress;
+extern volatile LONG g_kbo_foreign_org_snapshot_mutation_generation;
+extern volatile LONG g_kbo_foreign_org_snapshot_published_generation;
 extern volatile LONG g_kbo_foreign_org_count_cache_generation;
 extern uint32_t g_kbo_foreign_org_team_generation_team_ids[KBO_FOREIGN_ORG_TEAM_GENERATION_CACHE_SIZE];
 extern LONG g_kbo_foreign_org_team_generations[KBO_FOREIGN_ORG_TEAM_GENERATION_CACHE_SIZE];
@@ -55,6 +58,7 @@ void kbo_foreign_org_count_bump_team_generation(uint32_t team_id);
 void kbo_foreign_org_count_cache_invalidate_team(uint32_t team_id);
 void kbo_foreign_org_count_cache_store(uint32_t team_id, uint32_t foreign_count, uint32_t asian_count, uint32_t non_asian_count, DWORD now);
 int kbo_foreign_org_count_cache_hit(uint32_t team_id, uint32_t* out_foreign_count, uint32_t* out_asian_quota_count, uint32_t* out_non_asian_foreign_count);
+LONG kbo_foreign_org_snapshot_note_mutation(void);
 int kbo_foreign_org_snapshot_get(uint32_t team_id, DWORD now, uint32_t* out_foreign_count, uint32_t* out_asian_quota_count, uint32_t* out_non_asian_foreign_count, int* out_rebuilt);
 
 #endif
