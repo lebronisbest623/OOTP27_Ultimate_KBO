@@ -170,7 +170,7 @@ int kbo_team_has_foreign_injury_slot_locked(uint32_t team_id, uint8_t slot_type,
     }
     for (int i = 0; i < g_kbo_foreign_injury_replacement_count; i++) {
         KboForeignInjuryReplacement* rec = &g_kbo_foreign_injury_replacements[i];
-        if (rec->team_id == team_id
+        if (kbo_team_ids_share_org(rec->team_id, team_id)
                 && rec->slot_type == slot_type
                 && kbo_foreign_injury_status_uses_slot(rec->status)
                 && kbo_foreign_injury_record_has_minimum_injury_basis(rec)) {
@@ -267,7 +267,7 @@ int kbo_team_has_foreign_injury_slot_for_candidate_locked(
     }
     for (int i = 0; i < g_kbo_foreign_injury_replacement_count; i++) {
         KboForeignInjuryReplacement* rec = &g_kbo_foreign_injury_replacements[i];
-        if (rec->team_id != team_id
+        if (!kbo_team_ids_share_org(rec->team_id, team_id)
                 || rec->slot_type != slot_type
                 || !kbo_foreign_injury_status_uses_slot(rec->status)
                 || !kbo_foreign_injury_record_has_minimum_injury_basis(rec)

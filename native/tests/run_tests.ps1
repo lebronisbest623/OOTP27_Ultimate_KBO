@@ -217,8 +217,11 @@ if ($LASTEXITCODE -ne 0) {
     (Join-Path $Root "src\hotkey_window\support\assets\nations\ui_nation_table.c") `
     (Join-Path $Root "src\military_service\players\loans\military_native_loan.c") `
     (Join-Path $Root "src\team\assignment\roster_arrays\team_roster_arrays.c") `
+    (Join-Path $Root "src\team\assignment\org_query\team_org_assignment_query.c") `
     (Join-Path $Root "src\foreign\common\policy\foreign_player_policy.c") `
+    (Join-Path $Root "src\foreign\common\player_eval\foreign_waiver_asian_quota_nations.c") `
     (Join-Path $Root "src\foreign\common\player_eval\foreign_waiver_player_eval.c") `
+    (Join-Path $Root "src\foreign\injury\state\foreign_injury_duration_text.c") `
     (Join-Path $Root "src\foreign\injury\state\foreign_injury_state.c") `
     (Join-Path $Root "src\team\independent_acquisition\ai\independent_acquisition_score.c") `
     (Join-Path $Root "src\amateur_player_quality\assignment\policy\amateur_assignment_policy.c")

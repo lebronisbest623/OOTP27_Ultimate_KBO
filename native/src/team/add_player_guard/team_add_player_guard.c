@@ -213,37 +213,19 @@ __declspec(noinline) uint8_t ootp_kbo_team_add_player_guard_wrapper(
         KBO_HOOK_PROFILE_RETURN(profile_hook, "team.add_player_guard", result);
     }
 
-    uint32_t amateur_league_id = amateur_generation_call && team_readable
-        ? kbo_team_add_cached_amateur_league_id(team)
-        : 0u;
-    uintptr_t effective_team_ptr = amateur_generation_call && amateur_league_id != 0u
-        ? kbo_amateur_team_add_player_reroute_before_original(
-            team_ptr,
-            player_ptr,
-            "team_add_player_before_original")
-        : team_ptr;
-    int amateur_pre_rerouted = effective_team_ptr != team_ptr;
-    if (amateur_generation_call && player_plausible && team_readable) {
-        uint32_t league_id = amateur_league_id;
-        int16_t age = *(int16_t*)(player + OOTP27_PLAYER_AGE_OFFSET);
-        if (league_id != 0u && kbo_amateur_player_age_eligible(league_id, age)) {
-            static volatile LONG amateur_caller_log_count = 0;
-            LONG slot = InterlockedIncrement(&amateur_caller_log_count);
-            if (slot <= 200 || kbo_team_add_amateur_verbose_log_enabled_cached()) {
-                uint32_t player_id = *(uint32_t*)(player + OOTP27_PLAYER_ID_OFFSET);
-                uint32_t team_id = *(uint32_t*)(team + OOTP27_KBO_TEAM_ID_OFFSET);
-                kbo_log_runtimef(
-                    "amateur team_add caller trace #%ld caller_rva=0x%x player=%u league=%u age=%d original_team=%u rerouted=%d",
-                    slot,
-                    caller_rva,
-                    player_id,
-                    league_id,
-                    (int)age,
-                    team_id,
-                    amateur_pre_rerouted);
-            }
-        }
-    }
+    uint32_t amateur_league_id = 0u;
+    int amateur_pre_rerouted = 0;
+    uintptr_t effective_team_ptr = kbo_team_add_prepare_amateur_pre_original_reroute(
+        caller_rva,
+        team_ptr,
+        player_ptr,
+        amateur_generation_call,
+        team_readable,
+        player_plausible,
+        team,
+        player,
+        &amateur_league_id,
+        &amateur_pre_rerouted);
 
     if (!is_military_team
             && !amateur_generation_call
@@ -399,29 +381,14 @@ __declspec(noinline) uint8_t ootp_kbo_team_add_player_guard_wrapper(
         KBO_PROFILE_END(profile_team_add_amateur_assignment, "team_add_guard.amateur_assignment_after_original");
     }
     if (result != 0u) {
-        if (player != NULL && kbo_player_is_foreign_for_kbo_rights(player)) {
-            kbo_mark_foreign_ai_roster_daily_callup_dirty("team_add_foreign_assignment_success");
-        }
-        kbo_team_add_note_foreign_assignment_success(
+        kbo_team_add_apply_success_side_effects(
+            effective_team_ptr,
+            player_ptr,
             player,
             before_current_team_id,
             before_active_team_id,
-            before_loan_team_id);
-        KBO_PROFILE_BEGIN(profile_team_add_foreign_injury_attach);
-        kbo_team_add_attach_foreign_injury_replacement_success(
-            effective_team_ptr,
-            player_ptr,
-            "team_add_player_success");
-        KBO_PROFILE_END(profile_team_add_foreign_injury_attach, "team_add_guard.foreign_injury_attach");
-
-        KBO_PROFILE_BEGIN(profile_team_add_fa_comp);
-        kbo_team_add_player_record_fa_compensation_success(
-            effective_team_ptr,
-            player_ptr,
-            before_current_team_id,
-            before_active_team_id,
+            before_loan_team_id,
             before_original_team_id);
-        KBO_PROFILE_END(profile_team_add_fa_comp, "team_add_guard.fa_comp_probe");
     }
     KBO_PROFILE_END(profile_team_add_guard_wrapper, result != 0u ? "team_add_guard.success" : "team_add_guard.original_rejected");
     KBO_HOOK_PROFILE_RETURN(profile_hook, "team.add_player_guard", result);

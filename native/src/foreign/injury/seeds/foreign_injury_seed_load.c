@@ -42,6 +42,27 @@ uint8_t kbo_foreign_injury_slot_type_for_player(uint8_t* player)
         : KBO_FOREIGN_INJURY_SLOT_REGULAR;
 }
 
+static void kbo_foreign_injury_normalize_record_org_team(KboForeignInjuryReplacement* rec)
+{
+    if (rec == NULL || rec->team_id == 0u) {
+        return;
+    }
+
+    uint32_t original_team_id = rec->team_id;
+    uint32_t org_team_id = kbo_org_team_id_for_team_id(original_team_id);
+    if (org_team_id != 0u) {
+        rec->team_id = org_team_id;
+    }
+
+    uint8_t* team = find_kbo_team_by_numeric_id_any_league(rec->team_id, 1);
+    if (team != NULL && memory_range_readable(team, OOTP27_KBO_TEAM_READABLE_BYTES)) {
+        uint32_t league_id = *(uint32_t*)(team + OOTP27_KBO_TEAM_LEAGUE_ID_OFFSET);
+        if (league_id != 0u && (rec->league_id == 0u || rec->team_id != original_team_id)) {
+            rec->league_id = league_id;
+        }
+    }
+}
+
 void kbo_lock_foreign_injury_replacements(void)
 {
     kbo_lock_enter(&g_kbo_foreign_injury_replacement_lock);
@@ -115,6 +136,7 @@ int kbo_load_foreign_injury_replacements_locked(const char* path)
             rec->slot_type = (uint8_t)slot_type;
             rec->status = (uint8_t)status;
             rec->converted = converted ? 1u : 0u;
+            kbo_foreign_injury_normalize_record_org_team(rec);
             loaded++;
         }
     }
@@ -151,6 +173,7 @@ static int kbo_finalize_foreign_injury_replacement_seed(
             out->league_id = *(uint32_t*)(team + OOTP27_KBO_TEAM_LEAGUE_ID_OFFSET);
         }
     }
+    kbo_foreign_injury_normalize_record_org_team(out);
 
     if (out->opened_on_yyyymmdd == 0u) {
         out->opened_on_yyyymmdd = today;

@@ -3,8 +3,9 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "output/profiler_output.h"
+
 #include "../../core/core_flags/localappdata/localappdata_reader.h"
-#include "../../core/files/save_paths/core_save_paths.h"
 #include "../../core/sync/lock.h"
 
 /* Aggregated runtime profiler for DLL hot paths.
@@ -46,7 +47,6 @@ static KboLock g_kbo_profiler_lock = KBO_LOCK_INIT;
 static volatile LONG g_kbo_profiler_enabled_cache = -1;
 static volatile LONG64 g_kbo_profiler_qpc_freq = 0;
 static volatile LONG g_kbo_profiler_last_flush_tick = 0;
-static volatile LONG g_kbo_profiler_header_written = 0;
 static volatile LONG g_kbo_profiler_dropped_zones = 0;
 static KBO_PROFILER_THREAD_LOCAL int g_kbo_profiler_thread_depth = 0;
 
@@ -84,61 +84,6 @@ int kbo_profiler_is_enabled(void)
 void kbo_profiler_reset_enabled_cache(void)
 {
     InterlockedExchange(&g_kbo_profiler_enabled_cache, -1);
-}
-
-static int kbo_profiler_get_output_path(char* out, size_t out_size)
-{
-    if (out == NULL || out_size == 0) {
-        return 0;
-    }
-
-    char dir[MAX_PATH] = {0};
-    if (!kbo_get_global_data_subdir("perf", dir, sizeof(dir))) {
-        return 0;
-    }
-
-    snprintf(out, out_size, "%s\\kbo_perf_%lu.csv", dir, GetCurrentProcessId());
-    return 1;
-}
-
-static void kbo_profiler_write_bytes(const char* data, DWORD size)
-{
-    if (data == NULL || size == 0) {
-        return;
-    }
-
-    char path[MAX_PATH] = {0};
-    if (!kbo_profiler_get_output_path(path, sizeof(path))) {
-        return;
-    }
-
-    HANDLE file = CreateFileA(
-        path,
-        FILE_APPEND_DATA,
-        FILE_SHARE_READ | FILE_SHARE_WRITE,
-        NULL,
-        OPEN_ALWAYS,
-        FILE_ATTRIBUTE_NORMAL,
-        NULL);
-    if (file == INVALID_HANDLE_VALUE) {
-        return;
-    }
-
-    DWORD written = 0;
-    WriteFile(file, data, size, &written, NULL);
-    CloseHandle(file);
-}
-
-static void kbo_profiler_write_header_if_needed(void)
-{
-    if (InterlockedCompareExchange(&g_kbo_profiler_header_written, 1, 0) != 0) {
-        return;
-    }
-
-    const char* header =
-        "timestamp,pid,thread,zone,total_calls,delta_calls,total_us,delta_us,"
-        "avg_us,max_us,total_slow_calls,delta_slow_calls,window_ms\r\n";
-    kbo_profiler_write_bytes(header, (DWORD)strlen(header));
 }
 
 static KboProfilerZone* kbo_profiler_get_zone(const char* name)

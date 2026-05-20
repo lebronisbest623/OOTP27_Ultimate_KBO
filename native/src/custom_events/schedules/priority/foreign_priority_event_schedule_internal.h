@@ -5,5 +5,7 @@
 
 uint32_t kbo_recent_foreign_waiver_marker_anchor(uint32_t today_yyyymmdd, const char* source);
 uint32_t kbo_custom_event_add_months_yyyymmdd(uint32_t yyyymmdd, uint32_t months);
+int kbo_foreign_priority_ready_cache_hit(uint32_t anchor_date, uint32_t league_id);
+void kbo_foreign_priority_ready_cache_store(uint32_t anchor_date, uint32_t league_id);
 
 #endif

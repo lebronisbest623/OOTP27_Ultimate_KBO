@@ -1,56 +1,22 @@
 #include "../internal/amateur_assignment_internal.h"
 #include "../../bootstrap/profiling/profiler.h"
 #include <string.h>
-static volatile LONG g_kbo_amateur_reroute_disable_cached = -1;
-static volatile LONG g_kbo_amateur_reroute_disable_tick = 0;
-static volatile LONG g_kbo_amateur_reroute_verbose_cached = -1;
-static volatile LONG g_kbo_amateur_reroute_verbose_tick = 0;
 static volatile LONG g_kbo_amateur_reroute_debug_csv_cached = -1;
 static volatile LONG g_kbo_amateur_reroute_debug_csv_tick = 0;
-static int kbo_amateur_reroute_cached_bool_flag(
-    const char* file_name,
-    volatile LONG* cached_value,
-    volatile LONG* cached_tick,
-    DWORD ttl_ms)
-{
-    DWORD now = GetTickCount();
-    LONG value = *cached_value;
-    LONG tick = *cached_tick;
-    if (value >= 0 && now - (DWORD)tick < ttl_ms) {
-        return value != 0;
-    }
-
-    int fresh = read_kbo_localappdata_flag_file(file_name) ? 1 : 0;
-    InterlockedExchange(cached_value, fresh);
-    InterlockedExchange(cached_tick, (LONG)now);
-    return fresh;
-}
-
-static int kbo_amateur_reroute_disabled_cached(void)
-{
-    return kbo_amateur_reroute_cached_bool_flag(
-        "disable_amateur_assignment_reroute.txt",
-        &g_kbo_amateur_reroute_disable_cached,
-        &g_kbo_amateur_reroute_disable_tick,
-        1000u);
-}
-
-static int kbo_amateur_reroute_verbose_log_enabled_cached(void)
-{
-    return kbo_amateur_reroute_cached_bool_flag(
-        "enable_amateur_assignment_verbose_log.txt",
-        &g_kbo_amateur_reroute_verbose_cached,
-        &g_kbo_amateur_reroute_verbose_tick,
-        5000u);
-}
 
 static int kbo_amateur_reroute_debug_csv_enabled_cached(void)
 {
-    return kbo_amateur_reroute_cached_bool_flag(
-        "enable_amateur_assignment_debug_csv.txt",
-        &g_kbo_amateur_reroute_debug_csv_cached,
-        &g_kbo_amateur_reroute_debug_csv_tick,
-        5000u);
+    DWORD now = GetTickCount();
+    LONG value = g_kbo_amateur_reroute_debug_csv_cached;
+    LONG tick = g_kbo_amateur_reroute_debug_csv_tick;
+    if (value >= 0 && now - (DWORD)tick < 5000u) {
+        return value != 0;
+    }
+
+    int fresh = read_kbo_localappdata_flag_file("enable_amateur_assignment_debug_csv.txt") ? 1 : 0;
+    InterlockedExchange(&g_kbo_amateur_reroute_debug_csv_cached, fresh);
+    InterlockedExchange(&g_kbo_amateur_reroute_debug_csv_tick, (LONG)now);
+    return fresh;
 }
 
 int kbo_amateur_assignment_find_candidate_info(
@@ -122,7 +88,7 @@ uintptr_t kbo_amateur_team_add_player_reroute_before_original(uintptr_t team_ptr
     if (source != NULL && strcmp(source, "team_add_player_before_original") == 0) {
         static volatile LONG post_add_log_count = 0;
         LONG post_add_slot = InterlockedIncrement(&post_add_log_count);
-        if (post_add_slot <= 5 || kbo_amateur_reroute_verbose_log_enabled_cached()) {
+        if (post_add_slot <= 5 || kbo_amateur_verbose_log_enabled_cached()) {
             kbo_log_runtimef(
                 "amateur assignment pre-reroute skipped source=%s reason=post_original_batch_reassignment",
                 source);
@@ -292,7 +258,7 @@ uintptr_t kbo_amateur_team_add_player_reroute_before_original(uintptr_t team_ptr
 
     static volatile LONG reroute_before_log_count = 0;
     LONG slot = InterlockedIncrement(&reroute_before_log_count);
-    int verbose_assignment_log = kbo_amateur_reroute_verbose_log_enabled_cached();
+    int verbose_assignment_log = kbo_amateur_verbose_log_enabled_cached();
     if (verbose_assignment_log || slot <= 30) {
         kbo_log_runtimef(
             "amateur assignment pre-reroute team-add source=%s player=%u league=%u age=%d score=%d target_rep=%u team=%u(rep=%u)->%u(rep=%u)",

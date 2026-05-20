@@ -89,6 +89,8 @@ void kbo_amateur_assignment_note_player_count_delta(uint32_t league_id, uint32_t
 int kbo_amateur_assignment_get_cached_candidates(
     uint32_t league_id,
     KboAmateurAssignmentCandidate** out_candidates);
+int kbo_amateur_reroute_disabled_cached(void);
+int kbo_amateur_verbose_log_enabled_cached(void);
 int kbo_amateur_assignment_find_candidate_info(
     uint32_t league_id,
     uint32_t team_id,

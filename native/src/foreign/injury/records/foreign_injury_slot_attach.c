@@ -30,7 +30,7 @@ static int kbo_foreign_injury_record_matches_signed_replacement(
     uint32_t injured_player_id)
 {
     return rec != NULL
-        && rec->team_id == team_id
+        && kbo_team_ids_share_org(rec->team_id, team_id)
         && kbo_foreign_injury_status_uses_slot(rec->status)
         && kbo_foreign_injury_record_has_minimum_injury_basis(rec)
         && rec->injured_player_id != replacement_player_id

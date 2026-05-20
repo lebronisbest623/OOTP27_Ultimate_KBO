@@ -2,7 +2,9 @@
 #include <windows.h>
 
 #include "../independent_acquisition_ai_internal.h"
-#include "independent_acquisition_seller_ai_helpers.h"
+#include "helpers/fit/independent_acquisition_seller_ai_helpers.h"
+#include "helpers/queue/independent_acquisition_seller_queue.h"
+#include "helpers/transfer/independent_acquisition_seller_transfer.h"
 
 #include <inttypes.h>
 #include <stdint.h>
@@ -102,27 +104,20 @@ int kbo_run_independent_team_acquisition_seller_ai(
                 KBO_INDEPENDENT_ACQUISITION_SELLER_TRANSFER_COOLDOWN_DAYS,
                 seller_transfers,
                 seller_transfer_limit);
-            for (int j = i + 1; j < request_count; j++) {
-                if (queue[j].player_id == group->player_id
-                        && queue[j].seller_team_id == group->seller_team_id) {
-                    queue[j].player_id = 0u;
-                }
-            }
+            kbo_independent_acquisition_seller_clear_later_requests(
+                queue,
+                request_count,
+                i + 1,
+                group->player_id,
+                group->seller_team_id);
             continue;
         }
-        int daily_seller_index = -1;
-        for (int s = 0; s < daily_seller_count; s++) {
-            if (daily_seller_ids[s] == group->seller_team_id) {
-                daily_seller_index = s;
-                break;
-            }
-        }
-        if (daily_seller_index < 0 && daily_seller_count < KBO_INDEPENDENT_ACQUISITION_MAX_SELLERS) {
-            daily_seller_index = daily_seller_count;
-            daily_seller_ids[daily_seller_count] = group->seller_team_id;
-            daily_seller_transfer_counts[daily_seller_count] = 0;
-            daily_seller_count++;
-        }
+        int daily_seller_index = kbo_independent_acquisition_seller_daily_index(
+            group->seller_team_id,
+            daily_seller_ids,
+            daily_seller_transfer_counts,
+            &daily_seller_count,
+            KBO_INDEPENDENT_ACQUISITION_MAX_SELLERS);
         int daily_cap_reached = daily_seller_index >= 0
             && daily_seller_transfer_counts[daily_seller_index]
                 >= KBO_INDEPENDENT_ACQUISITION_SELLER_DAILY_TRANSFER_LIMIT;
@@ -138,12 +133,12 @@ int kbo_run_independent_team_acquisition_seller_ai(
                 KBO_INDEPENDENT_ACQUISITION_SELLER_DAILY_TRANSFER_LIMIT,
                 seller_transfers,
                 seller_transfer_limit);
-            for (int j = i + 1; j < request_count; j++) {
-                if (queue[j].player_id == group->player_id
-                        && queue[j].seller_team_id == group->seller_team_id) {
-                    queue[j].player_id = 0u;
-                }
-            }
+            kbo_independent_acquisition_seller_clear_later_requests(
+                queue,
+                request_count,
+                i + 1,
+                group->player_id,
+                group->seller_team_id);
             continue;
         }
         uint32_t window_age_days = 0u;
@@ -305,80 +300,40 @@ int kbo_run_independent_team_acquisition_seller_ai(
                 strategic_window_age_days,
                 strategic_request_age_days,
                 strategic_days_remaining);
-            for (int j = i + 1; j < request_count; j++) {
-                if (queue[j].player_id == group->player_id
-                        && queue[j].seller_team_id == group->seller_team_id) {
-                    queue[j].player_id = 0u;
-                }
-            }
+            kbo_independent_acquisition_seller_clear_later_requests(
+                queue,
+                request_count,
+                i + 1,
+                group->player_id,
+                group->seller_team_id);
             continue;
         }
-        for (int j = i + 1; j < request_count; j++) {
-            if (queue[j].player_id == group->player_id
-                    && queue[j].seller_team_id == group->seller_team_id) {
-                queue[j].player_id = 0u;
-            }
-        }
+        kbo_independent_acquisition_seller_clear_later_requests(
+            queue,
+            request_count,
+            i + 1,
+            group->player_id,
+            group->seller_team_id);
 
-        uint8_t* buyer_team = find_kbo_team_by_numeric_id_any_league(selected.buyer_team_id, 1);
-        uint8_t* seller_team = find_kbo_team_by_numeric_id_any_league(selected.seller_team_id, 1);
-        int moved = 0;
         int cash_charged = 0;
         int32_t old_cash = 0;
         int32_t new_cash = 0;
-        int32_t cash_cost = selected.cash_cost;
-        if (cash_cost <= 0 && player != NULL) {
-            cash_cost = kbo_independent_acquisition_cash_cost_for_player(player);
-            selected.cash_cost = cash_cost;
-        }
+        int32_t cash_cost = 0;
         if (kbo_independent_acquisition_seller_abort_if_save(source, "before_assignment", today)) {
             abort_for_save = 1;
             break;
         }
-        if (!seller_limit_reached
-                && !pacing_blocked
-                && player != NULL
-                && buyer_team != NULL
-                && memory_range_readable(player, OOTP27_PLAYER_SCAN_BYTES)
-                && memory_range_readable(buyer_team, OOTP27_KBO_TEAM_READABLE_BYTES)
-                && kbo_independent_acquisition_player_status_ok(player)
-                && kbo_player_current_assignment_matches_team_or_affiliate(player, selected.seller_team_id)
-                && !kbo_player_current_assignment_matches_team_or_affiliate(player, selected.buyer_team_id)
-                && kbo_independent_acquisition_team_has_cash(buyer_team, cash_cost)) {
-            int pre = 0;
-            int reg = 0;
-            int attach = 0;
-            uint32_t buyer_league_id = *(uint32_t*)(buyer_team + OOTP27_KBO_TEAM_LEAGUE_ID_OFFSET);
-            kbo_assign_player_to_team_like_ootp(player, buyer_team, buyer_league_id, &pre, &reg, &attach);
-            moved = *(uint32_t*)(player + OOTP27_PLAYER_CURRENT_TEAM_ID_OFFSET) == selected.buyer_team_id;
-            if (moved) {
-                cash_charged = kbo_independent_acquisition_charge_team_cash(
-                        buyer_team,
-                        cash_cost,
-                        &old_cash,
-                        &new_cash);
-                if (!cash_charged) {
-                    kbo_log_runtimef(
-                        "independent acquisition seller AI cash charge failed source=%s buyer=%u player=%u cost=%d",
-                        source != NULL ? source : "",
-                        selected.buyer_team_id,
-                        selected.player_id,
-                        cash_cost);
-                }
-            }
-        }
-        if (moved && cash_charged) {
-            kbo_emit_independent_acquisition_transfer_news(
-                today,
-                player,
-                buyer_team,
-                seller_team,
-                selected.player_id,
-                selected.buyer_team_id,
-                selected.seller_team_id,
-                cash_cost,
-                source);
-        }
+        int moved = kbo_independent_acquisition_seller_apply_transfer(
+            today,
+            &selected,
+            player,
+            seller_limit_reached,
+            pacing_blocked,
+            source,
+            &cash_charged,
+            &old_cash,
+            &new_cash,
+            &cash_cost);
 
         if (kbo_independent_acquisition_seller_abort_if_save(source, "before_append_decision", today)) {
             abort_for_save = 1;

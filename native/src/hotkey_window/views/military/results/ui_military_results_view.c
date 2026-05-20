@@ -1,45 +1,4 @@
-#include "../internal/ui_military_view_internal.h"
-#include "../../../../core/dates/tick/current_date_tick_capture.h"
-
-static LONG kbo_military_results_candidate_count(void)
-{
-    LONG count = g_kbo_military_draft_candidate_count;
-    if (count < 0) { count = 0; }
-    if (count > OOTP27_KBO_MAX_SPECIAL_HISTORY_KEYS) { count = OOTP27_KBO_MAX_SPECIAL_HISTORY_KEYS; }
-    return count;
-}
-
-static void kbo_military_results_add_year(uint16_t* years, int* year_count, uint32_t year)
-{
-    if (years == NULL || year_count == NULL || year < 1982u || year > 2300u) {
-        return;
-    }
-    for (int i = 0; i < *year_count; i++) {
-        if ((uint32_t)years[i] == year) {
-            return;
-        }
-    }
-    if (*year_count < OOTP27_KBO_MAX_SPECIAL_HISTORY_KEYS) {
-        years[*year_count] = (uint16_t)year;
-        (*year_count)++;
-    }
-}
-
-static void kbo_military_results_sort_years(uint16_t* years, int year_count)
-{
-    if (years == NULL || year_count <= 1) {
-        return;
-    }
-    for (int left = 0; left < year_count; left++) {
-        for (int right = left + 1; right < year_count; right++) {
-            if (years[right] > years[left]) {
-                uint16_t tmp = years[left];
-                years[left] = years[right];
-                years[right] = tmp;
-            }
-        }
-    }
-}
+#include "ui_military_results_view_internal.h"
 
 static int kbo_military_results_live_selected_exists(uint32_t year, uint32_t player_id)
 {

@@ -5,14 +5,14 @@
 
 #include <stdint.h>
 
-#include "../../../../bootstrap/abi/ootp_offsets.h"
-#include "../../../../core/core_flags/api/flags_api.h"
-#include "../../../../core/dates/core_text_date.h"
-#include "../../../../core/logging/core_log.h"
-#include "../../../../foreign/common/player_eval/foreign_waiver_player_eval.h"
-#include "../../../../foreign/common/policy/foreign_player_policy.h"
-#include "../../../../foreign/common/policy/foreign_waiver_policy.h"
-#include "../../../../runtime_memory/runtime_memory.h"
+#include "../../../../../../bootstrap/abi/ootp_offsets.h"
+#include "../../../../../../core/core_flags/api/flags_api.h"
+#include "../../../../../../core/dates/core_text_date.h"
+#include "../../../../../../core/logging/core_log.h"
+#include "../../../../../../foreign/common/player_eval/foreign_waiver_player_eval.h"
+#include "../../../../../../foreign/common/policy/foreign_player_policy.h"
+#include "../../../../../../foreign/common/policy/foreign_waiver_policy.h"
+#include "../../../../../../runtime_memory/runtime_memory.h"
 
 int64_t kbo_independent_acquisition_seller_fit_score(
     const KboIndependentAcquisitionQueuedRequest* request,

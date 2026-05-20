@@ -39,29 +39,6 @@ static uint32_t kbo_military_days_tick_serial_from_work_date(uint32_t date)
         date % 100u);
 }
 
-static int kbo_military_days_tick_ready_for_work(const KboCurrentDateTickWork* work)
-{
-    if (work == NULL || kbo_military_days_tick_serial_from_work_date(work->date) == 0u) {
-        return 0;
-    }
-    if (!kbo_fix_enabled() || get_ootp_cached_global_database() == 0u) {
-        return 0;
-    }
-    if (kbo_runtime_save_in_progress()) {
-        return 0;
-    }
-
-    uintptr_t player_vector = 0u;
-    int32_t player_count = 0;
-    if (!find_kbo_global_player_vector(&player_vector, &player_count, NULL)
-            || player_vector == 0u
-            || player_count <= 0
-            || player_count > 200000) {
-        return 0;
-    }
-    return 1;
-}
-
 static int kbo_tick_military_service_days_for_serial(
     uint32_t today_serial,
     const char* source,
@@ -76,11 +53,9 @@ static int kbo_tick_military_service_days_for_serial(
     if (!kbo_runtime_pause_for_save_if_needed(source != NULL ? source : "military_days_tick")) {
         return 0;
     }
-
     if (today_serial == 0) {
         return 0;
     }
-
     if (kbo_opening_day_storyline_guard_active(source, NULL, NULL)) {
         return 0;
     }
@@ -392,28 +367,6 @@ int kbo_tick_military_service_days_for_date(
 {
     uint32_t today_serial = kbo_military_days_tick_serial_from_work_date(today_yyyymmdd);
     return kbo_tick_military_service_days_for_serial(today_serial, source, out_seeded_assignments);
-}
-
-int kbo_military_days_tick_sync_consumer(uint32_t date, uint32_t site_rva, void* context)
-{
-    (void)context;
-    KboCurrentDateTickWork work = {
-        .date = date,
-        .event_date = date,
-        .site_rva = site_rva,
-        .sequence = 0u,
-        .missed_events = 0u,
-        .gap = 0
-    };
-    if (!kbo_military_days_tick_ready_for_work(&work)) {
-        return 0;
-    }
-
-    const char* source = site_rva == KBO_CURRENT_DATE_TICK_SAVE_ENTER_SITE_RVA
-        ? "military_days_tick_sync_save_enter"
-        : "military_days_tick_sync_post_advance";
-    kbo_tick_military_service_days_for_date(date, source, NULL);
-    return !kbo_runtime_save_in_progress();
 }
 
 DWORD WINAPI kbo_military_days_tick_thread(LPVOID parameter)

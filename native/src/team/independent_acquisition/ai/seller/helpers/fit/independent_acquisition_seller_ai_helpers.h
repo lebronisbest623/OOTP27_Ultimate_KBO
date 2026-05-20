@@ -1,7 +1,7 @@
 #ifndef KBOFIX_SRC_INDEPENDENT_ACQUISITION_SELLER_AI_HELPERS_H_
 #define KBOFIX_SRC_INDEPENDENT_ACQUISITION_SELLER_AI_HELPERS_H_
 
-#include "../independent_acquisition_ai_internal.h"
+#include "../../../independent_acquisition_ai_internal.h"
 
 int64_t kbo_independent_acquisition_seller_fit_score(
     const KboIndependentAcquisitionQueuedRequest* request,

@@ -1,77 +1,6 @@
-#include "../foreign_injury_scanner_internal.h"
-
-static LONG g_kbo_foreign_injury_return_wait_log_count = 0;
-
-typedef struct KboForeignInjuryTeamLookupCacheEntry {
-    uint32_t team_id;
-    uint8_t* team;
-} KboForeignInjuryTeamLookupCacheEntry;
-
-static uint8_t* kbo_foreign_injury_cached_team_lookup(
-    uint32_t team_id,
-    KboForeignInjuryTeamLookupCacheEntry* cache,
-    int* cache_count,
-    int cache_capacity)
-{
-    if (team_id == 0u) {
-        return NULL;
-    }
-    for (int i = 0; i < *cache_count; i++) {
-        if (cache[i].team_id == team_id) {
-            return cache[i].team;
-        }
-    }
-    uint8_t* team = find_kbo_team_by_numeric_id_any_league(team_id, 1);
-    if (*cache_count < cache_capacity) {
-        cache[*cache_count].team_id = team_id;
-        cache[*cache_count].team = team;
-        (*cache_count)++;
-    }
-    return team;
-}
-
-static int kbo_foreign_injury_replacement_unavailable_by_long_injury(
-    const KboForeignInjuryReplacement* rec,
-    uint32_t today)
-{
-    if (rec == NULL || rec->replacement_player_id == 0u) {
-        return 0;
-    }
-    uint32_t team_id = 0u;
-    uint32_t league_id = 0u;
-    uint8_t* replacement = kbo_find_player_by_id(rec->replacement_player_id, &team_id, &league_id);
-    if (replacement == NULL || !memory_range_readable(replacement, OOTP27_PLAYER_SCAN_BYTES)) {
-        return 0;
-    }
-
-    KboForeignInjuryLiveMemory live_injury;
-    memset(&live_injury, 0, sizeof(live_injury));
-    int min_days = kbo_foreign_player_policy()->injury_replacement_min_days;
-    if (kbo_foreign_injury_read_live_memory(replacement, &live_injury)
-            && kbo_foreign_injury_live_memory_has_long_term_basis(&live_injury, min_days)) {
-        return 1;
-    }
-
-    (void)team_id;
-    (void)league_id;
-    (void)today;
-    return 0;
-}
-
-static int kbo_foreign_injury_runtime_injury_present(uint8_t* player)
-{
-    return kbo_foreign_injury_runtime_injury_present_from_memory(player);
-}
-
-static int kbo_foreign_injury_roster_hold_flags_present(uint8_t* player)
-{
-    if (player == NULL || !memory_range_readable(player, OOTP27_PLAYER_SCAN_BYTES)) {
-        return 0;
-    }
-    return player[OOTP27_PLAYER_RESTRICTED_FLAG_OFFSET] != 0u
-        || player[OOTP27_PLAYER_SECONDARY_RESTRICTED_FLAG_OFFSET] != 0u
-        || player[OOTP27_PLAYER_DFA_FLAG_OFFSET] != 0u;
-}
+#include "logs/foreign_injury_existing_replacements_logs.h"
+#include "player_state/foreign_injury_existing_replacements_player_state.h"
+#include "team_cache/foreign_injury_existing_replacements_team_cache.h"
 
 void kbo_foreign_injury_process_existing_replacements(
     uint32_t today,
@@ -196,6 +125,17 @@ void kbo_foreign_injury_process_existing_replacements(
                 source,
                 "existing_close_slot");
         int detached_reserved_replacement = 0;
+        KboForeignInjuryExistingWaitLogContext wait_log_context = {
+            rec,
+            injured,
+            &live_injury,
+            active_roster_present,
+            inactive_roster_present,
+            roster_hold_flags_present,
+            today,
+            0,
+            source
+        };
         if (uses_slot
                 && rec->replacement_player_id != 0u
                 && kbo_foreign_injury_replacement_player_reserved_locked(rec->replacement_player_id, rec)) {
@@ -326,25 +266,9 @@ void kbo_foreign_injury_process_existing_replacements(
         if (uses_slot && runtime_injury_present) {
             kbo_foreign_injury_restore_active_replacement_player(rec, source);
         } else if (uses_slot && rec->replacement_player_id != 0u && expected_end_pending) {
-            LONG log_slot = InterlockedIncrement(&g_kbo_foreign_injury_return_wait_log_count);
-            if (log_slot <= 80 || (log_slot % 100) == 0) {
-                kbo_log_runtimef(
-                    "foreign injury replacement: skipped active replacement restore without runtime injury source=%s team=%u injured=%u replacement=%u current=%u active=%u league=%u slot_league=%u loan_active=%u injury=%u days_left=%d inactive_roster=%d today=%u expected_end=%u",
-                    source != NULL ? source : "",
-                    rec->team_id,
-                    rec->injured_player_id,
-                    rec->replacement_player_id,
-                    *(uint32_t*)(injured + OOTP27_PLAYER_CURRENT_TEAM_ID_OFFSET),
-                    *(uint32_t*)(injured + OOTP27_PLAYER_ACTIVE_TEAM_ID_OFFSET),
-                    *(uint32_t*)(injured + OOTP27_PLAYER_CURRENT_LEAGUE_ID_OFFSET),
-                    rec->league_id,
-                    (uint32_t)injured[OOTP27_PLAYER_LOAN_ACTIVE_FLAG_OFFSET],
-                    (uint32_t)live_injury.active,
-                    (int)live_injury.days_left,
-                    inactive_roster_present,
-                    today,
-                    rec->expected_end_yyyymmdd);
-            }
+            kbo_foreign_injury_log_existing_replacement_wait(
+                KBO_FOREIGN_INJURY_EXISTING_WAIT_ACTIVE_RESTORE,
+                &wait_log_context);
         }
         if (uses_slot && rec->replacement_player_id == 0u && expected_end_pending && runtime_injury_present) {
             uint32_t replacement_player_id = kbo_foreign_injury_resolve_replacement_for_record(rec);
@@ -383,103 +307,31 @@ void kbo_foreign_injury_process_existing_replacements(
                 && (!active_roster_present || rec->replacement_player_id == 0u)
                 && !stale_without_injury_basis) {
             returned_to_org_roster = 0;
-            LONG log_slot = InterlockedIncrement(&g_kbo_foreign_injury_return_wait_log_count);
-            if (log_slot <= 80 || (log_slot % 100) == 0) {
-                kbo_log_runtimef(
-                    "foreign injury replacement: suppressing early close before expected end source=%s team=%u injured=%u replacement=%u current=%u active=%u league=%u slot_league=%u loan_active=%u injury=%u days_left=%d active_roster=%d inactive_roster=%d roster_hold_flags=%d today=%u expected_end=%u",
-                    source != NULL ? source : "",
-                    rec->team_id,
-                    rec->injured_player_id,
-                    rec->replacement_player_id,
-                    *(uint32_t*)(injured + OOTP27_PLAYER_CURRENT_TEAM_ID_OFFSET),
-                    *(uint32_t*)(injured + OOTP27_PLAYER_ACTIVE_TEAM_ID_OFFSET),
-                    *(uint32_t*)(injured + OOTP27_PLAYER_CURRENT_LEAGUE_ID_OFFSET),
-                    rec->league_id,
-                    (uint32_t)injured[OOTP27_PLAYER_LOAN_ACTIVE_FLAG_OFFSET],
-                    (uint32_t)live_injury.active,
-                    (int)live_injury.days_left,
-                    active_roster_present,
-                    inactive_roster_present,
-                    roster_hold_flags_present,
-                    today,
-                    rec->expected_end_yyyymmdd);
-            }
+            kbo_foreign_injury_log_existing_replacement_wait(
+                KBO_FOREIGN_INJURY_EXISTING_WAIT_SUPPRESS_EARLY_CLOSE,
+                &wait_log_context);
         }
         if (stale_without_injury_basis) {
-            LONG log_slot = InterlockedIncrement(&g_kbo_foreign_injury_return_wait_log_count);
-            if (log_slot <= 80 || (log_slot % 100) == 0) {
-                kbo_log_runtimef(
-                    "foreign injury replacement: closing stale active slot without runtime injury source=%s team=%u injured=%u replacement=%u current=%u active=%u league=%u slot_league=%u loan_active=%u injury=%u days_left=%d active_roster=%d inactive_roster=%d today=%u expected_end=%u",
-                    source != NULL ? source : "",
-                    rec->team_id,
-                    rec->injured_player_id,
-                    rec->replacement_player_id,
-                    *(uint32_t*)(injured + OOTP27_PLAYER_CURRENT_TEAM_ID_OFFSET),
-                    *(uint32_t*)(injured + OOTP27_PLAYER_ACTIVE_TEAM_ID_OFFSET),
-                    *(uint32_t*)(injured + OOTP27_PLAYER_CURRENT_LEAGUE_ID_OFFSET),
-                    rec->league_id,
-                    (uint32_t)injured[OOTP27_PLAYER_LOAN_ACTIVE_FLAG_OFFSET],
-                    (uint32_t)live_injury.active,
-                    (int)live_injury.days_left,
-                    active_roster_present,
-                    inactive_roster_present,
-                    today,
-                    rec->expected_end_yyyymmdd);
-            }
+            kbo_foreign_injury_log_existing_replacement_wait(
+                KBO_FOREIGN_INJURY_EXISTING_WAIT_STALE_WITHOUT_BASIS,
+                &wait_log_context);
         }
         int expected_end_reached = close_decision_allowed
             && kbo_foreign_injury_expected_end_reached(today, rec->expected_end_yyyymmdd);
+        wait_log_context.expected_end_reached = expected_end_reached;
         if (!returned_to_org_roster && (inactive_roster_present || roster_hold_flags_present)) {
             if (live_injury.active == 0u) {
-                LONG log_slot = InterlockedIncrement(&g_kbo_foreign_injury_return_wait_log_count);
-                if (log_slot <= 80 || (log_slot % 100) == 0) {
-                    kbo_log_runtimef(
-                        "foreign injury replacement: waiting inactive roster return source=%s team=%u injured=%u replacement=%u current=%u active=%u league=%u slot_league=%u loan_active=%u injury=%u days_left=%d active_roster=%d inactive_roster=%d roster_hold_flags=%d today=%u expected_end=%u expected_end_reached=%d",
-                        source != NULL ? source : "",
-                        rec->team_id,
-                        rec->injured_player_id,
-                        rec->replacement_player_id,
-                        *(uint32_t*)(injured + OOTP27_PLAYER_CURRENT_TEAM_ID_OFFSET),
-                        *(uint32_t*)(injured + OOTP27_PLAYER_ACTIVE_TEAM_ID_OFFSET),
-                        *(uint32_t*)(injured + OOTP27_PLAYER_CURRENT_LEAGUE_ID_OFFSET),
-                        rec->league_id,
-                        (uint32_t)injured[OOTP27_PLAYER_LOAN_ACTIVE_FLAG_OFFSET],
-                        (uint32_t)live_injury.active,
-                        (int)live_injury.days_left,
-                        active_roster_present,
-                        inactive_roster_present,
-                        roster_hold_flags_present,
-                        today,
-                        rec->expected_end_yyyymmdd,
-                        expected_end_reached);
-                }
+                kbo_foreign_injury_log_existing_replacement_wait(
+                    KBO_FOREIGN_INJURY_EXISTING_WAIT_INACTIVE_RETURN,
+                    &wait_log_context);
             }
             continue;
         }
         if (!returned_to_org_roster) {
             if (live_injury.active == 0u) {
-                LONG log_slot = InterlockedIncrement(&g_kbo_foreign_injury_return_wait_log_count);
-                if (log_slot <= 80 || (log_slot % 100) == 0) {
-                    kbo_log_runtimef(
-                        "foreign injury replacement: waiting top-team return source=%s team=%u injured=%u replacement=%u current=%u active=%u league=%u slot_league=%u loan_active=%u injury=%u days_left=%d active_roster=%d inactive_roster=%d roster_hold_flags=%d today=%u expected_end=%u expected_end_reached=%d",
-                        source != NULL ? source : "",
-                        rec->team_id,
-                        rec->injured_player_id,
-                        rec->replacement_player_id,
-                        *(uint32_t*)(injured + OOTP27_PLAYER_CURRENT_TEAM_ID_OFFSET),
-                        *(uint32_t*)(injured + OOTP27_PLAYER_ACTIVE_TEAM_ID_OFFSET),
-                        *(uint32_t*)(injured + OOTP27_PLAYER_CURRENT_LEAGUE_ID_OFFSET),
-                        rec->league_id,
-                        (uint32_t)injured[OOTP27_PLAYER_LOAN_ACTIVE_FLAG_OFFSET],
-                        (uint32_t)live_injury.active,
-                        (int)live_injury.days_left,
-                        active_roster_present,
-                        inactive_roster_present,
-                        roster_hold_flags_present,
-                        today,
-                        rec->expected_end_yyyymmdd,
-                        expected_end_reached);
-                }
+                kbo_foreign_injury_log_existing_replacement_wait(
+                    KBO_FOREIGN_INJURY_EXISTING_WAIT_TOP_TEAM_RETURN,
+                    &wait_log_context);
             }
             continue;
         }
@@ -529,30 +381,7 @@ void kbo_foreign_injury_process_existing_replacements(
     }
     kbo_unlock_foreign_injury_replacements();
 
-    for (int i = 0; i < active_count; i++) {
-        do {
-            KboLogFields audit_fields;
-            kbo_log_fields_init(&audit_fields);
-            kbo_log_field_u32(&audit_fields, "date", today);
-            kbo_log_field_u32(&audit_fields, "team_id", active_news[i].team_id);
-            kbo_log_field_u32(&audit_fields, "league_id", active_news[i].league_id);
-            kbo_log_field_u32(&audit_fields, "injured_player_id", active_news[i].injured_player_id);
-            kbo_log_field_u32(&audit_fields, "replacement_player_id", active_news[i].replacement_player_id);
-            kbo_rule_audit_emit_fields(
-                "foreign_injury.replacement.lifecycle",
-                "activate_slot",
-                "replacement_resolved",
-                source,
-                &audit_fields);
-        } while (0);
-        kbo_log_runtimef(
-            "foreign injury replacement: activated source=%s team=%u injured=%u replacement=%u league=%u",
-            source != NULL ? source : "",
-            active_news[i].team_id,
-            active_news[i].injured_player_id,
-            active_news[i].replacement_player_id,
-            active_news[i].league_id);
-    }
+    kbo_foreign_injury_emit_active_replacement_news_batch(active_news, active_count, today, source);
     kbo_foreign_injury_emit_closed_news_batch(closed_news, closed_count, today, source);
     if (out_active_count != NULL) {
         *out_active_count = active_count;

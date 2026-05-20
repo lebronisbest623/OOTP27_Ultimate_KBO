@@ -80,10 +80,24 @@ int kbo_amateur_ortools_write_batch_request(
     int incoming_batch);
 uint32_t kbo_amateur_ortools_read_result(const char* result_path);
 int kbo_amateur_ortools_read_batch_result(const char* result_path, uint32_t league_id);
+int kbo_amateur_apply_post_original_batch_assignments(
+    uintptr_t* league_players,
+    int32_t player_count,
+    uint32_t league_id,
+    KboAmateurAssignmentCandidate* candidates,
+    int candidate_count,
+    const char* reason);
 void kbo_amateur_apply_deferred_original_fallback(
     KboAmateurDeferredTeamAdd* deferred_team_adds,
     int32_t deferred_count,
     uint32_t league_id,
+    const char* reason);
+void kbo_amateur_apply_deferred_ortools_batch(
+    KboAmateurDeferredTeamAdd* deferred_team_adds,
+    int32_t deferred_count,
+    uint32_t league_id,
+    KboAmateurAssignmentCandidate* candidates,
+    int candidate_count,
     const char* reason);
 int kbo_amateur_flush_league_batch_ortools(const char* reason, int force);
 void kbo_amateur_start_league_batch_flush_thread(void);

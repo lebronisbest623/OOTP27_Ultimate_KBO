@@ -19,6 +19,7 @@
 #include "../../../core/logging/rule_audit.h"
 #include "../../../core/sync/lock.h"
 #include "../../../runtime_memory/runtime_memory.h"
+#include "../../../team/assignment/org_query/team_org_assignment_query.h"
 #include "../../../team/assignment/roster_arrays/team_roster_arrays.h"
 #include "../../../team/lookup/team_lookup.h"
 #include "../../../team/names/team_name_cache.h"

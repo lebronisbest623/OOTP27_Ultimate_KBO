@@ -14,7 +14,7 @@ void kbo_count_foreign_injury_replacements_for_team(
     kbo_lock_foreign_injury_replacements();
     for (int i = 0; i < g_kbo_foreign_injury_replacement_count; i++) {
         KboForeignInjuryReplacement* rec = &g_kbo_foreign_injury_replacements[i];
-        if (team_id != 0u && rec->team_id != team_id) {
+        if (team_id != 0u && !kbo_team_ids_share_org(rec->team_id, team_id)) {
             continue;
         }
         if (kbo_foreign_injury_status_uses_slot(rec->status)
