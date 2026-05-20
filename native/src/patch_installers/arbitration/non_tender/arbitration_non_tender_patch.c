@@ -2,13 +2,9 @@
 
 int32_t kbo_salary_arbitration_resolve_minimum_salary(uint32_t league_id)
 {
-    if (league_id == 0u || league_id > 100000u) {
-        int32_t current_floor = kbo_no_minor_current_league_minimum_salary();
-        return current_floor > 0 ? current_floor : 35600;
-    }
-
+    (void)league_id;
     int32_t current_floor = kbo_no_minor_current_league_minimum_salary();
-    return current_floor > 0 ? current_floor : 35600;
+    return current_floor > 0 ? current_floor : 0;
 }
 
 uintptr_t kbo_salary_arbitration_caller_rva(void* return_address)

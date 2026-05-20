@@ -48,12 +48,30 @@ static int kbo_allstar_serial_to_ymd(uint32_t serial, uint32_t* out_year, uint32
         return 0;
     }
 
-    uint32_t year = serial / 365u + 1u;
-    while (year > 1u && kbo_date_serial(year, 1u, 1u) > serial) {
-        --year;
+    uint32_t low = KBO_HISTORY_YEAR_MIN;
+    uint32_t high = KBO_RECORD_YEAR_MAX;
+    uint32_t year = 0u;
+    while (low <= high) {
+        uint32_t mid = low + ((high - low) / 2u);
+        uint32_t start = kbo_date_serial(mid, 1u, 1u);
+        uint32_t next = kbo_date_serial(mid + 1u, 1u, 1u);
+        if (start == 0u) {
+            return 0;
+        }
+        if (serial < start) {
+            if (mid == 0u) {
+                return 0;
+            }
+            high = mid - 1u;
+        } else if (next != 0u && serial >= next) {
+            low = mid + 1u;
+        } else {
+            year = mid;
+            break;
+        }
     }
-    while (kbo_date_serial(year + 1u, 1u, 1u) != 0u && kbo_date_serial(year + 1u, 1u, 1u) <= serial) {
-        ++year;
+    if (year == 0u) {
+        return 0;
     }
 
     uint32_t month = 1u;

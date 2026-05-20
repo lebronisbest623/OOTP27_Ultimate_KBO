@@ -19,7 +19,7 @@
 
 static int kbo_fa_player_vector_readable(uintptr_t player_vector, int32_t player_count)
 {
-    return player_vector != 0 && player_count > 0 && player_count <= 200000
+    return player_vector != 0 && player_count > 0 && player_count <= KBO_RUNTIME_MAX_PLAYER_VECTOR_COUNT
         && (SIZE_T)player_count <= ((SIZE_T)-1 / sizeof(uintptr_t))
         && memory_range_readable((void*)player_vector, (SIZE_T)player_count * sizeof(uintptr_t));
 }

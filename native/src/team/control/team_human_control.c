@@ -26,7 +26,7 @@ static uint32_t g_kbo_human_control_last_log_hash = 0;
 
 static int kbo_human_control_team_id_valid(uint32_t team_id)
 {
-    if (team_id == 0 || team_id > 100000u) {
+    if (team_id == 0 || team_id > KBO_RUNTIME_PLAUSIBLE_CONTEXT_ID_MAX) {
         return 0;
     }
 

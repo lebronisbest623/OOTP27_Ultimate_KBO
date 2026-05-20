@@ -63,7 +63,7 @@ int scan_kbo_custom_events_once_for_date(uint32_t current_yyyymmdd, const char* 
     if (event_count == 0) {
         return 0;
     }
-    if (event_vector == 0 || event_count < 0 || event_count > 20000
+    if (event_vector == 0 || event_count < 0 || event_count > KBO_RUNTIME_MAX_EVENT_VECTOR_COUNT
             || !memory_range_readable((void*)event_vector, (SIZE_T)event_count * sizeof(uintptr_t))) {
         return -1;
     }

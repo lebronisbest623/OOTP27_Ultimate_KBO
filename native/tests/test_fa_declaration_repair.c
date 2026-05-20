@@ -12,6 +12,8 @@
 #include "../src/core/league_roles/kbo_league_roles.h"
 #include "../src/fa_declaration/fa_declaration.h"
 
+static const uint32_t TEST_MAIN_LEAGUE_ID = 100u;
+
 int kbo_fix_enabled(void)
 {
     return 1;
@@ -52,7 +54,7 @@ uint32_t kbo_fa_declaration_retained_contract_season(uint32_t declaration_season
 
 uint32_t kbo_league_role_main_league_id(void)
 {
-    return KBO_DEFAULT_MAIN_LEAGUE_ID;
+    return TEST_MAIN_LEAGUE_ID;
 }
 
 KboCsvReader* kbo_csv_reader_open(const char* path)
@@ -153,7 +155,7 @@ static void test_retained_fa_repair_normalizes_next_season_contract(void)
     decision.season = 2026u;
     decision.declared = 0u;
     decision.team_id = 7u;
-    decision.league_id = KBO_DEFAULT_MAIN_LEAGUE_ID;
+    decision.league_id = TEST_MAIN_LEAGUE_ID;
     decision.contract_level = 1u;
     decision.salary = 600000;
 

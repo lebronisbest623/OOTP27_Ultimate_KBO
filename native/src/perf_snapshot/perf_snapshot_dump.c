@@ -103,7 +103,7 @@ int kbo_dump_perf_player_snapshot(const char* source, char* out_path, size_t out
     int32_t player_count = 0;
     uint32_t vector_offset = 0u;
     if (!find_kbo_global_player_vector(&player_vector, &player_count, &vector_offset)
-            || player_vector == 0u || player_count <= 0 || player_count > 200000) {
+            || player_vector == 0u || player_count <= 0 || player_count > KBO_RUNTIME_MAX_PLAYER_VECTOR_COUNT) {
         kbo_log_runtimef(
             "perf snapshot skipped reason=no_player_vector source=%s vector=%p count=%d",
             source != NULL ? source : "",

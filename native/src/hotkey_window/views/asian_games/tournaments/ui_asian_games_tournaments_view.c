@@ -233,8 +233,8 @@ void kbo_webview_append_asian_games_tournaments_view(KboWindowTextBuffer* buffer
         &current_year,
         &current_month,
         &current_day);
-    if (current_year < 2026u || current_year > KBO_SIM_YEAR_MAX) {
-        current_year = 2026u;
+    if (current_year < KBO_SEASON_YEAR_MIN || current_year > KBO_SIM_YEAR_MAX) {
+        current_year = KBO_SEASON_YEAR_MIN;
     }
 
     uint32_t today = 0u;

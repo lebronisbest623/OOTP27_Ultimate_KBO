@@ -8,15 +8,15 @@
 static INIT_ONCE g_kbo_league_roles_once = INIT_ONCE_STATIC_INIT;
 static KboLeagueRoles g_kbo_league_roles;
 
-static uint32_t kbo_league_role_u32(const char* key, uint32_t fallback)
+static uint32_t kbo_league_role_u32(const char* key)
 {
     int32_t value = kbo_read_clamped_policy_int(
         KBO_LEAGUE_ROLES_FILE,
         key,
-        (int32_t)fallback,
+        0,
         1,
         1000000);
-    return value > 0 ? (uint32_t)value : fallback;
+    return value > 0 ? (uint32_t)value : 0u;
 }
 
 static BOOL CALLBACK kbo_league_roles_init_once(PINIT_ONCE init_once, PVOID parameter, PVOID* context)
@@ -25,10 +25,10 @@ static BOOL CALLBACK kbo_league_roles_init_once(PINIT_ONCE init_once, PVOID para
     (void)parameter;
     (void)context;
 
-    g_kbo_league_roles.main_league_id = kbo_league_role_u32("main_league_id", KBO_DEFAULT_MAIN_LEAGUE_ID);
-    g_kbo_league_roles.independent_league_id = kbo_league_role_u32("independent_league_id", KBO_DEFAULT_INDEPENDENT_LEAGUE_ID);
-    g_kbo_league_roles.college_league_id = kbo_league_role_u32("college_league_id", KBO_DEFAULT_COLLEGE_LEAGUE_ID);
-    g_kbo_league_roles.high_school_league_id = kbo_league_role_u32("high_school_league_id", KBO_DEFAULT_HIGH_SCHOOL_LEAGUE_ID);
+    g_kbo_league_roles.main_league_id = kbo_league_role_u32("main_league_id");
+    g_kbo_league_roles.independent_league_id = kbo_league_role_u32("independent_league_id");
+    g_kbo_league_roles.college_league_id = kbo_league_role_u32("college_league_id");
+    g_kbo_league_roles.high_school_league_id = kbo_league_role_u32("high_school_league_id");
     return TRUE;
 }
 

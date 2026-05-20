@@ -29,7 +29,7 @@ int collect_kbo_league_team_ids(
 
     uintptr_t team_vector = *(uintptr_t*)(global + OOTP27_KBO_TEAM_VECTOR_OFFSET);
     int32_t team_count = *(int32_t*)(global + OOTP27_KBO_TEAM_COUNT_OFFSET);
-    if (team_vector == 0 || team_count <= 0 || team_count > 10000
+    if (team_vector == 0 || team_count <= 0 || team_count > KBO_RUNTIME_MAX_TEAM_VECTOR_COUNT
             || !memory_range_readable((void*)team_vector, (SIZE_T)team_count * sizeof(uintptr_t))) {
         return 0;
     }
@@ -52,7 +52,7 @@ int collect_kbo_league_team_ids(
         }
 
         uint32_t team_id = *(uint32_t*)(team + OOTP27_KBO_TEAM_ID_OFFSET);
-        if (team_id == 0 || team_id > 1000000u) {
+        if (team_id == 0 || team_id > KBO_RUNTIME_PLAUSIBLE_TEAM_ID_MAX) {
             continue;
         }
 

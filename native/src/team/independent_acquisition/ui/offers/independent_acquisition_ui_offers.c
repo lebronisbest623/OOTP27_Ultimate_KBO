@@ -127,7 +127,7 @@ int kbo_independent_acquisition_ui_collect_offer_rows(
     if (!find_kbo_global_player_vector(&player_vector, &player_count, NULL)
             || player_vector == 0u
             || player_count <= 0
-            || player_count > 200000
+            || player_count > KBO_RUNTIME_MAX_PLAYER_VECTOR_COUNT
             || !memory_range_readable((void*)player_vector, (SIZE_T)player_count * sizeof(uintptr_t))) {
         return 0;
     }

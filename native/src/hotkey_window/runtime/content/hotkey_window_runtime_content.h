@@ -3,6 +3,11 @@
 
 #include "../hotkey_window_runtime_shared.h"
 
+#define KBO_HUB_DROPDOWN_MAX_LEAGUES 256
+#define KBO_HUB_DROPDOWN_MAX_TEAMS 512
+#define KBO_HUB_LEAGUE_MENU_COMMAND_BASE 1000u
+#define KBO_HUB_TEAM_MENU_COMMAND_BASE 2000u
+
 const char* kbo_hub_nav_label(int index);
 const char* kbo_hub_foreign_subnav_label(int index);
 const char* kbo_hub_agames_subnav_label(int index);

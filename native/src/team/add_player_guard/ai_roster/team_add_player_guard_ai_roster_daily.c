@@ -1,5 +1,6 @@
 #include "team_add_player_guard_ai_roster_daily_internal.h"
 #include "../../../core/core_flags/keys/runtime_flag_keys.generated.h"
+#include "../../../runtime_memory/runtime_memory.h"
 
 static volatile LONG g_kbo_ai_roster_daily_callup_dirty = 0;
 
@@ -72,7 +73,7 @@ static uintptr_t* kbo_ai_roster_daily_copy_player_vector_snapshot(
     if (out_failure_reason != NULL) {
         *out_failure_reason = "unknown";
     }
-    if (player_vector == 0u || player_count <= 0 || player_count > 200000) {
+    if (player_vector == 0u || player_count <= 0 || player_count > KBO_RUNTIME_MAX_PLAYER_VECTOR_COUNT) {
         if (out_failure_reason != NULL) { *out_failure_reason = "invalid_vector"; }
         return NULL;
     }
@@ -131,7 +132,7 @@ static uintptr_t kbo_ai_roster_daily_choose_candidate(
     if (out_scan != NULL) { memset(out_scan, 0, sizeof(*out_scan)); }
     if (player_snapshot == NULL
             || player_count <= 0
-            || player_count > 200000) {
+            || player_count > KBO_RUNTIME_MAX_PLAYER_VECTOR_COUNT) {
         return 0u;
     }
 

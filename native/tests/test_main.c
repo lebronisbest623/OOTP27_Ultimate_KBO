@@ -119,6 +119,9 @@ static int g_test_team_lookup_enabled = 0;
 static uintptr_t g_test_player_vector_storage[16];
 static int32_t g_test_player_vector_count = 0;
 static int g_test_player_vector_enabled = 0;
+static const uint32_t TEST_COLLEGE_LEAGUE_ID = 201u;
+static const uint32_t TEST_HIGH_SCHOOL_LEAGUE_ID = 203u;
+static const uint32_t TEST_INDEPENDENT_LEAGUE_ID = 200u;
 
 static void test_configure_team_org_lookup(void)
 {
@@ -149,12 +152,12 @@ uint8_t* find_kbo_team_by_numeric_id_any_league(uint32_t team_id, int allow_dele
 const KboFaMarketPolicy* kbo_fa_market_policy(void)
 {
     static const KboFaMarketPolicy policy = {
-        .undrafted_college_league_id = KBO_DEFAULT_COLLEGE_LEAGUE_ID,
+        .undrafted_college_league_id = TEST_COLLEGE_LEAGUE_ID,
         .undrafted_college_draft_subtype = 1,
         .undrafted_college_age_max = 25,
-        .undrafted_high_school_league_id = KBO_DEFAULT_HIGH_SCHOOL_LEAGUE_ID,
+        .undrafted_high_school_league_id = TEST_HIGH_SCHOOL_LEAGUE_ID,
         .undrafted_high_school_age_max = 20,
-        .independent_league_id = KBO_DEFAULT_INDEPENDENT_LEAGUE_ID,
+        .independent_league_id = TEST_INDEPENDENT_LEAGUE_ID,
         .player_age_min = 16,
         .player_age_max = 60
     };
@@ -1966,6 +1969,81 @@ static void test_military_native_loan_clear(void)
 
 static char g_rule_audit_test_dir[MAX_PATH] = {0};
 
+static void test_write_policy_file(const char* file_name, const char* json)
+{
+    char path[MAX_PATH] = {0};
+    size_t dir_len = strlen(g_rule_audit_test_dir);
+    size_t file_len = strlen(file_name);
+    assert(dir_len + 1u + file_len + 1u <= sizeof(path));
+    memcpy(path, g_rule_audit_test_dir, dir_len);
+    path[dir_len] = '\\';
+    memcpy(path + dir_len + 1u, file_name, file_len + 1u);
+
+    HANDLE file = CreateFileA(path, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    assert(file != INVALID_HANDLE_VALUE);
+    DWORD written = 0;
+    assert(WriteFile(file, json, (DWORD)strlen(json), &written, NULL));
+    CloseHandle(file);
+    assert(written == (DWORD)strlen(json));
+}
+
+static void test_policy_data_begin(void)
+{
+    char temp_dir[MAX_PATH] = {0};
+    DWORD temp_len = GetTempPathA(sizeof(temp_dir), temp_dir);
+    assert(temp_len > 0 && temp_len < sizeof(temp_dir));
+    char suffix[64] = {0};
+    snprintf(suffix, sizeof(suffix), "kbo_policy_test_%lu", (unsigned long)GetCurrentProcessId());
+    size_t temp_dir_len = strlen(temp_dir);
+    size_t suffix_len = strlen(suffix);
+    assert(temp_dir_len + suffix_len + 1u < sizeof(g_rule_audit_test_dir));
+    memcpy(g_rule_audit_test_dir, temp_dir, temp_dir_len);
+    memcpy(g_rule_audit_test_dir + temp_dir_len, suffix, suffix_len + 1u);
+    CreateDirectoryA(g_rule_audit_test_dir, NULL);
+
+    test_write_policy_file(
+        "economic_defaults.json",
+        "{ \"asian_quota_salary_limit\": 200000, \"intl_established_fa_multiplier\": 20 }\n");
+    test_write_policy_file(
+        "foreign_player_policy.json",
+        "{ \"regular_value_threshold\": 85000, \"asian_value_threshold\": 60000,"
+        " \"asian_quota_nation_id_1\": 98, \"asian_quota_nation_id_2\": 12,"
+        " \"asian_quota_nation_id_3\": 43 }\n");
+    test_write_policy_file(
+        "league_roles.json",
+        "{ \"main_league_id\": 100, \"independent_league_id\": 200,"
+        " \"college_league_id\": 201, \"high_school_league_id\": 203 }\n");
+}
+
+static void test_policy_data_end(void)
+{
+    if (g_rule_audit_test_dir[0] == '\0') {
+        return;
+    }
+
+    char path[MAX_PATH] = {0};
+    size_t dir_len = strlen(g_rule_audit_test_dir);
+    const char economic_file[] = "\\economic_defaults.json";
+    const char foreign_file[] = "\\foreign_player_policy.json";
+    const char league_file[] = "\\league_roles.json";
+    assert(dir_len + sizeof(economic_file) <= sizeof(path));
+    memcpy(path, g_rule_audit_test_dir, dir_len);
+    memcpy(path + dir_len, economic_file, sizeof(economic_file));
+    DeleteFileA(path);
+    memset(path, 0, sizeof(path));
+    assert(dir_len + sizeof(foreign_file) <= sizeof(path));
+    memcpy(path, g_rule_audit_test_dir, dir_len);
+    memcpy(path + dir_len, foreign_file, sizeof(foreign_file));
+    DeleteFileA(path);
+    memset(path, 0, sizeof(path));
+    assert(dir_len + sizeof(league_file) <= sizeof(path));
+    memcpy(path, g_rule_audit_test_dir, dir_len);
+    memcpy(path + dir_len, league_file, sizeof(league_file));
+    DeleteFileA(path);
+    RemoveDirectoryA(g_rule_audit_test_dir);
+    g_rule_audit_test_dir[0] = '\0';
+}
+
 static void test_nation_table_parses_all_seed_rows(void)
 {
     char temp_dir[MAX_PATH] = {0};
@@ -2792,6 +2870,7 @@ static void test_foreign_org_count_cache_reuses_generation_without_ttl(void)
     g_kbo_foreign_org_count_cache_generation = 1;
     printf("test_foreign_org_count_cache_reuses_generation_without_ttl: PASS\n");
 }
+
 static void test_flag_key_from_file_name(void)
 {
     char out[64];
@@ -3166,6 +3245,7 @@ int main(void)
     test_military_native_loan_on_loan_predicate();
     test_military_native_loan_clear();
     test_team_roster_arrays_contains_player();
+    test_policy_data_begin();
     test_foreign_waiver_read_player_i16();
     test_foreign_waiver_value_score();
     test_player_is_foreign_for_kbo_rights();
@@ -3183,6 +3263,7 @@ int main(void)
     test_amateur_reputation_balanced_deltas_prevent_inflation();
     test_independent_acquisition_score_policy();
     test_asian_games_wildcard_age_policy();
+    test_policy_data_end();
     printf("All tests passed.\n");
     return 0;
 }

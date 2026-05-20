@@ -341,7 +341,7 @@ internal static partial class KboFlags
 
     public static int ReadKboIntlEstablishedFaMultiplier()
     {
-        var defaultValue = ReadKboSeedIntDefault("economic_defaults.json", "intl_established_fa_multiplier", fallback: 20);
+        var defaultValue = ReadKboSeedIntDefault("economic_defaults.json", "intl_established_fa_multiplier", fallback: 0);
         return ReadKboIntSetting(
             GetKboSettingsConfigPath(),
             GetKboFlagConfigPath(),

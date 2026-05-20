@@ -1,4 +1,5 @@
 #include "captain_seed_display_resolve.h"
+#include "../../../runtime_memory/runtime_memory.h"
 
 void kbo_captain_display_loaded_key(uint32_t season, char* out, size_t out_size)
 {
@@ -45,7 +46,7 @@ static uint8_t* kbo_captain_display_find_player_by_id(uint32_t player_id, int* o
     if (!find_kbo_global_player_vector(&player_vector, &player_count, NULL)) {
         return NULL;
     }
-    if (player_vector == 0u || player_count <= 0 || player_count > 200000
+    if (player_vector == 0u || player_count <= 0 || player_count > KBO_RUNTIME_MAX_PLAYER_VECTOR_COUNT
             || !memory_range_readable((void*)player_vector, (SIZE_T)player_count * sizeof(uintptr_t))) {
         return NULL;
     }
@@ -272,7 +273,7 @@ int kbo_captain_compute_display_for_team(
     if (find_kbo_global_player_vector(&player_vector, &player_count, NULL)
             && player_vector != 0u
             && player_count > 0
-            && player_count <= 200000
+            && player_count <= KBO_RUNTIME_MAX_PLAYER_VECTOR_COUNT
             && memory_range_readable((void*)player_vector, (SIZE_T)player_count * sizeof(uintptr_t))) {
         vector_available = 1;
         for (int32_t i = 0; i < player_count; i++) {

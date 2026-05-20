@@ -5,11 +5,6 @@
 
 #define KBO_LEAGUE_ROLES_FILE "league_roles.json"
 
-#define KBO_DEFAULT_MAIN_LEAGUE_ID 100u
-#define KBO_DEFAULT_INDEPENDENT_LEAGUE_ID 200u
-#define KBO_DEFAULT_COLLEGE_LEAGUE_ID 201u
-#define KBO_DEFAULT_HIGH_SCHOOL_LEAGUE_ID 203u
-
 typedef struct KboLeagueRoles {
     uint32_t main_league_id;
     uint32_t independent_league_id;

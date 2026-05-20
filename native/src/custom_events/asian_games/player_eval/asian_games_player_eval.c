@@ -261,7 +261,7 @@ int kbo_asian_games_collect_required_orgs(uint32_t main_league_id, uint32_t* org
 
     uintptr_t vector = *(uintptr_t*)(global + OOTP27_KBO_TEAM_VECTOR_OFFSET);
     int32_t team_count = *(int32_t*)(global + OOTP27_KBO_TEAM_COUNT_OFFSET);
-    if (vector == 0 || team_count <= 0 || team_count > 10000
+    if (vector == 0 || team_count <= 0 || team_count > KBO_RUNTIME_MAX_TEAM_VECTOR_COUNT
             || !memory_range_readable((void*)vector, (SIZE_T)team_count * sizeof(uintptr_t))) {
         return 0;
     }

@@ -1,5 +1,6 @@
 #include "../internal/amateur_assignment_internal.h"
 #include "../../core/dates/tick/current_date_tick_capture.h"
+#include "../../runtime_memory/runtime_memory.h"
 
 int kbo_find_amateur_team_reputation_by_memory_team(uint32_t league_id, uint8_t* team, uint8_t* out_reputation)
 {
@@ -194,7 +195,7 @@ int kbo_update_amateur_reputation_for_league(uint32_t league_id, const char* sou
     }
     uintptr_t team_vector = *(uintptr_t*)(global + OOTP27_KBO_TEAM_VECTOR_OFFSET);
     int32_t team_count = *(int32_t*)(global + OOTP27_KBO_TEAM_COUNT_OFFSET);
-    if (team_vector == 0 || team_count <= 0 || team_count > 10000
+    if (team_vector == 0 || team_count <= 0 || team_count > KBO_RUNTIME_MAX_TEAM_VECTOR_COUNT
             || !memory_range_readable((void*)team_vector, (SIZE_T)team_count * sizeof(uintptr_t))) {
         return 0;
     }

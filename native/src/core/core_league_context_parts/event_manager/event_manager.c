@@ -19,7 +19,7 @@ static int kbo_event_manager_candidate_plausible(uintptr_t event_manager)
     }
 
     int32_t event_count = *(int32_t*)(event_manager + OOTP27_EVENT_MANAGER_EVENT_COUNT_OFFSET);
-    if (event_count < 0 || event_count > 20000) {
+    if (event_count < 0 || event_count > KBO_RUNTIME_MAX_EVENT_VECTOR_COUNT) {
         return 0;
     }
 

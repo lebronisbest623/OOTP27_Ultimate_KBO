@@ -250,9 +250,9 @@ void kbo_hub_show_league_dropdown(HWND hwnd)
         return;
     }
 
-    uint32_t leagues[256] = {0};
+    uint32_t leagues[KBO_HUB_DROPDOWN_MAX_LEAGUES] = {0};
     int league_count = 0;
-    for (int32_t i = 0; i < team_count && league_count < 256; i++) {
+    for (int32_t i = 0; i < team_count && league_count < KBO_HUB_DROPDOWN_MAX_LEAGUES; i++) {
         uintptr_t team_ptr = *(uintptr_t*)(team_vector + ((uintptr_t)i * sizeof(uintptr_t)));
         if (team_ptr == 0 || !memory_range_readable((void*)team_ptr, OOTP27_KBO_TEAM_READABLE_BYTES)) {
             continue;
@@ -284,14 +284,15 @@ void kbo_hub_show_league_dropdown(HWND hwnd)
         kbo_utf8_to_wide(label, wide_label, (int)(sizeof(wide_label) / sizeof(wide_label[0])));
         UINT flags = MF_STRING;
         if (leagues[i] == g_kbo_hub_selected_league_id) { flags |= MF_CHECKED; }
-        AppendMenuW(menu, flags, 1000u + (UINT)i, wide_label);
+        AppendMenuW(menu, flags, KBO_HUB_LEAGUE_MENU_COMMAND_BASE + (UINT)i, wide_label);
     }
 
     POINT pt = kbo_hub_dropdown_anchor_point(hwnd, &g_kbo_hub_league_dropdown_rect);
     SetForegroundWindow(hwnd);
     UINT command = TrackPopupMenu(menu, TPM_RETURNCMD | TPM_LEFTALIGN | TPM_TOPALIGN, pt.x, pt.y, 0, hwnd, NULL);
-    if (command >= 1000u && command < 1000u + (UINT)league_count) {
-        g_kbo_hub_selected_league_id = leagues[command - 1000u];
+    if (command >= KBO_HUB_LEAGUE_MENU_COMMAND_BASE
+            && command < KBO_HUB_LEAGUE_MENU_COMMAND_BASE + (UINT)league_count) {
+        g_kbo_hub_selected_league_id = leagues[command - KBO_HUB_LEAGUE_MENU_COMMAND_BASE];
         g_kbo_hub_selected_team_id   = 0;
         kbo_hub_ensure_valid_selection();
         kbo_refresh_hotkey_window();
@@ -317,9 +318,9 @@ void kbo_hub_show_team_dropdown(HWND hwnd)
         return;
     }
 
-    uint32_t teams[512] = {0};
+    uint32_t teams[KBO_HUB_DROPDOWN_MAX_TEAMS] = {0};
     int filtered_count = 0;
-    for (int32_t i = 0; i < team_count && filtered_count < 512; i++) {
+    for (int32_t i = 0; i < team_count && filtered_count < KBO_HUB_DROPDOWN_MAX_TEAMS; i++) {
         uintptr_t team_ptr = *(uintptr_t*)(team_vector + ((uintptr_t)i * sizeof(uintptr_t)));
         if (team_ptr == 0 || !memory_range_readable((void*)team_ptr, OOTP27_KBO_TEAM_READABLE_BYTES)) {
             continue;
@@ -347,14 +348,15 @@ void kbo_hub_show_team_dropdown(HWND hwnd)
         kbo_utf8_to_wide(label, wide_label, (int)(sizeof(wide_label) / sizeof(wide_label[0])));
         UINT flags = MF_STRING;
         if (teams[i] == g_kbo_hub_selected_team_id) { flags |= MF_CHECKED; }
-        AppendMenuW(menu, flags, 2000u + (UINT)i, wide_label);
+        AppendMenuW(menu, flags, KBO_HUB_TEAM_MENU_COMMAND_BASE + (UINT)i, wide_label);
     }
 
     POINT pt = kbo_hub_dropdown_anchor_point(hwnd, &g_kbo_hub_team_dropdown_rect);
     SetForegroundWindow(hwnd);
     UINT command = TrackPopupMenu(menu, TPM_RETURNCMD | TPM_LEFTALIGN | TPM_TOPALIGN, pt.x, pt.y, 0, hwnd, NULL);
-    if (command >= 2000u && command < 2000u + (UINT)filtered_count) {
-        g_kbo_hub_selected_team_id = teams[command - 2000u];
+    if (command >= KBO_HUB_TEAM_MENU_COMMAND_BASE
+            && command < KBO_HUB_TEAM_MENU_COMMAND_BASE + (UINT)filtered_count) {
+        g_kbo_hub_selected_team_id = teams[command - KBO_HUB_TEAM_MENU_COMMAND_BASE];
         kbo_refresh_hotkey_window();
         InvalidateRect(hwnd, NULL, TRUE);
     }

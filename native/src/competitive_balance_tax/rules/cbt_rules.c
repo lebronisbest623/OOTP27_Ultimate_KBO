@@ -8,48 +8,14 @@
 #include "../../core/core_flags/api/flags_api.h"
 #include "../../core/files/save_paths/core_save_paths.h"
 #include "../../core/core_flags/json/json_bool_parser.h"
+#include "../../core/files/save_paths/platform/core_path_io.h"
 #include "../../core/logging/core_log.h"
 
-static const KboCbtThresholdRow g_kbo_cbt_emergency_thresholds[] = {
-    { 2023u,  8500000 },
-    { 2024u,  8500000 },
-    { 2025u,  9800000 },
-    { 2026u, 10300000 },
-    { 2027u, 10800000 },
-    { 2028u, 11300000 },
-};
-#define KBO_CBT_EMERGENCY_THRESHOLD_COUNT ((uint32_t)(sizeof(g_kbo_cbt_emergency_thresholds) / sizeof(g_kbo_cbt_emergency_thresholds[0])))
-
-static void kbo_cbt_rules_load_emergency_thresholds(KboCbtRules* out)
-{
-    out->threshold_count = 0u;
-    for (uint32_t i = 0u; i < KBO_CBT_EMERGENCY_THRESHOLD_COUNT && i < KBO_CBT_THRESHOLD_MAX; i++) {
-        out->thresholds[out->threshold_count++] = g_kbo_cbt_emergency_thresholds[i];
-    }
-}
+#define KBO_CBT_RULES_FILE "cbt_rules.json"
 
 static void kbo_cbt_rules_init_defaults(KboCbtRules* out)
 {
     memset(out, 0, sizeof(*out));
-    out->enabled                     = 1u;
-    out->top_player_count            = 40u;
-    out->draft_penalty_min_consecutive = 3u;
-    out->draft_penalty_stages        = 9u;
-    out->tax_rate_1                  = 50u;
-    out->tax_rate_2                  = 50u;
-    out->tax_rate_3plus              = 100u;
-    out->annual_increase_pct         = 5u;
-    out->exception_deadline_days_after_opening = 6u;
-    out->announcement_days_after_opening = 7u;
-    out->event_scheduler_max_attempts = 180u;
-    out->event_scheduler_sleep_ms = 2000u;
-    out->event_scheduler_log_attempts[0] = 1u;
-    out->event_scheduler_log_attempts[1] = 10u;
-    out->event_scheduler_log_attempts[2] = 30u;
-    out->event_scheduler_log_attempts[3] = 60u;
-    out->event_scheduler_log_attempts[4] = 120u;
-    out->threshold_override          = 0;
-    kbo_cbt_rules_load_emergency_thresholds(out);
 }
 
 static int kbo_cbt_rules_add_threshold(KboCbtRules* out, uint32_t season, int32_t threshold)
@@ -193,6 +159,29 @@ static void kbo_cbt_rules_parse_json(KboCbtRules* out, const char* json, DWORD j
     kbo_cbt_rules_parse_thresholds(out, json, json_size);
 }
 
+static HANDLE kbo_cbt_rules_open_file(char* out_path, size_t out_path_size)
+{
+    if (out_path != NULL && out_path_size > 0u) {
+        out_path[0] = '\0';
+    }
+    if (out_path == NULL || out_path_size == 0u) {
+        return INVALID_HANDLE_VALUE;
+    }
+
+    if (kbo_get_save_scoped_data_file(KBO_CBT_RULES_FILE, out_path, out_path_size)) {
+        HANDLE file = CreateFileA(out_path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE,
+            NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+        if (file != INVALID_HANDLE_VALUE) {
+            return file;
+        }
+    }
+    if (kbo_get_global_data_file(KBO_CBT_RULES_FILE, out_path, out_path_size)) {
+        return CreateFileA(out_path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE,
+            NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    }
+    return INVALID_HANDLE_VALUE;
+}
+
 void kbo_cbt_rules_load(KboCbtRules* out)
 {
     if (out == NULL) {
@@ -200,13 +189,8 @@ void kbo_cbt_rules_load(KboCbtRules* out)
     }
     kbo_cbt_rules_init_defaults(out);
 
-    char json_path[MAX_PATH] = {0};
-    if (!kbo_get_global_data_file("cbt_rules.json", json_path, sizeof(json_path))) {
-        return;
-    }
-
-    HANDLE file = CreateFileA(json_path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE,
-        NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    char json_path[KBO_UTF8_PATH_BYTES] = {0};
+    HANDLE file = kbo_cbt_rules_open_file(json_path, sizeof(json_path));
     if (file == INVALID_HANDLE_VALUE) {
         return;
     }

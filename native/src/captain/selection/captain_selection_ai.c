@@ -3,6 +3,7 @@
 #include "score/captain_selection_score.h"
 #include "../../player_team_history/player_team_seasons.h"
 #include "../../core/dates/constants/kbo_date_constants.h"
+#include "../../runtime_memory/runtime_memory.h"
 
 static uintptr_t* kbo_captain_copy_player_vector_snapshot(
     uintptr_t player_vector,
@@ -12,7 +13,7 @@ static uintptr_t* kbo_captain_copy_player_vector_snapshot(
     if (out_failure_reason != NULL) {
         *out_failure_reason = "unknown";
     }
-    if (player_vector == 0u || player_count <= 0 || player_count > 200000) {
+    if (player_vector == 0u || player_count <= 0 || player_count > KBO_RUNTIME_MAX_PLAYER_VECTOR_COUNT) {
         if (out_failure_reason != NULL) { *out_failure_reason = "invalid_vector"; }
         return NULL;
     }

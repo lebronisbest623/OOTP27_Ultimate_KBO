@@ -1,6 +1,7 @@
 #include "../internal/captain_selection_internal.h"
 #include "../audit/captain_rule_audit.h"
 #include "../../core/dates/tick/current_date_tick_capture.h"
+#include "../../runtime_memory/runtime_memory.h"
 
 int kbo_captain_current_yyyymmdd(uint32_t* out_date)
 {
@@ -51,7 +52,7 @@ static uint8_t* kbo_captain_find_player_by_id(uint32_t player_id, int* out_vecto
     if (!find_kbo_global_player_vector(&player_vector, &player_count, NULL)) {
         return NULL;
     }
-    if (player_vector == 0u || player_count <= 0 || player_count > 200000
+    if (player_vector == 0u || player_count <= 0 || player_count > KBO_RUNTIME_MAX_PLAYER_VECTOR_COUNT
             || !memory_range_readable((void*)player_vector, (SIZE_T)player_count * sizeof(uintptr_t))) {
         return NULL;
     }

@@ -38,7 +38,7 @@ void kbo_log_league_event_type_inventory_once(uint32_t current_date)
 
     uintptr_t event_vector = *(uintptr_t*)(event_manager + OOTP27_EVENT_MANAGER_EVENT_VECTOR_OFFSET);
     int32_t event_count = *(int32_t*)(event_manager + OOTP27_EVENT_MANAGER_EVENT_COUNT_OFFSET);
-    if (event_vector == 0 || event_count <= 0 || event_count > 20000
+    if (event_vector == 0 || event_count <= 0 || event_count > KBO_RUNTIME_MAX_EVENT_VECTOR_COUNT
             || !memory_range_readable((void*)event_vector, (SIZE_T)event_count * sizeof(uintptr_t))) {
         kbo_log_runtimef(
             "KBO league event type inventory skipped date=%08u manager=%p count=%d reason=event_vector_unreadable",

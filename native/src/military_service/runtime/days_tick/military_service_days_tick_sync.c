@@ -35,7 +35,7 @@ static int kbo_military_days_tick_ready_for_work(const KboCurrentDateTickWork* w
     if (!find_kbo_global_player_vector(&player_vector, &player_count, NULL)
             || player_vector == 0u
             || player_count <= 0
-            || player_count > 200000) {
+            || player_count > KBO_RUNTIME_MAX_PLAYER_VECTOR_COUNT) {
         return 0;
     }
     return 1;

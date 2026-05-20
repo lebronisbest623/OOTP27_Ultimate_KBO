@@ -27,7 +27,7 @@ static uintptr_t* kbo_fa_salary_snapshot_copy_player_vector_snapshot(
     if (out_failure_reason != NULL) {
         *out_failure_reason = "unknown";
     }
-    if (player_vector == 0u || player_count <= 0 || player_count > 200000) {
+    if (player_vector == 0u || player_count <= 0 || player_count > KBO_RUNTIME_MAX_PLAYER_VECTOR_COUNT) {
         if (out_failure_reason != NULL) { *out_failure_reason = "invalid_vector"; }
         return NULL;
     }

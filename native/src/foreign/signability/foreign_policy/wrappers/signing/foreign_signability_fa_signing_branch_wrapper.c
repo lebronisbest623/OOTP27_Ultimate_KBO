@@ -44,7 +44,8 @@ static int kbo_fa_signing_team_ptr_is_kbo(
     if (out_league_id != NULL) {
         *out_league_id = league_id;
     }
-    if (team_id == 0u || team_id > 100000u || league_id == 0u || league_id > 100000u) {
+    if (team_id == 0u || team_id > KBO_RUNTIME_PLAUSIBLE_CONTEXT_ID_MAX
+            || league_id == 0u || league_id > KBO_RUNTIME_PLAUSIBLE_CONTEXT_ID_MAX) {
         return 0;
     }
 
@@ -71,7 +72,7 @@ __declspec(noinline) int ootp_kbo_fa_signing_branch_wrapper(uintptr_t player_ptr
 
     uint8_t* player = (uint8_t*)player_ptr;
     uint32_t player_id = *(uint32_t*)(player + OOTP27_PLAYER_ID_OFFSET);
-    if (player_id == 0u || player_id > 1000000u) {
+    if (player_id == 0u || player_id > KBO_RUNTIME_PLAUSIBLE_PLAYER_ID_MAX) {
         LONG slot = InterlockedIncrement(&g_kbo_fa_signing_branch_skip_log_count);
         if (slot <= 20) {
             kbo_log_runtimef("KBO FA signing branch skipped reason=bad_player_id player=%u team=%u league=%u", player_id, team_id, league_id);

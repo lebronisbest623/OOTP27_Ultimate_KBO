@@ -1,4 +1,5 @@
 #include "award_schedule_policy_apply_internal.h"
+#include "../../../runtime_memory/runtime_memory.h"
 
 static OotpCreateLeagueEventFn g_kbo_award_schedule_create_league_event_original = NULL;
 static volatile LONG g_kbo_award_schedule_create_event_missing_original_logs = 0;
@@ -17,7 +18,7 @@ static int kbo_award_schedule_apply_policy(
 
     uintptr_t event_vector = *(uintptr_t*)(event_manager + OOTP27_EVENT_MANAGER_EVENT_VECTOR_OFFSET);
     int32_t event_count = *(int32_t*)(event_manager + OOTP27_EVENT_MANAGER_EVENT_COUNT_OFFSET);
-    if (event_vector == 0 || event_count <= 0 || event_count > 20000
+    if (event_vector == 0 || event_count <= 0 || event_count > KBO_RUNTIME_MAX_EVENT_VECTOR_COUNT
             || !memory_range_readable((void*)event_vector, (SIZE_T)event_count * sizeof(uintptr_t))) {
         return 0;
     }

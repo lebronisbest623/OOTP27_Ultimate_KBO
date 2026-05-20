@@ -34,7 +34,7 @@ uint32_t kbo_resolve_kbo_league_id(void)
 
     uintptr_t team_vector = *(uintptr_t*)(global + OOTP27_KBO_TEAM_VECTOR_OFFSET);
     int32_t team_count = *(int32_t*)(global + OOTP27_KBO_TEAM_COUNT_OFFSET);
-    if (team_vector == 0 || team_count <= 0 || team_count > 10000
+    if (team_vector == 0 || team_count <= 0 || team_count > KBO_RUNTIME_MAX_TEAM_VECTOR_COUNT
             || !memory_range_readable((void*)team_vector, (SIZE_T)team_count * sizeof(uintptr_t))) {
         return kbo_league_role_main_league_id();
     }

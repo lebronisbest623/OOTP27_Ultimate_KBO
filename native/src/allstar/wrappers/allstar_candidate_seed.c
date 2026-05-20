@@ -177,7 +177,7 @@ __declspec(noinline) int ootp_kbo_seed_single_division_allstar_candidate_teams(
 
     uintptr_t team_vector = *(uintptr_t*)(global + OOTP27_KBO_TEAM_VECTOR_OFFSET);
     int32_t team_count = *(int32_t*)(global + OOTP27_KBO_TEAM_COUNT_OFFSET);
-    if (team_vector == 0 || team_count <= 0 || team_count > 10000 || !memory_range_readable((void*)team_vector, (SIZE_T)team_count * sizeof(uintptr_t))) {
+    if (team_vector == 0 || team_count <= 0 || team_count > KBO_RUNTIME_MAX_TEAM_VECTOR_COUNT || !memory_range_readable((void*)team_vector, (SIZE_T)team_count * sizeof(uintptr_t))) {
         kbo_log_runtimef("KBO allstar candidate seed: return=0 reason=no_team_vector league_id=%u year=%u", league_id, league_year);
         KBO_HOOK_PROFILE_RETURN(profile_hook, "allstar.candidate_team_seed", 0);
     }

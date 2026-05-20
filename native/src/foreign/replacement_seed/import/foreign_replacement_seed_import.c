@@ -1,6 +1,7 @@
 #include "../internal/foreign_replacement_seed_internal.h"
 #include "../../../core/csv/core_csv.h"
 #include "../../../team/names/team_string.h"
+#include "../../../runtime_memory/runtime_memory.h"
 
 static LONG g_kbo_foreign_replacement_seed_unresolved_log_count = 0;
 
@@ -51,7 +52,7 @@ static uintptr_t* kbo_foreign_replacement_seed_copy_player_vector_snapshot(
     if (out_failure_reason != NULL) {
         *out_failure_reason = "unknown";
     }
-    if (player_vector == 0u || player_count <= 0 || player_count > 200000) {
+    if (player_vector == 0u || player_count <= 0 || player_count > KBO_RUNTIME_MAX_PLAYER_VECTOR_COUNT) {
         if (out_failure_reason != NULL) { *out_failure_reason = "invalid_vector"; }
         return NULL;
     }

@@ -151,13 +151,13 @@ static int looks_like_ootp_global_db(uintptr_t candidate)
 
         /* Team ID at 0x4450: must be a small positive integer. */
         uint32_t team_id = *(uint32_t*)(team + OOTP27_KBO_TEAM_ID_OFFSET);
-        if (team_id == 0 || team_id > 100000) {
+        if (team_id == 0 || team_id > KBO_RUNTIME_PLAUSIBLE_CONTEXT_ID_MAX) {
             return 0;
         }
 
         /* League ID at 0x120: must be a small positive integer. */
         uint32_t league_id = *(uint32_t*)(team + OOTP27_KBO_TEAM_LEAGUE_ID_OFFSET);
-        if (league_id == 0 || league_id > 100000) {
+        if (league_id == 0 || league_id > KBO_RUNTIME_PLAUSIBLE_CONTEXT_ID_MAX) {
             return 0;
         }
     }

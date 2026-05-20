@@ -226,9 +226,9 @@ void kbo_webview_append_league_dropdown(KboWindowTextBuffer* buffer, uint32_t cu
         return;
     }
 
-    uint32_t leagues[256] = {0};
+    uint32_t leagues[KBO_HUB_DROPDOWN_MAX_LEAGUES] = {0};
     int league_count = 0;
-    for (int32_t i = 0; i < team_count && league_count < 256; i++) {
+    for (int32_t i = 0; i < team_count && league_count < KBO_HUB_DROPDOWN_MAX_LEAGUES; i++) {
         uintptr_t team_ptr = *(uintptr_t*)(team_vector + ((uintptr_t)i * sizeof(uintptr_t)));
         if (team_ptr == 0 || !memory_range_readable((void*)team_ptr, OOTP27_KBO_TEAM_READABLE_BYTES)) {
             continue;
@@ -279,9 +279,9 @@ void kbo_webview_append_team_dropdown(KboWindowTextBuffer* buffer, uint32_t curr
         return;
     }
 
-    uint32_t teams[512] = {0};
+    uint32_t teams[KBO_HUB_DROPDOWN_MAX_TEAMS] = {0};
     int filtered_count = 0;
-    for (int32_t i = 0; i < team_count && filtered_count < 512; i++) {
+    for (int32_t i = 0; i < team_count && filtered_count < KBO_HUB_DROPDOWN_MAX_TEAMS; i++) {
         uintptr_t team_ptr = *(uintptr_t*)(team_vector + ((uintptr_t)i * sizeof(uintptr_t)));
         if (team_ptr == 0 || !memory_range_readable((void*)team_ptr, OOTP27_KBO_TEAM_READABLE_BYTES)) {
             continue;

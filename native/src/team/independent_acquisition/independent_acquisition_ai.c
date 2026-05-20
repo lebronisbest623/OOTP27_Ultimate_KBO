@@ -108,7 +108,7 @@ int kbo_run_independent_team_acquisition_ai_for_date(uint32_t today, const char*
     if (!find_kbo_global_player_vector(&player_vector, &player_count, NULL)
             || player_vector == 0u
             || player_count <= 0
-            || player_count > 200000) {
+            || player_count > KBO_RUNTIME_MAX_PLAYER_VECTOR_COUNT) {
         goto cleanup;
     }
     SIZE_T player_vector_bytes = (SIZE_T)player_count * sizeof(uintptr_t);
@@ -207,7 +207,7 @@ int kbo_run_independent_team_acquisition_ai(const char* source)
     if (!find_kbo_global_player_vector(&player_vector, &player_count, NULL)
             || player_vector == 0u
             || player_count <= 0
-            || player_count > 200000) {
+            || player_count > KBO_RUNTIME_MAX_PLAYER_VECTOR_COUNT) {
         goto cleanup;
     }
     SIZE_T player_vector_bytes = (SIZE_T)player_count * sizeof(uintptr_t);
