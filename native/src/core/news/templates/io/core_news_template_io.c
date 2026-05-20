@@ -7,7 +7,7 @@
 #include <stdio.h>
 
 #include "../../../core_flags/json/json_bool_parser.h"
-#include "../../../files/save_paths/core_save_paths_internal.h"
+#include "../../../files/save_paths/platform/core_path_io.h"
 
 int kbo_news_template_file_exists(const char* path)
 {

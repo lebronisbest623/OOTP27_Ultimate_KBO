@@ -7,7 +7,7 @@
 
 #include "../../../../core/dates/core_text_date.h"
 #include "../../../../core/files/save_paths/core_save_paths.h"
-#include "../../../../core/files/save_paths/core_save_paths_internal.h"
+#include "../../../../core/files/save_paths/platform/core_path_io.h"
 #include "../../../../core/news/templates/core_news_templates.h"
 #include "../../../../core/sync/lock.h"
 #include "ui_language.h"

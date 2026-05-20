@@ -5,7 +5,7 @@
 #include "../../logging/core_log.h"
 #include "../../dates/core_current_date.h"
 #include "../save_paths/core_save_paths.h"
-#include "../save_paths/core_save_paths_internal.h"
+#include "../save_paths/platform/core_path_io.h"
 #include "../../dates/core_text_date.h"
 #include "../../core_flags/api/flags_api.h"
 #include "../../../runtime_memory/runtime_memory.h"

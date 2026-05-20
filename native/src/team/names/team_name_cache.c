@@ -9,7 +9,7 @@
 #include "../../bootstrap/abi/ootp_offsets.h"
 #include "../../core/logging/core_log.h"
 #include "../../core/files/save_paths/core_save_paths.h"
-#include "../../core/files/save_paths/core_save_paths_internal.h"
+#include "../../core/files/save_paths/platform/core_path_io.h"
 #include "../../runtime_memory/runtime_memory.h"
 
 #define KBO_NAME_ID_CACHE_MAX       400000u
