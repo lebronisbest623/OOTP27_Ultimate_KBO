@@ -23,7 +23,7 @@ int kbo_get_save_foreign_injury_replacement_seed_path(char* out, size_t out_size
     if (out == NULL || out_size < 2) {
         return 0;
     }
-    return kbo_get_save_scoped_data_file("foreign_injury_replacements_seed.csv", out, out_size);
+    return kbo_get_save_scoped_data_file("config\\foreign_injury_replacements_seed.csv", out, out_size);
 }
 
 int kbo_get_global_foreign_injury_replacement_seed_path(char* out, size_t out_size)

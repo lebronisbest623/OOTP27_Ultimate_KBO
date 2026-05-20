@@ -15,7 +15,7 @@ int kbo_get_save_foreign_replacement_players_seed_path(char* out, size_t out_siz
     if (out == NULL || out_size < 2) {
         return 0;
     }
-    return kbo_get_save_scoped_data_file("foreign_replacement_players_seed.csv", out, out_size);
+    return kbo_get_save_scoped_data_file("config\\foreign_replacement_players_seed.csv", out, out_size);
 }
 
 int kbo_get_global_foreign_replacement_players_seed_path(char* out, size_t out_size)
@@ -31,5 +31,5 @@ int kbo_get_save_foreign_replacement_players_resolved_path(char* out, size_t out
     if (out == NULL || out_size < 2) {
         return 0;
     }
-    return kbo_get_save_scoped_data_file("foreign_replacement_players_resolved.csv", out, out_size);
+    return kbo_get_save_scoped_data_file("cache\\foreign_replacement_players_resolved.csv", out, out_size);
 }

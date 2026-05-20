@@ -4,6 +4,21 @@
 #include <string.h>
 #include "../../../core/files/save_paths/core_save_paths.h"
 
+static int kbo_foreign_policy_config_save_path(const char* file_name, char* out, size_t out_size)
+{
+    if (file_name == NULL || file_name[0] == '\0' || out == NULL || out_size < 2u) {
+        return 0;
+    }
+    out[0] = '\0';
+
+    char relative[MAX_PATH] = {0};
+    int len = snprintf(relative, sizeof(relative), "config\\%s", file_name);
+    if (len <= 0 || (size_t)len >= sizeof(relative)) {
+        return 0;
+    }
+    return kbo_get_save_scoped_data_file(relative, out, out_size);
+}
+
 static HANDLE kbo_open_foreign_policy_config_file(const char* file_name)
 {
     if (file_name == NULL || file_name[0] == '\0') {
@@ -11,7 +26,7 @@ static HANDLE kbo_open_foreign_policy_config_file(const char* file_name)
     }
 
     char path[MAX_PATH] = {0};
-    if (kbo_get_save_scoped_data_file(file_name, path, sizeof(path))) {
+    if (kbo_foreign_policy_config_save_path(file_name, path, sizeof(path))) {
         HANDLE file = CreateFileA(
             path,
             GENERIC_READ,

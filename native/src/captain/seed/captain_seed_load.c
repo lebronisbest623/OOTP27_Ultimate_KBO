@@ -12,7 +12,7 @@ int kbo_get_save_captain_seed_path(char* out, size_t out_size)
         return 0;
     }
     out[0] = '\0';
-    return kbo_get_save_scoped_data_file("captain_seed.csv", out, out_size);
+    return kbo_get_save_scoped_data_file("config\\captain_seed.csv", out, out_size);
 }
 
 int kbo_get_global_captain_seed_path(char* out, size_t out_size)

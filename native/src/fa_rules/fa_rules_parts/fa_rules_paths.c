@@ -46,12 +46,13 @@ int kbo_fa_rules_resolve_existing_path(char* out, size_t out_size)
     out[0] = '\0';
 
     char path[MAX_PATH] = {0};
-    if (kbo_get_save_scoped_data_file("fa_rules.json", path, sizeof(path))
+    if (kbo_get_save_scoped_data_file("config\\fa_rules.json", path, sizeof(path))
             && GetFileAttributesA(path) != INVALID_FILE_ATTRIBUTES) {
         kbo_fa_rules_paths_copy_text(path, out, out_size);
         return 1;
     }
 
+    path[0] = '\0';
     if (kbo_fa_rules_get_localappdata_file_path("fa_rules.json", path, sizeof(path))
             && GetFileAttributesA(path) != INVALID_FILE_ATTRIBUTES) {
         kbo_fa_rules_paths_copy_text(path, out, out_size);

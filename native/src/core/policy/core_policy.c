@@ -3,6 +3,8 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
+#include <stdio.h>
+
 #include "../core_flags/json/json_bool_parser.h"
 #include "../files/save_paths/core_save_paths.h"
 #include "../files/save_paths/platform/core_path_io.h"
@@ -46,6 +48,21 @@ static int kbo_read_policy_file_value(
     return found;
 }
 
+static int kbo_save_scoped_config_file_path(const char* file_name, char* out, size_t out_size)
+{
+    if (file_name == NULL || file_name[0] == '\0' || out == NULL || out_size < 2u) {
+        return 0;
+    }
+    out[0] = '\0';
+
+    char relative[KBO_UTF8_PATH_BYTES] = {0};
+    int len = snprintf(relative, sizeof(relative), "config\\%s", file_name);
+    if (len <= 0 || (size_t)len >= sizeof(relative)) {
+        return 0;
+    }
+    return kbo_get_save_scoped_data_file(relative, out, out_size);
+}
+
 static int kbo_read_policy_scoped_value(
     const char* file_name,
     const char* key,
@@ -57,10 +74,11 @@ static int kbo_read_policy_scoped_value(
     }
 
     char path[KBO_UTF8_PATH_BYTES] = {0};
-    if (kbo_get_save_scoped_data_file(file_name, path, sizeof(path))
+    if (kbo_save_scoped_config_file_path(file_name, path, sizeof(path))
             && kbo_read_policy_file_value(path, key, out_value, flag_value)) {
         return 1;
     }
+    path[0] = '\0';
     if (kbo_get_global_data_file(file_name, path, sizeof(path))
             && kbo_read_policy_file_value(path, key, out_value, flag_value)) {
         return 1;

@@ -40,10 +40,25 @@ static int kbo_award_schedule_read_file(const char* path, char** out_text, DWORD
     return 1;
 }
 
+static int kbo_award_schedule_save_config_path(char* out, size_t out_size)
+{
+    if (out == NULL || out_size < 2u) {
+        return 0;
+    }
+    out[0] = '\0';
+
+    char relative[MAX_PATH] = {0};
+    int len = snprintf(relative, sizeof(relative), "config\\%s", KBO_AWARD_SCHEDULE_POLICY_FILE);
+    if (len <= 0 || (size_t)len >= sizeof(relative)) {
+        return 0;
+    }
+    return kbo_get_save_scoped_data_file(relative, out, out_size);
+}
+
 int kbo_award_schedule_load_text(char** out_text, DWORD* out_size, char* out_path, size_t out_path_size)
 {
     char path[MAX_PATH] = {0};
-    if (kbo_get_save_scoped_data_file(KBO_AWARD_SCHEDULE_POLICY_FILE, path, sizeof(path))
+    if (kbo_award_schedule_save_config_path(path, sizeof(path))
             && kbo_award_schedule_read_file(path, out_text, out_size)) {
         if (out_path != NULL && out_path_size > 0u) {
             snprintf(out_path, out_path_size, "%s", path);

@@ -16,7 +16,7 @@ static int kbo_get_fa_market_cases_seed_path(char* out, size_t out_size)
     if (out == NULL || out_size < 2) {
         return 0;
     }
-    return kbo_get_save_scoped_data_file("fa_market_cases_seed.csv", out, out_size);
+    return kbo_get_save_scoped_data_file("config\\fa_market_cases_seed.csv", out, out_size);
 }
 
 static void kbo_fa_market_copy_token(const char* value, char* out, size_t out_size)

@@ -40,7 +40,7 @@ void kbo_amateur_assignment_append_debug_csv(
         }
     }
     char path[MAX_PATH] = {0};
-    if (!kbo_get_save_scoped_data_file("amateur_assignment_debug.csv", path, sizeof(path))) {
+    if (!kbo_get_save_scoped_data_file("logs\\amateur_assignment_debug.csv", path, sizeof(path))) {
         return;
     }
 

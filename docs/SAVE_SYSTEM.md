@@ -142,6 +142,8 @@ should stay outside the main state DB:
   `logs\foreign_waiver_candidates.csv`.
 - `fa_compensation_protection_debug.csv` now writes to
   `logs\fa_compensation_protection_debug.csv`.
+- `amateur_assignment_debug.csv` now writes to
+  `logs\amateur_assignment_debug.csv`.
 - `intl_established_fa_postscan.csv` now writes to
   `logs\intl_established_fa_postscan.csv` unless a later implementation proves it is
   required as durable decision state.
@@ -156,6 +158,8 @@ These files are derived or copied from OOTP data and can be regenerated:
   `cache\fa_market_classification.csv`.
 - `foreign_roster_snapshot.csv` now writes to
   `cache\foreign_roster_snapshot.csv`.
+- `foreign_replacement_players_resolved.csv` now writes to
+  `cache\foreign_replacement_players_resolved.csv`.
 
 ### Move Under `work\`
 
@@ -171,8 +175,16 @@ tables unless the solver protocol itself changes:
 These are save-specific user-editable inputs or policy overrides. They should
 remain file-based unless the UI becomes their editor:
 
-- `*_seed.csv`
-- `*_policy.json`
-- `*_rules.json`
-- `fa_rules.json`
-- `cbt_rules.json`
+- `*_seed.csv` save overrides now resolve under `config\`, including
+  `captain_seed.csv`, `asian_games_schedule_seed.csv`,
+  `asian_games_projected_hosts.csv`, `fa_market_cases_seed.csv`,
+  `military_service_seed.csv`, `foreign_replacement_players_seed.csv`, and
+  `foreign_injury_replacements_seed.csv`.
+- `*_policy.json` save overrides now resolve under `config\`, including the
+  shared policy reader, `award_schedule_policy.json`, and
+  `asian_games_projected_policy.json`.
+- `*_rules.json`, `fa_rules.json`, and `cbt_rules.json` save overrides now
+  resolve under `config\`.
+- News/text template overrides now resolve under `config\news_templates\...`.
+- `allstar_teams.csv` first resolves under `config\allstar_teams.csv` for
+  save-specific team-split rules.

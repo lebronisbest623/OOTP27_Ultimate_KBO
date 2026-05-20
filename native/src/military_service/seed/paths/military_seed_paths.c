@@ -16,7 +16,7 @@ int kbo_get_save_military_service_seed_path(char* out, size_t out_size)
         return 0;
     }
     out[0] = '\0';
-    return kbo_get_save_scoped_data_file("military_service_seed.csv", out, out_size);
+    return kbo_get_save_scoped_data_file("config\\military_service_seed.csv", out, out_size);
 }
 
 int kbo_get_global_military_service_seed_path(char* out, size_t out_size)

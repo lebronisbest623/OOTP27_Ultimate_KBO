@@ -159,6 +159,21 @@ static void kbo_cbt_rules_parse_json(KboCbtRules* out, const char* json, DWORD j
     kbo_cbt_rules_parse_thresholds(out, json, json_size);
 }
 
+static int kbo_cbt_rules_save_config_path(char* out_path, size_t out_path_size)
+{
+    if (out_path == NULL || out_path_size < 2u) {
+        return 0;
+    }
+    out_path[0] = '\0';
+
+    char relative[KBO_UTF8_PATH_BYTES] = {0};
+    int len = snprintf(relative, sizeof(relative), "config\\%s", KBO_CBT_RULES_FILE);
+    if (len <= 0 || (size_t)len >= sizeof(relative)) {
+        return 0;
+    }
+    return kbo_get_save_scoped_data_file(relative, out_path, out_path_size);
+}
+
 static HANDLE kbo_cbt_rules_open_file(char* out_path, size_t out_path_size)
 {
     if (out_path != NULL && out_path_size > 0u) {
@@ -168,13 +183,14 @@ static HANDLE kbo_cbt_rules_open_file(char* out_path, size_t out_path_size)
         return INVALID_HANDLE_VALUE;
     }
 
-    if (kbo_get_save_scoped_data_file(KBO_CBT_RULES_FILE, out_path, out_path_size)) {
+    if (kbo_cbt_rules_save_config_path(out_path, out_path_size)) {
         HANDLE file = CreateFileA(out_path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE,
             NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
         if (file != INVALID_HANDLE_VALUE) {
             return file;
         }
     }
+    out_path[0] = '\0';
     if (kbo_get_global_data_file(KBO_CBT_RULES_FILE, out_path, out_path_size)) {
         return CreateFileA(out_path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE,
             NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);

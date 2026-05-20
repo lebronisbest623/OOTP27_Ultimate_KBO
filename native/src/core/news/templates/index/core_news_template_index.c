@@ -23,7 +23,7 @@ static int kbo_news_template_starts_with(const char* text, const char* prefix)
 
 static int kbo_news_template_index_save_path(char* out, size_t out_size)
 {
-    return kbo_get_save_scoped_data_file("news_templates\\" KBO_NEWS_TEMPLATE_INDEX_FILE, out, out_size);
+    return kbo_get_save_scoped_data_file("config\\news_templates\\" KBO_NEWS_TEMPLATE_INDEX_FILE, out, out_size);
 }
 
 static int kbo_news_template_index_global_path(char* out, size_t out_size)

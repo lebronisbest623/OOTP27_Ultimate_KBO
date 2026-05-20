@@ -28,7 +28,7 @@ static int kbo_get_save_asian_games_projected_hosts_path(char* out, size_t out_s
         return 0;
     }
     out[0] = '\0';
-    return kbo_get_save_scoped_data_file("asian_games_projected_hosts.csv", out, out_size);
+    return kbo_get_save_scoped_data_file("config\\asian_games_projected_hosts.csv", out, out_size);
 }
 
 static int kbo_import_asian_games_projected_hosts_file(

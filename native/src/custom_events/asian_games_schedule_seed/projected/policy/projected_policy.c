@@ -52,7 +52,7 @@ static int kbo_asian_games_projected_policy_save_path(char* out, size_t out_size
         return 0;
     }
     out[0] = '\0';
-    return kbo_get_save_scoped_data_file(KBO_ASIAN_GAMES_PROJECTED_POLICY_FILE, out, out_size);
+    return kbo_get_save_scoped_data_file("config\\" KBO_ASIAN_GAMES_PROJECTED_POLICY_FILE, out, out_size);
 }
 
 static void kbo_asian_games_projected_policy_parse_value(

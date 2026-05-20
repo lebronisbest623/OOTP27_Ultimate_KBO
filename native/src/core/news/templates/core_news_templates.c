@@ -28,7 +28,7 @@ static int kbo_text_resource_save_path_for_language(
     snprintf(
         relative,
         sizeof(relative),
-        "%s\\%s\\%s",
+        "config\\%s\\%s\\%s",
         resource_dir,
         kbo_news_template_normalize_language_dir(language_dir),
         file_name);
