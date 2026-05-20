@@ -208,9 +208,10 @@ int kbo_handle_intl_established_fa_event(uint32_t event_yyyymmdd, const char* so
     }
 
     LONG pending = InterlockedCompareExchange(&g_kbo_intl_established_fa_postscan.pending, 0, 0);
-    if (pending != 0) {
-        if (pending == 1 && kbo_intl_established_fa_postscan_run_pending_now(event_yyyymmdd, source)) {
-            pending = 0;
+    if (pending != KBO_INTL_FA_POSTSCAN_IDLE) {
+        if (pending == KBO_INTL_FA_POSTSCAN_PENDING
+                && kbo_intl_established_fa_postscan_run_pending_now(event_yyyymmdd, source)) {
+            pending = KBO_INTL_FA_POSTSCAN_IDLE;
         } else {
             kbo_log_runtimef(
                 "international established FA event deferred source=%s date=%u reason=postscan_pending pending=%ld",

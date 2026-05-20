@@ -320,7 +320,7 @@ void kbo_intl_established_fa_postscan_schedule(
     g_kbo_intl_established_fa_postscan.scheduled_date = today;
     g_kbo_intl_established_fa_postscan.due_tick = GetTickCount64() + KBO_INTL_ESTABLISHED_FA_POSTSCAN_DELAY_MS;
     g_kbo_intl_established_fa_postscan.attempts = 0;
-    InterlockedExchange(&g_kbo_intl_established_fa_postscan.pending, 1);
+    InterlockedExchange(&g_kbo_intl_established_fa_postscan.pending, KBO_INTL_FA_POSTSCAN_PENDING);
     kbo_intl_established_fa_postscan_persist_state(
         &g_kbo_intl_established_fa_postscan,
         "intl_established_fa_postscan_schedule");

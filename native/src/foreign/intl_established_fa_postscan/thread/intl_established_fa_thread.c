@@ -6,13 +6,16 @@ void kbo_intl_established_fa_postscan_try_run(void)
     if (!kbo_runtime_pause_for_save_if_needed("intl_established_fa_postscan")) {
         return;
     }
-    if (InterlockedCompareExchange(&g_kbo_intl_established_fa_postscan.pending, 2, 1) != 1) {
+    if (InterlockedCompareExchange(
+            &g_kbo_intl_established_fa_postscan.pending,
+            KBO_INTL_FA_POSTSCAN_RUNNING,
+            KBO_INTL_FA_POSTSCAN_PENDING) != KBO_INTL_FA_POSTSCAN_PENDING) {
         return;
     }
 
     ULONGLONG now = GetTickCount64();
     if (now < g_kbo_intl_established_fa_postscan.due_tick) {
-        InterlockedExchange(&g_kbo_intl_established_fa_postscan.pending, 1);
+        InterlockedExchange(&g_kbo_intl_established_fa_postscan.pending, KBO_INTL_FA_POSTSCAN_PENDING);
         return;
     }
 
@@ -23,7 +26,7 @@ void kbo_intl_established_fa_postscan_try_run(void)
     if (!vector_ready && batch.attempts < KBO_INTL_ESTABLISHED_FA_POSTSCAN_MAX_RETRIES) {
         g_kbo_intl_established_fa_postscan.attempts = batch.attempts + 1;
         g_kbo_intl_established_fa_postscan.due_tick = now + KBO_INTL_ESTABLISHED_FA_POSTSCAN_RETRY_MS;
-        InterlockedExchange(&g_kbo_intl_established_fa_postscan.pending, 1);
+        InterlockedExchange(&g_kbo_intl_established_fa_postscan.pending, KBO_INTL_FA_POSTSCAN_PENDING);
         kbo_log_runtimef(
             "international established FA postscan retry batch=%ld attempt=%d reason=no_player_vector",
             batch.batch_id,
@@ -38,7 +41,7 @@ void kbo_intl_established_fa_postscan_try_run(void)
             && batch.attempts < KBO_INTL_ESTABLISHED_FA_POSTSCAN_MAX_RETRIES) {
         g_kbo_intl_established_fa_postscan.attempts = batch.attempts + 1;
         g_kbo_intl_established_fa_postscan.due_tick = now + KBO_INTL_ESTABLISHED_FA_POSTSCAN_RETRY_MS;
-        InterlockedExchange(&g_kbo_intl_established_fa_postscan.pending, 1);
+        InterlockedExchange(&g_kbo_intl_established_fa_postscan.pending, KBO_INTL_FA_POSTSCAN_PENDING);
         kbo_log_runtimef(
             "international established FA postscan retry batch=%ld attempt=%d reason=waiting_for_players before=%d after=%d expected=%d",
             batch.batch_id,
@@ -50,7 +53,7 @@ void kbo_intl_established_fa_postscan_try_run(void)
     }
 
     kbo_intl_established_fa_postscan_run(&batch);
-    InterlockedExchange(&g_kbo_intl_established_fa_postscan.pending, 0);
+    InterlockedExchange(&g_kbo_intl_established_fa_postscan.pending, KBO_INTL_FA_POSTSCAN_IDLE);
 }
 
 int kbo_intl_established_fa_postscan_run_pending_now(
@@ -62,13 +65,16 @@ int kbo_intl_established_fa_postscan_run_pending_now(
         return 0;
     }
 
-    if (InterlockedCompareExchange(&g_kbo_intl_established_fa_postscan.pending, 2, 1) != 1) {
+    if (InterlockedCompareExchange(
+            &g_kbo_intl_established_fa_postscan.pending,
+            KBO_INTL_FA_POSTSCAN_RUNNING,
+            KBO_INTL_FA_POSTSCAN_PENDING) != KBO_INTL_FA_POSTSCAN_PENDING) {
         return 0;
     }
 
     KboIntlEstablishedFaPostscanState batch = g_kbo_intl_established_fa_postscan;
     if (!kbo_intl_established_fa_postscan_batch_matches_event_date(&batch, event_yyyymmdd)) {
-        InterlockedExchange(&g_kbo_intl_established_fa_postscan.pending, 1);
+        InterlockedExchange(&g_kbo_intl_established_fa_postscan.pending, KBO_INTL_FA_POSTSCAN_PENDING);
         kbo_log_runtimef(
             "international established FA postscan event force deferred source=%s event_date=%u scheduled=%u reason=date_mismatch",
             source != NULL ? source : "",
@@ -83,7 +89,7 @@ int kbo_intl_established_fa_postscan_run_pending_now(
     if (!vector_ready) {
         g_kbo_intl_established_fa_postscan.attempts = batch.attempts + 1;
         g_kbo_intl_established_fa_postscan.due_tick = now + KBO_INTL_ESTABLISHED_FA_POSTSCAN_RETRY_MS;
-        InterlockedExchange(&g_kbo_intl_established_fa_postscan.pending, 1);
+        InterlockedExchange(&g_kbo_intl_established_fa_postscan.pending, KBO_INTL_FA_POSTSCAN_PENDING);
         kbo_log_runtimef(
             "international established FA postscan event force deferred source=%s batch=%ld event_date=%u attempt=%d reason=no_player_vector",
             source != NULL ? source : "",
@@ -98,7 +104,7 @@ int kbo_intl_established_fa_postscan_run_pending_now(
             && player_count < batch.before_count + batch.expected_count) {
         g_kbo_intl_established_fa_postscan.attempts = batch.attempts + 1;
         g_kbo_intl_established_fa_postscan.due_tick = now + KBO_INTL_ESTABLISHED_FA_POSTSCAN_RETRY_MS;
-        InterlockedExchange(&g_kbo_intl_established_fa_postscan.pending, 1);
+        InterlockedExchange(&g_kbo_intl_established_fa_postscan.pending, KBO_INTL_FA_POSTSCAN_PENDING);
         kbo_log_runtimef(
             "international established FA postscan event force deferred source=%s batch=%ld event_date=%u attempt=%d reason=waiting_for_players before=%d after=%d expected=%d",
             source != NULL ? source : "",
@@ -113,7 +119,7 @@ int kbo_intl_established_fa_postscan_run_pending_now(
 
     g_kbo_intl_established_fa_postscan.due_tick = now;
     kbo_intl_established_fa_postscan_run(&batch);
-    InterlockedExchange(&g_kbo_intl_established_fa_postscan.pending, 0);
+    InterlockedExchange(&g_kbo_intl_established_fa_postscan.pending, KBO_INTL_FA_POSTSCAN_IDLE);
     kbo_log_runtimef(
         "international established FA postscan event force ran source=%s batch=%ld event_date=%u after_count=%d expected=%d",
         source != NULL ? source : "",

@@ -28,7 +28,7 @@ int32_t kbo_asian_games_restricted_days_left(uint32_t today_yyyymmdd, uint32_t r
         return 0;
     }
     uint32_t days_left = return_serial - today_serial + 1u;
-    return days_left > 32767u ? 32767 : (int32_t)days_left;
+    return days_left > (uint32_t)INT16_MAX ? INT16_MAX : (int32_t)days_left;
 }
 
 int kbo_asian_games_roster_entry_needs_restricted_hold(const KboAsianGamesRosterEntry* entry, uint32_t today_yyyymmdd)

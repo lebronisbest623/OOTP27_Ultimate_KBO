@@ -59,21 +59,6 @@ static int kbo_asian_games_fill_missing_lifecycle_dates(
     return changed;
 }
 
-static int kbo_asian_games_remove_player_from_active_roster_arrays(uint8_t* team, uint32_t player_id)
-{
-    if (team == NULL || player_id == 0u) {
-        return 0;
-    }
-
-    int removed = 0;
-    removed += kbo_remove_player_id_from_team_fixed_array(team, OOTP27_TEAM_PLAYER_IDS_2760_OFFSET, player_id);
-    removed += kbo_remove_player_id_from_team_fixed_array(team, OOTP27_TEAM_PLAYER_IDS_2A80_OFFSET, player_id);
-    removed += kbo_remove_player_id_from_team_fixed_array(team, OOTP27_TEAM_PLAYER_IDS_2DA0_OFFSET, player_id);
-    removed += kbo_remove_player_id_from_team_fixed_array(team, OOTP27_TEAM_PLAYER_IDS_33E0_OFFSET, player_id);
-    removed += kbo_remove_player_id_from_team_fixed_array(team, OOTP27_TEAM_PLAYER_IDS_3700_OFFSET, player_id);
-    return removed;
-}
-
 static int kbo_asian_games_set_u32_field(uint8_t* player, uint32_t offset, uint32_t value)
 {
     if (player == NULL || !memory_range_readable(player + offset, sizeof(uint32_t))) {
@@ -160,7 +145,7 @@ static int kbo_asian_games_maintain_restricted_entry(
     uint8_t before_injury = player[OOTP27_PLAYER_INJURY_ACTIVE_OFFSET];
     int32_t before_days_left = kbo_military_days_left(player);
 
-    int removed_hold_active = kbo_asian_games_remove_player_from_active_roster_arrays(hold_team, entry->player_id);
+    int removed_hold_active = kbo_remove_player_id_from_team_active_roster_arrays(hold_team, entry->player_id);
     int removed_current = current_team != NULL
         ? kbo_remove_player_id_from_known_team_roster_arrays(current_team, entry->player_id)
         : 0;

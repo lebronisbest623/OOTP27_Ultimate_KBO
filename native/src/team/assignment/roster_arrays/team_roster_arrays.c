@@ -72,7 +72,7 @@ int kbo_team_roster_arrays_contain_player(uint8_t* team, uint32_t player_id)
         || kbo_team_fixed_array_contains_player(team, OOTP27_TEAM_PLAYER_IDS_3700_OFFSET, player_id);
 }
 
-int kbo_remove_player_id_from_known_team_roster_arrays(uint8_t* team, uint32_t player_id)
+int kbo_remove_player_id_from_team_active_roster_arrays(uint8_t* team, uint32_t player_id)
 {
     if (team == NULL || player_id == 0) {
         return 0;
@@ -82,9 +82,15 @@ int kbo_remove_player_id_from_known_team_roster_arrays(uint8_t* team, uint32_t p
     removed += kbo_remove_player_id_from_team_fixed_array(team, OOTP27_TEAM_PLAYER_IDS_2760_OFFSET, player_id);
     removed += kbo_remove_player_id_from_team_fixed_array(team, OOTP27_TEAM_PLAYER_IDS_2A80_OFFSET, player_id);
     removed += kbo_remove_player_id_from_team_fixed_array(team, OOTP27_TEAM_PLAYER_IDS_2DA0_OFFSET, player_id);
-    removed += kbo_remove_player_id_from_team_fixed_array(team, OOTP27_TEAM_RESTRICTED_PLAYER_IDS_OFFSET, player_id);
     removed += kbo_remove_player_id_from_team_fixed_array(team, OOTP27_TEAM_PLAYER_IDS_33E0_OFFSET, player_id);
     removed += kbo_remove_player_id_from_team_fixed_array(team, OOTP27_TEAM_PLAYER_IDS_3700_OFFSET, player_id);
+    return removed;
+}
+
+int kbo_remove_player_id_from_known_team_roster_arrays(uint8_t* team, uint32_t player_id)
+{
+    int removed = kbo_remove_player_id_from_team_active_roster_arrays(team, player_id);
+    removed += kbo_remove_player_id_from_team_fixed_array(team, OOTP27_TEAM_RESTRICTED_PLAYER_IDS_OFFSET, player_id);
     return removed;
 }
 

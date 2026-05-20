@@ -24,6 +24,12 @@
 #define KBO_INTL_ESTABLISHED_FA_POSTSCAN_RETRY_MS ((ULONGLONG)kbo_runtime_tuning_policy()->intl_established_fa_postscan_retry_ms)
 #define KBO_INTL_ESTABLISHED_FA_POSTSCAN_MAX_RETRIES (kbo_runtime_tuning_policy()->intl_established_fa_postscan_max_retries)
 #define KBO_INTL_ESTABLISHED_FA_POSTSCAN_MAX_DETAIL_LOGS (kbo_runtime_tuning_policy()->intl_established_fa_postscan_max_detail_logs)
+enum {
+    KBO_INTL_FA_POSTSCAN_IDLE = 0,
+    KBO_INTL_FA_POSTSCAN_PENDING = 1,
+    KBO_INTL_FA_POSTSCAN_RUNNING = 2,
+};
+
 typedef struct KboIntlEstablishedFaPostscanState {
     LONG pending;
     LONG batch_id;
