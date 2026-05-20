@@ -69,13 +69,26 @@ def _solve_batch_flexible_assignment(grouped, max_tier_gap=1, status_label="ok",
         return node
 
     team_nodes = {}
+    node_supplies = {}
+    required_total = 0
+
+    def add_node_supply(node, amount):
+        node_supplies[node] = node_supplies.get(node, 0) + amount
+
     for team_id, info in team_info.items():
         capacity = incoming_cap if use_incoming_capacity else max(0, info["capacity"])
+        min_fill = max(0, min(int(info.get("min_fill", 0)), capacity))
         if capacity <= 0:
             continue
+        if required_total + min_fill > total_players:
+            return None
         team_node = new_node()
         team_nodes[team_id] = team_node
-        solver.add_arc_with_capacity_and_unit_cost(team_node, sink, capacity, 0)
+        if min_fill > 0:
+            required_total += min_fill
+            add_node_supply(team_node, -min_fill)
+            add_node_supply(sink, min_fill)
+        solver.add_arc_with_capacity_and_unit_cost(team_node, sink, capacity - min_fill, 0)
 
     assignment_arcs = []
     for player_id, player_rows in grouped.items():
@@ -115,8 +128,10 @@ def _solve_batch_flexible_assignment(grouped, max_tier_gap=1, status_label="ok",
     if not assignment_arcs:
         return None
 
-    solver.set_node_supply(source, total_players)
-    solver.set_node_supply(sink, -total_players)
+    add_node_supply(source, total_players)
+    add_node_supply(sink, -total_players)
+    for node, supply in node_supplies.items():
+        solver.set_node_supply(node, supply)
     status = solver.solve()
     if status not in (solver.OPTIMAL, solver.FEASIBLE):
         return None

@@ -10,7 +10,7 @@ from .constants import (
 )
 from .csv_io import to_int as _to_int
 
-def _batch_is_incoming(grouped):
+def _batch_explicit_modes(grouped):
     explicit_modes = set()
     for rows in grouped.values():
         if not rows:
@@ -19,13 +19,44 @@ def _batch_is_incoming(grouped):
             mode = (row.get("batch_mode") or "").strip().lower()
             if mode:
                 explicit_modes.add(mode)
+    return explicit_modes
 
-    if any(mode in ("incoming", "deferred_add", "freshman") for mode in explicit_modes):
+def _batch_is_incoming(grouped):
+    explicit_modes = _batch_explicit_modes(grouped)
+    if any(mode in ("incoming", "incoming_attached", "post_original", "deferred_add", "freshman") for mode in explicit_modes):
         return True
     if any(mode in ("roster", "existing_roster", "seed") for mode in explicit_modes):
         return False
 
     return False
+
+def _batch_source_counts_attached_to_rosters(grouped):
+    explicit_modes = _batch_explicit_modes(grouped)
+    if any(mode in ("incoming_attached", "post_original") for mode in explicit_modes):
+        return True
+    if any(mode in ("deferred_add", "freshman") for mode in explicit_modes):
+        return False
+
+    source_counts = _batch_source_counts(grouped)
+    if not source_counts:
+        return False
+
+    team_player_counts = {}
+    for rows in grouped.values():
+        for row in rows:
+            team_id = _to_int(row, "team_id")
+            if team_id != 0 and team_id not in team_player_counts:
+                team_player_counts[team_id] = max(0, _to_int(row, "player_count"))
+
+    checked = 0
+    attached = 0
+    for team_id, (source_players, _) in source_counts.items():
+        if team_id not in team_player_counts:
+            continue
+        checked += 1
+        if team_player_counts[team_id] >= source_players:
+            attached += 1
+    return checked > 0 and attached == checked
 
 def _normalize_position_bucket(value):
     bucket = (value or "").strip().upper()
@@ -112,7 +143,8 @@ def _batch_hitter_share(grouped, incoming_batch=False):
     hitter_players = 0
     total_players = 0
     teams = {}
-    source_counts = {} if incoming_batch else _batch_source_counts(grouped)
+    subtract_source_counts = not incoming_batch or _batch_source_counts_attached_to_rosters(grouped)
+    source_counts = _batch_source_counts(grouped) if subtract_source_counts else {}
     for rows in grouped.values():
         if not rows:
             continue

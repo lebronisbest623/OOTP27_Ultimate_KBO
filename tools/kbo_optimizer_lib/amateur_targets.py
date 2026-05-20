@@ -3,7 +3,12 @@
 import math
 
 from .amateur_common import _team_max_players
-from .amateur_roles import _batch_source_position_counts, _row_position_counts
+from .amateur_roles import (
+    _batch_source_counts,
+    _batch_source_counts_attached_to_rosters,
+    _batch_source_position_counts,
+    _row_position_counts,
+)
 from .constants import (
     INCOMING_MAX_AVERAGE_MULTIPLIER,
     INCOMING_REPUTATION_FLOOR_WEIGHT,
@@ -29,7 +34,9 @@ def _team_min_players(league_id):
 
 def _collect_batch_team_info(grouped, team_percentiles, incoming_batch=False, detailed_roles=False):
     team_info = {}
-    source_position_counts = {} if incoming_batch else _batch_source_position_counts(grouped)
+    subtract_source_counts = not incoming_batch or _batch_source_counts_attached_to_rosters(grouped)
+    source_counts = _batch_source_counts(grouped) if subtract_source_counts else {}
+    source_position_counts = _batch_source_position_counts(grouped) if subtract_source_counts else {}
     for rows in grouped.values():
         for row in rows:
             team_id = _to_int(row, "team_id")
@@ -40,10 +47,15 @@ def _collect_batch_team_info(grouped, team_percentiles, incoming_batch=False, de
             raw_player_count = max(0, _to_int(row, "player_count"))
             raw_hitter_count = max(0, min(raw_player_count, _to_int(row, "hitter_count")))
             role_counts = _row_position_counts(row, raw_player_count, raw_hitter_count, detailed_roles)
+            outgoing_players, outgoing_hitters = source_counts.get(team_id, (0, 0))
             for role, outgoing_count in source_position_counts.get(team_id, {}).items():
                 role_counts[role] = max(0, role_counts.get(role, 0) - outgoing_count)
-            player_count = sum(role_counts.values())
-            hitter_count = sum(count for role, count in role_counts.items() if role != "P")
+            if subtract_source_counts:
+                player_count = max(0, raw_player_count - outgoing_players)
+                hitter_count = max(0, min(player_count, raw_hitter_count - outgoing_hitters))
+            else:
+                player_count = sum(role_counts.values())
+                hitter_count = sum(count for role, count in role_counts.items() if role != "P")
             if not incoming_batch and max_players > 0 and player_count >= max_players:
                 continue
             if incoming_batch:
