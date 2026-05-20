@@ -12,8 +12,35 @@
 #include "../../../runtime_memory/runtime_memory.h"
 #include "../emit/emit.h"
 
+static char g_kbo_asian_games_event_save_path[MAX_PATH] = {0};
+
+static void kbo_reset_asian_games_event_fire_dates_for_save_change(const char* source)
+{
+    char save_path[MAX_PATH] = {0};
+    if (!kbo_get_current_save_path(save_path, sizeof(save_path))) {
+        return;
+    }
+    if (g_kbo_asian_games_event_save_path[0] == '\0') {
+        snprintf(g_kbo_asian_games_event_save_path, sizeof(g_kbo_asian_games_event_save_path), "%s", save_path);
+        return;
+    }
+    if (_stricmp(g_kbo_asian_games_event_save_path, save_path) == 0) {
+        return;
+    }
+
+    g_kbo_asian_games_last_selection_fired_date = 0u;
+    g_kbo_asian_games_last_departure_fired_date = 0u;
+    g_kbo_asian_games_last_final_fired_date = 0u;
+    snprintf(g_kbo_asian_games_event_save_path, sizeof(g_kbo_asian_games_event_save_path), "%s", save_path);
+    kbo_log_runtimef(
+        "KBO Asian Games event fire dates reset source=%s save=%s",
+        source != NULL ? source : "",
+        save_path);
+}
+
 int kbo_handle_asian_games_selection_event(uint32_t event_yyyymmdd, const char* source)
 {
+    kbo_reset_asian_games_event_fire_dates_for_save_change(source);
     kbo_clear_asian_games_roster_if_save_changed(source);
     if (event_yyyymmdd == 0u || g_kbo_asian_games_last_selection_fired_date == event_yyyymmdd) {
         return 0;
@@ -44,6 +71,7 @@ int kbo_handle_asian_games_selection_event(uint32_t event_yyyymmdd, const char* 
 
 int kbo_handle_asian_games_departure_event(uint32_t event_yyyymmdd, const char* source)
 {
+    kbo_reset_asian_games_event_fire_dates_for_save_change(source);
     kbo_clear_asian_games_roster_if_save_changed(source);
     if (event_yyyymmdd == 0u || g_kbo_asian_games_last_departure_fired_date == event_yyyymmdd) {
         return 0;
@@ -85,6 +113,7 @@ int kbo_handle_asian_games_departure_event(uint32_t event_yyyymmdd, const char* 
 
 int kbo_handle_asian_games_final_event(uint32_t event_yyyymmdd, const char* source)
 {
+    kbo_reset_asian_games_event_fire_dates_for_save_change(source);
     kbo_clear_asian_games_roster_if_save_changed(source);
     if (event_yyyymmdd == 0u || g_kbo_asian_games_last_final_fired_date == event_yyyymmdd) {
         return 0;

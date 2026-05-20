@@ -15,6 +15,8 @@ $IndependentAcquisitionCashFlowTestSrc = Join-Path $PSScriptRoot "test_independe
 $IndependentAcquisitionCashFlowTestExe = Join-Path $PSScriptRoot "test_independent_acquisition_cash_flow.exe"
 $IntlEstablishedFaMarketNormalizeTestSrc = Join-Path $PSScriptRoot "test_intl_established_fa_market_normalize.c"
 $IntlEstablishedFaMarketNormalizeTestExe = Join-Path $PSScriptRoot "test_intl_established_fa_market_normalize.exe"
+$AsianGamesHandlerSaveContextTestSrc = Join-Path $PSScriptRoot "test_asian_games_handler_save_context.c"
+$AsianGamesHandlerSaveContextTestExe = Join-Path $PSScriptRoot "test_asian_games_handler_save_context.exe"
 $AsianGamesPlayerEligibilityTestSrc = Join-Path $PSScriptRoot "test_asian_games_player_eligibility.c"
 $AsianGamesPlayerEligibilityTestExe = Join-Path $PSScriptRoot "test_asian_games_player_eligibility.exe"
 $AsianGamesRestrictedMaintenancePolicyTestSrc = Join-Path $PSScriptRoot "test_asian_games_restricted_maintenance_policy.c"
@@ -169,6 +171,22 @@ if ($LASTEXITCODE -ne 0) {
 & $IntlEstablishedFaMarketNormalizeTestExe
 if ($LASTEXITCODE -ne 0) {
     throw "International established FA market normalization tests failed"
+}
+& $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
+    -I $Root `
+    -I (Join-Path $Root "src") `
+    -o $AsianGamesHandlerSaveContextTestExe `
+    $AsianGamesHandlerSaveContextTestSrc `
+    (Join-Path $Root "src\custom_events\asian_games_news\handlers\handlers.c") `
+    (Join-Path $Root "src\custom_events\runtime\state\custom_event_state.c") `
+    (Join-Path $Root "src\custom_events\asian_games\state\asian_games_state.c")
+if ($LASTEXITCODE -ne 0) {
+    throw "Asian Games handler save-context test build failed"
+}
+
+& $AsianGamesHandlerSaveContextTestExe
+if ($LASTEXITCODE -ne 0) {
+    throw "Asian Games handler save-context tests failed"
 }
 & $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
     -I $Root `
