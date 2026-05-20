@@ -7,7 +7,7 @@
   "max_wildcards": 3,
   "team_min_players": 1,
   "team_max_players": 3,
-  "wildcard_age_max": 24,
+  "wildcard_age_min": 25,
   "score_talent_weight": 45,
   "score_overall_weight": 30,
   "score_ratings_weight": 15,

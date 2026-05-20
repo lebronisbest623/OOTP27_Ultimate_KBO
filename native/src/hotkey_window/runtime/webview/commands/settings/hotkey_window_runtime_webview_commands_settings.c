@@ -1,11 +1,19 @@
 #include "../../hotkey_window_webview.h"
+#include "../../../../../custom_events/asian_games/policy/asian_games_roster_policy.h"
+
+static int kbo_webview_settings_command_has_prefix(const char* cmd, const char* prefix)
+{
+    return cmd != NULL && prefix != NULL && strncmp(cmd, prefix, strlen(prefix)) == 0;
+}
 
 static int kbo_webview_settings_command_allowed_for_current_mode(const char* cmd)
 {
     if (kbo_hub_current_mode_is_developer()) {
         return 1;
     }
-    return strncmp(cmd, "settings/asian-quota-salary-limit/", 35) == 0;
+    return strncmp(cmd, "settings/asian-quota-salary-limit/", 35) == 0
+        || kbo_webview_settings_command_has_prefix(cmd, "settings/asian-games-max-wildcards/")
+        || kbo_webview_settings_command_has_prefix(cmd, "settings/asian-games-wildcard-age-min/");
 }
 
 int kbo_webview_handle_settings_command(const char* cmd)
@@ -72,6 +80,48 @@ int kbo_webview_handle_settings_command(const char* cmd)
             kbo_log_runtimef("settings webview: Asian quota salary limit=%d", clamped);
         } else {
             kbo_log_runtimef("settings webview: failed to write Asian quota salary limit=%d", value);
+        }
+        g_kbo_hub_selected_view = KBO_HUB_VIEW_SETTINGS;
+        g_kbo_hub_open_dropdown = 0;
+        kbo_webview_navigate_current();
+        return 1;
+    }
+    const char* asian_games_max_wildcards_prefix = "settings/asian-games-max-wildcards/";
+    size_t asian_games_max_wildcards_prefix_len = strlen(asian_games_max_wildcards_prefix);
+    if (strncmp(cmd, asian_games_max_wildcards_prefix, asian_games_max_wildcards_prefix_len) == 0) {
+        if (!kbo_hub_selected_league_is_kbo()) {
+            g_kbo_hub_selected_view = KBO_HUB_VIEW_MOD_INFO;
+            g_kbo_hub_open_dropdown = 0;
+            kbo_webview_navigate_current();
+            return 1;
+        }
+        int value = atoi(cmd + asian_games_max_wildcards_prefix_len);
+        int clamped = kbo_asian_games_policy_clamp_max_wildcards(value);
+        if (kbo_set_asian_games_policy_max_wildcards(value)) {
+            kbo_log_runtimef("settings webview: Asian Games max wildcards=%d", clamped);
+        } else {
+            kbo_log_runtimef("settings webview: failed to write Asian Games max wildcards=%d", value);
+        }
+        g_kbo_hub_selected_view = KBO_HUB_VIEW_SETTINGS;
+        g_kbo_hub_open_dropdown = 0;
+        kbo_webview_navigate_current();
+        return 1;
+    }
+    const char* asian_games_wildcard_age_prefix = "settings/asian-games-wildcard-age-min/";
+    size_t asian_games_wildcard_age_prefix_len = strlen(asian_games_wildcard_age_prefix);
+    if (strncmp(cmd, asian_games_wildcard_age_prefix, asian_games_wildcard_age_prefix_len) == 0) {
+        if (!kbo_hub_selected_league_is_kbo()) {
+            g_kbo_hub_selected_view = KBO_HUB_VIEW_MOD_INFO;
+            g_kbo_hub_open_dropdown = 0;
+            kbo_webview_navigate_current();
+            return 1;
+        }
+        int value = atoi(cmd + asian_games_wildcard_age_prefix_len);
+        int clamped = kbo_asian_games_policy_clamp_wildcard_age_min(value);
+        if (kbo_set_asian_games_policy_wildcard_age_min(value)) {
+            kbo_log_runtimef("settings webview: Asian Games wildcard age min=%d", clamped);
+        } else {
+            kbo_log_runtimef("settings webview: failed to write Asian Games wildcard age min=%d", value);
         }
         g_kbo_hub_selected_view = KBO_HUB_VIEW_SETTINGS;
         g_kbo_hub_open_dropdown = 0;

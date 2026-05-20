@@ -224,6 +224,7 @@ if ($LASTEXITCODE -ne 0) {
     (Join-Path $Root "src\foreign\injury\state\foreign_injury_duration_text.c") `
     (Join-Path $Root "src\foreign\injury\state\foreign_injury_state.c") `
     (Join-Path $Root "src\team\independent_acquisition\ai\independent_acquisition_score.c") `
+    (Join-Path $Root "src\custom_events\asian_games\policy\asian_games_roster_policy.c") `
     (Join-Path $Root "src\amateur_player_quality\assignment\policy\amateur_assignment_policy.c")
 if ($LASTEXITCODE -ne 0) {
     throw "Build failed"

@@ -10,6 +10,9 @@
 #include "../../../core/policy/core_policy.h"
 
 #define KBO_ASIAN_GAMES_ROSTER_POLICY_FILE "asian_games_roster_policy.json"
+#define KBO_ASIAN_GAMES_MAX_WILDCARDS_KEY "max_wildcards"
+#define KBO_ASIAN_GAMES_WILDCARD_AGE_MIN_KEY "wildcard_age_min"
+#define KBO_ASIAN_GAMES_LEGACY_WILDCARD_AGE_MAX_KEY "wildcard_age_max"
 
 static INIT_ONCE g_kbo_asian_games_roster_policy_once = INIT_ONCE_STATIC_INIT;
 static KboAsianGamesRosterPolicy g_kbo_asian_games_roster_policy;
@@ -17,6 +20,45 @@ static KboAsianGamesRosterPolicy g_kbo_asian_games_roster_policy;
 static int32_t kbo_asian_games_policy_int(const char* key, int32_t fallback, int32_t min_value, int32_t max_value)
 {
     return kbo_read_clamped_policy_int(KBO_ASIAN_GAMES_ROSTER_POLICY_FILE, key, fallback, min_value, max_value);
+}
+
+int kbo_asian_games_policy_clamp_max_wildcards(int value)
+{
+    if (value < KBO_ASIAN_GAMES_MAX_WILDCARDS_MIN) {
+        return KBO_ASIAN_GAMES_MAX_WILDCARDS_MIN;
+    }
+    if (value > KBO_ASIAN_GAMES_MAX_WILDCARDS_MAX) {
+        return KBO_ASIAN_GAMES_MAX_WILDCARDS_MAX;
+    }
+    return value;
+}
+
+int kbo_asian_games_policy_clamp_wildcard_age_min(int value)
+{
+    if (value < KBO_ASIAN_GAMES_WILDCARD_AGE_MIN_MIN) {
+        return KBO_ASIAN_GAMES_WILDCARD_AGE_MIN_MIN;
+    }
+    if (value > KBO_ASIAN_GAMES_WILDCARD_AGE_MIN_MAX) {
+        return KBO_ASIAN_GAMES_WILDCARD_AGE_MIN_MAX;
+    }
+    return value;
+}
+
+static int32_t kbo_asian_games_policy_default_wildcard_age_min(void)
+{
+    int32_t legacy_max = kbo_asian_games_policy_int(
+        KBO_ASIAN_GAMES_LEGACY_WILDCARD_AGE_MAX_KEY,
+        24,
+        KBO_ASIAN_GAMES_WILDCARD_AGE_MIN_MIN,
+        KBO_ASIAN_GAMES_WILDCARD_AGE_MIN_MAX);
+    int32_t fallback = legacy_max < KBO_ASIAN_GAMES_WILDCARD_AGE_MIN_MAX
+        ? legacy_max + 1
+        : KBO_ASIAN_GAMES_WILDCARD_AGE_MIN_MAX;
+    return kbo_asian_games_policy_int(
+        KBO_ASIAN_GAMES_WILDCARD_AGE_MIN_KEY,
+        fallback,
+        KBO_ASIAN_GAMES_WILDCARD_AGE_MIN_MIN,
+        KBO_ASIAN_GAMES_WILDCARD_AGE_MIN_MAX);
 }
 
 static void kbo_asian_games_policy_string(const char* key, const char* fallback, char* out, size_t out_size)
@@ -44,10 +86,14 @@ static BOOL CALLBACK kbo_asian_games_roster_policy_init_once(PINIT_ONCE init_onc
     p->catcher_target = kbo_asian_games_policy_int("catcher_target", 2, 0, KBO_ASIAN_GAMES_ROSTER_SIZE);
     p->infielder_target = kbo_asian_games_policy_int("infielder_target", 6, 0, KBO_ASIAN_GAMES_ROSTER_SIZE);
     p->outfielder_target = kbo_asian_games_policy_int("outfielder_target", 5, 0, KBO_ASIAN_GAMES_ROSTER_SIZE);
-    p->max_wildcards = kbo_asian_games_policy_int("max_wildcards", 3, 0, KBO_ASIAN_GAMES_ROSTER_SIZE);
+    p->max_wildcards = kbo_asian_games_policy_int(
+        KBO_ASIAN_GAMES_MAX_WILDCARDS_KEY,
+        3,
+        KBO_ASIAN_GAMES_MAX_WILDCARDS_MIN,
+        KBO_ASIAN_GAMES_MAX_WILDCARDS_MAX);
     p->team_min_players = kbo_asian_games_policy_int("team_min_players", 1, 0, KBO_ASIAN_GAMES_ROSTER_SIZE);
     p->team_max_players = kbo_asian_games_policy_int("team_max_players", 3, 0, KBO_ASIAN_GAMES_ROSTER_SIZE);
-    p->wildcard_age_max = kbo_asian_games_policy_int("wildcard_age_max", 24, 0, 80);
+    p->wildcard_age_min = kbo_asian_games_policy_default_wildcard_age_min();
     p->score_talent_weight = kbo_asian_games_policy_int("score_talent_weight", 45, 0, 10000);
     p->score_overall_weight = kbo_asian_games_policy_int("score_overall_weight", 30, 0, 10000);
     p->score_ratings_weight = kbo_asian_games_policy_int("score_ratings_weight", 15, 0, 10000);
@@ -98,9 +144,54 @@ int kbo_asian_games_policy_roster_size(void)
     return kbo_asian_games_roster_policy()->roster_size;
 }
 
+int kbo_asian_games_policy_max_wildcards(void)
+{
+    return kbo_asian_games_roster_policy()->max_wildcards;
+}
+
+int kbo_set_asian_games_policy_max_wildcards(int value)
+{
+    int clamped = kbo_asian_games_policy_clamp_max_wildcards(value);
+    if (!kbo_write_localappdata_named_json_int_value(
+            KBO_ASIAN_GAMES_ROSTER_POLICY_FILE,
+            KBO_ASIAN_GAMES_MAX_WILDCARDS_KEY,
+            clamped)) {
+        return 0;
+    }
+    (void)kbo_asian_games_roster_policy();
+    g_kbo_asian_games_roster_policy.max_wildcards = clamped;
+    return 1;
+}
+
+int kbo_asian_games_policy_wildcard_age_min(void)
+{
+    return kbo_asian_games_roster_policy()->wildcard_age_min;
+}
+
+int kbo_set_asian_games_policy_wildcard_age_min(int value)
+{
+    int clamped = kbo_asian_games_policy_clamp_wildcard_age_min(value);
+    if (!kbo_write_localappdata_named_json_int_value(
+            KBO_ASIAN_GAMES_ROSTER_POLICY_FILE,
+            KBO_ASIAN_GAMES_WILDCARD_AGE_MIN_KEY,
+            clamped)) {
+        return 0;
+    }
+    (void)kbo_asian_games_roster_policy();
+    g_kbo_asian_games_roster_policy.wildcard_age_min = clamped;
+    return 1;
+}
+
+int kbo_asian_games_policy_is_wildcard_age_with_min(uint16_t age, int wildcard_age_min)
+{
+    return age >= (uint16_t)kbo_asian_games_policy_clamp_wildcard_age_min(wildcard_age_min);
+}
+
 int kbo_asian_games_policy_is_wildcard_age(uint16_t age)
 {
-    return age > (uint16_t)kbo_asian_games_roster_policy()->wildcard_age_max;
+    return kbo_asian_games_policy_is_wildcard_age_with_min(
+        age,
+        kbo_asian_games_policy_wildcard_age_min());
 }
 
 int kbo_asian_games_policy_minor_league_included(uint32_t league_id, uint32_t* out_league_id)

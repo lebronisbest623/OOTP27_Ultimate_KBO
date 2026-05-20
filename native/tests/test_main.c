@@ -77,6 +77,7 @@ int kbo_get_current_save_path(char* out, size_t out_size)
 #include "../src/fa_market_classification/internal/fa_market_policy_internal.h"
 #include "../src/core/logging/rule_audit.h"
 #include "../src/core/files/atomic/core_atomic_file.h"
+#include "../src/custom_events/asian_games/policy/asian_games_roster_policy.h"
 #include "../src/military_service/players/loans/military_native_loan.h"
 #include "../src/team/assignment/roster_arrays/team_roster_arrays.h"
 #include "../src/team/assignment/org_query/team_org_assignment_query.h"
@@ -2777,6 +2778,24 @@ static void test_independent_acquisition_score_policy(void)
     printf("test_independent_acquisition_score_policy: PASS\n");
 }
 
+
+static void test_asian_games_wildcard_age_policy(void)
+{
+    assert(kbo_asian_games_policy_clamp_max_wildcards(-1) == KBO_ASIAN_GAMES_MAX_WILDCARDS_MIN);
+    assert(kbo_asian_games_policy_clamp_max_wildcards(99) == KBO_ASIAN_GAMES_MAX_WILDCARDS_MAX);
+    assert(kbo_asian_games_policy_clamp_max_wildcards(3) == 3);
+
+    assert(kbo_asian_games_policy_clamp_wildcard_age_min(-5) == KBO_ASIAN_GAMES_WILDCARD_AGE_MIN_MIN);
+    assert(kbo_asian_games_policy_clamp_wildcard_age_min(99) == KBO_ASIAN_GAMES_WILDCARD_AGE_MIN_MAX);
+
+    assert(!kbo_asian_games_policy_is_wildcard_age_with_min(23u, 24));
+    assert(kbo_asian_games_policy_is_wildcard_age_with_min(24u, 24));
+    assert(!kbo_asian_games_policy_is_wildcard_age_with_min(24u, 25));
+    assert(kbo_asian_games_policy_is_wildcard_age_with_min(25u, 25));
+
+    printf("test_asian_games_wildcard_age_policy: PASS\n");
+}
+
 int main(void)
 {
     test_core_text_and_sql_helpers();
@@ -2836,6 +2855,7 @@ int main(void)
     test_amateur_assignment_policy();
     test_amateur_reputation_balanced_deltas_prevent_inflation();
     test_independent_acquisition_score_policy();
+    test_asian_games_wildcard_age_policy();
     printf("All tests passed.\n");
     return 0;
 }

@@ -2,6 +2,7 @@
 #include "../../../runtime/mode/hotkey_window_runtime_mode.h"
 #include "../../../support/text/language/ui_language.h"
 #include "../../../../core/core_flags/api/flags_api.h"
+#include "../../../../custom_events/asian_games/policy/asian_games_roster_policy.h"
 
 #include <stdio.h>
 
@@ -30,6 +31,40 @@ static void kbo_webview_append_asian_quota_salary_limit_setting(KboWindowTextBuf
         "onchange=\"location.href='kbo://settings/asian-quota-salary-limit/'+this.value\" "
         "onkeydown=\"if(event.key==='Enter'){this.blur();}\"></div>",
         asian_quota_salary_limit);
+}
+
+static void kbo_webview_append_asian_games_wildcard_age_min_setting(KboWindowTextBuffer* buffer)
+{
+    int wildcard_age_min = kbo_asian_games_policy_wildcard_age_min();
+    kbo_window_text_appendf(
+        buffer,
+        "<div class='settingRow'><label class='settingLabel' for='asianGamesWildcardAgeMin'>");
+    kbo_html_append_escaped(buffer, kbo_hub_text("아시안게임 와일드카드 시작 나이", "Asian Games wildcard age"));
+    kbo_window_text_appendf(
+        buffer,
+        "</label><input id='asianGamesWildcardAgeMin' class='ootpSelect salaryInput' type='text' inputmode='numeric' pattern='[0-9]*' data-min='%d' data-max='%d' data-step='1' value='%d' "
+        "onchange=\"location.href='kbo://settings/asian-games-wildcard-age-min/'+this.value\" "
+        "onkeydown=\"if(event.key==='Enter'){this.blur();}\"></div>",
+        KBO_ASIAN_GAMES_WILDCARD_AGE_MIN_MIN,
+        KBO_ASIAN_GAMES_WILDCARD_AGE_MIN_MAX,
+        wildcard_age_min);
+}
+
+static void kbo_webview_append_asian_games_max_wildcards_setting(KboWindowTextBuffer* buffer)
+{
+    int max_wildcards = kbo_asian_games_policy_max_wildcards();
+    kbo_window_text_appendf(
+        buffer,
+        "<div class='settingRow'><label class='settingLabel' for='asianGamesMaxWildcards'>");
+    kbo_html_append_escaped(buffer, kbo_hub_text("아시안게임 와일드카드 인원", "Asian Games wildcards"));
+    kbo_window_text_appendf(
+        buffer,
+        "</label><input id='asianGamesMaxWildcards' class='ootpSelect salaryInput' type='text' inputmode='numeric' pattern='[0-9]*' data-min='%d' data-max='%d' data-step='1' value='%d' "
+        "onchange=\"location.href='kbo://settings/asian-games-max-wildcards/'+this.value\" "
+        "onkeydown=\"if(event.key==='Enter'){this.blur();}\"></div>",
+        KBO_ASIAN_GAMES_MAX_WILDCARDS_MIN,
+        KBO_ASIAN_GAMES_MAX_WILDCARDS_MAX,
+        max_wildcards);
 }
 
 void kbo_webview_append_settings_view(KboWindowTextBuffer* buffer, int selected_settings_subview)
@@ -96,6 +131,10 @@ void kbo_webview_append_settings_view(KboWindowTextBuffer* buffer, int selected_
         kbo_webview_append_settings_section_start(buffer, "\xec\x99\xb8\xea\xb5\xad\xec\x9d\xb8 \xec\x84\xa0\xec\x88\x98 \xec\x9a\xb4\xec\x98\x81", "외국인 선수 운영");
         kbo_webview_append_asian_quota_salary_limit_setting(buffer);
         kbo_webview_append_settings_section_end(buffer);
+        kbo_webview_append_settings_section_start(buffer, "아시안게임 대표팀", "Asian Games roster");
+        kbo_webview_append_asian_games_max_wildcards_setting(buffer);
+        kbo_webview_append_asian_games_wildcard_age_min_setting(buffer);
+        kbo_webview_append_settings_section_end(buffer);
         kbo_window_text_appendf(buffer, "</section></div>");
         return;
     }
@@ -138,6 +177,11 @@ void kbo_webview_append_settings_view(KboWindowTextBuffer* buffer, int selected_
     kbo_window_text_appendf(buffer, "</div>");
 
     kbo_webview_append_asian_quota_salary_limit_setting(buffer);
+
+    kbo_webview_append_settings_section_end(buffer);
+    kbo_webview_append_settings_section_start(buffer, "아시안게임 대표팀", "Asian Games roster");
+    kbo_webview_append_asian_games_max_wildcards_setting(buffer);
+    kbo_webview_append_asian_games_wildcard_age_min_setting(buffer);
 
     kbo_window_text_appendf(
         buffer,

@@ -17,14 +17,62 @@ from .constants import (
 )
 from .csv_io import to_int
 
+
 def _role_bucket(row):
     return (row.get("role_bucket") or "").strip().upper()
+
+
+def _policy_int(rows, key, fallback, min_value=None, max_value=None):
+    for row in rows:
+        raw = row.get(key)
+        if raw is not None and str(raw).strip() != "":
+            value = to_int(row, key)
+            if min_value is not None:
+                value = max(min_value, value)
+            if max_value is not None:
+                value = min(max_value, value)
+            return value
+    return fallback
+
+
+def _row_is_wildcard(row, wildcard_age_min=None):
+    raw = row.get("wildcard")
+    if raw is not None and str(raw).strip() != "":
+        return to_int(row, "wildcard") != 0
+    if wildcard_age_min is not None:
+        return to_int(row, "age") >= wildcard_age_min
+    return to_int(row, "age") > 24
+
 
 def _solve_asian_games_model(rows, hard_required_orgs, hard_role_minimums):
     if not rows:
         return None
 
-    roster_size = min(ASIAN_GAMES_ROSTER_SIZE, len(rows))
+    roster_size = min(
+        _policy_int(rows, "policy_roster_size", ASIAN_GAMES_ROSTER_SIZE, 1, len(rows)),
+        len(rows),
+    )
+    max_wildcards = _policy_int(
+        rows,
+        "policy_max_wildcards",
+        ASIAN_GAMES_MAX_WILDCARDS,
+        0,
+        roster_size,
+    )
+    team_max_players = _policy_int(
+        rows,
+        "policy_team_max_players",
+        ASIAN_GAMES_TEAM_MAX_PLAYERS,
+        0,
+        roster_size,
+    )
+    wildcard_age_min = _policy_int(
+        rows,
+        "policy_wildcard_age_min",
+        25,
+        0,
+        80,
+    )
     model = cp_model.CpModel()
     variables = [model.NewBoolVar(f"player_{to_int(row, 'player_id')}") for row in rows]
     model.Add(sum(variables) == roster_size)
@@ -41,27 +89,29 @@ def _solve_asian_games_model(rows, hard_required_orgs, hard_role_minimums):
             by_org[org_id].append(var)
         if to_int(row, "required_org") != 0 and org_id != 0:
             required_orgs.add(org_id)
-        if to_int(row, "age") > 24:
+        if _row_is_wildcard(row, wildcard_age_min):
             wildcard_vars.append(var)
 
-    if len(wildcard_vars) >= ASIAN_GAMES_MAX_WILDCARDS and roster_size >= ASIAN_GAMES_MAX_WILDCARDS:
-        model.Add(sum(wildcard_vars) == ASIAN_GAMES_MAX_WILDCARDS)
-    elif wildcard_vars:
-        model.Add(sum(wildcard_vars) <= ASIAN_GAMES_MAX_WILDCARDS)
+    if wildcard_vars:
+        if max_wildcards <= 0:
+            model.Add(sum(wildcard_vars) == 0)
+        elif len(wildcard_vars) >= max_wildcards and roster_size >= max_wildcards:
+            model.Add(sum(wildcard_vars) == max_wildcards)
+        else:
+            model.Add(sum(wildcard_vars) <= max_wildcards)
 
     for org_id, org_vars in by_org.items():
-        model.Add(sum(org_vars) <= ASIAN_GAMES_TEAM_MAX_PLAYERS)
+        model.Add(sum(org_vars) <= team_max_players)
         if hard_required_orgs and org_id in required_orgs:
             model.Add(sum(org_vars) >= 1)
 
     objective_terms = []
     for row, var in zip(rows, variables):
         score = to_int(row, "score")
-        age = to_int(row, "age")
         role = _role_bucket(row)
         org_id = to_int(row, "org_team_id")
         weight = score * 100
-        if age <= 24:
+        if not _row_is_wildcard(row, wildcard_age_min):
             weight += 25000
         if org_id in required_orgs:
             weight += ASIAN_GAMES_REQUIRED_ORG_BONUS
@@ -92,6 +142,7 @@ def _solve_asian_games_model(rows, hard_required_orgs, hard_role_minimums):
             selected.append((index, row))
     selected.sort(key=lambda item: (-to_int(item[1], "score"), to_int(item[1], "player_id")))
     return selected
+
 
 def optimize_asian_games_roster(request_path, result_path):
     with open(request_path, newline="", encoding="utf-8") as handle:
