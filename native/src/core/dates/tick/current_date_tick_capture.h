@@ -59,6 +59,7 @@ extern uint32_t g_kbo_current_date_tick_event_site_rvas[KBO_CURRENT_DATE_TICK_EV
 int kbo_current_date_tick_publish(uint32_t date, uint32_t site_rva);
 int kbo_current_date_tick_publish_and_dispatch(uint32_t date, uint32_t site_rva);
 int kbo_current_date_tick_latest_published_date(uint32_t* out_date);
+void kbo_current_date_tick_force_resync(const char* label, const char* reason);
 int kbo_current_date_tick_register_sync_consumer(
     const char* label,
     KboCurrentDateTickSyncConsumerFn callback,

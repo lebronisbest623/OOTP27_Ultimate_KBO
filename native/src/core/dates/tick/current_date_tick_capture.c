@@ -270,6 +270,42 @@ static void kbo_current_date_tick_reset_sync_consumer_dates(void)
     ReleaseSRWLockExclusive(&g_kbo_current_date_tick_sync_consumer_lock);
 }
 
+void kbo_current_date_tick_force_resync(const char* label, const char* reason)
+{
+    LONG previous_date = InterlockedExchange(
+        &g_kbo_current_date_tick_last_published_date,
+        0);
+    LONG previous_sequence = InterlockedExchange(
+        &g_kbo_current_date_tick_event_published_sequence,
+        0);
+    LONG previous_write = InterlockedExchange(
+        &g_kbo_current_date_tick_event_write_cursor,
+        0);
+
+    memset(
+        g_kbo_current_date_tick_event_dates,
+        0,
+        sizeof(g_kbo_current_date_tick_event_dates));
+    memset(
+        g_kbo_current_date_tick_event_site_rvas,
+        0,
+        sizeof(g_kbo_current_date_tick_event_site_rvas));
+
+    AcquireSRWLockExclusive(&g_kbo_current_date_tick_save_scope_lock);
+    g_kbo_current_date_tick_save_scope_path[0] = '\0';
+    ReleaseSRWLockExclusive(&g_kbo_current_date_tick_save_scope_lock);
+
+    kbo_current_date_tick_reset_sync_consumer_dates();
+
+    kbo_log_runtimef(
+        "KBO current date tick force resync label=\"%s\" reason=%s previous_date=%u previous_sequence=%ld previous_write=%ld",
+        kbo_current_date_tick_log_label(label),
+        reason != NULL && reason[0] != '\0' ? reason : "unspecified",
+        (uint32_t)previous_date,
+        (long)previous_sequence,
+        (long)previous_write);
+}
+
 int kbo_current_date_tick_latest_published_date(uint32_t* out_date)
 {
     if (out_date != NULL) {

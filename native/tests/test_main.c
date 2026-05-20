@@ -691,6 +691,38 @@ static void test_current_date_tick_save_enter_does_not_advance_live_date(void)
     printf("test_current_date_tick_save_enter_does_not_advance_live_date: PASS\n");
 }
 
+static void test_current_date_tick_force_resync_allows_save_enter_rebase(void)
+{
+    kbo_test_reset_current_date_tick_state();
+    snprintf(g_test_current_save_path, sizeof(g_test_current_save_path), "C:\\test\\saved_games\\New Game.lg");
+
+    KboCurrentDateTickConsumer consumer = {0};
+    KboCurrentDateTickWork work = {0};
+    kbo_current_date_tick_consumer_init(
+        &consumer,
+        "test_force_resync",
+        KBO_CURRENT_DATE_TICK_CONSUMER_EMIT_CURRENT_ON_SAVE_ENTER);
+
+    g_test_current_yyyymmdd = 20260409u;
+    assert(kbo_current_date_tick_consumer_next(&consumer, &work));
+    assert(work.date == 20260409u);
+    assert(work.site_rva == KBO_CURRENT_DATE_TICK_SAVE_ENTER_SITE_RVA);
+    assert(work.sequence == 1u);
+
+    kbo_current_date_tick_force_resync("test_force_resync", "league_year_mismatch");
+    kbo_current_date_tick_consumer_skip_to_latest(&consumer);
+
+    g_test_current_yyyymmdd = 20450922u;
+    assert(kbo_current_date_tick_consumer_next(&consumer, &work));
+    assert(work.date == 20450922u);
+    assert(work.site_rva == KBO_CURRENT_DATE_TICK_SAVE_ENTER_SITE_RVA);
+    assert(work.sequence == 1u);
+    kbo_current_date_tick_consumer_mark_processed(&consumer);
+
+    kbo_test_reset_current_date_tick_state();
+    printf("test_current_date_tick_force_resync_allows_save_enter_rebase: PASS\n");
+}
+
 static void test_foreign_waiver_date_helpers(void)
 {
     uint32_t parsed = 0u;
@@ -2473,6 +2505,7 @@ int main(void)
     test_current_date_tick_publish_rejects_non_adjacent_live_dates();
     test_current_date_tick_publish_and_dispatch_waits_sync_consumers();
     test_current_date_tick_save_enter_does_not_advance_live_date();
+    test_current_date_tick_force_resync_allows_save_enter_rebase();
     test_foreign_waiver_date_helpers();
     test_military_csv_parse();
     test_military_date_round_trip();
