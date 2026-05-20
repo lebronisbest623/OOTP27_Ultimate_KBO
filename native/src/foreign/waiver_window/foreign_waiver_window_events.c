@@ -18,7 +18,7 @@
 #include "../common/paths/foreign_waiver_paths.h"
 #include "../common/policy/foreign_player_policy.h"
 #include "../common/policy/foreign_waiver_policy.h"
-#include "events/foreign_waiver_window_events_internal.h"
+#include "events/foreign_waiver_window_events.h"
 #include "state/foreign_waiver_window_state.h"
 
 void kbo_queue_foreign_priority_league_event(

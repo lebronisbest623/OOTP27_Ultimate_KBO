@@ -16,7 +16,7 @@
 #include "../common/policy/foreign_player_policy.h"
 #include "../common/policy/foreign_waiver_policy.h"
 #include "../waiver_core/api/foreign_waiver_core.h"
-#include "events/foreign_waiver_window_events_internal.h"
+#include "events/foreign_waiver_window_events.h"
 #include "state/foreign_waiver_window_state.h"
 
 int kbo_advance_foreign_waiver_window(uint32_t today_yyyymmdd, uint32_t today_serial)
