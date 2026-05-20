@@ -116,6 +116,7 @@ Supported OOTP builds are sourced from:
 
 ```text
 config/ootp-supported-builds.json
+config/ootp-build-rvas.json
 ```
 
 `tools/generate-supported-builds.ps1` generates:
@@ -123,14 +124,18 @@ config/ootp-supported-builds.json
 - `src/KBOLauncher/Infrastructure/OotpSupportedBuilds.Generated.cs`
 - `native/src/build_verify/supported_builds.generated.h`
 - `native/src/build_verify/supported_builds.generated.c`
+- `native/src/build_verify/build_rvas.generated.h`
+- `native/src/build_verify/build_rvas.generated.c`
+- `native/src/bootstrap/abi/ootp_rvas.generated.h`
 
 `KBOLauncher.Tests/OotpSupportedBuildManifestTests.cs` verifies that the JSON,
-managed generated source, and native generated source match.
+managed generated source, native generated source, and generated build-RVA table
+match.
 
-The remaining build-related debt is the build-specific RVA mapping in
-`native/src/build_verify/build_verify.c`. The supported-build list is generated,
-but the per-build RVA map is still hand-maintained C code. Future OOTP build
-updates should move those mappings into generated data as well.
+Runtime RVA resolution is table-driven. Patch installers pass canonical
+`OOTP27_*_RVA` names, and `build_verify` resolves them through the generated
+per-build table before computing addresses, deltas, stub source RVAs, or caller
+RVA comparisons.
 
 ## Safety Guards
 
@@ -406,18 +411,16 @@ next cleanup targets.
 
 1. Runtime flag booleans are manifest-generated, but broader F2 command routes
    and numeric settings remain hand-maintained.
-2. Supported-build rows are generated, but build-specific RVA maps are still
-   hand-maintained.
-3. `foreign/signability/` still carries internal headers across its subfolders
+2. `foreign/signability/` still carries internal headers across its subfolders
    (`foreign_policy/internal/`, `submit_offer_probe/internal/`). Folder-level
    ownership exists but the broad private contracts have not been narrowed.
-4. `amateur_player_quality/` internal headers have been split into
+3. `amateur_player_quality/` internal headers have been split into
    `amateur_assignment_internal.h` and `amateur_reputation_internal.h`, but
    both remain broad relative to the assignment and reputation lifecycles.
-5. `fa_market_classification/` internal headers have been split into
+4. `fa_market_classification/` internal headers have been split into
    `fa_market_data_internal.h` and `fa_market_policy_internal.h`. Further
    narrowing can follow the same pattern as other resolved areas.
-6. Source-fragment include files have been removed from native source. New
+5. Source-fragment include files have been removed from native source. New
    native work should stay in owned `.c/.h` modules, including generated tables.
 
 ## Migration Plan
@@ -427,10 +430,9 @@ steps should close one responsibility boundary at a time:
 
 1. Split remaining broad domain `_internal.h` contracts into state, lifecycle,
    command, scanner, or IO-owned headers. Current targets: `foreign/signability/`.
-2. Move build-specific RVA data into generated sources.
-3. Continue splitting or regrouping domain modules only when the new file owns a clear
+2. Continue splitting or regrouping domain modules only when the new file owns a clear
    lifecycle, table, scanner, policy, or parser.
-4. Remove temporary `_internal.h` headers when their declarations can move to
+3. Remove temporary `_internal.h` headers when their declarations can move to
    narrow owned headers without creating cycles.
 
 Each code-change commit should close one subsystem or one responsibility unit.
