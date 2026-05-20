@@ -14,6 +14,7 @@
 #include "../../core/logging/core_log.h"
 #include "../../runtime_memory/runtime_memory.h"
 #include "../../team/lookup/team_lookup.h"
+#include "../../core/core_flags/keys/runtime_flag_keys.generated.h"
 
 #define KBO_CBT_CASH_CHARGE_LEDGER_FILE "cbt_cash_charges.csv"
 
@@ -325,7 +326,7 @@ int kbo_cbt_apply_offseason_cash_charges(uint32_t season, uint32_t applied_yyyym
     if (season == 0u || applied_yyyymmdd == 0u || !kbo_fix_enabled()) {
         return 0;
     }
-    if (read_kbo_localappdata_flag_file("disable_kbo_competitive_balance_tax.txt")) {
+    if (read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_DISABLE_KBO_COMPETITIVE_BALANCE_TAX_FILE)) {
         kbo_log_runtimef(
             "KBO CBT cash charge skipped source=%s season=%u date=%u reason=cbt_disabled",
             source != NULL ? source : "",

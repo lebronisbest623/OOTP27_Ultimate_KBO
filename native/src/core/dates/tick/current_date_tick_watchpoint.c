@@ -9,6 +9,7 @@
 #include "../../logging/core_log.h"
 #include "current_date_tick_capture.h"
 #include "current_date_tick_watchpoint.h"
+#include "../../core_flags/keys/runtime_flag_keys.generated.h"
 
 static volatile LONG g_kbo_current_date_tick_watchpoint_started = 0;
 static volatile LONG g_kbo_current_date_tick_watchpoint_hits = 0;
@@ -26,7 +27,7 @@ static PVOID g_kbo_current_date_tick_watchpoint_handler = NULL;
 
 int kbo_current_date_tick_watchpoint_enabled(void)
 {
-    return !read_kbo_localappdata_flag_file("disable_kbo_current_date_tick_watchpoint.txt");
+    return !read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_DISABLE_KBO_CURRENT_DATE_TICK_WATCHPOINT_FILE);
 }
 
 static uintptr_t kbo_current_date_tick_watchpoint_live_field_address(void)

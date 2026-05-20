@@ -1,4 +1,5 @@
 #include "team_add_player_guard_ai_roster_daily_internal.h"
+#include "../../../core/core_flags/keys/runtime_flag_keys.generated.h"
 
 static volatile LONG g_kbo_ai_roster_daily_callup_dirty = 0;
 
@@ -7,8 +8,8 @@ int kbo_run_foreign_ai_roster_daily_callup(const char* source);
 static int kbo_ai_roster_daily_apply_rescue_enabled(void)
 {
     return kbo_custom_foreign_policy_enabled()
-        && !read_kbo_localappdata_flag_file("disable_ai_roster_foreign_apply_rescue.txt")
-        && !read_kbo_localappdata_flag_file("disable_ai_roster_foreign_apply_rescue_team_add.txt");
+        && !read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_DISABLE_AI_ROSTER_FOREIGN_APPLY_RESCUE_FILE)
+        && !read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_DISABLE_AI_ROSTER_FOREIGN_APPLY_RESCUE_TEAM_ADD_FILE);
 }
 
 void kbo_mark_foreign_ai_roster_daily_callup_dirty(const char* reason)
@@ -211,7 +212,7 @@ static uintptr_t kbo_ai_roster_daily_choose_candidate(
 int kbo_run_foreign_ai_roster_daily_callup(const char* source)
 {
     if (!kbo_ai_roster_daily_apply_rescue_enabled()
-            || read_kbo_localappdata_flag_file("disable_ai_roster_foreign_daily_callup.txt")) {
+            || read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_DISABLE_AI_ROSTER_FOREIGN_DAILY_CALLUP_FILE)) {
         return 0;
     }
 

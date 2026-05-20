@@ -20,6 +20,8 @@
 #include "../common/policy/foreign_waiver_policy.h"
 #include "events/foreign_waiver_window_events.h"
 #include "state/foreign_waiver_window_state.h"
+#include "../../core/dates/constants/kbo_date_constants.h"
+#include "../../core/core_flags/keys/runtime_flag_keys.generated.h"
 
 void kbo_queue_foreign_priority_league_event(
     uint32_t event_yyyymmdd,
@@ -74,7 +76,7 @@ void kbo_flush_pending_foreign_priority_events(const char* source)
     uint32_t year = event_yyyymmdd / 10000u;
     uint32_t month = (event_yyyymmdd / 100u) % 100u;
     uint32_t day = event_yyyymmdd % 100u;
-    if (year < 1800u || year > 2200u || month < 1u || month > 12u || day < 1u || day > 31u) {
+    if (year < KBO_HISTORY_YEAR_MIN || year > KBO_SIM_YEAR_MAX || month < 1u || month > 12u || day < 1u || day > 31u) {
         kbo_log_runtimef(
             "foreign priority negotiation: pending league event dropped source=%s title=%s date=%u reason=invalid_date",
             queued_source,
@@ -120,7 +122,7 @@ uint32_t kbo_detect_offseason_starts_event(uint32_t today_yyyymmdd, uint32_t lea
 
     uint32_t today_key = today_yyyymmdd;
     LONG debug_slot = InterlockedIncrement(&debug_log_count);
-    int debug_remaining = (debug_slot <= 6 && read_kbo_localappdata_flag_file("enable_foreign_waiver_event_probe.txt")) ? 12 : 0;
+    int debug_remaining = (debug_slot <= 6 && read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_FOREIGN_WAIVER_EVENT_PROBE_FILE)) ? 12 : 0;
     uint32_t latest_offseason_start = 0u;
 
     for (int32_t i = 0; i < event_count; i++) {
@@ -141,7 +143,7 @@ uint32_t kbo_detect_offseason_starts_event(uint32_t today_yyyymmdd, uint32_t lea
         uint32_t event_day = event[OOTP27_LEAGUE_EVENT_DAY_OFFSET];
         uint32_t event_month = event[OOTP27_LEAGUE_EVENT_MONTH_OFFSET];
         uint32_t event_league_id = *(uint32_t*)(event + OOTP27_LEAGUE_EVENT_LEAGUE_ID_OFFSET);
-        if (event_year < 1980u || event_year > 2200u || event_month < 1u || event_month > 12u || event_day < 1u || event_day > 31u) {
+        if (event_year < KBO_TEXT_DATE_YEAR_MIN || event_year > KBO_SIM_YEAR_MAX || event_month < 1u || event_month > 12u || event_day < 1u || event_day > 31u) {
             continue;
         }
 

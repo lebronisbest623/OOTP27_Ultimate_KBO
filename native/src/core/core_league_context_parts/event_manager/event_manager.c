@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "../../../bootstrap/abi/ootp_offsets.h"
+#include "../../dates/constants/kbo_date_constants.h"
 #include "../../files/save_paths/core_save_paths.h"
 #include "../../logging/core_log.h"
 #include "../api/league_context_lookup.h"
@@ -43,7 +44,7 @@ static int kbo_event_manager_candidate_plausible(uintptr_t event_manager)
         uint8_t month = *(uint8_t*)(event_ptr + OOTP27_LEAGUE_EVENT_MONTH_OFFSET);
         uint8_t day = *(uint8_t*)(event_ptr + OOTP27_LEAGUE_EVENT_DAY_OFFSET);
         uint16_t type = *(uint16_t*)(event_ptr + OOTP27_LEAGUE_EVENT_TYPE_OFFSET);
-        if (year >= 1800 && year <= 2200
+        if (year >= KBO_HISTORY_YEAR_MIN && year <= KBO_SIM_YEAR_MAX
                 && month >= 1 && month <= 12
                 && day >= 1 && day <= 31
                 && type <= 64) {

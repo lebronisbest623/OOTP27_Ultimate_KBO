@@ -1,4 +1,5 @@
 #include "../allstar_league_context.h"
+#include "../../../core/dates/constants/kbo_date_constants.h"
 
 /* Scan one vector entry in the global DB for a league matching league_id.
  * Returns the league pointer if found, 0 otherwise. */
@@ -97,7 +98,7 @@ uintptr_t kbo_find_allstar_league_ptr(uint32_t league_id)
                 continue;
             }
             uint32_t yr = *(uint32_t*)(candidate + OOTP27_KBO_LEAGUE_YEAR_OFFSET);
-            if (yr < 1982u || yr > 2200u) {
+            if (yr < KBO_SEASON_YEAR_MIN || yr > KBO_SIM_YEAR_MAX) {
                 continue;
             }
             if (!kbo_allstar_league_core_plausible(candidate)) {

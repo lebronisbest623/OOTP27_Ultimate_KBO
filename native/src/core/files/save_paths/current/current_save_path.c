@@ -9,6 +9,7 @@
 
 #include "../core_save_paths.h"
 #include "../core_save_paths_internal.h"
+#include "../../../product/ootp_product.h"
 #include "../../../../bootstrap/abi/ootp_offsets.h"
 #include "../../../../runtime_memory/runtime_memory.h"
 #include "../../../../team/names/team_string.h"
@@ -279,7 +280,7 @@ static int kbo_get_current_save_path_from_launcher_cache_file(char* out, size_t 
     snprintf(
         cache_path,
         sizeof(cache_path),
-        "%s\\OOTP-KBO\\current_save_path_%lu.txt",
+        "%s\\" KBO_PRODUCT_LOCAL_DATA_DIR "\\current_save_path_%lu.txt",
         local_app_data,
         (unsigned long)GetCurrentProcessId());
     HANDLE file = kbo_create_file_read_utf8(cache_path);

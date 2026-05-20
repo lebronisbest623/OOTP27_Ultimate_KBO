@@ -5,6 +5,7 @@
 #include "../../../core/dates/core_text_date.h"
 #include "../../../core/dates/tick/current_date_tick_capture.h"
 #include "foreign_waiver_date.h"
+#include "../../../core/dates/constants/kbo_date_constants.h"
 
 int kbo_days_in_month(uint32_t year, uint32_t month)
 {
@@ -23,7 +24,7 @@ uint32_t kbo_add_one_month_yyyymmdd(uint32_t yyyymmdd)
     uint32_t year = yyyymmdd / 10000u;
     uint32_t month = (yyyymmdd / 100u) % 100u;
     uint32_t day = yyyymmdd % 100u;
-    if (year < 1980u || month < 1u || month > 12u || day < 1u || day > 31u) {
+    if (year < KBO_TEXT_DATE_YEAR_MIN || month < 1u || month > 12u || day < 1u || day > 31u) {
         return 0;
     }
     month++;
@@ -46,7 +47,7 @@ uint32_t kbo_add_days_yyyymmdd(uint32_t yyyymmdd, uint32_t add_days)
     uint32_t year = yyyymmdd / 10000u;
     uint32_t month = (yyyymmdd / 100u) % 100u;
     uint32_t day = yyyymmdd % 100u;
-    if (year < 1980u || month < 1u || month > 12u || day < 1u || day > 31u) {
+    if (year < KBO_TEXT_DATE_YEAR_MIN || month < 1u || month > 12u || day < 1u || day > 31u) {
         return 0;
     }
 
@@ -74,12 +75,12 @@ uint32_t kbo_add_years_yyyymmdd(uint32_t yyyymmdd, uint32_t add_years)
     uint32_t year = yyyymmdd / 10000u;
     uint32_t month = (yyyymmdd / 100u) % 100u;
     uint32_t day = yyyymmdd % 100u;
-    if (year < 1800u || year > 2200u || month < 1u || month > 12u || day < 1u || day > 31u) {
+    if (year < KBO_HISTORY_YEAR_MIN || year > KBO_SIM_YEAR_MAX || month < 1u || month > 12u || day < 1u || day > 31u) {
         return 0u;
     }
     year += add_years;
-    if (year > 2200u) {
-        year = 2200u;
+    if (year > KBO_SIM_YEAR_MAX) {
+        year = KBO_SIM_YEAR_MAX;
     }
     int dim = kbo_days_in_month(year, month);
     if (dim <= 0) {

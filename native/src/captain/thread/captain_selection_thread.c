@@ -2,6 +2,7 @@
 #include "../../bootstrap/profiling/profiler.h"
 #include "../../core/dates/tick/current_date_tick_capture.h"
 #include "../../core/runtime_tuning/runtime_tuning_policy.h"
+#include "../../core/dates/constants/kbo_date_constants.h"
 
 int kbo_run_captain_preseason_selection_once(const char* source)
 {
@@ -34,7 +35,7 @@ int kbo_run_captain_preseason_selection_once(const char* source)
     int preseason_first_day = kbo_captain_preseason_first_day_active(date, league_season, phase);
     int seed_startup = kbo_captain_seed_startup_window_active(date, season)
         && kbo_captain_seed_available_for_season(season, league_id);
-    if (season < 1982u || season > 2200u || (!preseason_first_day && !seed_startup)) {
+    if (season < KBO_SEASON_YEAR_MIN || season > KBO_SIM_YEAR_MAX || (!preseason_first_day && !seed_startup)) {
         return 0;
     }
 

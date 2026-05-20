@@ -4,7 +4,9 @@
 #include <string.h>
 #include <windows.h>
 
+#include "../../../../core/dates/constants/kbo_date_constants.h"
 #include "../../../../core/dates/core_text_date.h"
+#include "../../../../core/product/ootp_product.h"
 
 static int kbo_allstar_read_uint_attr(const char* text, const char* name, uint32_t* out_value)
 {
@@ -113,7 +115,7 @@ static int kbo_allstar_try_load_schedule_file(
             || !kbo_allstar_read_uint_attr(text, "allstar_game_day", &allstar_day)) {
         return 0;
     }
-    if (league_year < 1982u || league_year > 2200u
+    if (league_year < KBO_SEASON_YEAR_MIN || league_year > KBO_SIM_YEAR_MAX
             || start_month < 1u || start_month > 12u
             || start_day < 1u || start_day > 31u
             || allstar_day < 1u || allstar_day > 250u
@@ -126,7 +128,7 @@ static int kbo_allstar_try_load_schedule_file(
     uint32_t allstar_month = 0;
     uint32_t allstar_dom = 0;
     if (!kbo_allstar_serial_to_ymd(allstar_serial, &allstar_year, &allstar_month, &allstar_dom)
-            || allstar_year < 1982u || allstar_year > 2200u) {
+            || allstar_year < KBO_SEASON_YEAR_MIN || allstar_year > KBO_SIM_YEAR_MAX) {
         return 0;
     }
 
@@ -185,7 +187,7 @@ int kbo_allstar_load_schedule_dates(uint32_t league_year, KboAllstarScheduleDate
         int written = snprintf(
             path,
             sizeof(path),
-            "%s\\data\\schedules\\korean_baseball_organization_int_c_%u%s.lsdl",
+            "%s\\" KBO_OOTP_DATA_DIR "\\" KBO_OOTP_SCHEDULES_DIR "\\" KBO_OOTP_KBO_SCHEDULE_PREFIX "%u%s" KBO_OOTP_KBO_SCHEDULE_EXTENSION,
             exe_path,
             league_year,
             suffixes[i]);

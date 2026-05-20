@@ -17,6 +17,7 @@
 #include "../paths/salary_snapshot_paths_dates.h"
 #include "../state/salary_snapshot_state.h"
 #include "../capture/salary_snapshot_write_capture.h"
+#include "../../core/dates/constants/kbo_date_constants.h"
 
 static int kbo_fa_salary_snapshot_phase_event_league_is_kbo(uintptr_t league_ptr, uint32_t league_id)
 {
@@ -121,7 +122,7 @@ static void kbo_fa_salary_snapshot_try_pending_phase_event(uint32_t date)
     }
 
     uint32_t season = opening_day / 10000u;
-    if (season < 1982u || season > 2200u) {
+    if (season < KBO_SEASON_YEAR_MIN || season > KBO_SIM_YEAR_MAX) {
         InterlockedExchange(&g_kbo_fa_salary_snapshot_phase_pending_active, 0);
         return;
     }

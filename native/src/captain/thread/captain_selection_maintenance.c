@@ -1,6 +1,7 @@
 #include "../internal/captain_selection_internal.h"
 #include "maintenance/captain_selection_maintenance_helpers.h"
 #include "../../bootstrap/profiling/profiler.h"
+#include "../../core/dates/constants/kbo_date_constants.h"
 
 int kbo_run_captain_selection_maintenance_for_date(uint32_t date, const char* source)
 {
@@ -37,7 +38,7 @@ int kbo_run_captain_selection_maintenance_for_date(uint32_t date, const char* so
     uint32_t league_season = phase_info.league_year;
     uint8_t phase = phase_info.effective_phase;
     uint32_t season = kbo_captain_effective_season(date, league_season);
-    if (season < 1982u || season > 2200u) {
+    if (season < KBO_SEASON_YEAR_MIN || season > KBO_SIM_YEAR_MAX) {
         KBO_PROFILE_END(profile_captain_selection_maintenance, "captain.maintenance.invalid_season");
         return 0;
     }

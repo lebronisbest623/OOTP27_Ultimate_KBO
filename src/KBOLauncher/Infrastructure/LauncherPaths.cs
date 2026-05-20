@@ -21,7 +21,7 @@ internal static class LauncherPaths
 
     private static bool IsOotpExecutablePath(string path)
     {
-        return Path.GetFileName(path).Equals("ootp27.exe", StringComparison.OrdinalIgnoreCase);
+        return Path.GetFileName(path).Equals(OotpProduct.ExecutableFileName, StringComparison.OrdinalIgnoreCase);
     }
 
     internal static IEnumerable<string> GetOotpPathCandidates(string? explicitPath)
@@ -31,7 +31,7 @@ internal static class LauncherPaths
             yield return explicitPath;
         }
 
-        foreach (var envVar in new[] { "OOTP27_EXE", "OOTP27_DIR", "OOTP_DIR" })
+        foreach (var envVar in OotpProduct.OotpEnvironmentVariables)
         {
             var value = Environment.GetEnvironmentVariable(envVar);
             if (string.IsNullOrWhiteSpace(value))
@@ -41,15 +41,16 @@ internal static class LauncherPaths
 
             yield return value.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
                 ? value
-                : Path.Combine(value, "ootp27.exe");
+                : Path.Combine(value, OotpProduct.ExecutableFileName);
         }
 
         foreach (var programFilesRoot in ResolveProgramFilesRoots())
         {
-            yield return Path.Combine(programFilesRoot, "Out of the Park Developments", "OOTP Baseball 27", "ootp27.exe");
-            yield return Path.Combine(programFilesRoot, "Out of the Park Developments", "Out of the Park Baseball 27", "ootp27.exe");
-            yield return Path.Combine(programFilesRoot, "OOTP Baseball 27", "ootp27.exe");
-            yield return Path.Combine(programFilesRoot, "Out of the Park Baseball 27", "ootp27.exe");
+            foreach (var productFolder in OotpProduct.ProductFolderNames)
+            {
+                yield return Path.Combine(programFilesRoot, OotpProduct.VendorFolderName, productFolder, OotpProduct.ExecutableFileName);
+                yield return Path.Combine(programFilesRoot, productFolder, OotpProduct.ExecutableFileName);
+            }
         }
 
         foreach (var drive in DriveInfo.GetDrives())
@@ -59,13 +60,22 @@ internal static class LauncherPaths
                 continue;
             }
 
-            yield return Path.Combine(drive.RootDirectory.FullName, "OOTP 27", "ootp27.exe");
-            yield return Path.Combine(drive.RootDirectory.FullName, "OOTP Baseball 27", "ootp27.exe");
-            yield return Path.Combine(drive.RootDirectory.FullName, "Out of the Park Baseball 27", "ootp27.exe");
+            foreach (var installFolder in OotpProduct.RootInstallFolderNames)
+            {
+                yield return Path.Combine(drive.RootDirectory.FullName, installFolder, OotpProduct.ExecutableFileName);
+            }
         }
 
-        yield return @"C:\Program Files (x86)\Steam\steamapps\common\Out of the Park Baseball 27\ootp27.exe";
-        yield return @"C:\Program Files\Steam\steamapps\common\Out of the Park Baseball 27\ootp27.exe";
+        foreach (var programFilesRoot in ResolveProgramFilesRoots())
+        {
+            yield return Path.Combine(
+                programFilesRoot,
+                OotpProduct.SteamDirectoryName,
+                OotpProduct.SteamAppsDirectoryName,
+                OotpProduct.SteamCommonDirectoryName,
+                OotpProduct.ProductLongFolderName,
+                OotpProduct.ExecutableFileName);
+        }
         foreach (var candidate in ResolveSteamLibraryOotpCandidates())
         {
             yield return candidate;
@@ -74,7 +84,7 @@ internal static class LauncherPaths
 
     public static void WriteOotpPathDiscoveryStatus(string? explicitPath)
     {
-        var path = GetKboLocalDataPath("launcher_path_discovery_status.txt");
+        var path = GetKboLocalDataPath(OotpProduct.PathDiscoveryStatusFileName);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
 
         var lines = new List<string>
@@ -115,12 +125,22 @@ internal static class LauncherPaths
     {
         foreach (var steamRoot in ResolveSteamRoots())
         {
-            yield return Path.Combine(steamRoot, "steamapps", "common", "Out of the Park Baseball 27", "ootp27.exe");
+            yield return Path.Combine(
+                steamRoot,
+                OotpProduct.SteamAppsDirectoryName,
+                OotpProduct.SteamCommonDirectoryName,
+                OotpProduct.ProductLongFolderName,
+                OotpProduct.ExecutableFileName);
 
-            var libraryFolders = Path.Combine(steamRoot, "steamapps", "libraryfolders.vdf");
+            var libraryFolders = Path.Combine(steamRoot, OotpProduct.SteamAppsDirectoryName, "libraryfolders.vdf");
             foreach (var libraryRoot in ReadSteamLibraryFolders(libraryFolders))
             {
-                yield return Path.Combine(libraryRoot, "steamapps", "common", "Out of the Park Baseball 27", "ootp27.exe");
+                yield return Path.Combine(
+                    libraryRoot,
+                    OotpProduct.SteamAppsDirectoryName,
+                    OotpProduct.SteamCommonDirectoryName,
+                    OotpProduct.ProductLongFolderName,
+                    OotpProduct.ExecutableFileName);
             }
         }
     }
@@ -130,9 +150,9 @@ internal static class LauncherPaths
         var candidates = new List<string?>
         {
             Environment.GetEnvironmentVariable("STEAM_DIR"),
-            @"C:\Program Files (x86)\Steam",
-            @"C:\Program Files\Steam",
         };
+
+        candidates.AddRange(ResolveProgramFilesRoots().Select(root => Path.Combine(root, OotpProduct.SteamDirectoryName)));
 
         foreach (var drive in DriveInfo.GetDrives())
         {
@@ -141,9 +161,9 @@ internal static class LauncherPaths
                 continue;
             }
 
-            candidates.Add(Path.Combine(drive.RootDirectory.FullName, "Steam"));
-            candidates.Add(Path.Combine(drive.RootDirectory.FullName, "Program Files (x86)", "Steam"));
-            candidates.Add(Path.Combine(drive.RootDirectory.FullName, "Program Files", "Steam"));
+            candidates.Add(Path.Combine(drive.RootDirectory.FullName, OotpProduct.SteamDirectoryName));
+            candidates.Add(Path.Combine(drive.RootDirectory.FullName, "Program Files (x86)", OotpProduct.SteamDirectoryName));
+            candidates.Add(Path.Combine(drive.RootDirectory.FullName, "Program Files", OotpProduct.SteamDirectoryName));
         }
 
         foreach (var candidate in candidates)
@@ -244,23 +264,21 @@ internal static class LauncherPaths
     
     public static string GetLogPath()
     {
-        var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        return Path.Combine(local, "OOTP-KBO", "launcher.log");
+        return Path.Combine(OotpProduct.LocalDataDirectory, OotpProduct.LauncherLogFileName);
     }
     
     public static string GetKboLocalDataPath(string fileName)
     {
-        var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        return Path.Combine(local, "OOTP-KBO", fileName);
+        return Path.Combine(OotpProduct.LocalDataDirectory, fileName);
     }
 
     public static string GetKboFlagConfigPath()
     {
-        return GetKboLocalDataPath("kbo_flags.json");
+        return GetKboLocalDataPath(OotpProduct.FlagsFileName);
     }
 
     public static string GetKboSettingsConfigPath()
     {
-        return GetKboLocalDataPath("kbo_settings.json");
+        return GetKboLocalDataPath(OotpProduct.SettingsFileName);
     }
 }

@@ -1,5 +1,6 @@
 #include "../../hotkey_window_webview.h"
 #include "../../../hotkey_window_domain_contract.h"
+#include "../../../../../core/dates/constants/kbo_date_constants.h"
 
 int kbo_webview_handle_event_and_fa_command(const char* cmd)
 {
@@ -13,7 +14,7 @@ int kbo_webview_handle_event_and_fa_command(const char* cmd)
             return 1;
         }
         uint32_t year = (uint32_t)strtoul(cmd + strlen(agames_roster_year_prefix), NULL, 10);
-        if (year == 0u || (year >= 1982u && year <= 2300u)) {
+        if (year == 0u || (year >= KBO_SEASON_YEAR_MIN && year <= KBO_RECORD_YEAR_MAX)) {
             g_kbo_hub_selected_agames_roster_year = year;
         }
         g_kbo_hub_selected_view = KBO_HUB_VIEW_ASIAN_GAMES;

@@ -11,6 +11,7 @@
 #include "../../../core/core_flags/api/flags_api.h"
 #include "../../../runtime_memory/runtime_memory.h"
 #include "../../../foreign/common/dates/foreign_waiver_date.h"
+#include "../../../core/dates/constants/kbo_date_constants.h"
 
 void kbo_asian_games_schedule_copy_text(char* out, size_t out_size, const char* value)
 {
@@ -98,7 +99,7 @@ int kbo_parse_asian_games_schedule_seed_fields(char fields[][128], int field_cou
     }
 
     out->year = kbo_asian_games_schedule_parse_u32(fields[0]);
-    if (out->year < 1982u || out->year > 2200u) {
+    if (out->year < KBO_SEASON_YEAR_MIN || out->year > KBO_SIM_YEAR_MAX) {
         return 0;
     }
     kbo_asian_games_schedule_copy_text(out->host_city, sizeof(out->host_city), field_count > 1 ? fields[1] : "");

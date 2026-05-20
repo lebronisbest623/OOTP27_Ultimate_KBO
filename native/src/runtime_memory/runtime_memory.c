@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "../bootstrap/abi/ootp_offsets.h"
+#include "../core/dates/constants/kbo_date_constants.h"
 #include "../core/logging/core_log.h"
 #include "../core/runtime_tuning/runtime_tuning_policy.h"
 #include "runtime_memory.h"
@@ -314,6 +315,8 @@ int is_kbo_historical_league_context(uintptr_t league_ptr)
     uint8_t* league = (uint8_t*)league_ptr;
     uint8_t  historical_gate = *(uint8_t*)(league + OOTP27_HISTORICAL_LEAGUE_GATE_OFFSET);
     uint32_t league_year     = *(uint32_t*)(league + OOTP27_KBO_LEAGUE_YEAR_OFFSET);
-    return historical_gate == 1 && league_year >= 1982 && league_year <= 2100;
+    return historical_gate == 1
+        && league_year >= KBO_SEASON_YEAR_MIN
+        && league_year <= KBO_RUNTIME_HISTORICAL_YEAR_MAX;
 }
 

@@ -13,6 +13,7 @@
 #include "../../bootstrap/profiling/perf_probe.h"
 #include "../../bootstrap/profiling/profiler.h"
 #include "../../build_verify/build_verify.h"
+#include "../../core/league_roles/kbo_league_roles.h"
 #include "../../core/logging/core_log.h"
 #include "../../runtime_memory/runtime_memory.h"
 
@@ -119,12 +120,13 @@ __declspec(noinline) void ootp_kbo_prepare_allstar_voting_begin(uintptr_t league
     } else {
         uint32_t configured_league_id = kbo_get_foreign_waiver_league_id();
         if (configured_league_id == 0u) {
-            configured_league_id = OOTP27_KBO_MAIN_LEAGUE_ID;
+            configured_league_id = kbo_league_role_main_league_id();
         }
+        uint32_t default_league_id = kbo_league_role_main_league_id();
         if (league_id != configured_league_id
                 && fallback_league_id != configured_league_id
-                && league_id != OOTP27_KBO_MAIN_LEAGUE_ID
-                && fallback_league_id != OOTP27_KBO_MAIN_LEAGUE_ID) {
+                && league_id != default_league_id
+                && fallback_league_id != default_league_id) {
             kbo_log_runtimef(
                 "KBO all-star voting begin skipped league=%p reason=unscoped_non_kbo league_id=%u/%u configured=%u year=%u",
                 league,

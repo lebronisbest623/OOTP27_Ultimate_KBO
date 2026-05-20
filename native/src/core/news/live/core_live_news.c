@@ -7,6 +7,7 @@
 #include "../../logging/core_log.h"
 #include "../objects/core_news_object.h"
 #include "../../sql/league_news/core_sql_league_news.h"
+#include "../../dates/constants/kbo_date_constants.h"
 
 int create_kbo_native_live_news_with_body(
     uint32_t year,
@@ -92,7 +93,7 @@ int create_kbo_native_live_news_with_body_live_required(
 {
     if (title == NULL || title[0] == '\0'
             || league_id == 0u
-            || year < 1800u || year > 2300u
+            || year < KBO_HISTORY_YEAR_MIN || year > KBO_RECORD_YEAR_MAX
             || month < 1u || month > 12u
             || day < 1u || day > 31u) {
         return 0;

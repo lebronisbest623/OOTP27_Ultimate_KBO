@@ -1,4 +1,5 @@
 #include "ui_military_results_view_internal.h"
+#include "../../../../core/dates/constants/kbo_date_constants.h"
 
 LONG kbo_military_results_candidate_count(void)
 {
@@ -10,7 +11,7 @@ LONG kbo_military_results_candidate_count(void)
 
 void kbo_military_results_add_year(uint16_t* years, int* year_count, uint32_t year)
 {
-    if (years == NULL || year_count == NULL || year < 1982u || year > 2300u) {
+    if (years == NULL || year_count == NULL || year < KBO_SEASON_YEAR_MIN || year > KBO_RECORD_YEAR_MAX) {
         return;
     }
     for (int i = 0; i < *year_count; i++) {

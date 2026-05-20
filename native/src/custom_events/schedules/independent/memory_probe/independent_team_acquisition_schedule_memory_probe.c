@@ -4,6 +4,7 @@
 #include "../../../../core/dates/core_text_date.h"
 #include "../../../../foreign/common/dates/foreign_waiver_date.h"
 #include "../../../../runtime_memory/runtime_memory.h"
+#include "../../../../core/dates/constants/kbo_date_constants.h"
 
 static int kbo_independent_team_acquisition_memory_executable(const void* address)
 {
@@ -98,8 +99,8 @@ int kbo_independent_team_acquisition_read_start_date_from_ptr(
     }
     if (league_ptr == 0u
             || out_start_date == NULL
-            || expected_year < 1982u
-            || expected_year > 2200u
+            || expected_year < KBO_SEASON_YEAR_MIN
+            || expected_year > KBO_SIM_YEAR_MAX
             || !memory_range_readable(
                 (void*)(league_ptr + OOTP27_SEASON_START_DATE_YEAR_OFFSET),
                 OOTP27_SEASON_START_DATE_SEC_OFFSET - OOTP27_SEASON_START_DATE_YEAR_OFFSET + sizeof(uint8_t))) {
@@ -112,7 +113,7 @@ int kbo_independent_team_acquisition_read_start_date_from_ptr(
     uint32_t year = *(uint16_t*)(league_ptr + OOTP27_SEASON_START_DATE_YEAR_OFFSET);
     uint32_t day = *(uint8_t*)(league_ptr + OOTP27_SEASON_START_DATE_DAY_OFFSET);
     uint32_t month = *(uint8_t*)(league_ptr + OOTP27_SEASON_START_DATE_MONTH_OFFSET);
-    if (year < 1982u || year > 2200u
+    if (year < KBO_SEASON_YEAR_MIN || year > KBO_SIM_YEAR_MAX
             || year != expected_year
             || month < 1u || month > 12u
             || day < 1u || day > 31u
@@ -173,7 +174,7 @@ int kbo_independent_team_acquisition_candidate_score(
             score += 30;
         } else if (league_year + 1u == expected_year || league_year == expected_year + 1u) {
             score += 10;
-        } else if (league_year >= 1982u && league_year <= 2200u) {
+        } else if (league_year >= KBO_SEASON_YEAR_MIN && league_year <= KBO_SIM_YEAR_MAX) {
             score -= 20;
         }
     }

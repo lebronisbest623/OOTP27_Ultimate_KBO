@@ -11,10 +11,11 @@
 #include "../../../runtime_memory/runtime_memory.h"
 #include "../import/import_and_load.h"
 #include "../projected/policy/projected_policy.h"
+#include "../../../core/dates/constants/kbo_date_constants.h"
 
 int kbo_get_asian_games_schedule_for_year(uint32_t year, KboAsianGamesScheduleSeed* out)
 {
-    if (year < 1982u || year > 2200u) {
+    if (year < KBO_SEASON_YEAR_MIN || year > KBO_SIM_YEAR_MAX) {
         if (!kbo_asian_games_year_is_projected(year)) {
             return 0;
         }
@@ -49,8 +50,8 @@ int kbo_get_next_asian_games_schedule(uint32_t from_year, KboAsianGamesScheduleS
     if (out != NULL) {
         memset(out, 0, sizeof(*out));
     }
-    if (from_year < 1982u) {
-        from_year = 1982u;
+    if (from_year < KBO_SEASON_YEAR_MIN) {
+        from_year = KBO_SEASON_YEAR_MIN;
     }
     KboAsianGamesProjectedPolicy policy;
     kbo_load_asian_games_projected_policy(&policy);

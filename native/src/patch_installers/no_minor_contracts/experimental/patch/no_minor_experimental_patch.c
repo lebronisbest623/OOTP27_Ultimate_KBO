@@ -1,4 +1,5 @@
 #include "../internal/no_minor_experimental_patch_internal.h"
+#include "../../../common/patch_host.h"
 
 int install_kbo_no_minor_contract_patch(void)
 {
@@ -10,8 +11,8 @@ int install_kbo_no_minor_contract_patch(void)
 
     char host[MAX_PATH] = {0};
     GetModuleFileNameA(exe, host, (DWORD)sizeof(host));
-    if (strstr(host, "ootp27.exe") == NULL && strstr(host, "OOTP27.EXE") == NULL) {
-        kbo_log_runtimef("host is not ootp27.exe, skipping KBO no-minor-contract patch host=%s", host);
+    if (!kbo_patch_host_matches_product(host)) {
+        kbo_log_runtimef("host is not " KBO_OOTP_EXECUTABLE_NAME ", skipping KBO no-minor-contract patch host=%s", host);
         return 0;
     }
 

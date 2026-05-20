@@ -1,4 +1,5 @@
 #include "core_text_date.h"
+#include "constants/kbo_date_constants.h"
 
 #include <stdio.h>
 
@@ -20,7 +21,7 @@ static int kbo_yyyymmdd_parts(
     if (out_day != NULL) {
         *out_day = day;
     }
-    return year >= 1980u && year <= 2200u;
+    return year >= KBO_TEXT_DATE_YEAR_MIN && year <= KBO_SIM_YEAR_MAX;
 }
 
 int ascii_equals_ignore_case(const char* a, const char* b)
@@ -95,14 +96,14 @@ int kbo_yyyymmdd_valid(uint32_t yyyymmdd)
 
 static uint32_t kbo_yyyymmdd_from_serial(uint32_t serial)
 {
-    uint32_t min_serial = kbo_date_serial(1980u, 1u, 1u);
-    uint32_t max_serial = kbo_date_serial(2200u, 12u, 31u);
+    uint32_t min_serial = kbo_date_serial(KBO_TEXT_DATE_YEAR_MIN, 1u, 1u);
+    uint32_t max_serial = kbo_date_serial(KBO_SIM_YEAR_MAX, 12u, 31u);
     if (serial < min_serial || serial > max_serial) {
         return 0u;
     }
 
-    uint32_t low = 1980u;
-    uint32_t high = 2200u;
+    uint32_t low = KBO_TEXT_DATE_YEAR_MIN;
+    uint32_t high = KBO_SIM_YEAR_MAX;
     while (low < high) {
         uint32_t mid = low + (high - low + 1u) / 2u;
         if (kbo_date_serial(mid, 1u, 1u) <= serial) {
@@ -153,7 +154,7 @@ int kbo_format_history_date(char* out, size_t out_size, uint32_t year, uint32_t 
         31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
     };
 
-    if (out == NULL || out_size < 9 || year < 1800 || year > 2200
+    if (out == NULL || out_size < 9 || year < KBO_HISTORY_YEAR_MIN || year > KBO_SIM_YEAR_MAX
             || month < 1 || month > 12 || day < 1) {
         return 0;
     }

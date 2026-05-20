@@ -13,7 +13,7 @@ record LauncherOptions(
     IReadOnlyList<string> OotpArgs)
 {
     private static readonly Option<string?> OotpPathOpt =
-        new("--ootp", "Explicit ootp27.exe path.");
+        new("--ootp", $"Explicit {OotpProduct.ExecutableFileName} path.");
     private static readonly Option<string?> DllPathOpt =
         new("--dll", "Native DLL to load into OOTP.");
     private static readonly Option<int?> AttachPidOpt =
@@ -112,7 +112,7 @@ record LauncherOptions(
           KBOLauncher --attach-pid pid --dll path
 
         Options:
-          --ootp PATH                  Explicit ootp27.exe path.
+          --ootp PATH                  Explicit {0} path.
           --dll PATH                   Native DLL to load into OOTP.
           --attach-existing            Attach to the single running OOTP process.
           --attach-pid PID             Attach to a specific OOTP process id.
@@ -127,9 +127,9 @@ record LauncherOptions(
           --                           Pass remaining arguments to OOTP.
 
         Safety:
-          KBOFix injection is disabled unless ootp27.exe matches a verified build.
+          KBOFix injection is disabled unless {0} matches a verified build.
           KBOFix injection also requires the currently opened OOTP .lg save description.txt
           to contain the official roster marker URL and a completed save flag.
-        """);
+        """, OotpProduct.ExecutableFileName);
     }
 }

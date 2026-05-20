@@ -7,6 +7,7 @@
 #include "../../allstar_league_context/allstar_league_context.h"
 #include "../../../bootstrap/abi/ootp_offsets.h"
 #include "../../../build_verify/build_verify.h"
+#include "../../../core/league_roles/kbo_league_roles.h"
 #include "../../../core/logging/core_log.h"
 #include "../../../patch_helpers/patch_helpers.h"
 #include "../../../runtime_memory/runtime_memory.h"
@@ -33,7 +34,7 @@ int run_kbo_allstar_native_event_generation(uintptr_t league_ptr, const char* so
 
         uint32_t configured_league_id = kbo_get_foreign_waiver_league_id();
         if (configured_league_id == 0u) {
-            configured_league_id = OOTP27_KBO_MAIN_LEAGUE_ID;
+            configured_league_id = kbo_league_role_main_league_id();
         }
         uint32_t legacy_id = memory_range_readable(league + OOTP27_KBO_LEAGUE_ID_OFFSET, sizeof(uint32_t))
             ? *(uint32_t*)(league + OOTP27_KBO_LEAGUE_ID_OFFSET)

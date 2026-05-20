@@ -2,6 +2,7 @@
 #include "captain_selection_policy.h"
 #include "score/captain_selection_score.h"
 #include "../../player_team_history/player_team_seasons.h"
+#include "../../core/dates/constants/kbo_date_constants.h"
 
 static uintptr_t* kbo_captain_copy_player_vector_snapshot(
     uintptr_t player_vector,
@@ -67,7 +68,9 @@ static int32_t kbo_captain_player_salary_for_season(uint8_t* player, uint32_t se
     }
 
     int32_t start_year = *(int32_t*)(player + OOTP27_PLAYER_CONTRACT_START_YEAR_OFFSET);
-    if (start_year >= 1982 && start_year <= 2200 && season >= (uint32_t)start_year) {
+    if (start_year >= (int32_t)KBO_SEASON_YEAR_MIN
+            && start_year <= (int32_t)KBO_SIM_YEAR_MAX
+            && season >= (uint32_t)start_year) {
         uint32_t index = season - (uint32_t)start_year;
         if (index < OOTP27_PLAYER_CONTRACT_SALARY_YEARS && years[index] > 0) {
             return years[index];
@@ -192,7 +195,7 @@ int kbo_captain_select_for_preseason(
     if (!kbo_runtime_pause_for_save_if_needed("captain_selection_ai")) {
         return 0;
     }
-    if (rows == NULL || max_rows <= 0 || league_id == 0u || season < 1982u || season > 2200u) {
+    if (rows == NULL || max_rows <= 0 || league_id == 0u || season < KBO_SEASON_YEAR_MIN || season > KBO_SIM_YEAR_MAX) {
         return 0;
     }
 

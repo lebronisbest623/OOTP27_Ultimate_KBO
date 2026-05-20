@@ -16,6 +16,7 @@
 #include "../../schedules/independent/independent_team_acquisition_schedule.h"
 #include "../calendar/custom_event_calendar_due.h"
 #include "../../diagnostics/league_event_inventory/league_event_type_inventory.h"
+#include "../../../core/core_flags/keys/runtime_flag_keys.generated.h"
 
 static volatile LONG64 g_kbo_custom_event_schedule_deferred_log_ms = 0;
 static volatile LONG64 g_kbo_custom_event_scan_deferred_log_ms = 0;
@@ -58,7 +59,7 @@ int kbo_custom_event_monitor_tick_for_date(
         KBO_PROFILE_END(profile_custom_event_monitor_tick, "custom_event.monitor.no_date");
         return 0;
     }
-    if (read_kbo_localappdata_flag_file("enable_kbo_league_event_type_inventory.txt")) {
+    if (read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_KBO_LEAGUE_EVENT_TYPE_INVENTORY_FILE)) {
         kbo_log_league_event_type_inventory_once(today_yyyymmdd);
     }
     int deferred = 0;

@@ -8,6 +8,7 @@
 
 #include "../core_save_paths.h"
 #include "../core_save_paths_internal.h"
+#include "../../../product/ootp_product.h"
 
 static void kbo_sanitize_path_component(const char* text, char* out, size_t out_size)
 {
@@ -69,7 +70,7 @@ int kbo_get_save_scoped_data_dir(char* out, size_t out_size)
     }
 
     char root_dir[KBO_UTF8_PATH_BYTES] = {0};
-    snprintf(root_dir, sizeof(root_dir), "%s\\OOTP-KBO", local_app_data);
+    snprintf(root_dir, sizeof(root_dir), "%s\\" KBO_PRODUCT_LOCAL_DATA_DIR, local_app_data);
     kbo_create_directory_utf8(root_dir);
 
     char saves_dir[KBO_UTF8_PATH_BYTES] = {0};

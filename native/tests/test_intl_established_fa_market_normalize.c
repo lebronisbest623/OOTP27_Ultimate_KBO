@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "../src/core/league_roles/kbo_league_roles.h"
 #include "../src/foreign/intl_established_fa_postscan/internal/intl_established_fa_postscan_internal.h"
 
 int memory_range_readable(const void* ptr, size_t size)
@@ -58,7 +59,7 @@ static void test_preserves_ootp_market_identity_fields(void)
     uint8_t player[OOTP27_PLAYER_SCAN_BYTES];
     memset(player, 0, sizeof(player));
 
-    write_u32(player, OOTP27_PLAYER_DRAFT_LEAGUE_ID_OFFSET, 100u);
+    write_u32(player, OOTP27_PLAYER_DRAFT_LEAGUE_ID_OFFSET, KBO_DEFAULT_MAIN_LEAGUE_ID);
     write_i16(player, OOTP27_PLAYER_AGE_OFFSET, 27);
     player[OOTP27_PLAYER_GENERATION_CONTEXT_OFFSET] = 3u;
     player[OOTP27_PLAYER_DRAFT_CLASS_OFFSET] = 4u;
@@ -70,7 +71,7 @@ static void test_preserves_ootp_market_identity_fields(void)
     KboIntlEstablishedFaMarketNormalization normalized;
     int changed = kbo_intl_established_fa_normalize_market_state(
         player,
-        100u,
+        KBO_DEFAULT_MAIN_LEAGUE_ID,
         0u,
         0,
         110000,
@@ -82,13 +83,13 @@ static void test_preserves_ootp_market_identity_fields(void)
     assert(normalized.draft_fields_cleared);
     assert(!normalized.draft_league_cleared);
     assert(!normalized.contract_level_cleared);
-    assert(read_u32(player, OOTP27_PLAYER_DRAFT_LEAGUE_ID_OFFSET) == 100u);
+    assert(read_u32(player, OOTP27_PLAYER_DRAFT_LEAGUE_ID_OFFSET) == KBO_DEFAULT_MAIN_LEAGUE_ID);
     assert(player[OOTP27_PLAYER_CONTRACT_LEVEL_FLAG_OFFSET] == 1u);
     assert(player[OOTP27_PLAYER_DRAFT_CLASS_OFFSET] == 4u);
     assert(player[OOTP27_PLAYER_DRAFT_SUBTYPE_OFFSET] == 2u);
     assert(player[OOTP27_PLAYER_DRAFT_ELIGIBLE_OFFSET] == 0u);
     assert(player[OOTP27_PLAYER_DRAFT_EXTRA_FLAG_OFFSET] == 7u);
-    assert(read_u32(player, OOTP27_PLAYER_ORIGINAL_LEAGUE_ID_OFFSET) == 100u);
+    assert(read_u32(player, OOTP27_PLAYER_ORIGINAL_LEAGUE_ID_OFFSET) == KBO_DEFAULT_MAIN_LEAGUE_ID);
     assert(read_i32(player, OOTP27_PLAYER_FA_DEMAND_SALARY_OFFSET) == 1050000);
 
     printf("test_preserves_ootp_market_identity_fields: PASS\n");

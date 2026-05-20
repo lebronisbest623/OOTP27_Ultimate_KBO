@@ -11,6 +11,7 @@
 #include "../../patch_helpers/patch_helpers.h"
 #include "../../runtime_memory/runtime_memory.h"
 #include "patch_installers_current_date_tick.h"
+#include "../../core/core_flags/keys/runtime_flag_keys.generated.h"
 
 typedef uint8_t* (*KboCurrentDateTickStubBuilder)(void* patch_site, uint32_t site_rva);
 
@@ -235,7 +236,7 @@ int install_kbo_current_date_tick_capture_hook(void)
 
     int installed = 0;
     int enable_early_sources = read_kbo_localappdata_flag_file(
-        "enable_kbo_current_date_tick_early_sources.txt");
+        KBO_RUNTIME_FLAG_ENABLE_KBO_CURRENT_DATE_TICK_EARLY_SOURCES_FILE);
     if (enable_early_sources) {
         installed += install_kbo_current_date_tick_date_add_hook(exe);
         installed += install_kbo_current_date_tick_capture_site(

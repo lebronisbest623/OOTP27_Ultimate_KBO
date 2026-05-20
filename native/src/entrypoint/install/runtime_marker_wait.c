@@ -6,11 +6,13 @@
 #include "../../custom_events/asian_games/schedule/asian_games_schedule.h"
 #include "../../custom_events/schedules/independent/independent_team_acquisition_schedule.h"
 #include "../../custom_events/schedules/priority/foreign_priority_event_schedule.h"
+#include "../../core/dates/constants/kbo_date_constants.h"
+#include "../../core/core_flags/keys/runtime_flag_keys.generated.h"
 
 static int kbo_runtime_marker_wait_year_matches(uint32_t date_year, uint32_t observed_year)
 {
-    if (date_year < 1980u || date_year > 2200u
-            || observed_year < 1980u || observed_year > 2200u) {
+    if (date_year < KBO_TEXT_DATE_YEAR_MIN || date_year > KBO_SIM_YEAR_MAX
+            || observed_year < KBO_TEXT_DATE_YEAR_MIN || observed_year > KBO_SIM_YEAR_MAX) {
         return 1;
     }
 
@@ -125,13 +127,13 @@ DWORD WINAPI kbo_full_runtime_marker_wait_thread(LPVOID parameter)
     for (int attempt = 1; attempt <= tuning->runtime_marker_wait_attempts; attempt++) {
         int log_detail = kbo_runtime_tuning_runtime_marker_log_attempt(attempt);
         if (kbo_current_save_has_required_roster_marker("runtime_marker_wait", log_detail)) {
-            if (read_kbo_localappdata_flag_file("enable_kbo_cbt_service_time_probe.txt")) {
+            if (read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_KBO_CBT_SERVICE_TIME_PROBE_FILE)) {
                 kbo_cbt_service_time_probe_once();
             }
 
             if (!early_amateur_team_add_guard_installed
-                    && !read_kbo_localappdata_flag_file("disable_amateur_assignment_reroute.txt")
-                    && !read_kbo_localappdata_flag_file("disable_kbo_military_team_add_guard_patch.txt")) {
+                    && !read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_DISABLE_AMATEUR_ASSIGNMENT_REROUTE_FILE)
+                    && !read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_DISABLE_KBO_MILITARY_TEAM_ADD_GUARD_PATCH_FILE)) {
                 kbo_log_runtime_line("KBO early amateur team-add guard installing after roster marker");
                 early_amateur_team_add_guard_installed = install_kbo_military_team_add_guard_patch();
             }

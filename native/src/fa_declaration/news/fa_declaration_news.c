@@ -16,6 +16,7 @@
 #include "../../team/lookup/team_lookup.h"
 #include "../../team/names/team_string.h"
 #include "render/fa_declaration_news_render.h"
+#include "../../core/dates/constants/kbo_date_constants.h"
 
 #define KBO_FA_DECLARATION_NEWS_DECLARED_LIMIT 8
 #define KBO_FA_DECLARATION_NEWS_DEFERRED_LIMIT 6
@@ -146,7 +147,7 @@ int kbo_emit_fa_declaration_retry_news(
     int deferred_retry,
     const char* source)
 {
-    if (event_yyyymmdd == 0u || season < 1982u || season > 2200u || league_id == 0u
+    if (event_yyyymmdd == 0u || season < KBO_SEASON_YEAR_MIN || season > KBO_SIM_YEAR_MAX || league_id == 0u
             || candidates == NULL || candidate_count <= 0 || deferred_retry <= 0) {
         return 0;
     }
@@ -264,7 +265,7 @@ int kbo_emit_fa_declaration_summary_news(
     int deferred_no_market,
     const char* source)
 {
-    if (event_yyyymmdd == 0u || season < 1982u || season > 2200u || league_id == 0u
+    if (event_yyyymmdd == 0u || season < KBO_SEASON_YEAR_MIN || season > KBO_SIM_YEAR_MAX || league_id == 0u
             || candidates == NULL || candidate_count <= 0) {
         return 0;
     }

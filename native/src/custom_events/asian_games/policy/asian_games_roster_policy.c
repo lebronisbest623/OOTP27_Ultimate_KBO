@@ -7,6 +7,7 @@
 #include "../state/asian_games_state.h"
 
 #include "../../../core/core_flags/localappdata/localappdata_reader.h"
+#include "../../../core/league_roles/kbo_league_roles.h"
 #include "../../../core/policy/core_policy.h"
 
 #define KBO_ASIAN_GAMES_ROSTER_POLICY_FILE "asian_games_roster_policy.json"
@@ -106,8 +107,16 @@ static BOOL CALLBACK kbo_asian_games_roster_policy_init_once(PINIT_ONCE init_onc
     p->score_age_decline_penalty_per_year = kbo_asian_games_policy_int("score_age_decline_penalty_per_year", 120, 0, 1000000);
     p->score_non_exempt_bonus = kbo_asian_games_policy_int("score_non_exempt_bonus", 900, -1000000, 1000000);
     p->score_current_team_bonus = kbo_asian_games_policy_int("score_current_team_bonus", 150, -1000000, 1000000);
-    p->main_league_for_minor_inclusion = kbo_asian_games_policy_int("main_league_for_minor_inclusion", 200, 0, 1000000);
-    p->included_minor_league_id = kbo_asian_games_policy_int("included_minor_league_id", 201, 0, 1000000);
+    p->main_league_for_minor_inclusion = kbo_asian_games_policy_int(
+        "main_league_for_minor_inclusion",
+        (int32_t)kbo_league_role_independent_league_id(),
+        0,
+        1000000);
+    p->included_minor_league_id = kbo_asian_games_policy_int(
+        "included_minor_league_id",
+        (int32_t)kbo_league_role_college_league_id(),
+        0,
+        1000000);
     p->cross_bucket_pitcher_min = kbo_asian_games_policy_int("cross_bucket_pitcher_min", 9, 0, KBO_ASIAN_GAMES_ROSTER_SIZE);
     p->cross_bucket_catcher_min = kbo_asian_games_policy_int("cross_bucket_catcher_min", 2, 0, KBO_ASIAN_GAMES_ROSTER_SIZE);
     p->cross_bucket_infielder_min = kbo_asian_games_policy_int("cross_bucket_infielder_min", 5, 0, KBO_ASIAN_GAMES_ROSTER_SIZE);

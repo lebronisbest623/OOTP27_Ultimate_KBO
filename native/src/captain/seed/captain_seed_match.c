@@ -1,4 +1,5 @@
 #include "../internal/captain_selection_internal.h"
+#include "../../core/dates/constants/kbo_date_constants.h"
 
 static int kbo_captain_seed_key_char(char ch)
 {
@@ -180,7 +181,7 @@ int kbo_find_best_captain_seed_for_team(
 
 int kbo_captain_seed_available_for_season(uint32_t season, uint32_t league_id)
 {
-    if (season < 1982u || season > 2200u) {
+    if (season < KBO_SEASON_YEAR_MIN || season > KBO_SIM_YEAR_MAX) {
         return 0;
     }
 

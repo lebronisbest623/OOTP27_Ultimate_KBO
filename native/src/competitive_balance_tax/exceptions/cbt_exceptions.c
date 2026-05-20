@@ -16,6 +16,7 @@
 #include "../../fa_salary_snapshot/grading/salary_snapshot_grade_rows.h"
 #include "../../foreign/common/dates/foreign_waiver_date.h"
 #include "../rules/cbt_rules.h"
+#include "../../core/dates/constants/kbo_date_constants.h"
 
 static int kbo_cbt_exception_designation_path(char* out, size_t out_size)
 {
@@ -32,8 +33,8 @@ static int kbo_cbt_opening_day_valid(uint32_t season, uint32_t opening_day)
     uint32_t year = opening_day / 10000u;
     uint32_t month = (opening_day / 100u) % 100u;
     uint32_t day = opening_day % 100u;
-    return season >= 1982u
-        && season <= 2200u
+    return season >= KBO_SEASON_YEAR_MIN
+        && season <= KBO_SIM_YEAR_MAX
         && year == season
         && month >= 1u
         && month <= 12u
@@ -46,7 +47,7 @@ static int kbo_cbt_opening_day_cache_load(uint32_t season, uint32_t* out_opening
     if (out_opening_day != NULL) {
         *out_opening_day = 0u;
     }
-    if (out_opening_day == NULL || season < 1982u || season > 2200u) {
+    if (out_opening_day == NULL || season < KBO_SEASON_YEAR_MIN || season > KBO_SIM_YEAR_MAX) {
         return 0;
     }
 
@@ -85,7 +86,7 @@ static int kbo_cbt_opening_day_snapshot_load(uint32_t season, uint32_t* out_open
     if (out_opening_day != NULL) {
         *out_opening_day = 0u;
     }
-    if (out_opening_day == NULL || season < 1982u || season > 2200u) {
+    if (out_opening_day == NULL || season < KBO_SEASON_YEAR_MIN || season > KBO_SIM_YEAR_MAX) {
         return 0;
     }
 
@@ -105,7 +106,7 @@ int kbo_cbt_exception_resolve_opening_day(uint32_t season, uint32_t* out_opening
     if (out_opening_day != NULL) {
         *out_opening_day = 0u;
     }
-    if (season < 1982u || season > 2200u) {
+    if (season < KBO_SEASON_YEAR_MIN || season > KBO_SIM_YEAR_MAX) {
         return 0;
     }
 
@@ -241,7 +242,7 @@ static int kbo_cbt_exception_write_designations(const KboCbtExceptionDesignation
 
 int kbo_cbt_exception_save_designation(uint32_t season, uint32_t team_id, const char* player_key, const char* player_name)
 {
-    if (season < 1982u || season > 2200u || team_id == 0u || player_key == NULL || player_key[0] == '\0') {
+    if (season < KBO_SEASON_YEAR_MIN || season > KBO_SIM_YEAR_MAX || team_id == 0u || player_key == NULL || player_key[0] == '\0') {
         return 0;
     }
     if (!kbo_cbt_exception_player_eligible(team_id, player_key, NULL)) {

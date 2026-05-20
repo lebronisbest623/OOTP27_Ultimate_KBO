@@ -1,4 +1,5 @@
 #include "../internal/foreign_quota_internal.h"
+#include "../../../core/core_flags/keys/runtime_flag_keys.generated.h"
 
 /* Asian quota signability and offer probe logging. Included from native/KBOFix.c. */
 
@@ -44,7 +45,7 @@ void kbo_log_asian_quota_signability_probe(
     if (InterlockedCompareExchange(&log_enabled_initialized, 1, 0) == 0) {
         InterlockedExchange(
             &log_enabled,
-            read_kbo_localappdata_flag_file("enable_kbo_asian_quota_probe_logs.txt") ? 1 : 0);
+            read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_KBO_ASIAN_QUOTA_PROBE_LOGS_FILE) ? 1 : 0);
     }
     if (InterlockedCompareExchange(&log_enabled, 0, 0) == 0) {
         return;
@@ -110,7 +111,7 @@ void kbo_log_asian_quota_offer_probe(
     if (InterlockedCompareExchange(&log_enabled_initialized, 1, 0) == 0) {
         InterlockedExchange(
             &log_enabled,
-            read_kbo_localappdata_flag_file("enable_kbo_asian_quota_probe_logs.txt") ? 1 : 0);
+            read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_KBO_ASIAN_QUOTA_PROBE_LOGS_FILE) ? 1 : 0);
     }
     if (InterlockedCompareExchange(&log_enabled, 0, 0) == 0) {
         return;

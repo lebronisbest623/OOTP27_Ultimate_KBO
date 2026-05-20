@@ -1,5 +1,6 @@
 #include "../../internal/amateur_assignment_internal.h"
 #include "../../../core/dates/tick/current_date_tick_capture.h"
+#include "../../../core/core_flags/keys/runtime_flag_keys.generated.h"
 
 void kbo_amateur_assignment_append_debug_csv(
     const char* phase,
@@ -23,7 +24,7 @@ void kbo_amateur_assignment_append_debug_csv(
     uint32_t after_team_id,
     uint32_t after_league_id)
 {
-    if (!read_kbo_localappdata_flag_file("enable_amateur_assignment_debug_csv.txt")) {
+    if (!read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_AMATEUR_ASSIGNMENT_DEBUG_CSV_FILE)) {
         return;
     }
 

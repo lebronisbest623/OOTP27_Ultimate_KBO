@@ -8,10 +8,11 @@
 
 #include "../../fa_rules/fa_rules.h"
 #include "../../fa_salary_snapshot/state/salary_snapshot_state.h"
+#include "../../core/league_roles/kbo_league_roles.h"
 
 #define KBO_FA_MARKET_CLASSIFICATION_MAX 8192
 #define KBO_FA_MARKET_SEED_MAX 1024
-#define KBO_FA_MARKET_INDEPENDENT_LEAGUE_ID 200u
+#define KBO_FA_MARKET_INDEPENDENT_LEAGUE_ID kbo_league_role_independent_league_id()
 #define KBO_FA_MARKET_HISTORY_TEXT_MAX 192
 
 typedef struct KboFaMarketSeedCase {

@@ -7,6 +7,7 @@
 
 #include "../../core/news/live/core_live_news.h"
 #include "../../core/news/templates/core_news_templates.h"
+#include "../../core/dates/constants/kbo_date_constants.h"
 
 static void kbo_captain_initial_selection_news_marker_key(
     uint32_t season,
@@ -18,7 +19,7 @@ static void kbo_captain_initial_selection_news_marker_key(
         return;
     }
     out[0] = '\0';
-    if (season < 1982u || season > 2200u || league_id == 0u) {
+    if (season < KBO_SEASON_YEAR_MIN || season > KBO_SIM_YEAR_MAX || league_id == 0u) {
         return;
     }
     snprintf(out, out_size, "summary|%u|%u", season, league_id);
@@ -39,7 +40,7 @@ int kbo_emit_captain_initial_selection_news(
     int row_count,
     const char* source)
 {
-    if (date == 0u || season < 1982u || season > 2200u || league_id == 0u || rows == NULL || row_count <= 0) {
+    if (date == 0u || season < KBO_SEASON_YEAR_MIN || season > KBO_SIM_YEAR_MAX || league_id == 0u || rows == NULL || row_count <= 0) {
         return 0;
     }
 
@@ -172,7 +173,7 @@ int kbo_emit_captain_replacement_news(
     const KboCaptainSelectionRow* new_row,
     const char* source)
 {
-    if (date == 0u || season < 1982u || season > 2200u || league_id == 0u
+    if (date == 0u || season < KBO_SEASON_YEAR_MIN || season > KBO_SIM_YEAR_MAX || league_id == 0u
             || new_row == NULL || new_row->team_id == 0u || new_row->player_id == 0u) {
         return 0;
     }

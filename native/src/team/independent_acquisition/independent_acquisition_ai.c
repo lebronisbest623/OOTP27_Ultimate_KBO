@@ -14,6 +14,7 @@
 #include "../../runtime_memory/runtime_memory.h"
 #include "../lookup/team_lookup.h"
 #include "window/independent_acquisition_window.h"
+#include "../../core/core_flags/keys/runtime_flag_keys.generated.h"
 
 volatile LONG g_kbo_independent_acquisition_ai_running = 0;
 
@@ -21,7 +22,7 @@ int kbo_run_independent_team_acquisition_ai_for_date(uint32_t today, const char*
 {
     if (!kbo_fix_enabled()
             || !kbo_custom_foreign_policy_enabled()
-            || read_kbo_localappdata_flag_file("disable_independent_acquisition_ai.txt")) {
+            || read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_DISABLE_INDEPENDENT_ACQUISITION_AI_FILE)) {
         return 0;
     }
     if (today == 0u) {
@@ -155,7 +156,7 @@ int kbo_run_independent_team_acquisition_ai(const char* source)
 {
     if (!kbo_fix_enabled()
             || !kbo_custom_foreign_policy_enabled()
-            || read_kbo_localappdata_flag_file("disable_independent_acquisition_ai.txt")) {
+            || read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_DISABLE_INDEPENDENT_ACQUISITION_AI_FILE)) {
         return 0;
     }
     if (!kbo_runtime_pause_for_save_if_needed(source != NULL ? source : "independent_acquisition_ai")) {

@@ -6,6 +6,7 @@
 #include "../../../core/core_flags/api/flags_api.h"
 #include "../../../core/sync/lock.h"
 #include "../internal/team_add_player_guard_internal.h"
+#include "../../../core/core_flags/keys/runtime_flag_keys.generated.h"
 
 #define KBO_TEAM_ADD_AMATEUR_LEAGUE_CACHE_MAX 512
 
@@ -87,7 +88,7 @@ uint32_t kbo_team_add_cached_amateur_league_id(uint8_t* team)
 int kbo_team_add_amateur_verbose_log_enabled_cached(void)
 {
     return kbo_team_add_cached_bool_flag(
-        "enable_amateur_assignment_verbose_log.txt",
+        KBO_RUNTIME_FLAG_ENABLE_AMATEUR_ASSIGNMENT_VERBOSE_LOG_FILE,
         &g_kbo_team_add_amateur_verbose_cached,
         &g_kbo_team_add_amateur_verbose_tick,
         5000u);
@@ -96,7 +97,7 @@ int kbo_team_add_amateur_verbose_log_enabled_cached(void)
 int kbo_team_add_retry_rejected_targets_enabled_cached(void)
 {
     return kbo_team_add_cached_bool_flag(
-        "enable_amateur_assignment_retry_rejected_targets.txt",
+        KBO_RUNTIME_FLAG_ENABLE_AMATEUR_ASSIGNMENT_RETRY_REJECTED_TARGETS_FILE,
         &g_kbo_team_add_retry_rejected_cached,
         &g_kbo_team_add_retry_rejected_tick,
         5000u);

@@ -1,6 +1,7 @@
 #include "../internal/amateur_assignment_internal.h"
 #include "../../bootstrap/profiling/profiler.h"
 #include <string.h>
+#include "../../core/core_flags/keys/runtime_flag_keys.generated.h"
 static volatile LONG g_kbo_amateur_reroute_debug_csv_cached = -1;
 static volatile LONG g_kbo_amateur_reroute_debug_csv_tick = 0;
 
@@ -13,7 +14,7 @@ static int kbo_amateur_reroute_debug_csv_enabled_cached(void)
         return value != 0;
     }
 
-    int fresh = read_kbo_localappdata_flag_file("enable_amateur_assignment_debug_csv.txt") ? 1 : 0;
+    int fresh = read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_AMATEUR_ASSIGNMENT_DEBUG_CSV_FILE) ? 1 : 0;
     InterlockedExchange(&g_kbo_amateur_reroute_debug_csv_cached, fresh);
     InterlockedExchange(&g_kbo_amateur_reroute_debug_csv_tick, (LONG)now);
     return fresh;

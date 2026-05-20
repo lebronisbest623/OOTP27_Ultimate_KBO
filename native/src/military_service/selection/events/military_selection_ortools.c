@@ -16,6 +16,7 @@
 #include "../../players/state/military_player_state.h"
 #include "../draft/military_draft_queue.h"
 #include "military_selection_event.h"
+#include "../../../core/core_flags/keys/runtime_flag_keys.generated.h"
 
 static int kbo_military_write_ortools_request(
     const char* path,
@@ -136,7 +137,7 @@ int kbo_route_queued_military_draft_candidates_ortools(
     int* out_considered,
     const char* source)
 {
-    if (read_kbo_localappdata_flag_file("disable_military_ortools.txt")
+    if (read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_DISABLE_MILITARY_ORTOOLS_FILE)
             || entry_year == 0u || sang == NULL || slots <= 0) {
         return 0;
     }

@@ -1,4 +1,5 @@
 #include "../internal/fa_market_policy_internal.h"
+#include "../../core/dates/constants/kbo_date_constants.h"
 
 int kbo_fa_market_row_is_undrafted_domestic(const KboFaMarketClassification* row)
 {
@@ -97,7 +98,7 @@ static uint32_t kbo_fa_market_filing_season_from_date(uint32_t yyyymmdd)
     uint32_t season = yyyymmdd / 10000u;
     uint32_t month = (yyyymmdd / 100u) % 100u;
     uint32_t day = yyyymmdd % 100u;
-    if (season < 1982u || season > 2300u || month == 0u || month > 12u || day == 0u || day > 31u) {
+    if (season < KBO_SEASON_YEAR_MIN || season > KBO_RECORD_YEAR_MAX || month == 0u || month > 12u || day == 0u || day > 31u) {
         return 0u;
     }
     return season;
@@ -135,7 +136,7 @@ int kbo_fa_market_history_is_carryover_unsigned(
         filing_season = kbo_fa_market_filing_season_from_date(kbo_fa_market_history_date_u32(history));
     }
     uint32_t current_year = today_yyyymmdd / 10000u;
-    if (filing_season < 1982u || filing_season > 2300u || current_year < 1982u || current_year > 2300u) {
+    if (filing_season < KBO_SEASON_YEAR_MIN || filing_season > KBO_RECORD_YEAR_MAX || current_year < KBO_SEASON_YEAR_MIN || current_year > KBO_RECORD_YEAR_MAX) {
         return 0;
     }
     return filing_season < current_year;

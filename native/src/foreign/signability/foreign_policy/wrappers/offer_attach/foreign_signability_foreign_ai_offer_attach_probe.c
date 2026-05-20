@@ -7,6 +7,7 @@
 #include "../../../../controller/foreign_ai_controller.h"
 #include "../../../api/foreign_signability_salary_floor.h"
 #include "../../../../../core/core_league_context_parts/api/league_context_lookup.h"
+#include "../../../../../core/core_flags/keys/runtime_flag_keys.generated.h"
 
 typedef void (__fastcall *KboOotpForeignAiOfferAttachFn)(uintptr_t player_ptr, uintptr_t offer_slot_ptr);
 typedef uintptr_t (__fastcall *KboOotpForeignAiOfferBuildFn)(
@@ -37,9 +38,9 @@ static int kbo_foreign_ai_fast_fill_offer_gate_enabled(void)
     }
 
     int enabled = kbo_custom_foreign_policy_enabled()
-        && (read_kbo_localappdata_flag_file("enable_foreign_ai_roster_management.txt")
+        && (read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_FOREIGN_AI_ROSTER_MANAGEMENT_FILE)
             || kbo_foreign_ai_controller_enabled())
-        && !read_kbo_localappdata_flag_file("disable_kbo_foreign_ai_fast_fill_offer_gate.txt");
+        && !read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_DISABLE_KBO_FOREIGN_AI_FAST_FILL_OFFER_GATE_FILE);
     InterlockedExchange(&s_cached_enabled, enabled ? 1 : 0);
     InterlockedExchange(&s_cached_tick, (LONG)now);
     return enabled;
@@ -157,8 +158,8 @@ __declspec(noinline) void ootp_kbo_foreign_ai_offer_attach_probe_wrapper(
         original_func(player_ptr, offer_slot_ptr);
         KBO_HOOK_PROFILE_RESUME(profile_hook);
     }
-    if (read_kbo_localappdata_flag_file("enable_foreign_ai_roster_research_hooks.txt")
-            || read_kbo_localappdata_flag_file("enable_kbo_foreign_ai_offer_attach_probe.txt")) {
+    if (read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_FOREIGN_AI_ROSTER_RESEARCH_HOOKS_FILE)
+            || read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_KBO_FOREIGN_AI_OFFER_ATTACH_PROBE_FILE)) {
         kbo_log_foreign_ai_offer_attach(player_ptr, offer_slot_ptr, caller_return_ptr);
     }
     KBO_HOOK_PROFILE_END(profile_hook, "foreign.ai_offer_attach");
@@ -183,8 +184,8 @@ __declspec(noinline) uintptr_t ootp_kbo_foreign_ai_offer_build_probe_wrapper(
         KBO_HOOK_PROFILE_RESUME(profile_hook);
         kbo_restore_foreign_fa_demand_salary_ladder("ai_offer_build");
     }
-    if (read_kbo_localappdata_flag_file("enable_foreign_ai_roster_research_hooks.txt")
-            || read_kbo_localappdata_flag_file("enable_kbo_foreign_ai_offer_attach_probe.txt")) {
+    if (read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_FOREIGN_AI_ROSTER_RESEARCH_HOOKS_FILE)
+            || read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_KBO_FOREIGN_AI_OFFER_ATTACH_PROBE_FILE)) {
         kbo_log_foreign_ai_offer_build(player_ptr, team_id, flag_ptr, offer_ptr);
     }
     KBO_HOOK_PROFILE_RETURN(profile_hook, "foreign.ai_offer_build", offer_ptr);
@@ -207,8 +208,8 @@ __declspec(noinline) uint8_t ootp_kbo_foreign_ai_offer_final_gate_probe_wrapper(
         KBO_HOOK_PROFILE_RESUME(profile_hook);
     }
     result = kbo_foreign_ai_fast_fill_offer_final_gate(team_ptr, player_ptr, salary, offer_ptr, result);
-    if (read_kbo_localappdata_flag_file("enable_foreign_ai_roster_research_hooks.txt")
-            || read_kbo_localappdata_flag_file("enable_kbo_foreign_ai_offer_attach_probe.txt")) {
+    if (read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_FOREIGN_AI_ROSTER_RESEARCH_HOOKS_FILE)
+            || read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_KBO_FOREIGN_AI_OFFER_ATTACH_PROBE_FILE)) {
         kbo_log_foreign_ai_offer_final_gate(team_ptr, player_ptr, salary, offer_ptr, result);
     }
     KBO_HOOK_PROFILE_RETURN(profile_hook, "foreign.ai_offer_final_gate", result);

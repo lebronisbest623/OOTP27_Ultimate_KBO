@@ -17,7 +17,7 @@ internal static partial class KboSeedFiles
             return;
         }
 
-        foreach (var path in Directory.EnumerateFiles(scheduleDirectory, "korean_baseball_organization_int_c_*.lsdl"))
+        foreach (var path in Directory.EnumerateFiles(scheduleDirectory, OotpProduct.KboScheduleSearchPattern))
         {
             try
             {
@@ -116,14 +116,18 @@ internal static partial class KboSeedFiles
             var ootpDir = Path.GetDirectoryName(ootpExePath);
             if (!string.IsNullOrWhiteSpace(ootpDir))
             {
-                yield return Path.Combine(ootpDir, "data", "schedules");
+                yield return Path.Combine(ootpDir, OotpProduct.DataDirectoryName, OotpProduct.SchedulesDirectoryName);
             }
         }
 
         var documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
         if (!string.IsNullOrWhiteSpace(documents))
         {
-            yield return Path.Combine(documents, "Out of the Park Developments", "OOTP Baseball 27", "schedules");
+            yield return Path.Combine(
+                documents,
+                OotpProduct.VendorFolderName,
+                OotpProduct.ProductFolderName,
+                OotpProduct.SchedulesDirectoryName);
         }
     }
 }

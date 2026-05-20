@@ -5,12 +5,13 @@
 #include "cbt_exceptions.h"
 #include "../../core/logging/core_log.h"
 #include "../../fa_salary_snapshot/grading/salary_snapshot_grade_rows.h"
+#include "../../core/dates/constants/kbo_date_constants.h"
 
 #define KBO_CBT_EXCEPTION_AUTO_TEAM_MAX 64
 
 int kbo_cbt_exception_auto_designate_missing(uint32_t season, const char* source)
 {
-    if (season < 1982u || season > 2200u) {
+    if (season < KBO_SEASON_YEAR_MIN || season > KBO_SIM_YEAR_MAX) {
         return 0;
     }
 

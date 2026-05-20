@@ -1,5 +1,6 @@
 #include "../award_schedule_probe_module.h"
 #include "../../../core/files/save_paths/platform/core_path_io.h"
+#include "../../../core/dates/constants/kbo_date_constants.h"
 
 static int kbo_award_schedule_read_file(const char* path, char** out_text, DWORD* out_size)
 {
@@ -306,7 +307,7 @@ static void kbo_award_parse_overrides(const char* start, const char* end, KboAwa
         if (kbo_award_json_uint_in_range(p, object_end, "year", &item.year)
                 && kbo_award_json_uint_in_range(p, object_end, "month", &item.month)
                 && kbo_award_json_uint_in_range(p, object_end, "day", &item.day)
-                && item.year >= 1982u && item.year <= 2400u
+                && item.year >= KBO_SEASON_YEAR_MIN && item.year <= KBO_POLICY_YEAR_MAX
                 && item.month >= 1u && item.month <= 12u
                 && item.day >= 1u && item.day <= 31u) {
             rule->overrides[rule->override_count++] = item;

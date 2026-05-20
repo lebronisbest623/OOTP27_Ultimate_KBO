@@ -8,6 +8,7 @@
 #include "../../../core/logging/core_log.h"
 #include "../fa_compensation_news_transfer.h"
 #include "../fa_compensation_news_transfer_internal.h"
+#include "../../../core/dates/constants/kbo_date_constants.h"
 
 void kbo_emit_fa_compensation_cash_only_news(
     const KboFaCompensationRecord* rec,
@@ -20,7 +21,7 @@ void kbo_emit_fa_compensation_cash_only_news(
     uint32_t year = decided_yyyymmdd / 10000u;
     uint32_t month = (decided_yyyymmdd / 100u) % 100u;
     uint32_t day = decided_yyyymmdd % 100u;
-    if (year < 1982u || month == 0u || day == 0u) {
+    if (year < KBO_SEASON_YEAR_MIN || month == 0u || day == 0u) {
         return;
     }
 

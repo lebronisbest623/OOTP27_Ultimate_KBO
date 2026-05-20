@@ -8,6 +8,7 @@
 
 #include "../core_save_paths.h"
 #include "../core_save_paths_internal.h"
+#include "../../../product/ootp_product.h"
 
 int kbo_get_global_data_dir(char* out, size_t out_size)
 {
@@ -21,7 +22,7 @@ int kbo_get_global_data_dir(char* out, size_t out_size)
         return 0;
     }
 
-    snprintf(out, out_size, "%s\\OOTP-KBO", local_app_data);
+    snprintf(out, out_size, "%s\\" KBO_PRODUCT_LOCAL_DATA_DIR, local_app_data);
     if (out[0] == '\0') {
         return 0;
     }

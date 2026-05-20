@@ -15,19 +15,18 @@ internal static partial class KboSeedFiles
 
     public static void EnsureKboLeagueIdConfig()
     {
-        var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        var localDir = Path.Combine(local, "OOTP-KBO");
+        var localDir = OotpProduct.LocalDataDirectory;
         EnsureKboLeagueIdConfig(localDir,
         [
-            Path.Combine(AppContext.BaseDirectory, "kbo_league_id.txt"),
-            Path.Combine(Environment.CurrentDirectory, "kbo_league_id.txt"),
-            Path.Combine(AppContext.BaseDirectory, "native", "kbo_league_id.txt")
+            Path.Combine(AppContext.BaseDirectory, OotpProduct.LeagueIdFileName),
+            Path.Combine(Environment.CurrentDirectory, OotpProduct.LeagueIdFileName),
+            Path.Combine(AppContext.BaseDirectory, "native", OotpProduct.LeagueIdFileName)
         ]);
     }
 
     internal static void EnsureKboLeagueIdConfig(string localDir, IReadOnlyList<string> candidates)
     {
-        var localPath = Path.Combine(localDir, "kbo_league_id.txt");
+        var localPath = Path.Combine(localDir, OotpProduct.LeagueIdFileName);
 
         Directory.CreateDirectory(localDir);
 
@@ -51,19 +50,18 @@ internal static partial class KboSeedFiles
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLineInterpolated($"[yellow]Failed to seed kbo_league_id.txt from {candidate}: {ex.Message}[/]");
+                AnsiConsole.MarkupLineInterpolated($"[yellow]Failed to seed {OotpProduct.LeagueIdFileName} from {candidate}: {ex.Message}[/]");
                 return;
             }
         }
 
-        AnsiConsole.MarkupLine("[yellow]kbo_league_id.txt not found in launcher directory. Set it manually at:[/]");
+        AnsiConsole.MarkupLineInterpolated($"[yellow]{OotpProduct.LeagueIdFileName} not found in launcher directory. Set it manually at:[/]");
         AnsiConsole.WriteLine(localPath);
     }
     
     public static void EnsureBundledKboDataManifest()
     {
-        var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        var localDir = Path.Combine(local, "OOTP-KBO");
+        var localDir = OotpProduct.LocalDataDirectory;
         var manifestPath = ResolveBundledKboDataFileCandidates(SeedManifestFileName).FirstOrDefault(File.Exists);
         if (manifestPath is null)
         {
@@ -167,15 +165,13 @@ internal static partial class KboSeedFiles
 
     public static void EnsureBundledKboDataFile(string fileName, string label)
     {
-        var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        var localDir = Path.Combine(local, "OOTP-KBO");
+        var localDir = OotpProduct.LocalDataDirectory;
         EnsureBundledKboDataFile(localDir, fileName, label, ResolveBundledKboDataFileCandidates(fileName));
     }
 
     public static void EnsureBundledKboDataDirectory(string directoryName, string label)
     {
-        var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        var localDir = Path.Combine(local, "OOTP-KBO");
+        var localDir = OotpProduct.LocalDataDirectory;
         EnsureBundledKboDataDirectory(localDir, directoryName, label,
         [
             Path.Combine(AppContext.BaseDirectory, "data", "seeds", directoryName),

@@ -1,4 +1,5 @@
 #include "../fa_filing_internal.h"
+#include "../../core/dates/constants/kbo_date_constants.h"
 
 int kbo_record_fa_filing_transition(
     uintptr_t player_ptr,
@@ -16,7 +17,7 @@ int kbo_record_fa_filing_transition(
     }
 
     uint32_t season = filing_date / 10000u;
-    if (season < 1982u || season > 2200u) {
+    if (season < KBO_SEASON_YEAR_MIN || season > KBO_SIM_YEAR_MAX) {
         return 0;
     }
 

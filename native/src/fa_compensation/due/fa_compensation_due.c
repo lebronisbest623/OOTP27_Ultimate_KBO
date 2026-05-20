@@ -19,6 +19,7 @@
 #include "../records/fa_compensation_records.h"
 #include "../selection/fa_compensation_selection.h"
 #include "../state/fa_compensation_state.h"
+#include "../../core/core_flags/keys/runtime_flag_keys.generated.h"
 
 static volatile LONG g_kbo_fa_compensation_due_processing = 0;
 
@@ -195,7 +196,7 @@ int kbo_manual_submit_fa_compensation_protected_list(uint32_t fa_player_id, cons
 
 int kbo_process_due_fa_compensation_protected_lists_for_date(uint32_t today, const char* source)
 {
-    if (!kbo_fix_enabled() || read_kbo_localappdata_flag_file("disable_kbo_fa_compensation.txt")) {
+    if (!kbo_fix_enabled() || read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_DISABLE_KBO_FA_COMPENSATION_FILE)) {
         return 0;
     }
 

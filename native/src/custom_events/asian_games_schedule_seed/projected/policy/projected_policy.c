@@ -8,6 +8,7 @@
 
 #include "../../../../core/core_flags/json/json_bool_parser.h"
 #include "../../../../core/files/save_paths/core_save_paths.h"
+#include "../../../../core/dates/constants/kbo_date_constants.h"
 
 #define KBO_ASIAN_GAMES_PROJECTED_POLICY_FILE "asian_games_projected_policy.json"
 
@@ -15,7 +16,7 @@ static void kbo_asian_games_projected_policy_defaults(KboAsianGamesProjectedPoli
 {
     memset(out, 0, sizeof(*out));
     out->projected_start_year = 2039u;
-    out->projected_end_year = 2200u;
+    out->projected_end_year = KBO_SIM_YEAR_MAX;
     out->cycle_years = 4u;
     out->start_day_base = 10u;
     out->start_day_span = 19u;
@@ -74,8 +75,8 @@ static void kbo_asian_games_projected_policy_parse_value(
 
 static void kbo_asian_games_projected_policy_parse(KboAsianGamesProjectedPolicy* out, const char* json, DWORD json_size)
 {
-    kbo_asian_games_projected_policy_parse_value(json, json_size, "projected_start_year", 1982u, 2400u, &out->projected_start_year);
-    kbo_asian_games_projected_policy_parse_value(json, json_size, "projected_end_year", 1982u, 2400u, &out->projected_end_year);
+    kbo_asian_games_projected_policy_parse_value(json, json_size, "projected_start_year", KBO_SEASON_YEAR_MIN, KBO_POLICY_YEAR_MAX, &out->projected_start_year);
+    kbo_asian_games_projected_policy_parse_value(json, json_size, "projected_end_year", KBO_SEASON_YEAR_MIN, KBO_POLICY_YEAR_MAX, &out->projected_end_year);
     kbo_asian_games_projected_policy_parse_value(json, json_size, "cycle_years", 1u, 16u, &out->cycle_years);
     kbo_asian_games_projected_policy_parse_value(json, json_size, "start_day_base", 1u, 28u, &out->start_day_base);
     kbo_asian_games_projected_policy_parse_value(json, json_size, "start_day_span", 1u, 28u, &out->start_day_span);

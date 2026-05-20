@@ -6,7 +6,9 @@
 #include "../../../bootstrap/abi/ootp_offsets.h"
 #include "../../../bootstrap/profiling/profiler.h"
 #include "../../../core/core_flags/api/flags_api.h"
+#include "../../../core/dates/constants/kbo_date_constants.h"
 #include "../../../core/dates/tick/current_date_tick_capture.h"
+#include "../../../core/league_roles/kbo_league_roles.h"
 #include "../../../core/logging/core_log.h"
 #include "../../../fa_declaration/fa_declaration.h"
 #include "../../../fa_filing/fa_filing.h"
@@ -70,10 +72,11 @@ __declspec(noinline) void ootp_kbo_salary_arbitration_non_tender_wrapper(
         team_id = *(uint32_t*)(team + OOTP27_KBO_TEAM_ID_OFFSET);
     }
 
+    uint32_t main_league_id = kbo_league_role_main_league_id();
     int kbo_context =
-        team_league_id == OOTP27_KBO_MAIN_LEAGUE_ID
-        || player_league_id == OOTP27_KBO_MAIN_LEAGUE_ID
-        || player_draft_league_id == OOTP27_KBO_MAIN_LEAGUE_ID;
+        team_league_id == main_league_id
+        || player_league_id == main_league_id
+        || player_draft_league_id == main_league_id;
     if (!kbo_context) {
         if (original_func != NULL) {
             KBO_HOOK_PROFILE_PAUSE(profile_hook);
@@ -97,7 +100,7 @@ __declspec(noinline) void ootp_kbo_salary_arbitration_non_tender_wrapper(
         && contract_level != 0u
         && nation_id == OOTP27_KBO_KOREA_NATION_ID
         && original_team_id != 0u
-        && original_team_league_id == OOTP27_KBO_MAIN_LEAGUE_ID;
+        && original_team_league_id == main_league_id;
     uint32_t today = 0u;
     uint32_t declaration_season = 0u;
     KboFaDeclarationDecision decision;
@@ -109,7 +112,7 @@ __declspec(noinline) void ootp_kbo_salary_arbitration_non_tender_wrapper(
         }
         fa_declaration_decision_found = declaration_season != 0u
             && kbo_fa_declaration_find_latest_decision(player_id, declaration_season, &decision);
-        if (!fa_declaration_decision_found && declaration_season > 1982u) {
+        if (!fa_declaration_decision_found && declaration_season > KBO_SEASON_YEAR_MIN) {
             fa_declaration_decision_found =
                 kbo_fa_declaration_find_latest_decision(player_id, declaration_season - 1u, &decision);
         }
@@ -209,9 +212,9 @@ __declspec(noinline) void ootp_kbo_salary_arbitration_non_tender_wrapper(
         && contract_level != 0u
         && old_offer <= 0
         && nation_id == OOTP27_KBO_KOREA_NATION_ID
-        && (team_league_id == OOTP27_KBO_MAIN_LEAGUE_ID
-            || player_league_id == OOTP27_KBO_MAIN_LEAGUE_ID
-            || player_draft_league_id == OOTP27_KBO_MAIN_LEAGUE_ID);
+        && (team_league_id == main_league_id
+            || player_league_id == main_league_id
+            || player_draft_league_id == main_league_id);
     int should_block = direct_block_candidate
         || missing_declaration_transition
         || official_zero_offer_transition;

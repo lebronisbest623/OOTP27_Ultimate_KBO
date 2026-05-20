@@ -1,6 +1,7 @@
 #include "../internal/cbt_internal.h"
 
 #include "../../core/news/templates/core_news_templates.h"
+#include "../../core/dates/constants/kbo_date_constants.h"
 
 static void kbo_cbt_format_usd(char* out, size_t out_size, int32_t value)
 {
@@ -36,7 +37,7 @@ int kbo_cbt_news_date(
     uint32_t year = news_yyyymmdd / 10000u;
     uint32_t month = (news_yyyymmdd / 100u) % 100u;
     uint32_t day = news_yyyymmdd % 100u;
-    if (year < 1982u || year > 2200u || month < 1u || month > 12u || day < 1u || day > 31u) {
+    if (year < KBO_SEASON_YEAR_MIN || year > KBO_SIM_YEAR_MAX || month < 1u || month > 12u || day < 1u || day > 31u) {
         year = season;
         month = 4u;
         day = 1u;

@@ -13,6 +13,7 @@
 #include "../logging/core_log.h"
 #include "../../bootstrap/abi/ootp_offsets.h"
 #include "../../runtime_memory/runtime_memory.h"
+#include "../dates/constants/kbo_date_constants.h"
 
 #define KBO_SEASON_CALENDAR_FILE "season_calendar.csv"
 
@@ -28,8 +29,8 @@ static int kbo_season_calendar_opening_day_valid(uint32_t season, uint32_t openi
     uint32_t year = opening_day / 10000u;
     uint32_t month = (opening_day / 100u) % 100u;
     uint32_t day = opening_day % 100u;
-    return season >= 1982u
-        && season <= 2200u
+    return season >= KBO_SEASON_YEAR_MIN
+        && season <= KBO_SIM_YEAR_MAX
         && year == season
         && month >= 1u
         && month <= 12u
@@ -71,7 +72,7 @@ int kbo_season_calendar_read_league_opening_day(uintptr_t league_ptr, uint32_t* 
     uint32_t year = *(uint16_t*)(league_ptr + OOTP27_SEASON_START_DATE_YEAR_OFFSET);
     uint32_t day = *(uint8_t*)(league_ptr + OOTP27_SEASON_START_DATE_DAY_OFFSET);
     uint32_t month = *(uint8_t*)(league_ptr + OOTP27_SEASON_START_DATE_MONTH_OFFSET);
-    if (year < 1982u || year > 2200u || month < 1u || month > 12u || day < 1u || day > 31u) {
+    if (year < KBO_SEASON_YEAR_MIN || year > KBO_SIM_YEAR_MAX || month < 1u || month > 12u || day < 1u || day > 31u) {
         return 0;
     }
 
@@ -112,7 +113,7 @@ static int kbo_season_calendar_load_opening_day_no_lock(
     if (out_source != NULL && out_source_size > 0u) {
         out_source[0] = '\0';
     }
-    if (out_opening_day == NULL || season < 1982u || season > 2200u) {
+    if (out_opening_day == NULL || season < KBO_SEASON_YEAR_MIN || season > KBO_SIM_YEAR_MAX) {
         return 0;
     }
 
@@ -279,7 +280,7 @@ int kbo_season_calendar_resolve_opening_day_with_league_ptr(
     if (out_opening_day != NULL) {
         *out_opening_day = 0u;
     }
-    if (out_opening_day == NULL || season < 1982u || season > 2200u) {
+    if (out_opening_day == NULL || season < KBO_SEASON_YEAR_MIN || season > KBO_SIM_YEAR_MAX) {
         return 0;
     }
     if (league_id == 0u) {

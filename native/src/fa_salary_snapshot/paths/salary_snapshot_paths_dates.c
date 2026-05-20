@@ -13,10 +13,11 @@
 #include "../../runtime_memory/runtime_memory.h"
 #include "../../team/lookup/team_lookup.h"
 #include "../state/salary_snapshot_state.h"
+#include "../../core/dates/constants/kbo_date_constants.h"
 
 int kbo_fa_salary_snapshot_path(uint32_t season, char* out, size_t out_size)
 {
-    if (out == NULL || out_size == 0 || season < 1982u || season > 2200u) {
+    if (out == NULL || out_size == 0 || season < KBO_SEASON_YEAR_MIN || season > KBO_SIM_YEAR_MAX) {
         return 0;
     }
 

@@ -1,4 +1,5 @@
 #include "hotkey_window_runtime_webview_com_internal.h"
+#include "../../../../core/product/ootp_product.h"
 
 HRESULT STDMETHODCALLTYPE kbo_webview_nav_invoke(
     ICoreWebView2NavigationStartingEventHandler* This,
@@ -300,7 +301,11 @@ void kbo_start_webview_rights_ui(HWND hwnd)
     WCHAR local[MAX_PATH] = {0};
     DWORD got = GetEnvironmentVariableW(L"LOCALAPPDATA", local, (DWORD)(sizeof(local) / sizeof(local[0])));
     if (got > 0 && got < (DWORD)(sizeof(local) / sizeof(local[0]))) {
-        swprintf(user_data, sizeof(user_data) / sizeof(user_data[0]), L"%ls\\OOTP-KBO\\WebView2", local);
+        swprintf(
+            user_data,
+            sizeof(user_data) / sizeof(user_data[0]),
+            L"%ls\\" KBO_PRODUCT_LOCAL_DATA_DIR_W L"\\WebView2",
+            local);
         CreateDirectoryW(user_data, NULL);
     }
     char user_data_utf8[MAX_PATH] = {0};

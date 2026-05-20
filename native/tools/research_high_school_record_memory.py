@@ -6,12 +6,23 @@ memory probes, save-file record loading, and offset scoring/reporting.
 
 import ctypes
 import html
-import os
 import pathlib
 import re
 import struct
 import sys
 from ctypes import wintypes
+
+TOOLS_DIR = pathlib.Path(__file__).resolve().parents[2] / "tools"
+if str(TOOLS_DIR) not in sys.path:
+    sys.path.insert(0, str(TOOLS_DIR))
+
+from kbo_product import (  # noqa: E402
+    CURRENT_SAVE_PATH_FILE_TEMPLATE,
+    DEFAULT_HIGH_SCHOOL_LEAGUE_ID,
+    OOTP_EXECUTABLE_NAME,
+    league_role_id,
+    local_data_path,
+)
 
 
 PROCESS_QUERY_INFORMATION = 0x0400
@@ -29,7 +40,7 @@ LEAGUE_ID_OFFSET = 0x4CC0
 LEAGUE_YEAR_OFFSET = 0x44EC
 LEAGUE_PHASE_OFFSET = 0x44F0
 LEAGUE_PHASE_YEAR_OFFSET = 0x44F4
-HIGH_SCHOOL_LEAGUE_ID = 203
+HIGH_SCHOOL_LEAGUE_ID = league_role_id("high_school_league_id", DEFAULT_HIGH_SCHOOL_LEAGUE_ID)
 
 
 kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
@@ -99,7 +110,7 @@ def find_ootp_processes():
         if kernel32.Process32First(snapshot, ctypes.byref(entry)):
             while True:
                 name = entry.szExeFile.decode(errors="ignore")
-                if name.lower() == "ootp27.exe":
+                if name.lower() == OOTP_EXECUTABLE_NAME:
                     rows.append(entry.th32ProcessID)
                 if not kernel32.Process32Next(snapshot, ctypes.byref(entry)):
                     break
@@ -249,10 +260,9 @@ def collect_teams(mem, global_db, league_id):
 
 
 def load_save_path(pid):
-    local = os.environ.get("LOCALAPPDATA")
-    if not local:
+    path = local_data_path(CURRENT_SAVE_PATH_FILE_TEMPLATE.format(pid=pid))
+    if path is None:
         return None
-    path = pathlib.Path(local) / "OOTP-KBO" / f"current_save_path_{pid}.txt"
     if path.exists():
         text = path.read_text(errors="ignore").strip()
         if text:
@@ -370,9 +380,9 @@ def main():
         print(f"Power-ranking oracle missing or too small for save={save_path} rows={len(records)}")
         return 4
 
-    module = get_module(pid, "ootp27.exe")
+    module = get_module(pid, OOTP_EXECUTABLE_NAME)
     if module is None:
-        print(f"Could not find ootp27.exe module for pid={pid}")
+        print(f"Could not find {OOTP_EXECUTABLE_NAME} module for pid={pid}")
         return 5
     exe_base, exe_size, exe_path = module
 

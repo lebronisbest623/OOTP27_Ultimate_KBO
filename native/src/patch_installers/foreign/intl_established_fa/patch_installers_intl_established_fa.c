@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include "../../common/patch_host.h"
 #include "../../../bootstrap/abi/ootp_offsets.h"
 #include "../../../core/logging/core_log.h"
 #include "../../../core/dates/core_current_date.h"
@@ -12,6 +13,7 @@
 #include "../../../patch_helpers/patch_helpers.h"
 #include "../../../bootstrap/abi/hook_entrypoints.h"
 #include "../../../hook_stubs/foreign/intl_established_fa/hook_stubs_intl_established_fa.h"
+#include "../../../core/core_flags/keys/runtime_flag_keys.generated.h"
 
 int install_kbo_intl_established_fa_multiplier_patch(void)
 {
@@ -23,8 +25,8 @@ int install_kbo_intl_established_fa_multiplier_patch(void)
 
     char host[MAX_PATH] = {0};
     GetModuleFileNameA(exe, host, (DWORD)sizeof(host));
-    if (strstr(host, "ootp27.exe") == NULL && strstr(host, "OOTP27.EXE") == NULL) {
-        kbo_log_runtimef("host is not ootp27.exe, skipping KBO international established FA multiplier patch host=%s", host);
+    if (!kbo_patch_host_matches_product(host)) {
+        kbo_log_runtimef("host is not " KBO_OOTP_EXECUTABLE_NAME ", skipping KBO international established FA multiplier patch host=%s", host);
         return 0;
     }
 
@@ -126,8 +128,8 @@ int install_kbo_intl_established_fa_player_probe_patch(void)
 
     char host[MAX_PATH] = {0};
     GetModuleFileNameA(exe, host, (DWORD)sizeof(host));
-    if (strstr(host, "ootp27.exe") == NULL && strstr(host, "OOTP27.EXE") == NULL) {
-        kbo_log_runtimef("host is not ootp27.exe, skipping KBO international established FA player probe patch host=%s", host);
+    if (!kbo_patch_host_matches_product(host)) {
+        kbo_log_runtimef("host is not " KBO_OOTP_EXECUTABLE_NAME ", skipping KBO international established FA player probe patch host=%s", host);
         return 0;
     }
 
@@ -214,7 +216,7 @@ int install_kbo_intl_established_fa_player_probe_patch(void)
 
 int install_kbo_intl_established_fa_generation_filter_patch(void)
 {
-    if (read_kbo_localappdata_flag_file("disable_intl_established_fa_generation_filter.txt")) {
+    if (read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_DISABLE_INTL_ESTABLISHED_FA_GENERATION_FILTER_FILE)) {
         kbo_log_runtime_line("KBO international established FA generation filter patch disabled: kbo_flags.json disable_intl_established_fa_generation_filter is true");
         return 1;
     }
@@ -227,8 +229,8 @@ int install_kbo_intl_established_fa_generation_filter_patch(void)
 
     char host[MAX_PATH] = {0};
     GetModuleFileNameA(exe, host, (DWORD)sizeof(host));
-    if (strstr(host, "ootp27.exe") == NULL && strstr(host, "OOTP27.EXE") == NULL) {
-        kbo_log_runtimef("host is not ootp27.exe, skipping KBO international established FA generation filter patch host=%s", host);
+    if (!kbo_patch_host_matches_product(host)) {
+        kbo_log_runtimef("host is not " KBO_OOTP_EXECUTABLE_NAME ", skipping KBO international established FA generation filter patch host=%s", host);
         return 0;
     }
 

@@ -15,6 +15,7 @@
 #include "../../../foreign/common/policy/foreign_waiver_policy.h"
 #include "../../../team/names/team_string.h"
 #include "../names/custom_event_names.h"
+#include "../../../core/dates/constants/kbo_date_constants.h"
 
 typedef struct KboLatestOffseasonStartsCache {
     uintptr_t event_manager;
@@ -86,7 +87,7 @@ uint32_t kbo_get_latest_offseason_starts_event(uint32_t today_yyyymmdd)
         uint32_t event_year = *(uint16_t*)(event + OOTP27_LEAGUE_EVENT_YEAR_OFFSET);
         uint32_t event_month = event[OOTP27_LEAGUE_EVENT_MONTH_OFFSET];
         uint32_t event_day = event[OOTP27_LEAGUE_EVENT_DAY_OFFSET];
-        if (event_year < 1980u || event_year > 2200u || event_month < 1u || event_month > 12u || event_day < 1u || event_day > 31u) {
+        if (event_year < KBO_TEXT_DATE_YEAR_MIN || event_year > KBO_SIM_YEAR_MAX || event_month < 1u || event_month > 12u || event_day < 1u || event_day > 31u) {
             continue;
         }
 
@@ -134,7 +135,7 @@ uint32_t kbo_detect_offseason_anchor_by_league_year(uint32_t league_id, uint32_t
     }
 
     uint32_t league_year = kbo_find_league_year_from_id_no_scan(league_id);
-    if (league_year < 1980u || league_year > 2300u) {
+    if (league_year < KBO_TEXT_DATE_YEAR_MIN || league_year > KBO_RECORD_YEAR_MAX) {
         return 0u;
     }
 

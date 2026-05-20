@@ -15,6 +15,7 @@
 #include "../../../../quota/candidates/foreign_quota_retention_opportunity_probe.h"
 #include "../../../../quota/candidates/retention_score/foreign_quota_retention_score_gate.h"
 #include "../../../../rights/query/foreign_waiver_rights_query.h"
+#include "../../../../../core/core_flags/keys/runtime_flag_keys.generated.h"
 
 static int kbo_foreign_ai_offer_candidate_priority_enabled(void)
 {
@@ -29,10 +30,10 @@ static int kbo_foreign_ai_offer_candidate_priority_enabled(void)
         return InterlockedCompareExchange(&s_cached_enabled, 0, 0) != 0;
     }
 
-    int enabled = (read_kbo_localappdata_flag_file("enable_foreign_ai_roster_management.txt")
+    int enabled = (read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_FOREIGN_AI_ROSTER_MANAGEMENT_FILE)
             || kbo_foreign_ai_controller_enabled()
-            || read_kbo_localappdata_flag_file("enable_kbo_foreign_ai_offer_candidate_priority_hook.txt"))
-        && !read_kbo_localappdata_flag_file("disable_kbo_foreign_ai_offer_candidate_priority_hook.txt");
+            || read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_KBO_FOREIGN_AI_OFFER_CANDIDATE_PRIORITY_HOOK_FILE))
+        && !read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_DISABLE_KBO_FOREIGN_AI_OFFER_CANDIDATE_PRIORITY_HOOK_FILE);
     InterlockedExchange(&s_cached_enabled, enabled ? 1 : 0);
     InterlockedExchange(&s_cached_tick, (LONG)now);
     return enabled;
@@ -121,7 +122,7 @@ static void kbo_offer_candidate_priority_log(
     }
     if (slot > 300
             && (reason == NULL || strcmp(reason, "replaced") != 0)
-            && !read_kbo_localappdata_flag_file("enable_kbo_custom_foreign_offer_logs.txt")) {
+            && !read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_KBO_CUSTOM_FOREIGN_OFFER_LOGS_FILE)) {
         return;
     }
 

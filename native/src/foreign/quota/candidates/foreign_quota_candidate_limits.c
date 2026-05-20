@@ -142,31 +142,8 @@ int kbo_custom_foreign_policy_team_allows_candidate(
     uint32_t today = 0u;
     uint32_t candidate_id = *(uint32_t*)(candidate + OOTP27_PLAYER_ID_OFFSET);
     kbo_get_foreign_waiver_current_yyyymmdd(&today);
-    uint32_t current_team_id = *(uint32_t*)(candidate + OOTP27_PLAYER_CURRENT_TEAM_ID_OFFSET);
-    uint32_t active_team_id = *(uint32_t*)(candidate + OOTP27_PLAYER_ACTIVE_TEAM_ID_OFFSET);
-    uint32_t original_team_id = *(uint32_t*)(candidate + OOTP27_PLAYER_ORIGINAL_TEAM_ID_OFFSET);
-    int cached_allowed = 0;
-    if (candidate_id != 0u
-            && kbo_custom_foreign_candidate_cache_hit(
-                team_id,
-                candidate,
-                candidate_id,
-                today,
-                current_team_id,
-                active_team_id,
-                original_team_id,
-                out_effective_before,
-                out_effective_after,
-                out_effective_limit,
-                out_slot_type,
-                out_injured_player_id,
-                &cached_allowed)) {
-        KBO_PROFILE_END(profile_custom_candidate, cached_allowed
-            ? "foreign_policy.candidate.cache_allowed"
-            : "foreign_policy.candidate.cache_blocked");
-        return cached_allowed;
-    }
 
+    /* Team quota depends on live assignment fields for every foreign player in the org. */
     uint32_t foreign_count = 0u;
     uint32_t asian_count = 0u;
     uint32_t non_asian_count = 0u;
@@ -275,24 +252,6 @@ int kbo_custom_foreign_policy_team_allows_candidate(
         : 0;
     if (allowed && opportunity_block) {
         allowed = 0;
-    }
-    if (candidate_id != 0u) {
-        kbo_custom_foreign_candidate_cache_store(
-            team_id,
-            candidate,
-            candidate_id,
-            today,
-            current_team_id,
-            active_team_id,
-            original_team_id,
-            kbo_foreign_org_count_cache_generation_for_team(team_id),
-            kbo_custom_foreign_pending_offer_generation_for_team(team_id),
-            effective_before,
-            effective_after,
-            effective_limit,
-            slot_type,
-            injured_player_id,
-            allowed);
     }
     KBO_PROFILE_END(profile_custom_candidate, allowed
         ? "foreign_policy.candidate.allowed"

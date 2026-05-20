@@ -1,8 +1,8 @@
 internal static class KboRosterMarkerGuard
 {
-    public const string RequiredMarkerUrl = "https://github.com/lebronisbest623/OOTP27_Ultimate_KBO";
-    private const string SaveCompletedFileName = "flag_save_completed.dat";
-    private const string SaveCompletedSentinel = "Finished save_database, closing flag file now";
+    public const string RequiredMarkerUrl = OotpProduct.RosterMarkerUrl;
+    private const string SaveCompletedFileName = OotpProduct.SaveCompletedFileName;
+    private const string SaveCompletedSentinel = OotpProduct.SaveCompletedSentinel;
 
     public static RosterMarkerInfo CheckCurrentSave(int pid, Action<string>? log = null)
     {
@@ -49,7 +49,7 @@ internal static class KboRosterMarkerGuard
         {
             return RosterMarkerInfo.Fail("current_save_missing", normalizedSavePath, null, "current save directory was not found");
         }
-        if (!normalizedSavePath.EndsWith(".lg", StringComparison.OrdinalIgnoreCase))
+        if (!normalizedSavePath.EndsWith(OotpProduct.SaveGameExtension, StringComparison.OrdinalIgnoreCase))
         {
             return RosterMarkerInfo.Fail("current_save_not_lg", normalizedSavePath, null, "current save path is not an .lg directory");
         }
@@ -125,22 +125,12 @@ internal static class KboRosterMarkerGuard
 
     internal static RosterMarkerInfo? FindLatestMarkedCompletedSave(DateTimeOffset? minSaveCompletedAt = null)
     {
-        var savedGamesPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-            "Out of the Park Developments",
-            "OOTP Baseball 27",
-            "saved_games");
-        return FindLatestMarkedCompletedSaveInDirectory(savedGamesPath, minSaveCompletedAt);
+        return FindLatestMarkedCompletedSaveInDirectory(OotpProduct.DefaultSavedGamesDirectory, minSaveCompletedAt);
     }
 
     internal static RosterMarkerInfo? FindLatestMarkedSaveForInjection(DateTimeOffset? minTouchedAt = null)
     {
-        var savedGamesPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-            "Out of the Park Developments",
-            "OOTP Baseball 27",
-            "saved_games");
-        return FindLatestMarkedSaveForInjectionInDirectory(savedGamesPath, minTouchedAt);
+        return FindLatestMarkedSaveForInjectionInDirectory(OotpProduct.DefaultSavedGamesDirectory, minTouchedAt);
     }
 
     internal static RosterMarkerInfo? FindLatestMarkedCompletedSaveInDirectory(
@@ -152,7 +142,7 @@ internal static class KboRosterMarkerGuard
             return null;
         }
 
-        return Directory.EnumerateDirectories(savedGamesPath, "*.lg", SearchOption.TopDirectoryOnly)
+        return Directory.EnumerateDirectories(savedGamesPath, OotpProduct.SaveGameSearchPattern, SearchOption.TopDirectoryOnly)
             .Select(path =>
             {
                 try
@@ -182,7 +172,7 @@ internal static class KboRosterMarkerGuard
         }
 
         var minUtc = minTouchedAt?.ToUniversalTime();
-        return Directory.EnumerateDirectories(savedGamesPath, "*.lg", SearchOption.TopDirectoryOnly)
+        return Directory.EnumerateDirectories(savedGamesPath, OotpProduct.SaveGameSearchPattern, SearchOption.TopDirectoryOnly)
             .Select(path =>
             {
                 try

@@ -148,12 +148,12 @@ uint8_t* find_kbo_team_by_numeric_id_any_league(uint32_t team_id, int allow_dele
 const KboFaMarketPolicy* kbo_fa_market_policy(void)
 {
     static const KboFaMarketPolicy policy = {
-        .undrafted_college_league_id = 201,
+        .undrafted_college_league_id = KBO_DEFAULT_COLLEGE_LEAGUE_ID,
         .undrafted_college_draft_subtype = 1,
         .undrafted_college_age_max = 25,
-        .undrafted_high_school_league_id = 203,
+        .undrafted_high_school_league_id = KBO_DEFAULT_HIGH_SCHOOL_LEAGUE_ID,
         .undrafted_high_school_age_max = 20,
-        .independent_league_id = 200,
+        .independent_league_id = KBO_DEFAULT_INDEPENDENT_LEAGUE_ID,
         .player_age_min = 16,
         .player_age_max = 60
     };
@@ -2616,7 +2616,7 @@ static void test_foreign_org_snapshot_updates_on_assignment_change(void)
     printf("test_foreign_org_snapshot_updates_on_assignment_change: PASS\n");
 }
 
-static void test_foreign_org_snapshot_observed_assignment_invalidates(void)
+static void test_foreign_org_live_count_ignores_stale_snapshot(void)
 {
     uint8_t non_asian[OOTP27_PLAYER_SCAN_BYTES];
     memset(non_asian, 0, sizeof(non_asian));
@@ -2643,11 +2643,18 @@ static void test_foreign_org_snapshot_observed_assignment_invalidates(void)
     uint32_t foreign_count = 0u;
     uint32_t asian_count = 0u;
     uint32_t non_asian_count = 0u;
+    g_kbo_foreign_org_snapshot_count = 1;
+    g_kbo_foreign_org_snapshot[0].team_id = 2u;
+    g_kbo_foreign_org_snapshot[0].foreign_count = 99u;
+    g_kbo_foreign_org_snapshot[0].asian_count = 99u;
+    g_kbo_foreign_org_snapshot[0].non_asian_count = 99u;
+    g_kbo_foreign_org_snapshot_tick = 123u;
+
     kbo_count_team_asian_quota_probe(2u, &foreign_count, &asian_count, &non_asian_count);
     assert(foreign_count == 1u);
     assert(asian_count == 0u);
     assert(non_asian_count == 1u);
-    assert(g_kbo_foreign_org_snapshot_tick != 0u);
+    assert(g_kbo_foreign_org_snapshot_tick == 123u);
 
     kbo_foreign_org_count_cache_note_observed_assignment_change(
         0u,
@@ -2693,7 +2700,7 @@ static void test_foreign_org_snapshot_observed_assignment_invalidates(void)
     memset(g_kbo_foreign_org_snapshot, 0, sizeof(g_kbo_foreign_org_snapshot));
     g_kbo_foreign_org_snapshot_count = 0;
     g_kbo_foreign_org_snapshot_tick = 0u;
-    printf("test_foreign_org_snapshot_observed_assignment_invalidates: PASS\n");
+    printf("test_foreign_org_live_count_ignores_stale_snapshot: PASS\n");
 }
 
 static void test_flag_key_from_file_name(void)
@@ -3080,7 +3087,7 @@ int main(void)
     test_foreign_injury_episode_policy();
     test_foreign_injury_foreign_count_exclusion();
     test_foreign_org_snapshot_updates_on_assignment_change();
-    test_foreign_org_snapshot_observed_assignment_invalidates();
+    test_foreign_org_live_count_ignores_stale_snapshot();
     test_amateur_assignment_policy();
     test_amateur_reputation_balanced_deltas_prevent_inflation();
     test_independent_acquisition_score_policy();

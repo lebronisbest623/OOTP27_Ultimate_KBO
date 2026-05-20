@@ -1,8 +1,9 @@
 #include "captain_season.h"
+#include "../../core/dates/constants/kbo_date_constants.h"
 
 static int kbo_captain_year_plausible(uint32_t year)
 {
-    return year >= 1982u && year <= 2200u;
+    return year >= KBO_SEASON_YEAR_MIN && year <= KBO_SIM_YEAR_MAX;
 }
 
 static int kbo_captain_date_plausible(uint32_t date_yyyymmdd)
@@ -76,7 +77,8 @@ int kbo_captain_calendar_preseason_window_active(
         return 0;
     }
 
-    return month_day >= 301u && month_day <= 415u;
+    return month_day >= KBO_CAPTAIN_PRESEASON_START_MONTH_DAY
+        && month_day <= KBO_CAPTAIN_PRESEASON_END_MONTH_DAY;
 }
 
 int kbo_captain_preseason_first_day_active(
@@ -90,7 +92,7 @@ int kbo_captain_preseason_first_day_active(
 
     uint32_t effective_season = kbo_captain_effective_season(date_yyyymmdd, league_season);
     return (date_yyyymmdd / 10000u) == effective_season
-        && (date_yyyymmdd % 10000u) == 301u;
+        && (date_yyyymmdd % 10000u) == KBO_CAPTAIN_PRESEASON_START_MONTH_DAY;
 }
 
 int kbo_captain_seed_startup_window_active(uint32_t date_yyyymmdd, uint32_t season)
@@ -102,6 +104,6 @@ int kbo_captain_seed_startup_window_active(uint32_t date_yyyymmdd, uint32_t seas
     uint32_t date_year = date_yyyymmdd / 10000u;
     uint32_t month_day = date_yyyymmdd % 10000u;
     return date_year == season
-        && month_day >= 301u
-        && month_day <= 415u;
+        && month_day >= KBO_CAPTAIN_PRESEASON_START_MONTH_DAY
+        && month_day <= KBO_CAPTAIN_PRESEASON_END_MONTH_DAY;
 }

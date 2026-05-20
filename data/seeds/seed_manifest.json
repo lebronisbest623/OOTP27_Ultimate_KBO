@@ -50,6 +50,13 @@
       ]
     },
     {
+      "id": "core",
+      "label": "Core",
+      "files": [
+        { "path": "league_roles.json", "source": "core/league_roles.json", "label": "League role IDs", "kind": "policy" }
+      ]
+    },
+    {
       "id": "custom_events",
       "label": "Custom events",
       "files": [

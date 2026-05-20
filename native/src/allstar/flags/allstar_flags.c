@@ -13,6 +13,7 @@
 #include "../../core/core_league_context_parts/api/league_context_lookup.h"
 #include "../../core/logging/core_log.h"
 #include "../../runtime_memory/runtime_memory.h"
+#include "../../core/dates/constants/kbo_date_constants.h"
 
 static volatile PVOID g_cached_core_allstar_league_ptr = NULL;
 static volatile LONG g_cached_core_allstar_league_id = 0;
@@ -46,7 +47,7 @@ static int league_year_plausible(uintptr_t league_ptr)
     }
 
     uint32_t year = *(uint32_t*)(league_ptr + OOTP27_KBO_LEAGUE_YEAR_OFFSET);
-    return year >= 1982u && year <= 2200u;
+    return year >= KBO_SEASON_YEAR_MIN && year <= KBO_SIM_YEAR_MAX;
 }
 
 static uintptr_t normalize_kbo_allstar_league_ptr(uintptr_t league_ptr, uint32_t league_id, const KboAllstarLayout* layout, const char* source)
@@ -280,7 +281,7 @@ static uintptr_t find_kbo_allstar_core_league_from_extended_global_vectors(uint3
                 continue;
             }
             uint32_t year = *(uint32_t*)(league + OOTP27_KBO_LEAGUE_YEAR_OFFSET);
-            if (year < 1982u || year > 2200u) {
+            if (year < KBO_SEASON_YEAR_MIN || year > KBO_SIM_YEAR_MAX) {
                 continue;
             }
 

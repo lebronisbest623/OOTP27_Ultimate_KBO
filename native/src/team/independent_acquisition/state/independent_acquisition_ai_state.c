@@ -10,6 +10,7 @@
 #include <string.h>
 
 #include "../../../core/dates/core_text_date.h"
+#include "../../../core/dates/constants/kbo_date_constants.h"
 #include "../../../core/files/save_paths/core_save_paths.h"
 #include "../../../core/logging/core_log.h"
 #include "../../../foreign/common/dates/foreign_waiver_date.h"
@@ -65,7 +66,7 @@ static uint32_t kbo_independent_acquisition_load_processed_date(void)
     }
 
     unsigned long value = strtoul(text, NULL, 10);
-    if (value < 19820101ul || value > 22001231ul) {
+    if (value < KBO_SEASON_DATE_MIN || value > KBO_SIM_DATE_MAX) {
         return 0u;
     }
     return (uint32_t)value;

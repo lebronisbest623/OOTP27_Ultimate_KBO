@@ -20,8 +20,6 @@
   "score_age_decline_penalty_per_year": 120,
   "score_non_exempt_bonus": 900,
   "score_current_team_bonus": 150,
-  "main_league_for_minor_inclusion": 200,
-  "included_minor_league_id": 201,
   "cross_bucket_pitcher_min": 9,
   "cross_bucket_catcher_min": 2,
   "cross_bucket_infielder_min": 5,

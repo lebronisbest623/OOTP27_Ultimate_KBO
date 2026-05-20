@@ -18,6 +18,7 @@
 #include "../waiver_core/api/foreign_waiver_core.h"
 #include "events/foreign_waiver_window_events.h"
 #include "state/foreign_waiver_window_state.h"
+#include "../../core/dates/constants/kbo_date_constants.h"
 
 int kbo_advance_foreign_waiver_window(uint32_t today_yyyymmdd, uint32_t today_serial)
 {
@@ -313,7 +314,7 @@ int kbo_format_ymd(uint32_t yyyymmdd, char* out, size_t out_size)
     uint32_t month = (yyyymmdd / 100u) % 100u;
     uint32_t day = yyyymmdd % 100u;
     if (year == 0u || month == 0u || day == 0u
-            || month > 12u || day > 31u || year < 1980u) {
+            || month > 12u || day > 31u || year < KBO_TEXT_DATE_YEAR_MIN) {
         return 0;
     }
     return (snprintf(out, out_size, "%04u-%02u-%02u", year, month, day) > 0) ? 1 : 0;

@@ -12,6 +12,7 @@
 #include "../decisions/fa_compensation_decisions.h"
 #include "../protection/fa_compensation_protection_score.h"
 #include "fa_compensation_due_ortools.h"
+#include "../../core/core_flags/keys/runtime_flag_keys.generated.h"
 
 static int kbo_fa_compensation_write_ortools_request(
     const char* path,
@@ -77,7 +78,7 @@ int kbo_fa_compensation_apply_ortools_order(
     int candidate_count,
     const char* source)
 {
-    if (read_kbo_localappdata_flag_file("disable_fa_compensation_ortools.txt")
+    if (read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_DISABLE_FA_COMPENSATION_ORTOOLS_FILE)
             || rec == NULL || candidates == NULL || candidate_count <= 0 || rec->protect_count == 0u) {
         return 0;
     }

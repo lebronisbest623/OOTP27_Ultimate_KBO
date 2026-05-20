@@ -7,6 +7,7 @@
 #include "allstar_csv_parse.h"
 #include "../allstar_league_context/allstar_league_context.h"
 #include "../../core/csv/core_csv.h"
+#include "../../core/dates/constants/kbo_date_constants.h"
 #include "../../core/files/save_paths/core_save_paths.h"
 
 static int get_kbo_allstar_teams_csv_path(char* path, size_t path_size)
@@ -63,7 +64,7 @@ static int get_kbo_allstar_teams_csv_path(char* path, size_t path_size)
 
 static void add_allstar_team_row(uint16_t year, const char* team_id, const char* team_name, const char* current_city, uint8_t side)
 {
-    if (year < 1800 || year > 2200 || side == 0 || side > 2
+    if (year < (int)KBO_HISTORY_YEAR_MIN || year > (int)KBO_SIM_YEAR_MAX || side == 0 || side > 2
             || team_id == NULL || team_id[0] == '\0'
             || g_allstar_team_row_count >= OOTP27_KBO_MAX_ALLSTAR_TEAM_ROWS) {
         return;

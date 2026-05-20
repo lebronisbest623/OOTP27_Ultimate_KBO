@@ -1,5 +1,6 @@
 #include "ortools/amateur_assignment_ortools.h"
 #include "../../core/optimizer/kbo_optimizer.h"
+#include "../../core/core_flags/keys/runtime_flag_keys.generated.h"
 
 KboAmateurBatchAssignment g_kbo_amateur_batch_assignments[KBO_AMATEUR_LEAGUE_BATCH_PLAYER_MAX];
 LONG g_kbo_amateur_batch_assignment_count = 0;
@@ -43,7 +44,7 @@ static int kbo_amateur_cached_bool_flag(
 int kbo_amateur_reroute_disabled_cached(void)
 {
     return kbo_amateur_cached_bool_flag(
-        "disable_amateur_assignment_reroute.txt",
+        KBO_RUNTIME_FLAG_DISABLE_AMATEUR_ASSIGNMENT_REROUTE_FILE,
         &g_kbo_amateur_disable_reroute_cached,
         &g_kbo_amateur_disable_reroute_tick,
         1000u);
@@ -52,7 +53,7 @@ int kbo_amateur_reroute_disabled_cached(void)
 int kbo_amateur_deferred_add_disabled_cached(void)
 {
     return kbo_amateur_cached_bool_flag(
-        "disable_amateur_assignment_deferred_add.txt",
+        KBO_RUNTIME_FLAG_DISABLE_AMATEUR_ASSIGNMENT_DEFERRED_ADD_FILE,
         &g_kbo_amateur_disable_deferred_cached,
         &g_kbo_amateur_disable_deferred_tick,
         1000u);
@@ -61,7 +62,7 @@ int kbo_amateur_deferred_add_disabled_cached(void)
 int kbo_amateur_verbose_log_enabled_cached(void)
 {
     return kbo_amateur_cached_bool_flag(
-        "enable_amateur_assignment_verbose_log.txt",
+        KBO_RUNTIME_FLAG_ENABLE_AMATEUR_ASSIGNMENT_VERBOSE_LOG_FILE,
         &g_kbo_amateur_verbose_log_cached,
         &g_kbo_amateur_verbose_log_tick,
         5000u);

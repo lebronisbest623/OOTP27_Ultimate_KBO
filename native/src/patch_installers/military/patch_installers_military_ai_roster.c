@@ -2,6 +2,7 @@
 #include <windows.h>
 #include <stdint.h>
 #include <string.h>
+#include "../common/patch_host.h"
 
 #include "../../bootstrap/abi/hook_entrypoints.h"
 #include "../../bootstrap/abi/ootp_offsets.h"
@@ -12,6 +13,7 @@
 #include "../../patch_helpers/patch_helpers.h"
 #include "../../runtime_memory/runtime_memory.h"
 #include "../../team/add_player_guard/team_add_player_guard_ai_roster.h"
+#include "../../core/core_flags/keys/runtime_flag_keys.generated.h"
 
 typedef void (*KboRosterMoveTraceSetTrampolineFn)(void*);
 
@@ -88,7 +90,7 @@ static int install_kbo_foreign_roster_move_trace_patch(
 
 int install_kbo_ai_roster_select_trace_patch(void)
 {
-    if (read_kbo_localappdata_flag_file("disable_ai_roster_select_trace.txt")) {
+    if (read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_DISABLE_AI_ROSTER_SELECT_TRACE_FILE)) {
         kbo_log_runtime_line("KBO AI roster select trace skipped: disable_ai_roster_select_trace is true");
         return 1;
     }
@@ -101,8 +103,8 @@ int install_kbo_ai_roster_select_trace_patch(void)
 
     char host[MAX_PATH] = {0};
     GetModuleFileNameA(exe, host, (DWORD)sizeof(host));
-    if (strstr(host, "ootp27.exe") == NULL && strstr(host, "OOTP27.EXE") == NULL) {
-        kbo_log_runtimef("host is not ootp27.exe, skipping KBO AI roster select trace patch host=%s", host);
+    if (!kbo_patch_host_matches_product(host)) {
+        kbo_log_runtimef("host is not " KBO_OOTP_EXECUTABLE_NAME ", skipping KBO AI roster select trace patch host=%s", host);
         return 0;
     }
 
@@ -126,7 +128,7 @@ int install_kbo_ai_roster_select_trace_patch(void)
 
 int install_kbo_ai_roster_primary_apply_flow_trace_patch(void)
 {
-    if (read_kbo_localappdata_flag_file("disable_ai_roster_primary_apply_flow_trace.txt")) {
+    if (read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_DISABLE_AI_ROSTER_PRIMARY_APPLY_FLOW_TRACE_FILE)) {
         kbo_log_runtime_line("KBO AI roster primary apply-flow trace skipped: disable_ai_roster_primary_apply_flow_trace is true");
         return 1;
     }
@@ -139,8 +141,8 @@ int install_kbo_ai_roster_primary_apply_flow_trace_patch(void)
 
     char host[MAX_PATH] = {0};
     GetModuleFileNameA(exe, host, (DWORD)sizeof(host));
-    if (strstr(host, "ootp27.exe") == NULL && strstr(host, "OOTP27.EXE") == NULL) {
-        kbo_log_runtimef("host is not ootp27.exe, skipping KBO AI roster primary apply-flow trace patch host=%s", host);
+    if (!kbo_patch_host_matches_product(host)) {
+        kbo_log_runtimef("host is not " KBO_OOTP_EXECUTABLE_NAME ", skipping KBO AI roster primary apply-flow trace patch host=%s", host);
         return 0;
     }
 
@@ -163,7 +165,7 @@ int install_kbo_ai_roster_primary_apply_flow_trace_patch(void)
 
 int install_kbo_ai_roster_apply_selection_trace_patch(void)
 {
-    if (read_kbo_localappdata_flag_file("disable_ai_roster_apply_selection_trace.txt")) {
+    if (read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_DISABLE_AI_ROSTER_APPLY_SELECTION_TRACE_FILE)) {
         kbo_log_runtime_line("KBO AI roster apply-selection trace skipped: disable_ai_roster_apply_selection_trace is true");
         return 1;
     }
@@ -176,8 +178,8 @@ int install_kbo_ai_roster_apply_selection_trace_patch(void)
 
     char host[MAX_PATH] = {0};
     GetModuleFileNameA(exe, host, (DWORD)sizeof(host));
-    if (strstr(host, "ootp27.exe") == NULL && strstr(host, "OOTP27.EXE") == NULL) {
-        kbo_log_runtimef("host is not ootp27.exe, skipping KBO AI roster apply-selection trace patch host=%s", host);
+    if (!kbo_patch_host_matches_product(host)) {
+        kbo_log_runtimef("host is not " KBO_OOTP_EXECUTABLE_NAME ", skipping KBO AI roster apply-selection trace patch host=%s", host);
         return 0;
     }
 

@@ -5,6 +5,7 @@
 
 #include "../../bootstrap/abi/ootp_offsets.h"
 #include "../../core/dates/core_current_date.h"
+#include "../../core/dates/constants/kbo_date_constants.h"
 #include "../../core/dates/tick/current_date_tick_capture.h"
 #include "../../core/logging/core_log.h"
 #include "../../core/sql/history_transactions/core_sql_history_transactions.h"
@@ -155,7 +156,7 @@ int kbo_return_completed_military_loan_player(
         month = (current_yyyymmdd / 100u) % 100u;
         day = current_yyyymmdd % 100u;
     } else {
-        year = 2001;
+        year = KBO_MILITARY_HISTORY_FALLBACK_YEAR;
     }
     char service_team_name[96] = {0};
     char original_team_name[96] = {0};

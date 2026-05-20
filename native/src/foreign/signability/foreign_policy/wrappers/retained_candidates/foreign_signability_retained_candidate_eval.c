@@ -14,6 +14,7 @@
 #include "../../../../common/policy/foreign_player_policy.h"
 #include "../../../../controller/foreign_ai_controller.h"
 #include "../../../../rights/query/foreign_waiver_rights_query.h"
+#include "../../../../../core/core_flags/keys/runtime_flag_keys.generated.h"
 
 int kbo_apply_foreign_reserve_demand_floor(uintptr_t player_ptr, const char* source);
 
@@ -60,7 +61,7 @@ int kbo_ai_fa_status_retention_priority_enabled(void)
         return InterlockedCompareExchange(&s_cached_enabled, 0, 0) != 0;
     }
 
-    int enabled = read_kbo_localappdata_flag_file("enable_foreign_ai_roster_management.txt")
+    int enabled = read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_FOREIGN_AI_ROSTER_MANAGEMENT_FILE)
         || kbo_foreign_ai_controller_enabled();
     InterlockedExchange(&s_cached_enabled, enabled ? 1 : 0);
     InterlockedExchange(&s_cached_tick, (LONG)now);

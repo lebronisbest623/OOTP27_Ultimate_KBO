@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 #include "../../bootstrap/abi/ootp_offsets.h"
+#include "../../core/dates/constants/kbo_date_constants.h"
 
 int32_t kbo_fa_salary_snapshot_player_salary_for_season(uint8_t* player, uint32_t season)
 {
@@ -12,7 +13,9 @@ int32_t kbo_fa_salary_snapshot_player_salary_for_season(uint8_t* player, uint32_
     }
 
     int32_t start_year = *(int32_t*)(player + OOTP27_PLAYER_CONTRACT_START_YEAR_OFFSET);
-    if (start_year >= 1982 && start_year <= 2200 && season >= (uint32_t)start_year) {
+    if (start_year >= (int32_t)KBO_SEASON_YEAR_MIN
+            && start_year <= (int32_t)KBO_SIM_YEAR_MAX
+            && season >= (uint32_t)start_year) {
         uint32_t index = season - (uint32_t)start_year;
         if (index < OOTP27_PLAYER_CONTRACT_SALARY_YEARS && years[index] > 0) {
             return years[index];

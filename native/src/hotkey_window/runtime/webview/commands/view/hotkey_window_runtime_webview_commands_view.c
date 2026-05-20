@@ -2,6 +2,7 @@
 #include "../../../../../core/dates/tick/current_date_tick_capture.h"
 #include "../../../../../competitive_balance_tax/exceptions/cbt_exceptions.h"
 #include "../../../../../fa_salary_snapshot/grading/salary_snapshot_grade_rows.h"
+#include "../../../../../core/dates/constants/kbo_date_constants.h"
 
 static int kbo_webview_cbt_exception_window_open(uint32_t season)
 {
@@ -265,7 +266,7 @@ int kbo_webview_handle_view_navigation_command(const char* cmd)
             return 1;
         }
         uint32_t year = (uint32_t)strtoul(cmd + 22, NULL, 10);
-        if (year == 0u || (year >= 1982u && year <= 2300u)) {
+        if (year == 0u || (year >= KBO_SEASON_YEAR_MIN && year <= KBO_RECORD_YEAR_MAX)) {
             g_kbo_hub_selected_military_results_year = year;
         }
         g_kbo_hub_selected_view = KBO_HUB_VIEW_MILITARY;

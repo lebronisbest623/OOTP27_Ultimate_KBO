@@ -1,4 +1,5 @@
 #include "../award_schedule_policy_apply_internal.h"
+#include "../../../../core/dates/constants/kbo_date_constants.h"
 
 static int kbo_award_schedule_write_u8(uint8_t* slot, uint8_t value)
 {
@@ -46,7 +47,7 @@ static int kbo_award_schedule_write_date(uint8_t* event, uint32_t month, uint32_
 
 static int kbo_award_schedule_write_year(uint8_t* event, uint32_t year)
 {
-    if (event == NULL || year < 1982u || year > 2400u) {
+    if (event == NULL || year < KBO_SEASON_YEAR_MIN || year > KBO_POLICY_YEAR_MAX) {
         return 0;
     }
     return kbo_award_schedule_write_u16(
@@ -88,7 +89,7 @@ static uint32_t kbo_award_schedule_event_date(uint8_t* event)
     uint32_t year = *(uint16_t*)(event + OOTP27_LEAGUE_EVENT_YEAR_OFFSET);
     uint32_t month = event[OOTP27_LEAGUE_EVENT_MONTH_OFFSET];
     uint32_t day = event[OOTP27_LEAGUE_EVENT_DAY_OFFSET];
-    if (year < 1982u || year > 2400u || month < 1u || month > 12u || day < 1u || day > 31u) {
+    if (year < KBO_SEASON_YEAR_MIN || year > KBO_POLICY_YEAR_MAX || month < 1u || month > 12u || day < 1u || day > 31u) {
         return 0u;
     }
     return year * 10000u + month * 100u + day;
@@ -218,7 +219,7 @@ int kbo_award_schedule_apply_rule_to_native_event(
 uint32_t kbo_award_schedule_retired_placeholder_year(uint32_t current_date)
 {
     uint32_t current_year = current_date / 10000u;
-    return current_year > 1982u && current_year <= 2400u ? current_year - 1u : 1982u;
+    return current_year > KBO_SEASON_YEAR_MIN && current_year <= KBO_POLICY_YEAR_MAX ? current_year - 1u : KBO_SEASON_YEAR_MIN;
 }
 
 int kbo_award_schedule_retire_legacy_custom_placeholder(uint8_t* event, uint32_t current_date)

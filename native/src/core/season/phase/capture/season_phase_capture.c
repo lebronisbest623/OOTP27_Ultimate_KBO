@@ -9,6 +9,7 @@
 #include "../../../dates/core_text_date.h"
 #include "../../../logging/core_log.h"
 #include "../../../sync/lock.h"
+#include "../../../dates/constants/kbo_date_constants.h"
 
 volatile LONG g_kbo_season_phase_capture_event_write_cursor = 0;
 volatile LONG g_kbo_season_phase_capture_event_published_sequence = 0;
@@ -28,7 +29,7 @@ static int kbo_season_phase_capture_phase_known(uint32_t phase)
 
 static int kbo_season_phase_capture_year_plausible(uint32_t year)
 {
-    return year >= 1982u && year <= 2200u;
+    return year >= KBO_SEASON_YEAR_MIN && year <= KBO_SIM_YEAR_MAX;
 }
 
 static uint32_t kbo_season_phase_capture_date_serial(uint32_t yyyymmdd)
@@ -86,7 +87,7 @@ static int kbo_season_phase_capture_snapshot_still_usable(
     }
 
     uint32_t date_year = today_yyyymmdd / 10000u;
-    if (date_year >= 1982u && date_year <= 2200u
+    if (date_year >= KBO_SEASON_YEAR_MIN && date_year <= KBO_SIM_YEAR_MAX
             && (snapshot->league_year + 1u < date_year || snapshot->league_year > date_year + 1u)) {
         return 0;
     }

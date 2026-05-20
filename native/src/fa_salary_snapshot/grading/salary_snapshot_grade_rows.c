@@ -8,6 +8,7 @@
 #include "../csv/salary_snapshot_csv_parse.h"
 #include "../paths/salary_snapshot_paths_dates.h"
 #include "../../fa_market_classification/policy/fa_market_policy.h"
+#include "../../core/dates/constants/kbo_date_constants.h"
 
 static const char* kbo_fa_salary_snapshot_grade_for_ranks(uint32_t overall_rank, uint32_t team_rank, int32_t salary)
 {
@@ -145,7 +146,7 @@ int kbo_fa_salary_snapshot_load_grade_rows(
     if (out_path != NULL && out_path_size > 0) {
         out_path[0] = '\0';
     }
-    if (rows == NULL || max_rows <= 0 || season < 1982u || season > 2200u) {
+    if (rows == NULL || max_rows <= 0 || season < KBO_SEASON_YEAR_MIN || season > KBO_SIM_YEAR_MAX) {
         return 0;
     }
     memset(rows, 0, (SIZE_T)max_rows * sizeof(rows[0]));
@@ -235,7 +236,7 @@ int kbo_fa_salary_snapshot_load_fa_market_grade_rows(
         return count;
     }
 
-    if (current_year <= 1982u) {
+    if (current_year <= KBO_SEASON_YEAR_MIN) {
         return count;
     }
 

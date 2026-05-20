@@ -8,6 +8,7 @@
 #include "../../../runtime_memory/runtime_memory.h"
 #include "../../core_league_context_parts/api/league_context_lookup.h"
 #include "../season_calendar.h"
+#include "../../dates/constants/kbo_date_constants.h"
 
 static void kbo_season_phase_init_info(KboSeasonPhaseInfo* info)
 {
@@ -55,7 +56,7 @@ int kbo_season_phase_read_raw(uint32_t league_id, KboSeasonPhaseInfo* out_info)
     uint32_t league_year = *(uint32_t*)(league_ptr + OOTP27_KBO_LEAGUE_YEAR_OFFSET);
     uint8_t raw_phase = *(uint8_t*)(league_ptr + OOTP27_KBO_LEAGUE_PHASE_OFFSET);
     uint32_t raw_phase_year = *(uint32_t*)(league_ptr + OOTP27_KBO_LEAGUE_PHASE_YEAR_OFFSET);
-    if (league_year < 1982u || league_year > 2200u || raw_phase > KBO_SEASON_PHASE_POSTSEASON) {
+    if (league_year < KBO_SEASON_YEAR_MIN || league_year > KBO_SIM_YEAR_MAX || raw_phase > KBO_SEASON_PHASE_POSTSEASON) {
         out_info->league_id = league_id;
         out_info->league_ptr = league_ptr;
         out_info->league_year = league_year;
@@ -77,7 +78,7 @@ static uint32_t kbo_season_phase_schedule_year(uint32_t today, uint32_t league_y
 {
     uint32_t date_year = today / 10000u;
     uint32_t month_day = today % 10000u;
-    if (league_year < 1982u || league_year > 2200u) {
+    if (league_year < KBO_SEASON_YEAR_MIN || league_year > KBO_SIM_YEAR_MAX) {
         return date_year;
     }
     if (date_year > league_year && month_day <= 701u) {

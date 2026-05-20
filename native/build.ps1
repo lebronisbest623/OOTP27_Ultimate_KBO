@@ -361,6 +361,7 @@ else {
     if ($ToCompile) {
         $GccPath             = $Gcc
         $WebView2IncludePath = $WebView2Include
+        $SourceIncludePath   = Join-Path $Root "src"
         $ThrottleLimit       = [Environment]::ProcessorCount
         Write-Host "Compiling $($ToCompile.Count) of $($NativeSources.Count) sources (parallel, $ThrottleLimit threads)"
 
@@ -368,9 +369,11 @@ else {
             $Entry      = $_
             $GccPath    = $using:GccPath
             $IncludePath = $using:WebView2IncludePath
+            $SourceIncludePath = $using:SourceIncludePath
 
             $Output = & $GccPath -O2 -pipe -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
                 -isystem $IncludePath `
+                -I $SourceIncludePath `
                 -MMD -MP -MF $Entry.DepPath `
                 -c $Entry.Source `
                 -o $Entry.ObjectPath 2>&1

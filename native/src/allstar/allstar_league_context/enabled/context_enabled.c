@@ -1,4 +1,6 @@
 #include "../allstar_league_context.h"
+#include "../../../core/dates/constants/kbo_date_constants.h"
+#include "../../../core/league_roles/kbo_league_roles.h"
 
 static int kbo_ascii_contains_ignore_case_local(const char* text, const char* needle)
 {
@@ -72,7 +74,7 @@ int kbo_allstar_raw_kbo_league_context_enabled(uintptr_t league_ptr)
     uint32_t year = memory_range_readable(league + OOTP27_KBO_LEAGUE_YEAR_OFFSET, sizeof(uint32_t))
         ? *(uint32_t*)(league + OOTP27_KBO_LEAGUE_YEAR_OFFSET)
         : 0u;
-    if (year != 0u && (year < 1982u || year > 2200u)) {
+    if (year != 0u && (year < KBO_SEASON_YEAR_MIN || year > KBO_SIM_YEAR_MAX)) {
         return 0;
     }
 
@@ -84,8 +86,9 @@ int kbo_allstar_raw_kbo_league_context_enabled(uintptr_t league_ptr)
 
     uint32_t configured_league_id = kbo_get_foreign_waiver_league_id();
     if (configured_league_id == 0u) {
-        configured_league_id = OOTP27_KBO_MAIN_LEAGUE_ID;
+        configured_league_id = kbo_league_role_main_league_id();
     }
+    uint32_t default_league_id = kbo_league_role_main_league_id();
     uint32_t legacy_id = memory_range_readable(league + OOTP27_KBO_LEAGUE_ID_OFFSET, sizeof(uint32_t))
         ? *(uint32_t*)(league + OOTP27_KBO_LEAGUE_ID_OFFSET)
         : 0u;
@@ -95,9 +98,9 @@ int kbo_allstar_raw_kbo_league_context_enabled(uintptr_t league_ptr)
     return legacy_id == configured_league_id
         || primary_id == configured_league_id
         || fallback_id == configured_league_id
-        || legacy_id == OOTP27_KBO_MAIN_LEAGUE_ID
-        || primary_id == OOTP27_KBO_MAIN_LEAGUE_ID
-        || fallback_id == OOTP27_KBO_MAIN_LEAGUE_ID;
+        || legacy_id == default_league_id
+        || primary_id == default_league_id
+        || fallback_id == default_league_id;
 }
 
 int kbo_allstar_league_context_enabled(uintptr_t league_ptr)
@@ -118,7 +121,7 @@ int kbo_allstar_league_context_enabled(uintptr_t league_ptr)
     }
 
     uint32_t year = *(uint32_t*)(league + OOTP27_KBO_LEAGUE_YEAR_OFFSET);
-    if (year < 1982u || year > 2200u) {
+    if (year < KBO_SEASON_YEAR_MIN || year > KBO_SIM_YEAR_MAX) {
         return 0;
     }
 
@@ -128,7 +131,8 @@ int kbo_allstar_league_context_enabled(uintptr_t league_ptr)
     if (primary_league_id == configured_league_id || fallback_league_id == configured_league_id) {
         return 1;
     }
-    if (primary_league_id == OOTP27_KBO_MAIN_LEAGUE_ID || fallback_league_id == OOTP27_KBO_MAIN_LEAGUE_ID) {
+    uint32_t default_league_id = kbo_league_role_main_league_id();
+    if (primary_league_id == default_league_id || fallback_league_id == default_league_id) {
         return 1;
     }
     if (kbo_allstar_league_has_seeded_division_split(league_ptr)) {

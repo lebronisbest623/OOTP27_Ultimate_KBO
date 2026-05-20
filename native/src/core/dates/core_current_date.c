@@ -5,6 +5,7 @@
 #include "../../bootstrap/abi/ootp_offsets.h"
 #include "../../runtime_memory/runtime_memory.h"
 #include "core_text_date.h"
+#include "constants/kbo_date_constants.h"
 /* Core current-date readers. */
 
 static int kbo_current_date_components_valid(uint32_t year, uint32_t month, uint32_t day)
@@ -12,7 +13,7 @@ static int kbo_current_date_components_valid(uint32_t year, uint32_t month, uint
     static const uint8_t month_days_common[12] = {
         31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
     };
-    if (year < 1800u || year > 2200u || month < 1u || month > 12u || day < 1u) {
+    if (year < KBO_HISTORY_YEAR_MIN || year > KBO_SIM_YEAR_MAX || month < 1u || month > 12u || day < 1u) {
         return 0;
     }
     uint32_t max_day = month_days_common[month - 1u];
@@ -103,7 +104,7 @@ int kbo_current_year_relaxed(uint32_t* out_year)
     }
 
     year = *(uint16_t*)(current_date + OOTP27_CURRENT_DATE_YEAR_OFFSET);
-    if (year < 1800 || year > 2300) {
+    if (year < (int)KBO_HISTORY_YEAR_MIN || year > (int)KBO_RECORD_YEAR_MAX) {
         return 0;
     }
 

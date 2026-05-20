@@ -8,6 +8,7 @@
 #include "../../../core/logging/core_log.h"
 #include "../../../core/dates/core_text_date.h"
 #include "../../../runtime_memory/runtime_memory.h"
+#include "../../../core/dates/constants/kbo_date_constants.h"
 
 static int kbo_allstar_schedule_memory_executable(const void* address)
 {
@@ -66,7 +67,7 @@ int kbo_allstar_schedule_date_ready(uint8_t* league)
     uint16_t year = *(uint16_t*)(league + OOTP27_ALLSTAR_DATE_YEAR_OFFSET);
     uint8_t day = *(uint8_t*)(league + OOTP27_ALLSTAR_DATE_DAY_OFFSET);
     uint8_t month = *(uint8_t*)(league + OOTP27_ALLSTAR_DATE_MONTH_OFFSET);
-    return year >= 1982u && year <= 2200u && month >= 1u && month <= 12u && day >= 1u && day <= 31u;
+    return year >= KBO_SEASON_YEAR_MIN && year <= KBO_SIM_YEAR_MAX && month >= 1u && month <= 12u && day >= 1u && day <= 31u;
 }
 
 int kbo_allstar_season_start_date_ready(uint8_t* league)
@@ -81,7 +82,7 @@ int kbo_allstar_season_start_date_ready(uint8_t* league)
     uint16_t year = *(uint16_t*)(league + OOTP27_SEASON_START_DATE_YEAR_OFFSET);
     uint8_t day = *(uint8_t*)(league + OOTP27_SEASON_START_DATE_DAY_OFFSET);
     uint8_t month = *(uint8_t*)(league + OOTP27_SEASON_START_DATE_MONTH_OFFSET);
-    return year >= 1982u && year <= 2200u && month >= 1u && month <= 12u && day >= 1u && day <= 31u;
+    return year >= KBO_SEASON_YEAR_MIN && year <= KBO_SIM_YEAR_MAX && month >= 1u && month <= 12u && day >= 1u && day <= 31u;
 }
 
 int kbo_allstar_load_schedule_dates(
@@ -93,7 +94,7 @@ int kbo_allstar_load_schedule_dates(
 
 static int kbo_allstar_year_plausible(uint32_t year)
 {
-    return year >= 1982u && year <= 2200u;
+    return year >= KBO_SEASON_YEAR_MIN && year <= KBO_SIM_YEAR_MAX;
 }
 
 static uint32_t kbo_allstar_read_league_year_candidate(uintptr_t league_ptr)

@@ -14,6 +14,7 @@
 #include "../../runtime_memory/runtime_memory.h"
 #include "../../team/names/team_string.h"
 #include "../core_league_context_parts/event_manager/event_manager.h"
+#include "../dates/constants/kbo_date_constants.h"
 #include "../logging/core_log.h"
 #include "../dates/core_text_date.h"
 #include "../text/ootp_text_encoding.h"
@@ -224,7 +225,8 @@ int create_kbo_league_event(
     uint16_t aux_id,
     const char* source)
 {
-    if (title == NULL || title[0] == '\0' || league_id == 0 || year < 1800 || year > 2200
+    if (title == NULL || title[0] == '\0' || league_id == 0
+            || year < (int)KBO_HISTORY_YEAR_MIN || year > (int)KBO_SIM_YEAR_MAX
             || month < 1 || month > 12 || day < 1 || day > 31) {
         return 0;
     }

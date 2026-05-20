@@ -7,6 +7,7 @@
 #include "../../../bootstrap/profiling/profiler.h"
 #include "../../../core/dates/tick/current_date_tick_capture.h"
 #include "../../../core/runtime_tuning/runtime_tuning_policy.h"
+#include "../../../core/dates/constants/kbo_date_constants.h"
 
 enum {
     KBO_FOREIGN_ROSTER_DAILY_FA_REPAIR_CURRENT_MIN_WALL_MS = 30000u,
@@ -168,7 +169,7 @@ static int kbo_foreign_roster_daily_process_background_date(
         state->last_fa_repair_current_tick = now;
     }
 
-    if (season > 1982u) {
+    if (season > KBO_SEASON_YEAR_MIN) {
         uint32_t previous_season = season - 1u;
         int run_previous_fa_repair = previous_season != state->last_fa_repair_previous_season
             || state->last_fa_repair_previous_tick == 0u

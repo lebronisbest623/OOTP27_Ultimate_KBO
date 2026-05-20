@@ -9,6 +9,7 @@
 
 #include "../src/bootstrap/abi/ootp_offsets.h"
 #include "../src/core/csv/core_csv.h"
+#include "../src/core/league_roles/kbo_league_roles.h"
 #include "../src/fa_declaration/fa_declaration.h"
 
 int kbo_fix_enabled(void)
@@ -47,6 +48,11 @@ int kbo_get_fa_declaration_csv_path(char* out, size_t out_size)
 uint32_t kbo_fa_declaration_retained_contract_season(uint32_t declaration_season)
 {
     return declaration_season + 1u;
+}
+
+uint32_t kbo_league_role_main_league_id(void)
+{
+    return KBO_DEFAULT_MAIN_LEAGUE_ID;
 }
 
 KboCsvReader* kbo_csv_reader_open(const char* path)
@@ -147,7 +153,7 @@ static void test_retained_fa_repair_normalizes_next_season_contract(void)
     decision.season = 2026u;
     decision.declared = 0u;
     decision.team_id = 7u;
-    decision.league_id = 100u;
+    decision.league_id = KBO_DEFAULT_MAIN_LEAGUE_ID;
     decision.contract_level = 1u;
     decision.salary = 600000;
 

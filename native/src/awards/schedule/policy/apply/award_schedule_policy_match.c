@@ -1,8 +1,9 @@
 #include "../award_schedule_policy_apply_internal.h"
+#include "../../../../core/dates/constants/kbo_date_constants.h"
 
 uint32_t kbo_award_schedule_rule_date(const KboAwardScheduleRule* rule, uint32_t year)
 {
-    if (rule == NULL || year < 1982u || year > 2400u) {
+    if (rule == NULL || year < KBO_SEASON_YEAR_MIN || year > KBO_POLICY_YEAR_MAX) {
         return 0u;
     }
     uint32_t month = rule->default_month;

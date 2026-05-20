@@ -13,6 +13,7 @@
 #include "../../../runtime_memory/runtime_memory.h"
 #include "context/host_names.h"
 #include "../links/links.h"
+#include "../../../core/dates/constants/kbo_date_constants.h"
 
 static int kbo_asian_games_news_uses_korean(void)
 {
@@ -35,10 +36,10 @@ static const char* kbo_asian_games_military_status_label(
 static uint32_t kbo_asian_games_context_year(uint32_t event_yyyymmdd)
 {
     uint32_t year = g_kbo_asian_games_roster_year;
-    if (year < 1982u || year > 2200u) {
+    if (year < KBO_SEASON_YEAR_MIN || year > KBO_SIM_YEAR_MAX) {
         year = event_yyyymmdd / 10000u;
     }
-    if (year < 1982u || year > 2200u) {
+    if (year < KBO_SEASON_YEAR_MIN || year > KBO_SIM_YEAR_MAX) {
         uint32_t current_yyyymmdd = 0u;
         if (kbo_current_date_tick_latest_published_date(&current_yyyymmdd)) {
             year = current_yyyymmdd / 10000u;

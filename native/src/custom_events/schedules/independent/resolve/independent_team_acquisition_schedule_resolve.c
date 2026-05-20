@@ -9,6 +9,7 @@
 #include "../../../../core/files/save_paths/core_save_paths.h"
 #include "../../../../core/logging/core_log.h"
 #include "../../../../runtime_memory/runtime_memory.h"
+#include "../../../../core/dates/constants/kbo_date_constants.h"
 
 KboIndependentAcquisitionMemoryStartCache g_kbo_independent_acquisition_memory_start_cache = {0};
 
@@ -19,7 +20,7 @@ static int kbo_independent_team_acquisition_store_memory_start_cache(
     uintptr_t league_ptr)
 {
     char save_path[MAX_PATH] = {0};
-    if (league_id == 0u || season < 1982u || season > 2200u
+    if (league_id == 0u || season < KBO_SEASON_YEAR_MIN || season > KBO_SIM_YEAR_MAX
             || start_date / 10000u != season
             || league_ptr == 0u
             || !kbo_get_current_save_path(save_path, sizeof(save_path))
@@ -175,7 +176,7 @@ static int kbo_independent_team_acquisition_scan_memory_start_by_league_id(
     if (out_league_ptr != NULL) {
         *out_league_ptr = 0u;
     }
-    if (league_id == 0u || expected_year < 1982u || expected_year > 2200u) {
+    if (league_id == 0u || expected_year < KBO_SEASON_YEAR_MIN || expected_year > KBO_SIM_YEAR_MAX) {
         return 0;
     }
 
@@ -262,7 +263,7 @@ static int kbo_independent_team_acquisition_read_futures_league_start_date_from_
         *out_start_source = "";
     }
     if (league_id == 0u || out_start_date == NULL
-            || expected_year < 1982u || expected_year > 2200u) {
+            || expected_year < KBO_SEASON_YEAR_MIN || expected_year > KBO_SIM_YEAR_MAX) {
         return 0;
     }
 

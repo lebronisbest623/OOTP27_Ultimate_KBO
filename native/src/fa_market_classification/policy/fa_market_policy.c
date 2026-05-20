@@ -3,6 +3,7 @@
 
 #include "fa_market_policy.h"
 
+#include "../../core/league_roles/kbo_league_roles.h"
 #include "../../core/policy/core_policy.h"
 
 #define KBO_FA_MARKET_POLICY_FILE "fa_market_policy.json"
@@ -22,12 +23,24 @@ static BOOL CALLBACK kbo_fa_market_policy_init_once(PINIT_ONCE init_once, PVOID 
     (void)context;
 
     KboFaMarketPolicy* p = &g_kbo_fa_market_policy;
-    p->undrafted_college_league_id = kbo_fa_market_policy_int("undrafted_college_league_id", 201, 0, 1000000);
+    p->undrafted_college_league_id = kbo_fa_market_policy_int(
+        "undrafted_college_league_id",
+        (int32_t)kbo_league_role_college_league_id(),
+        0,
+        1000000);
     p->undrafted_college_draft_subtype = kbo_fa_market_policy_int("undrafted_college_draft_subtype", 1, 0, 255);
     p->undrafted_college_age_max = kbo_fa_market_policy_int("undrafted_college_age_max", 25, 0, 80);
-    p->undrafted_high_school_league_id = kbo_fa_market_policy_int("undrafted_high_school_league_id", 203, 0, 1000000);
+    p->undrafted_high_school_league_id = kbo_fa_market_policy_int(
+        "undrafted_high_school_league_id",
+        (int32_t)kbo_league_role_high_school_league_id(),
+        0,
+        1000000);
     p->undrafted_high_school_age_max = kbo_fa_market_policy_int("undrafted_high_school_age_max", 20, 0, 80);
-    p->independent_league_id = kbo_fa_market_policy_int("independent_league_id", 200, 0, 1000000);
+    p->independent_league_id = kbo_fa_market_policy_int(
+        "independent_league_id",
+        (int32_t)kbo_league_role_independent_league_id(),
+        0,
+        1000000);
     p->player_age_min = kbo_fa_market_policy_int("player_age_min", 16, 0, 80);
     p->player_age_max = kbo_fa_market_policy_int("player_age_max", 60, 0, 100);
     p->salary_grade_a_overall_rank_max = kbo_fa_market_policy_int("salary_grade_a_overall_rank_max", 30, 0, 10000);

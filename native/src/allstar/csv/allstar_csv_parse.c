@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../../core/dates/constants/kbo_date_constants.h"
 #include "../../core/dates/core_text_date.h"
 
 static void kbo_allstar_trim_cell(char* value)
@@ -209,7 +210,7 @@ void kbo_csv_extract_allstar_team_fields_from_fields(
         const char* cell = fields[col];
         if (col == year_col) {
             int parsed_year = atoi(cell);
-            if (parsed_year >= 1800 && parsed_year <= 2200) {
+            if (parsed_year >= (int)KBO_HISTORY_YEAR_MIN && parsed_year <= (int)KBO_SIM_YEAR_MAX) {
                 *year = (uint16_t)parsed_year;
             }
         } else if (col == team_id_col && team_id != NULL && team_id_size > 0) {

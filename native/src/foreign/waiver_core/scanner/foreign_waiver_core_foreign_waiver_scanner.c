@@ -16,6 +16,7 @@
 #include "../api/foreign_waiver_core.h"
 #include "../internal/foreign_waiver_core_ai_internal.h"
 #include "../internal/foreign_waiver_core_io_internal.h"
+#include "../../../core/core_flags/keys/runtime_flag_keys.generated.h"
 
 LONG g_kbo_foreign_waiver_scanner_started = 0;
 
@@ -87,7 +88,7 @@ static DWORD WINAPI kbo_foreign_waiver_scanner_thread(LPVOID parameter)
             continue;
         }
 
-        int background_scanner_enabled = read_kbo_localappdata_flag_file("enable_foreign_waiver_background_scanner.txt");
+        int background_scanner_enabled = read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_FOREIGN_WAIVER_BACKGROUND_SCANNER_FILE);
         if (background_scanner_enabled) {
             audit_foreign_roster_state("foreign_roster_pre_tick", 0);
         }
@@ -114,7 +115,7 @@ void start_kbo_foreign_waiver_scanner_thread(void)
     if (!kbo_foreign_waiver_ai_enabled()) {
         return;
     }
-    int background_scanner_enabled = read_kbo_localappdata_flag_file("enable_foreign_waiver_background_scanner.txt");
+    int background_scanner_enabled = read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_FOREIGN_WAIVER_BACKGROUND_SCANNER_FILE);
     if (InterlockedCompareExchange(&g_kbo_foreign_waiver_scanner_started, 1, 0) != 0) {
         return;
     }

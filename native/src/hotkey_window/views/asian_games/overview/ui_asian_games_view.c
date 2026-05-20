@@ -1,9 +1,10 @@
 #include "../ui_asian_games_view_internal.h"
 #include "../../../../core/dates/tick/current_date_tick_capture.h"
+#include "../../../../core/dates/constants/kbo_date_constants.h"
 
 static void kbo_webview_asian_games_roster_add_year(uint16_t* years, int* year_count, uint32_t year)
 {
-    if (years == NULL || year_count == NULL || year < 1982u || year > 2300u) {
+    if (years == NULL || year_count == NULL || year < KBO_SEASON_YEAR_MIN || year > KBO_RECORD_YEAR_MAX) {
         return;
     }
     for (int i = 0; i < *year_count; i++) {

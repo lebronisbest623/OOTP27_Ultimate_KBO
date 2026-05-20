@@ -1,5 +1,6 @@
 #include "../internal/foreign_quota_internal.h"
 #include "foreign_quota_trade_policy_cache.h"
+#include "../../../core/league_roles/kbo_league_roles.h"
 
 #define KBO_CUSTOM_FOREIGN_TRADE_TEAM_ID_OFFSET       0x08u
 #define KBO_CUSTOM_FOREIGN_TRADE_PLAYER_ID_OFFSET     0x10u
@@ -35,7 +36,7 @@ int kbo_custom_foreign_policy_team_in_trade_scope(uint32_t team_id)
     if (kbo_league_id != 0u) {
         return team_league_id == kbo_league_id;
     }
-    return team_league_id == OOTP27_KBO_MAIN_LEAGUE_ID;
+    return team_league_id == kbo_league_role_main_league_id();
 }
 
 int kbo_custom_foreign_policy_trade_countable_player(

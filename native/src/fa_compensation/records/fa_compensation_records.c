@@ -10,6 +10,7 @@
 #include "../../core/logging/core_log.h"
 #include "../state/fa_compensation_paths_parse.h"
 #include "fa_compensation_records.h"
+#include "../../core/dates/constants/kbo_date_constants.h"
 
 static void kbo_fa_compensation_write_csv_text(HANDLE file, const char* text)
 {
@@ -81,7 +82,7 @@ int kbo_load_fa_compensation_records(
         kbo_fa_compensation_copy_token(fields[13], rec->case_label, sizeof(rec->case_label));
         kbo_fa_compensation_copy_token(fields[14], rec->player_name, sizeof(rec->player_name));
         kbo_fa_compensation_copy_token(fields[15], rec->source, sizeof(rec->source));
-        if (rec->player_id != 0u && rec->season >= 1982u && rec->season <= 2300u) {
+        if (rec->player_id != 0u && rec->season >= KBO_SEASON_YEAR_MIN && rec->season <= KBO_RECORD_YEAR_MAX) {
             count++;
         } else {
             memset(rec, 0, sizeof(*rec));

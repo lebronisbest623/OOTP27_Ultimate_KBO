@@ -5,6 +5,7 @@
 #include "../../../logging/core_log.h"
 
 #include <windows.h>
+#include "../../keys/runtime_flag_keys.generated.h"
 
 #define KBO_FOREIGN_FA_QUALITY_CAP_ENABLED_KEY "foreign_fa_quality_cap_enabled"
 
@@ -14,7 +15,7 @@ int kbo_get_foreign_fa_quality_cap_enabled_setting(void)
     if (!kbo_read_localappdata_setting_flag_value(
             KBO_FOREIGN_FA_QUALITY_CAP_ENABLED_KEY,
             &value)) {
-        if (read_kbo_localappdata_flag_file("disable_intl_established_fa_quality_shaping.txt")) {
+        if (read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_DISABLE_INTL_ESTABLISHED_FA_QUALITY_SHAPING_FILE)) {
             value = 0;
         } else {
             value = kbo_economic_default_foreign_fa_quality_cap_enabled();

@@ -9,6 +9,7 @@
 #include "cbt_service_time_probe.h"
 #include "../../../bootstrap/abi/ootp_offsets.h"
 #include "../../../core/core_league_context_parts/api/league_context_lookup.h"
+#include "../../../core/dates/constants/kbo_date_constants.h"
 #include "../../../core/logging/core_log.h"
 #include "../../../core/teams/core_team_collect.h"
 #include "../../../runtime_memory/runtime_memory.h"

@@ -1,6 +1,7 @@
 #include "patch_installers_foreign_counts.h"
 #include <stdio.h>
 #include <string.h>
+#include "../../../common/patch_host.h"
 #include "../../../../bootstrap/abi/ootp_offsets.h"
 #include "../../../../core/logging/core_log.h"
 #include "../../../../core/dates/core_current_date.h"
@@ -28,8 +29,8 @@ int install_kbo_active_foreign_count_patch(
 
     char host[MAX_PATH] = {0};
     GetModuleFileNameA(exe, host, (DWORD)sizeof(host));
-    if (strstr(host, "ootp27.exe") == NULL && strstr(host, "OOTP27.EXE") == NULL) {
-        kbo_log_runtimef("host is not ootp27.exe, skipping %s host=%s", label, host);
+    if (!kbo_patch_host_matches_product(host)) {
+        kbo_log_runtimef("host is not " KBO_OOTP_EXECUTABLE_NAME ", skipping %s host=%s", label, host);
         return 0;
     }
 

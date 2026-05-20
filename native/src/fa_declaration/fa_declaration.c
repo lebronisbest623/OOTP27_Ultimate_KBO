@@ -14,6 +14,8 @@
 #include "../core/core_league_context_parts/api/league_context_lookup.h"
 #include "../core/files/save_paths/core_save_paths.h"
 #include "../core/csv/core_csv.h"
+#include "../core/dates/constants/kbo_date_constants.h"
+#include "../core/league_roles/kbo_league_roles.h"
 #include "../core/logging/core_log.h"
 #include "../core/logging/rule_audit.h"
 #include "../custom_events/runtime/dates/custom_event_dates.h"
@@ -86,7 +88,7 @@ int kbo_fa_declaration_find_latest_decision(
 
 uint32_t kbo_fa_declaration_retained_contract_season(uint32_t declaration_season)
 {
-    if (declaration_season < 1982u || declaration_season >= 2200u) {
+    if (declaration_season < KBO_SEASON_YEAR_MIN || declaration_season >= KBO_SIM_YEAR_MAX) {
         return declaration_season;
     }
     return declaration_season + 1u;
@@ -104,7 +106,7 @@ int kbo_handle_fa_declaration_event(uint32_t event_yyyymmdd, const char* source)
     uint32_t season = event_yyyymmdd / 10000u;
     uint32_t league_id = kbo_resolve_kbo_league_id();
     if (league_id == 0u) {
-        league_id = OOTP27_KBO_MAIN_LEAGUE_ID;
+        league_id = kbo_league_role_main_league_id();
     }
 
     KboFaDeclarationCandidate* candidates = (KboFaDeclarationCandidate*)HeapAlloc(

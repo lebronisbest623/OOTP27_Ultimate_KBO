@@ -1,4 +1,5 @@
 #include "../submit_offer_probe.h"
+#include "../../../../core/core_flags/keys/runtime_flag_keys.generated.h"
 
 static int kbo_foreign_fa_player_has_active_reserve_right(
     uint8_t* player,
@@ -217,7 +218,7 @@ void kbo_log_financials_salary_baseline_probe(const char* source)
 
     static LONG log_count = 0;
     LONG slot = InterlockedIncrement(&log_count);
-    if (slot > 5 && !read_kbo_localappdata_flag_file("enable_kbo_financials_salary_baseline_probe_log.txt")) {
+    if (slot > 5 && !read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_KBO_FINANCIALS_SALARY_BASELINE_PROBE_LOG_FILE)) {
         return;
     }
 

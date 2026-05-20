@@ -2,12 +2,10 @@
 
 #include "../json/json_bool_parser.h"
 #include "../../files/save_paths/platform/core_path_io.h"
+#include "../../product/ootp_product.h"
 
 #include <stdio.h>
 #include <string.h>
-
-#define KBO_FLAGS_JSON_FILE "kbo_flags.json"
-#define KBO_SETTINGS_JSON_FILE "kbo_settings.json"
 
 static int kbo_get_localappdata_named_json_path_w(const char* file_name, WCHAR* out, DWORD out_count)
 {
@@ -28,7 +26,7 @@ static int kbo_get_localappdata_named_json_path_w(const char* file_name, WCHAR* 
         return 0;
     }
 
-    int written = _snwprintf(out, out_count, L"%ls\\OOTP-KBO\\%ls", local_app_data, wide_file_name);
+    int written = _snwprintf(out, out_count, L"%ls\\" KBO_PRODUCT_LOCAL_DATA_DIR_W L"\\%ls", local_app_data, wide_file_name);
     return written > 0 && (DWORD)written < out_count;
 }
 
@@ -90,12 +88,12 @@ int kbo_read_localappdata_named_json_flag_value(const char* file_name, const cha
 
 int kbo_read_localappdata_json_flag_value(const char* key, int* out_value)
 {
-    return kbo_read_localappdata_named_json_flag_value(KBO_FLAGS_JSON_FILE, key, out_value);
+    return kbo_read_localappdata_named_json_flag_value(KBO_PRODUCT_FLAGS_JSON_FILE, key, out_value);
 }
 
 int kbo_read_localappdata_setting_flag_value(const char* key, int* out_value)
 {
-    if (kbo_read_localappdata_named_json_flag_value(KBO_SETTINGS_JSON_FILE, key, out_value)) {
+    if (kbo_read_localappdata_named_json_flag_value(KBO_PRODUCT_SETTINGS_JSON_FILE, key, out_value)) {
         return 1;
     }
     return kbo_read_localappdata_json_flag_value(key, out_value);
@@ -142,12 +140,12 @@ int kbo_read_localappdata_named_json_int_value(const char* file_name, const char
 
 int kbo_read_localappdata_json_int_value(const char* key, int* out_value)
 {
-    return kbo_read_localappdata_named_json_int_value(KBO_FLAGS_JSON_FILE, key, out_value);
+    return kbo_read_localappdata_named_json_int_value(KBO_PRODUCT_FLAGS_JSON_FILE, key, out_value);
 }
 
 int kbo_read_localappdata_setting_int_value(const char* key, int* out_value)
 {
-    if (kbo_read_localappdata_named_json_int_value(KBO_SETTINGS_JSON_FILE, key, out_value)) {
+    if (kbo_read_localappdata_named_json_int_value(KBO_PRODUCT_SETTINGS_JSON_FILE, key, out_value)) {
         return 1;
     }
     return kbo_read_localappdata_json_int_value(key, out_value);
@@ -338,10 +336,10 @@ int kbo_write_localappdata_named_json_int_value(const char* file_name, const cha
 
 int kbo_write_localappdata_json_int_value(const char* key, int value)
 {
-    return kbo_write_localappdata_named_json_int_value(KBO_FLAGS_JSON_FILE, key, value);
+    return kbo_write_localappdata_named_json_int_value(KBO_PRODUCT_FLAGS_JSON_FILE, key, value);
 }
 
 int kbo_write_localappdata_setting_int_value(const char* key, int value)
 {
-    return kbo_write_localappdata_named_json_int_value(KBO_SETTINGS_JSON_FILE, key, value);
+    return kbo_write_localappdata_named_json_int_value(KBO_PRODUCT_SETTINGS_JSON_FILE, key, value);
 }

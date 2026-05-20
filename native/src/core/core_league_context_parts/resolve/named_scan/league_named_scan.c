@@ -12,6 +12,7 @@
 #include "../../../logging/core_log.h"
 #include "../../../../runtime_memory/runtime_memory.h"
 #include "../../../../team/names/team_string.h"
+#include "../../../dates/constants/kbo_date_constants.h"
 
 #define KBO_CORE_NAMED_LEAGUE_SCAN_EARLY_SCORE 115
 #define KBO_CORE_NAMED_LEAGUE_SCAN_OBJECT_SPAN (OOTP27_KBO_LEAGUE_ID_OFFSET + 16u)
@@ -166,7 +167,7 @@ int kbo_core_named_league_candidate_score(
     }
 
     uint32_t year = *(uint32_t*)(candidate + OOTP27_KBO_LEAGUE_YEAR_OFFSET);
-    if (year < 1982u || year > 2200u) {
+    if (year < KBO_SEASON_YEAR_MIN || year > KBO_SIM_YEAR_MAX) {
         return -200;
     }
 

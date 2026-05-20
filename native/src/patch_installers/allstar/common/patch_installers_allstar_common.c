@@ -1,6 +1,7 @@
 #include "patch_installers_allstar_common.h"
 #include <stdio.h>
 #include <string.h>
+#include "../../common/patch_host.h"
 #include "../../../bootstrap/abi/ootp_offsets.h"
 #include "../../../core/logging/core_log.h"
 #include "../../../core/dates/core_current_date.h"
@@ -20,8 +21,8 @@ HMODULE kbo_allstar_get_host_exe(const char* label)
 
     char host[MAX_PATH] = {0};
     GetModuleFileNameA(exe, host, (DWORD)sizeof(host));
-    if (strstr(host, "ootp27.exe") == NULL && strstr(host, "OOTP27.EXE") == NULL) {
-        kbo_log_runtimef("host is not ootp27.exe, skipping %s host=%s", label, host);
+    if (!kbo_patch_host_matches_product(host)) {
+        kbo_log_runtimef("host is not " KBO_OOTP_EXECUTABLE_NAME ", skipping %s host=%s", label, host);
         return NULL;
     }
 

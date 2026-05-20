@@ -5,6 +5,7 @@
 #include "../../controller/foreign_ai_controller.h"
 #include "../../common/policy/foreign_player_policy.h"
 #include "../../rights/query/foreign_waiver_rights_query.h"
+#include "../../../core/core_flags/keys/runtime_flag_keys.generated.h"
 
 #define KBO_RETENTION_OPPORTUNITY_SCAN_MAX 128
 #define KBO_RETENTION_OPPORTUNITY_CACHE_SIZE 64
@@ -221,8 +222,8 @@ static int kbo_retention_opportunity_probe_logs_enabled(void)
     static volatile LONG initialized = 0;
     static volatile LONG enabled = 0;
     if (InterlockedCompareExchange(&initialized, 1, 0) == 0) {
-        int on = read_kbo_localappdata_flag_file("enable_kbo_retention_opportunity_probe_logs.txt")
-            || read_kbo_localappdata_flag_file("enable_kbo_custom_foreign_offer_logs.txt");
+        int on = read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_KBO_RETENTION_OPPORTUNITY_PROBE_LOGS_FILE)
+            || read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_KBO_CUSTOM_FOREIGN_OFFER_LOGS_FILE);
         InterlockedExchange(&enabled, on ? 1 : 0);
     }
     return InterlockedCompareExchange(&enabled, 0, 0) != 0;

@@ -2,10 +2,11 @@
 #include "../../core/csv/core_csv.h"
 #include "../../core/files/atomic/core_atomic_file.h"
 #include "parse/captain_selection_csv_parse.h"
+#include "../../core/dates/constants/kbo_date_constants.h"
 
 int kbo_captain_selection_csv_path(uint32_t season, char* out, size_t out_size)
 {
-    if (out == NULL || out_size == 0 || season < 1982u || season > 2200u) {
+    if (out == NULL || out_size == 0 || season < KBO_SEASON_YEAR_MIN || season > KBO_SIM_YEAR_MAX) {
         return 0;
     }
 
@@ -33,7 +34,7 @@ int kbo_captain_load_selection_csv(
     KboCaptainSelectionRow* rows,
     int max_rows)
 {
-    if (rows == NULL || max_rows <= 0 || season < 1982u || season > 2200u) {
+    if (rows == NULL || max_rows <= 0 || season < KBO_SEASON_YEAR_MIN || season > KBO_SIM_YEAR_MAX) {
         return 0;
     }
 

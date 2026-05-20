@@ -11,6 +11,7 @@
 #include "../../../../runtime_memory/runtime_memory.h"
 #include "../../../lookup/team_lookup.h"
 #include "../internal/team_add_player_guard_ai_roster_internal.h"
+#include "../../../../core/core_flags/keys/runtime_flag_keys.generated.h"
 
 int32_t kbo_pointer_vector_count(uintptr_t vector_ptr)
 {
@@ -276,8 +277,8 @@ uintptr_t kbo_ai_roster_choose_source_select_rescue_candidate(
     }
 
     if (!kbo_custom_foreign_policy_enabled()
-            || !read_kbo_localappdata_flag_file("enable_ai_roster_foreign_source_select_rescue.txt")
-            || read_kbo_localappdata_flag_file("disable_ai_roster_foreign_source_select_rescue.txt")
+            || !read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_AI_ROSTER_FOREIGN_SOURCE_SELECT_RESCUE_FILE)
+            || read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_DISABLE_AI_ROSTER_FOREIGN_SOURCE_SELECT_RESCUE_FILE)
             || source_vector_ptr == 0u
             || source_count <= 0) {
         return 0u;

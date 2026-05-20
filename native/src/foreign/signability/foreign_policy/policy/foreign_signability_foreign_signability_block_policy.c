@@ -1,5 +1,6 @@
 #include "../internal/foreign_signability_internal.h"
 #include "foreign_signability_reserve_log.h"
+#include "../../../../core/core_flags/keys/runtime_flag_keys.generated.h"
 
 /* Foreign-player signability block and adjustment policy. */
 
@@ -34,7 +35,7 @@ static int kbo_foreign_reserve_high_value_retention_visible_to_ai(
     if (out_score != NULL) { *out_score = score; }
     if (out_threshold != NULL) { *out_threshold = threshold; }
 
-    if (!read_kbo_localappdata_flag_file("enable_foreign_ai_roster_management.txt")
+    if (!read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_FOREIGN_AI_ROSTER_MANAGEMENT_FILE)
             || player == NULL
             || !memory_range_readable(player, OOTP27_PLAYER_SCAN_BYTES)
             || !kbo_player_is_foreign_for_kbo_rights(player)) {

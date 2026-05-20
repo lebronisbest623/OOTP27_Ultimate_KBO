@@ -15,6 +15,7 @@
 #include "../../files/message_body/core_message_body_file.h"
 #include "../../news/links/core_news_links.h"
 #include "../escape/core_sql_escape.h"
+#include "../../dates/constants/kbo_date_constants.h"
 #include "../../dates/core_text_date.h"
 #include "../../text/ootp_text_encoding.h"
 
@@ -81,7 +82,7 @@ int insert_kbo_league_news_sql(
     const char* source)
 {
     if (title == NULL || title[0] == '\0' || league_id == 0
-            || year < 1800 || year > 2300 || month < 1 || month > 12 || day < 1 || day > 31) {
+            || year < (int)KBO_HISTORY_YEAR_MIN || year > (int)KBO_RECORD_YEAR_MAX || month < 1 || month > 12 || day < 1 || day > 31) {
         return 0;
     }
 
@@ -239,7 +240,7 @@ int insert_kbo_league_news_table_sql(
     const char* source)
 {
     if (title == NULL || title[0] == '\0' || league_id == 0
-            || year < 1800 || year > 2300 || month < 1 || month > 12 || day < 1 || day > 31) {
+            || year < (int)KBO_HISTORY_YEAR_MIN || year > (int)KBO_RECORD_YEAR_MAX || month < 1 || month > 12 || day < 1 || day > 31) {
         return 0;
     }
 

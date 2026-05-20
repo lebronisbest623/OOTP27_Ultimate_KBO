@@ -1,5 +1,6 @@
 #include "../military_seed_registry_internal.h"
 #include "../../../../core/csv/core_csv.h"
+#include "../../../../core/dates/constants/kbo_date_constants.h"
 
 void kbo_lock_military_service_seeds(void)
 {
@@ -164,7 +165,7 @@ uint32_t kbo_military_resolve_player_id_from_players_dat_record_start(
                     && last_name_id != 0u
                     && day >= 1u && day <= 31u
                     && month >= 1u && month <= 12u
-                    && year >= 1800u && year <= 2100u
+                    && year >= KBO_HISTORY_YEAR_MIN && year <= KBO_RUNTIME_HISTORICAL_YEAR_MAX
                     && kbo_military_find_player_by_id(candidate_id) != NULL) {
                 return candidate_id;
             }

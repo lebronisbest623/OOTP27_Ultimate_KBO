@@ -8,6 +8,8 @@
 #include <string.h>
 
 #include "../../dates/core_text_date.h"
+#include "../../dates/constants/kbo_date_constants.h"
+#include "../../product/ootp_product.h"
 
 static int kbo_season_calendar_read_uint_attr(
     const char* text,
@@ -51,7 +53,7 @@ static int kbo_season_calendar_load_schedule_opening_day_from_file(
     uint32_t season,
     uint32_t* out_opening_day)
 {
-    if (path == NULL || out_opening_day == NULL || season < 1982u || season > 2200u) {
+    if (path == NULL || out_opening_day == NULL || season < KBO_SEASON_YEAR_MIN || season > KBO_SIM_YEAR_MAX) {
         return 0;
     }
 
@@ -106,7 +108,7 @@ static int kbo_season_calendar_try_schedule_dir(
     int written = snprintf(
         path,
         sizeof(path),
-        "%s\\korean_baseball_organization_int_c_%u.lsdl",
+        "%s\\" KBO_OOTP_KBO_SCHEDULE_PREFIX "%u" KBO_OOTP_KBO_SCHEDULE_EXTENSION,
         dir,
         season);
     if (written <= 0 || (size_t)written >= sizeof(path)) {
@@ -129,7 +131,7 @@ int kbo_season_calendar_load_schedule_opening_day(
     if (out_opening_day != NULL) {
         *out_opening_day = 0u;
     }
-    if (out_opening_day == NULL || season < 1982u || season > 2200u) {
+    if (out_opening_day == NULL || season < KBO_SEASON_YEAR_MIN || season > KBO_SIM_YEAR_MAX) {
         return 0;
     }
 
@@ -147,11 +149,11 @@ int kbo_season_calendar_load_schedule_opening_day(
 
     char path[MAX_PATH] = {0};
     char dir[MAX_PATH] = {0};
-    snprintf(dir, sizeof(dir), "%s\\data\\schedules", exe_path);
+    snprintf(dir, sizeof(dir), "%s\\" KBO_OOTP_DATA_DIR "\\" KBO_OOTP_SCHEDULES_DIR, exe_path);
     if (kbo_season_calendar_try_schedule_dir(dir, season, out_opening_day, path, sizeof(path))) {
         return 1;
     }
-    snprintf(dir, sizeof(dir), "%s\\schedules", exe_path);
+    snprintf(dir, sizeof(dir), "%s\\" KBO_OOTP_SCHEDULES_DIR, exe_path);
     if (kbo_season_calendar_try_schedule_dir(dir, season, out_opening_day, path, sizeof(path))) {
         return 1;
     }
@@ -161,7 +163,7 @@ int kbo_season_calendar_load_schedule_opening_day(
         snprintf(
             dir,
             sizeof(dir),
-            "%s\\Documents\\Out of the Park Developments\\OOTP Baseball 27\\schedules",
+            "%s\\Documents\\" KBO_OOTP_VENDOR_FOLDER "\\" KBO_OOTP_PRODUCT_FOLDER "\\" KBO_OOTP_SCHEDULES_DIR,
             user_profile);
         if (kbo_season_calendar_try_schedule_dir(dir, season, out_opening_day, path, sizeof(path))) {
             return 1;

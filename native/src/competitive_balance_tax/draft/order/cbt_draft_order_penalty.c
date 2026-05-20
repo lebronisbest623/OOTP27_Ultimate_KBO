@@ -12,9 +12,11 @@
 #include "../../../bootstrap/abi/ootp_offsets.h"
 #include "../../../core/core_flags/api/flags_api.h"
 #include "../../../core/core_league_context_parts/api/league_context_lookup.h"
+#include "../../../core/league_roles/kbo_league_roles.h"
 #include "../../../core/logging/core_log.h"
 #include "../../../runtime_memory/runtime_memory.h"
 #include "../../../team/lookup/team_lookup.h"
+#include "../../../core/core_flags/keys/runtime_flag_keys.generated.h"
 
 #define KBO_CBT_DRAFT_ORDER_MAX_ROWS 4096
 #define KBO_CBT_DRAFT_ORDER_MAX_ROUND_ROWS 256
@@ -97,7 +99,7 @@ static int kbo_cbt_draft_order_team_is_main_kbo(uint32_t team_id)
     if (team == NULL || !memory_range_readable(team, OOTP27_KBO_TEAM_READABLE_BYTES)) {
         return 0;
     }
-    return *(uint32_t*)(team + OOTP27_KBO_TEAM_LEAGUE_ID_OFFSET) == OOTP27_KBO_MAIN_LEAGUE_ID;
+    return *(uint32_t*)(team + OOTP27_KBO_TEAM_LEAGUE_ID_OFFSET) == kbo_league_role_main_league_id();
 }
 
 static uint64_t kbo_cbt_draft_order_signature(const KboCbtDraftOrderSlot* slots, int slot_count)
@@ -244,8 +246,8 @@ int kbo_cbt_apply_draft_order_penalties(uintptr_t draft_state, const char* sourc
     if (draft_state == 0u || !kbo_fix_enabled()) {
         return 0;
     }
-    if (read_kbo_localappdata_flag_file("disable_kbo_competitive_balance_tax.txt")
-            || read_kbo_localappdata_flag_file("disable_kbo_cbt_draft_order_penalty.txt")) {
+    if (read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_DISABLE_KBO_COMPETITIVE_BALANCE_TAX_FILE)
+            || read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_DISABLE_KBO_CBT_DRAFT_ORDER_PENALTY_FILE)) {
         return 0;
     }
     if (InterlockedCompareExchange(&g_kbo_cbt_draft_order_busy, 1, 0) != 0) {

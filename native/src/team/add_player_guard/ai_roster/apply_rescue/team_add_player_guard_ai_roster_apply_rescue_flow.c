@@ -11,6 +11,7 @@
 #include "../../../lookup/team_lookup.h"
 #include "../../team_add_player_guard.h"
 #include "../internal/team_add_player_guard_ai_roster_internal.h"
+#include "../../../../core/core_flags/keys/runtime_flag_keys.generated.h"
 
 static volatile LONG g_kbo_ai_roster_foreign_apply_rescue_move_enabled_cached = -1;
 
@@ -18,9 +19,9 @@ int kbo_ai_roster_foreign_apply_rescue_enabled(void)
 {
     LONG enabled = g_kbo_ai_roster_foreign_apply_rescue_move_enabled_cached;
     if (enabled < 0) {
-        int explicit_enable = read_kbo_localappdata_flag_file("enable_ai_roster_foreign_apply_rescue_move.txt") ? 1 : 0;
-        int disabled = read_kbo_localappdata_flag_file("disable_ai_roster_foreign_apply_rescue.txt")
-            || read_kbo_localappdata_flag_file("disable_ai_roster_foreign_apply_rescue_move.txt");
+        int explicit_enable = read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_AI_ROSTER_FOREIGN_APPLY_RESCUE_MOVE_FILE) ? 1 : 0;
+        int disabled = read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_DISABLE_AI_ROSTER_FOREIGN_APPLY_RESCUE_FILE)
+            || read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_DISABLE_AI_ROSTER_FOREIGN_APPLY_RESCUE_MOVE_FILE);
         LONG computed = (explicit_enable && !disabled) ? 1 : 0;
         if (InterlockedCompareExchange(
                 &g_kbo_ai_roster_foreign_apply_rescue_move_enabled_cached,
@@ -40,8 +41,8 @@ int kbo_ai_roster_foreign_apply_rescue_enabled(void)
 static int kbo_ai_roster_foreign_apply_rescue_team_add_enabled(void)
 {
     return kbo_ai_roster_foreign_apply_rescue_enabled()
-        && read_kbo_localappdata_flag_file("enable_ai_roster_foreign_apply_rescue_team_add.txt")
-        && !read_kbo_localappdata_flag_file("disable_ai_roster_foreign_apply_rescue_team_add.txt");
+        && read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_AI_ROSTER_FOREIGN_APPLY_RESCUE_TEAM_ADD_FILE)
+        && !read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_DISABLE_AI_ROSTER_FOREIGN_APPLY_RESCUE_TEAM_ADD_FILE);
 }
 
 static uint8_t kbo_ai_roster_context_flow_apply_rescue_team_add(

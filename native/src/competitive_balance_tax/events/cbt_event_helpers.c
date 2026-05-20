@@ -17,6 +17,8 @@
 #include "../internal/cbt_internal.h"
 #include "../records/cbt_records.h"
 #include "../rules/cbt_rules.h"
+#include "../../core/dates/constants/kbo_date_constants.h"
+#include "../../core/core_flags/keys/runtime_flag_keys.generated.h"
 
 static volatile LONG64 g_kbo_cbt_last_no_date_log_ms = 0;
 
@@ -125,10 +127,10 @@ static int kbo_cbt_records_have_season(uint32_t season)
 int kbo_cbt_custom_event_completion_valid(uint32_t league_id, uint32_t event_yyyymmdd, KboCustomEventKind kind)
 {
     uint32_t season = event_yyyymmdd / 10000u;
-    if (season < 1982u || season > 2200u) {
+    if (season < KBO_SEASON_YEAR_MIN || season > KBO_SIM_YEAR_MAX) {
         return 1;
     }
-    if (read_kbo_localappdata_flag_file("disable_kbo_competitive_balance_tax.txt")) {
+    if (read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_DISABLE_KBO_COMPETITIVE_BALANCE_TAX_FILE)) {
         return 1;
     }
     KboCbtRules rules;

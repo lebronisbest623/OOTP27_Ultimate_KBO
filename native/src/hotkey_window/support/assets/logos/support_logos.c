@@ -11,6 +11,7 @@
 #include "support_logos.h"
 #include "../names/support_names.h"
 #include "../paths/ui_asset_paths.h"
+#include "../../../../core/dates/constants/kbo_date_constants.h"
 
 static void kbo_hub_sanitize_logo_prefix(const char* name, char* out, size_t out_size)
 {
@@ -64,7 +65,7 @@ static int kbo_hub_logo_filename_score(const char* file_name, uint32_t year)
     size_t len = strlen(file_name);
     for (size_t i = 0; i + 4 <= len; i++) {
         int start_year = kbo_hub_parse_four_digits(file_name, (int)i);
-        if (start_year < 1800 || start_year > 3000) {
+        if (start_year < (int)KBO_HISTORY_YEAR_MIN || start_year > (int)KBO_LOGO_YEAR_MAX) {
             continue;
         }
         has_year_token = 1;

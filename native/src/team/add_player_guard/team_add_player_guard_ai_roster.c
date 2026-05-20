@@ -15,6 +15,7 @@
 #include "ai_roster/internal/team_add_player_guard_ai_roster_internal.h"
 #include "team_add_player_guard.h"
 #include "team_add_player_guard_ai_roster.h"
+#include "../../core/core_flags/keys/runtime_flag_keys.generated.h"
 
 static OotpKboAiRosterSelectFn g_kbo_ai_roster_select_trace_trampoline = NULL;
 static OotpKboAiRosterContextFlowFn g_kbo_ai_roster_primary_apply_flow_trace_trampoline = NULL;
@@ -61,7 +62,7 @@ static int kbo_ai_roster_foreign_release_pressure_allows_native_replace(
     if (out_outgoing_score != NULL) { *out_outgoing_score = 0; }
     if (out_threshold != NULL) { *out_threshold = 0; }
 
-    if (!read_kbo_localappdata_flag_file("enable_foreign_ai_roster_management.txt")
+    if (!read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_FOREIGN_AI_ROSTER_MANAGEMENT_FILE)
             || team_id == 0u
             || outgoing_player_id == 0u
             || incoming_player_id == 0u) {

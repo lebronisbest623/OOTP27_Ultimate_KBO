@@ -12,8 +12,10 @@
 #include "../team_patch/allstar_team_patch.h"
 #include "allstar_candidate_seed_helpers.h"
 #include "../../core/dates/core_current_date.h"
+#include "../../core/dates/constants/kbo_date_constants.h"
 #include "../../core/core_flags/api/flags_api.h"
 #include "../../core/core_league_context_parts/api/league_context_lookup.h"
+#include "../../core/league_roles/kbo_league_roles.h"
 #include "../../core/logging/core_log.h"
 #include "../../runtime_memory/runtime_memory.h"
 
@@ -57,12 +59,12 @@ __declspec(noinline) int ootp_kbo_allstar_candidate_push_filter(
 
     uint32_t league_id = kbo_get_foreign_waiver_league_id();
     if (league_id == 0u) {
-        league_id = OOTP27_KBO_MAIN_LEAGUE_ID;
+        league_id = kbo_league_role_main_league_id();
     }
 
     uint32_t league_year = kbo_find_current_kbo_league_year();
     if (league_year == 0u) {
-        league_year = 2200u;
+        league_year = KBO_SIM_YEAR_MAX;
     }
 
     uint32_t team_id = 0u;
@@ -155,14 +157,14 @@ __declspec(noinline) int ootp_kbo_seed_single_division_allstar_candidate_teams(
 
     uint32_t league_id = kbo_get_foreign_waiver_league_id();
     if (league_id == 0u) {
-        league_id = OOTP27_KBO_MAIN_LEAGUE_ID;
+        league_id = kbo_league_role_main_league_id();
     }
 
     uint32_t league_year = kbo_find_current_kbo_league_year();
     if (league_year == 0u && league_ptr != 0
             && memory_range_readable((void*)(league_ptr + OOTP27_KBO_LEAGUE_YEAR_OFFSET), sizeof(uint32_t))) {
         uint32_t probe = *(uint32_t*)(league_ptr + OOTP27_KBO_LEAGUE_YEAR_OFFSET);
-        if (probe >= 1982u && probe <= 2200u) {
+        if (probe >= KBO_SEASON_YEAR_MIN && probe <= KBO_SIM_YEAR_MAX) {
             league_year = probe;
         }
     }

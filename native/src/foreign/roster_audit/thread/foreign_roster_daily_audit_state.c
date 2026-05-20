@@ -1,4 +1,5 @@
 #include "../internal/foreign_roster_audit_internal.h"
+#include "../../../core/dates/constants/kbo_date_constants.h"
 #include "../../../core/core_flags/json/json_bool_parser.h"
 
 #define KBO_FOREIGN_ROSTER_DAILY_AUDIT_STATE_FILE "kbo_daily_audit_state.json"
@@ -53,8 +54,8 @@ uint32_t kbo_foreign_roster_daily_load_last_audit_date(const char* source)
     int value = 0;
     uint32_t result = 0u;
     if (kbo_find_int_value_in_json(json, read, "last_audit_date", &value)
-            && value >= 19820101
-            && value <= 22001231) {
+            && value >= (int)KBO_SEASON_DATE_MIN
+            && value <= (int)KBO_SIM_DATE_MAX) {
         result = (uint32_t)value;
     } else {
         kbo_log_runtimef(

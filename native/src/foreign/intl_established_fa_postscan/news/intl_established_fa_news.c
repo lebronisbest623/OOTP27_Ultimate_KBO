@@ -5,6 +5,7 @@
 #include "../../../core/news/live/core_live_news.h"
 #include "../../../core/core_flags/api/flags_api.h"
 #include "../../../core/dates/tick/current_date_tick_capture.h"
+#include "../../../core/league_roles/kbo_league_roles.h"
 #include "../../../custom_events/runtime/dates/custom_event_dates.h"
 #include "../../../team/names/team_name_cache.h"
 
@@ -301,7 +302,7 @@ int kbo_handle_intl_established_fa_event(uint32_t event_yyyymmdd, const char* so
     uint32_t news_date = kbo_custom_event_effective_news_date(event_yyyymmdd);
     uint32_t league_id = batch.primary_league_id != 0u ? batch.primary_league_id : batch.fallback_league_id;
     if (league_id == 0u) {
-        league_id = OOTP27_KBO_MAIN_LEAGUE_ID;
+        league_id = kbo_league_role_main_league_id();
     }
     create_kbo_native_live_news_with_body(
         news_date / 10000u,

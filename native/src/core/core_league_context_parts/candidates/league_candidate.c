@@ -1,4 +1,5 @@
 #include "../api/league_context_lookup.h"
+#include "../../dates/constants/kbo_date_constants.h"
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -30,11 +31,11 @@ int kbo_league_candidate_matches_id(uintptr_t candidate, uint32_t league_id, uin
     }
 
     uint32_t league_year = *(uint32_t*)(candidate + OOTP27_KBO_LEAGUE_YEAR_OFFSET);
-    if (league_year < 1982u || league_year > 2200u) {
+    if (league_year < KBO_SEASON_YEAR_MIN || league_year > KBO_SIM_YEAR_MAX) {
         return 0;
     }
     uint32_t current_year = kbo_find_current_kbo_league_year();
-    if (current_year >= 1982u && current_year <= 2200u
+    if (current_year >= KBO_SEASON_YEAR_MIN && current_year <= KBO_SIM_YEAR_MAX
             && (league_year + 1u < current_year || league_year > current_year + 1u)) {
         return 0;
     }
@@ -45,7 +46,7 @@ int kbo_league_candidate_matches_id(uintptr_t candidate, uint32_t league_id, uin
     }
 
     uint32_t phase_year = *(uint32_t*)(candidate + OOTP27_KBO_LEAGUE_PHASE_YEAR_OFFSET);
-    if (phase_year != 0u && (phase_year < 1982u || phase_year > 2200u)) {
+    if (phase_year != 0u && (phase_year < KBO_SEASON_YEAR_MIN || phase_year > KBO_SIM_YEAR_MAX)) {
         return 0;
     }
 

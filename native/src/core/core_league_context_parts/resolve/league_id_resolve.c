@@ -8,6 +8,7 @@
 
 #include "../../../bootstrap/abi/ootp_offsets.h"
 #include "../../../runtime_memory/runtime_memory.h"
+#include "../../league_roles/kbo_league_roles.h"
 #include "../../logging/core_log.h"
 
 uint32_t kbo_resolve_kbo_league_id(void)
@@ -28,14 +29,14 @@ uint32_t kbo_resolve_kbo_league_id(void)
 
     uintptr_t global = get_ootp_global_database();
     if (global == 0 || !memory_range_readable((void*)(global + OOTP27_KBO_TEAM_VECTOR_OFFSET), 0x10)) {
-        return OOTP27_KBO_MAIN_LEAGUE_ID;
+        return kbo_league_role_main_league_id();
     }
 
     uintptr_t team_vector = *(uintptr_t*)(global + OOTP27_KBO_TEAM_VECTOR_OFFSET);
     int32_t team_count = *(int32_t*)(global + OOTP27_KBO_TEAM_COUNT_OFFSET);
     if (team_vector == 0 || team_count <= 0 || team_count > 10000
             || !memory_range_readable((void*)team_vector, (SIZE_T)team_count * sizeof(uintptr_t))) {
-        return OOTP27_KBO_MAIN_LEAGUE_ID;
+        return kbo_league_role_main_league_id();
     }
 
     uint32_t league_ids[128] = {0};
@@ -109,7 +110,7 @@ uint32_t kbo_resolve_kbo_league_id(void)
     }
 
     if (best_league_id == 0) {
-        best_league_id = OOTP27_KBO_MAIN_LEAGUE_ID;
+        best_league_id = kbo_league_role_main_league_id();
     }
 
     cached_league_id = best_league_id;

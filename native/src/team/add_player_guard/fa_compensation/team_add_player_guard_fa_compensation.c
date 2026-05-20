@@ -13,6 +13,7 @@
 #include "../../../runtime_memory/runtime_memory.h"
 #include "../../lookup/team_lookup.h"
 #include "../internal/team_add_player_guard_internal.h"
+#include "../../../core/core_flags/keys/runtime_flag_keys.generated.h"
 
 void kbo_team_add_player_record_fa_compensation_success(
     uintptr_t team_ptr,
@@ -23,7 +24,7 @@ void kbo_team_add_player_record_fa_compensation_success(
 {
     KBO_PROFILE_BEGIN(profile_fa_comp_probe_inner);
     if (!kbo_fix_enabled()
-            || read_kbo_localappdata_flag_file("disable_kbo_fa_compensation.txt")
+            || read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_DISABLE_KBO_FA_COMPENSATION_FILE)
             || team_ptr == 0
             || !memory_range_readable((void*)team_ptr, OOTP27_KBO_TEAM_READABLE_BYTES)
             || !kbo_player_pointer_plausible(player_ptr)) {

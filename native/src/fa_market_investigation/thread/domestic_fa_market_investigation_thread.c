@@ -19,13 +19,14 @@
 #include "../../foreign/common/player_eval/foreign_waiver_player_eval.h"
 #include "../../runtime_memory/runtime_memory.h"
 #include "domestic_fa_market_investigation_scan.h"
+#include "../../core/core_flags/keys/runtime_flag_keys.generated.h"
 
 static volatile LONG g_kbo_domestic_fa_market_investigation_started = 0;
 static volatile LONG g_kbo_domestic_fa_market_investigation_pending_date = 0;
 
 static int kbo_domestic_fa_market_investigation_enabled(void)
 {
-    return read_kbo_localappdata_flag_file("enable_kbo_domestic_fa_market_investigation.txt")
+    return read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_KBO_DOMESTIC_FA_MARKET_INVESTIGATION_FILE)
         || kbo_domestic_fa_orphan_rescue_enabled();
 }
 

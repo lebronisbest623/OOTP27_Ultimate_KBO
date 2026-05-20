@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 
+#include "../../../core/league_roles/kbo_league_roles.h"
 #include "../../runtime/hotkey_window_runtime_shared.h"
 
 void kbo_futures_ui_format_yyyymmdd(uint32_t yyyymmdd, char* out, size_t out_size)
@@ -94,7 +95,7 @@ uint32_t kbo_futures_ui_resolve_buyer_team_id(uint32_t selected_team_id)
 
     uint32_t kbo_league_id = kbo_resolve_kbo_league_id();
     if (kbo_league_id == 0u) {
-        kbo_league_id = OOTP27_KBO_MAIN_LEAGUE_ID;
+        kbo_league_id = kbo_league_role_main_league_id();
     }
 
     if (kbo_futures_ui_read_team_league_id(selected_team) == kbo_league_id) {

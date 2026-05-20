@@ -11,11 +11,10 @@ catch (Exception ex)
 {
     try
     {
-        var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        var logDir = Path.Combine(local, "OOTP-KBO");
+        var logDir = OotpProduct.LocalDataDirectory;
         Directory.CreateDirectory(logDir);
         File.AppendAllText(
-            Path.Combine(logDir, "launcher.log"),
+            Path.Combine(logDir, OotpProduct.LauncherLogFileName),
             $"{DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss.fff zzz} fatal {ex.GetType().Name}: {ex.Message}{Environment.NewLine}{ex}{Environment.NewLine}");
     }
     catch

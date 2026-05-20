@@ -1,4 +1,5 @@
 #include "../internal/state_league_lookup_internal.h"
+#include "../../../../core/dates/constants/kbo_date_constants.h"
 
 int kbo_hub_text_ends_with_ignore_case(const char* text, const char* suffix)
 {
@@ -128,7 +129,7 @@ int kbo_hub_named_league_candidate_score(
     }
 
     uint32_t year = *(uint32_t*)(candidate + OOTP27_KBO_LEAGUE_YEAR_OFFSET);
-    if (year < 1982u || year > 2200u) {
+    if (year < KBO_SEASON_YEAR_MIN || year > KBO_SIM_YEAR_MAX) {
         return -200;
     }
 

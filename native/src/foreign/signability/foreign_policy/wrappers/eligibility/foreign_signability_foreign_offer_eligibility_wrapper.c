@@ -1,4 +1,5 @@
 #include "../../internal/foreign_signability_internal.h"
+#include "../../../../../core/core_flags/keys/runtime_flag_keys.generated.h"
 
 /* Player offer-eligibility hook wrapper. Included from native/KBOFix.c. */
 
@@ -24,7 +25,7 @@ static int kbo_foreign_ai_roster_management_enabled_cached(void)
         return InterlockedCompareExchange(&s_cached_enabled, 0, 0) != 0;
     }
 
-    int enabled = read_kbo_localappdata_flag_file("enable_foreign_ai_roster_management.txt") ? 1 : 0;
+    int enabled = read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_FOREIGN_AI_ROSTER_MANAGEMENT_FILE) ? 1 : 0;
     InterlockedExchange(&s_cached_enabled, enabled);
     InterlockedExchange(&s_cached_tick, (LONG)now);
     return enabled;
@@ -230,7 +231,7 @@ __declspec(noinline) uint8_t ootp_kbo_player_offer_eligibility_wrapper(
         if (InterlockedCompareExchange(&custom_policy_offer_log_enabled_initialized, 1, 0) == 0) {
             InterlockedExchange(
                 &custom_policy_offer_log_enabled,
-                read_kbo_localappdata_flag_file("enable_kbo_custom_foreign_offer_logs.txt") ? 1 : 0);
+                read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_KBO_CUSTOM_FOREIGN_OFFER_LOGS_FILE) ? 1 : 0);
         }
         static volatile LONG custom_policy_offer_log_count = 0;
         LONG offer_log_slot = InterlockedIncrement(&custom_policy_offer_log_count);

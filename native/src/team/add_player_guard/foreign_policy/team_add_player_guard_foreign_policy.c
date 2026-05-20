@@ -17,6 +17,7 @@
 #include "../../assignment/roster_arrays/team_roster_arrays.h"
 #include "../../lookup/team_lookup.h"
 #include "../internal/team_add_player_guard_internal.h"
+#include "../../../core/core_flags/keys/runtime_flag_keys.generated.h"
 
 static int kbo_team_add_target_is_kbo_affiliate_league(
     uint8_t* team,
@@ -240,7 +241,7 @@ int kbo_team_add_foreign_policy_should_block(
             && before_active_team_id == 0u
             && before_original_team_id != 0u
             && team_league_id == kbo_league_id
-            && !read_kbo_localappdata_flag_file("disable_kbo_foreign_former_org_market_block.txt")) {
+            && !read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_DISABLE_KBO_FOREIGN_FORMER_ORG_MARKET_BLOCK_FILE)) {
         uint32_t source_org_team_id = kbo_team_add_kbo_org_team_id(before_original_team_id, kbo_league_id);
         uint32_t target_org_team_id = kbo_team_add_kbo_org_team_id(team_id, kbo_league_id);
         if (source_org_team_id != 0u

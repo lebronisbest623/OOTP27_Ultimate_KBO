@@ -14,6 +14,7 @@
 #include "../../foreign/common/player_eval/foreign_waiver_player_eval.h"
 #include "../../foreign/signability/foreign_policy/wrappers/candidate_array/foreign_signability_ai_fa_candidate_array.h"
 #include "../../runtime_memory/runtime_memory.h"
+#include "../../core/core_flags/keys/runtime_flag_keys.generated.h"
 
 static KboDomesticFaOrphanRescueCachedCandidate
     g_kbo_domestic_fa_orphan_rescue_cache[KBO_DOMESTIC_FA_ORPHAN_RESCUE_CACHE_MAX];
@@ -35,14 +36,14 @@ static void kbo_domestic_fa_orphan_rescue_unlock(void)
 
 int kbo_domestic_fa_orphan_rescue_enabled(void)
 {
-    return read_kbo_localappdata_flag_file("enable_kbo_domestic_fa_orphan_rescue.txt")
-        || read_kbo_localappdata_flag_file("enable_kbo_domestic_fa_orphan_rescue_dry_run.txt");
+    return read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_KBO_DOMESTIC_FA_ORPHAN_RESCUE_FILE)
+        || read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_KBO_DOMESTIC_FA_ORPHAN_RESCUE_DRY_RUN_FILE);
 }
 
 int kbo_domestic_fa_orphan_rescue_dry_run(void)
 {
-    return !read_kbo_localappdata_flag_file("enable_kbo_domestic_fa_orphan_rescue.txt")
-        && read_kbo_localappdata_flag_file("enable_kbo_domestic_fa_orphan_rescue_dry_run.txt");
+    return !read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_KBO_DOMESTIC_FA_ORPHAN_RESCUE_FILE)
+        && read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_KBO_DOMESTIC_FA_ORPHAN_RESCUE_DRY_RUN_FILE);
 }
 
 static int kbo_domestic_fa_orphan_rescue_candidate_eligible(

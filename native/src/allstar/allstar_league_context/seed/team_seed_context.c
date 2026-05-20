@@ -1,4 +1,5 @@
 #include "../allstar_league_context.h"
+#include "../../../core/dates/constants/kbo_date_constants.h"
 
 uint8_t kbo_allstar_seed_side_for_team_strings(uint8_t* team, uint32_t league_year)
 {
@@ -11,7 +12,7 @@ uint8_t kbo_allstar_seed_side_for_team_strings(uint8_t* team, uint32_t league_ye
     copy_ootp_string_object_text(team, OOTP27_KBO_TEAM_CITY_STRING_OFFSET, current_city, sizeof(current_city));
 
     uint16_t target_year = 0;
-    if (league_year >= 1800u && league_year <= 2200u) {
+    if (league_year >= KBO_HISTORY_YEAR_MIN && league_year <= KBO_SIM_YEAR_MAX) {
         target_year = (uint16_t)league_year;
     }
 

@@ -1,6 +1,7 @@
 #include "../internal/foreign_injury_internal.h"
 #include "../../../core/csv/core_csv.h"
 #include "../../../core/dates/core_text_date.h"
+#include "../../../core/core_flags/keys/runtime_flag_keys.generated.h"
 
 static int kbo_foreign_injury_persisted_date_span_plausible(
     uint32_t opened_on,
@@ -27,7 +28,7 @@ static int kbo_foreign_injury_persisted_date_span_plausible(
 
 int kbo_foreign_injury_replacement_enabled(void)
 {
-    return kbo_fix_enabled() && !read_kbo_localappdata_flag_file("disable_foreign_injury_replacement.txt");
+    return kbo_fix_enabled() && !read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_DISABLE_FOREIGN_INJURY_REPLACEMENT_FILE);
 }
 
 int kbo_foreign_injury_status_uses_slot(uint8_t status)

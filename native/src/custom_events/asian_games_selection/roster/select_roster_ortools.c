@@ -9,6 +9,7 @@
 #include "../../../core/optimizer/kbo_optimizer.h"
 #include "../../asian_games/player_eval/asian_games_player_eval.h"
 #include "../../asian_games/roster/asian_games_roster_store.h"
+#include "../../../core/core_flags/keys/runtime_flag_keys.generated.h"
 
 static const char* kbo_asian_games_role_bucket_code(uint8_t role)
 {
@@ -200,7 +201,7 @@ int kbo_select_asian_games_roster_ortools(
     int* wildcard_count,
     const char* source)
 {
-    if (read_kbo_localappdata_flag_file("disable_asian_games_ortools.txt")
+    if (read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_DISABLE_ASIAN_GAMES_ORTOOLS_FILE)
             || candidates == NULL
             || candidate_count <= 0) {
         return 0;

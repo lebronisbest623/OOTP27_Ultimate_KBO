@@ -5,8 +5,10 @@
 #include <stddef.h>
 #include <windows.h>
 
-#define KBO_COLLEGE_LEAGUE_ID 201u
-#define KBO_HIGH_SCHOOL_LEAGUE_ID 203u
+#include "../../core/league_roles/kbo_league_roles.h"
+
+#define KBO_COLLEGE_LEAGUE_ID kbo_league_role_college_league_id()
+#define KBO_HIGH_SCHOOL_LEAGUE_ID kbo_league_role_high_school_league_id()
 #define KBO_AMATEUR_REPUTATION_SEED_MAX 384
 #define KBO_AMATEUR_ASSIGNMENT_PROCESSED_MAX 16384
 #define KBO_AMATEUR_ASSIGNMENT_PROCESSED_HASH_MAX 32768

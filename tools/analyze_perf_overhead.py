@@ -16,11 +16,12 @@ import argparse
 import csv
 import glob
 import json
-import os
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Iterable
+
+from kbo_product import PERF_DIRECTORY_NAME, PERF_FILE_PATTERN, local_data_path
 
 
 @dataclass
@@ -89,10 +90,10 @@ def latest_path(patterns: Iterable[str]) -> Path | None:
 
 
 def default_perf_path() -> Path | None:
-    local_appdata = os.environ.get("LOCALAPPDATA")
-    if not local_appdata:
+    perf_pattern = local_data_path(PERF_DIRECTORY_NAME, PERF_FILE_PATTERN)
+    if perf_pattern is None:
         return None
-    return latest_path([str(Path(local_appdata) / "OOTP-KBO" / "perf" / "kbo_perf_*.csv")])
+    return latest_path([str(perf_pattern)])
 
 
 def default_bench_path(repo_root: Path) -> Path | None:

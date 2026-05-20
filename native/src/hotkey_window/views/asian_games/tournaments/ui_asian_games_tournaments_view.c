@@ -1,5 +1,6 @@
 #include "../ui_asian_games_view_internal.h"
 #include "../../../../core/dates/tick/current_date_tick_capture.h"
+#include "../../../../core/dates/constants/kbo_date_constants.h"
 
 int kbo_webview_asian_games_schedule(KboAsianGamesScheduleSeed* out)
 {
@@ -7,7 +8,7 @@ int kbo_webview_asian_games_schedule(KboAsianGamesScheduleSeed* out)
     uint32_t month = 0u;
     uint32_t day = 0u;
     (void)kbo_current_date_tick_latest_components(&year, &month, &day);
-    if (year < 1982u || year > 2200u) {
+    if (year < KBO_SEASON_YEAR_MIN || year > KBO_SIM_YEAR_MAX) {
         return 0;
     }
     return kbo_get_next_asian_games_schedule(year, out);
@@ -232,7 +233,7 @@ void kbo_webview_append_asian_games_tournaments_view(KboWindowTextBuffer* buffer
         &current_year,
         &current_month,
         &current_day);
-    if (current_year < 2026u || current_year > 2200u) {
+    if (current_year < 2026u || current_year > KBO_SIM_YEAR_MAX) {
         current_year = 2026u;
     }
 

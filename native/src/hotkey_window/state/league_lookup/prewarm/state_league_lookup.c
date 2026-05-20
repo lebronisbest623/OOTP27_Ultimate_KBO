@@ -1,5 +1,6 @@
 #include "../internal/state_league_lookup_internal.h"
 #include "../../../../core/core_flags/api/flags_api.h"
+#include "../../../../core/dates/constants/kbo_date_constants.h"
 
 static volatile LONG g_kbo_league_display_cache_prewarm_running = 0;
 
@@ -194,7 +195,7 @@ void kbo_hub_copy_league_display_name(uint32_t league_id, char* out, size_t out_
 
     if (name[0] != '\0') {
         snprintf(out, out_size, "%s", name);
-    } else if (year >= 1982u && year <= 2100u) {
+    } else if (year >= KBO_SEASON_YEAR_MIN && year <= KBO_RUNTIME_HISTORICAL_YEAR_MAX) {
         snprintf(out, out_size, "%s %u / %u", kbo_hub_text("\xeb\xa6\xac\xea\xb7\xb8", "League"), league_id, year);
     } else {
         snprintf(out, out_size, "%s %u", kbo_hub_text("\xeb\xa6\xac\xea\xb7\xb8", "League"), league_id);

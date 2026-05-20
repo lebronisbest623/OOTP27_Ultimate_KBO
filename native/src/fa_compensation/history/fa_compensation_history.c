@@ -24,6 +24,8 @@
 #include "../news/fa_compensation_news_transfer.h"
 #include "../records/fa_compensation_records.h"
 #include "../state/fa_compensation_state.h"
+#include "../../core/dates/constants/kbo_date_constants.h"
+#include "../../core/core_flags/keys/runtime_flag_keys.generated.h"
 
 static void kbo_fa_compensation_record_history(const KboFaCompensationRecord* rec)
 {
@@ -34,7 +36,7 @@ static void kbo_fa_compensation_record_history(const KboFaCompensationRecord* re
     uint32_t year = rec->signed_on_yyyymmdd / 10000u;
     uint32_t month = (rec->signed_on_yyyymmdd / 100u) % 100u;
     uint32_t day = rec->signed_on_yyyymmdd % 100u;
-    if (year < 1982u || month == 0u || day == 0u) {
+    if (year < KBO_SEASON_YEAR_MIN || month == 0u || day == 0u) {
         return;
     }
 
@@ -79,7 +81,7 @@ int kbo_record_fa_compensation_signing(
         KBO_PROFILE_END(profile_fa_comp_record_signing, "fa_comp.record_signing.disabled");
         return 0;
     }
-    if (read_kbo_localappdata_flag_file("disable_kbo_fa_compensation.txt")) {
+    if (read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_DISABLE_KBO_FA_COMPENSATION_FILE)) {
         KBO_PROFILE_END(profile_fa_comp_record_signing, "fa_comp.record_signing.flag_disabled");
         return 0;
     }
@@ -110,8 +112,8 @@ int kbo_record_fa_compensation_signing(
     uint32_t filing_season = 0u;
     uint32_t player_id = *(uint32_t*)(player + OOTP27_PLAYER_ID_OFFSET);
     if (kbo_fa_filing_find_latest_player(player_id, &filing_original_team_id, &filing_league_id, &filing_season)
-            && filing_season >= 1982u
-            && filing_season <= 2300u) {
+            && filing_season >= KBO_SEASON_YEAR_MIN
+            && filing_season <= KBO_RECORD_YEAR_MAX) {
         signing_year = filing_season;
         if (filing_league_id != 0u) {
             league_id = filing_league_id;
@@ -120,10 +122,10 @@ int kbo_record_fa_compensation_signing(
     if (signing_year == 0u) {
         signing_year = kbo_find_league_year_from_id_no_scan(league_id);
     }
-    if (signing_year < 1982u || signing_year > 2300u) {
-        signing_year = today >= 19820000u ? today / 10000u : 0u;
+    if (signing_year < KBO_SEASON_YEAR_MIN || signing_year > KBO_RECORD_YEAR_MAX) {
+        signing_year = today >= KBO_SEASON_DATE_KEY_MIN ? today / 10000u : 0u;
     }
-    if (signing_year < 1982u || signing_year > 2300u) {
+    if (signing_year < KBO_SEASON_YEAR_MIN || signing_year > KBO_RECORD_YEAR_MAX) {
         KBO_PROFILE_END(profile_fa_comp_record_signing, "fa_comp.record_signing.no_year");
         return 0;
     }

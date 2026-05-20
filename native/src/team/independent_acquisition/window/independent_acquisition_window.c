@@ -13,6 +13,7 @@
 #include "../../../core/core_league_context_parts/api/league_context_lookup.h"
 #include "../../../custom_events/runtime/dates/custom_event_dates.h"
 #include "../../../custom_events/runtime/ledger/custom_event_ledger.h"
+#include "../../../core/dates/constants/kbo_date_constants.h"
 #include "../../../core/files/save_paths/core_save_paths.h"
 #include "../../../core/dates/core_text_date.h"
 #include "../../../core/logging/core_log.h"
@@ -103,7 +104,7 @@ static uint32_t kbo_independent_team_acquisition_load_open_date(void)
     }
 
     unsigned long value = strtoul(text, NULL, 10);
-    if (value < 19820101ul || value > 22001231ul) {
+    if (value < KBO_SEASON_DATE_MIN || value > KBO_SIM_DATE_MAX) {
         return 0u;
     }
     return (uint32_t)value;

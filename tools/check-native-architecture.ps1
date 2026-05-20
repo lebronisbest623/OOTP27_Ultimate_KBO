@@ -684,6 +684,7 @@ foreach ($NamespaceRule in $NamespaceRootRules) {
 $GeneratedFiles = @(
     @{ Path = "build_verify/supported_builds.generated.h"; Suggestion = "Run tools/generate-supported-builds.ps1." },
     @{ Path = "build_verify/supported_builds.generated.c"; Suggestion = "Run tools/generate-supported-builds.ps1." },
+    @{ Path = "core/core_flags/keys/runtime_flag_keys.generated.h"; Suggestion = "Run tools/generate-runtime-flags.ps1." },
     @{ Path = "hotkey_window/views/mod/runtime_flags/runtime_flags.generated.h"; Suggestion = "Run tools/generate-runtime-flags.ps1." },
     @{ Path = "hotkey_window/views/mod/runtime_flags/runtime_flags.generated.c"; Suggestion = "Run tools/generate-runtime-flags.ps1." }
 )

@@ -270,7 +270,7 @@ void kbo_cbt_service_time_probe_once(void)
     uint32_t kbo_league_id = kbo_resolve_kbo_league_id();
     uint32_t current_year = kbo_find_current_kbo_league_year();
     if (current_year == 0u) {
-        current_year = 2200u;
+        current_year = KBO_SIM_YEAR_MAX;
     }
 
     kbo_log_runtimef(

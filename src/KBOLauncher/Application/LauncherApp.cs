@@ -44,9 +44,9 @@ internal static partial class LauncherApp
         if (exePath is null)
         {
             WriteOotpPathDiscoveryStatus(options.OotpPath);
-            Console.Error.WriteLine("Could not find ootp27.exe. Pass --ootp \"C:\\path\\to\\ootp27.exe\".");
-            Console.Error.WriteLine($"Path discovery diagnostics written to: {GetKboLocalDataPath("launcher_path_discovery_status.txt")}");
-            Console.Error.WriteLine("Official-site installs can also set OOTP27_DIR to the folder containing ootp27.exe.");
+            Console.Error.WriteLine($"Could not find {OotpProduct.ExecutableFileName}. Pass --ootp \"C:\\path\\to\\{OotpProduct.ExecutableFileName}\".");
+            Console.Error.WriteLine($"Path discovery diagnostics written to: {GetKboLocalDataPath(OotpProduct.PathDiscoveryStatusFileName)}");
+            Console.Error.WriteLine($"Official-site installs can also set {OotpProduct.OotpEnvironmentVariables[1]} to the folder containing {OotpProduct.ExecutableFileName}.");
             return 2;
         }
 

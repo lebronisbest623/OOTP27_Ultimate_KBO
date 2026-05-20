@@ -2,6 +2,7 @@
 #include "../../../internal/foreign_signability_internal.h"
 #include "../foreign_signability_offer_attach_probe_utils.h"
 #include "../../../../../../fa_market_investigation/probe/domestic_fa_offer_probe.h"
+#include "../../../../../../core/core_flags/keys/runtime_flag_keys.generated.h"
 
 static int kbo_foreign_ai_offer_attach_should_log(
     uint8_t* player,
@@ -139,7 +140,7 @@ static int kbo_foreign_ai_offer_decision_should_log(
         return 1;
     }
 
-    if (read_kbo_localappdata_flag_file("enable_kbo_custom_foreign_offer_logs.txt")
+    if (read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_KBO_CUSTOM_FOREIGN_OFFER_LOGS_FILE)
             && kbo_player_is_foreign_for_kbo_rights(player)) {
         return 1;
     }

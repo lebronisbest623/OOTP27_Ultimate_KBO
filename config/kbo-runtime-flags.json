@@ -133,6 +133,16 @@
       }
     },
     {
+      "key": "disable_amateur_assignment_deferred_add",
+      "defaultValue": null,
+      "lifecycle": "Recovery"
+    },
+    {
+      "key": "enable_amateur_assignment_retry_rejected_targets",
+      "defaultValue": null,
+      "lifecycle": "Recovery"
+    },
+    {
       "key": "disable_kbo_competitive_balance_tax",
       "defaultValue": null,
       "lifecycle": "Recovery"

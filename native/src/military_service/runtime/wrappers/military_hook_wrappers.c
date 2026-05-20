@@ -16,6 +16,7 @@
 #include "../../selection/draft/military_draft_queue.h"
 #include "../../players/state/military_player_state.h"
 #include "../../returns/military_return.h"
+#include "../../../core/dates/constants/kbo_date_constants.h"
 
 typedef void (__fastcall *OotpMilitaryServiceEntryFn)(void* player);
 
@@ -106,7 +107,7 @@ __declspec(noinline) void ootp_kbo_military_service_entry_wrapper(
             if (active_team_id != 0u) {
                 original_team_id = active_team_id;
             }
-            if (original_team_id != 0u && cur_year >= 1982u && cur_year <= 2300u) {
+            if (original_team_id != 0u && cur_year >= KBO_SEASON_YEAR_MIN && cur_year <= KBO_RECORD_YEAR_MAX) {
                 kbo_queue_military_draft_candidate(
                     player_ptr,
                     *(uint32_t*)(player + OOTP27_PLAYER_ID_OFFSET),

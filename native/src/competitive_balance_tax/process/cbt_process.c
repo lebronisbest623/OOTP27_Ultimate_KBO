@@ -5,6 +5,8 @@
 #include "../draft/penalty/cbt_draft_penalty.h"
 #include "payroll/cbt_payroll_compute.h"
 #include "../../hotkey_window/api/hotkey_window_refresh.h"
+#include "../../core/dates/constants/kbo_date_constants.h"
+#include "../../core/core_flags/keys/runtime_flag_keys.generated.h"
 
 int kbo_process_competitive_balance_tax(uint32_t season, const char* source)
 {
@@ -22,12 +24,12 @@ int kbo_process_competitive_balance_tax_for_date(uint32_t season, uint32_t news_
         return 0;
     }
 
-    if (season < 1982u || season > 2200u) {
+    if (season < KBO_SEASON_YEAR_MIN || season > KBO_SIM_YEAR_MAX) {
         kbo_cbt_audit_process("skip", "season_out_of_range", source, season, news_yyyymmdd, 0, 0, 0, 0, 0u, 0, 0);
         return 0;
     }
 
-    if (read_kbo_localappdata_flag_file("disable_kbo_competitive_balance_tax.txt")) {
+    if (read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_DISABLE_KBO_COMPETITIVE_BALANCE_TAX_FILE)) {
         kbo_cbt_audit_process("skip", "flag_disabled", source, season, news_yyyymmdd, 0, 0, 0, 0, 0u, 0, 0);
         kbo_log_runtimef("KBO CBT skipped season=%u source=%s reason=flag_disabled", season, source != NULL ? source : "");
         return 1;

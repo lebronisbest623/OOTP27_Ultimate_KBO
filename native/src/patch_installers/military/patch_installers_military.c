@@ -2,6 +2,7 @@
 #include <windows.h>
 #include <stdint.h>
 #include <string.h>
+#include "../common/patch_host.h"
 
 #include "../../bootstrap/abi/hook_entrypoints.h"
 #include "../../bootstrap/abi/ootp_offsets.h"
@@ -23,8 +24,8 @@ int install_kbo_military_service_entry_patch(void)
 
     char host[MAX_PATH] = {0};
     GetModuleFileNameA(exe, host, (DWORD)sizeof(host));
-    if (strstr(host, "ootp27.exe") == NULL && strstr(host, "OOTP27.EXE") == NULL) {
-        kbo_log_runtimef("host is not ootp27.exe, skipping KBO military service entry patch host=%s", host);
+    if (!kbo_patch_host_matches_product(host)) {
+        kbo_log_runtimef("host is not " KBO_OOTP_EXECUTABLE_NAME ", skipping KBO military service entry patch host=%s", host);
         return 0;
     }
 
@@ -118,8 +119,8 @@ int install_kbo_military_status_update_patch(void)
 
     char host[MAX_PATH] = {0};
     GetModuleFileNameA(exe, host, (DWORD)sizeof(host));
-    if (strstr(host, "ootp27.exe") == NULL && strstr(host, "OOTP27.EXE") == NULL) {
-        kbo_log_runtimef("host is not ootp27.exe, skipping KBO military status update patch host=%s", host);
+    if (!kbo_patch_host_matches_product(host)) {
+        kbo_log_runtimef("host is not " KBO_OOTP_EXECUTABLE_NAME ", skipping KBO military status update patch host=%s", host);
         return 0;
     }
 
@@ -213,8 +214,8 @@ int install_kbo_military_team_add_guard_patch(void)
 
     char host[MAX_PATH] = {0};
     GetModuleFileNameA(exe, host, (DWORD)sizeof(host));
-    if (strstr(host, "ootp27.exe") == NULL && strstr(host, "OOTP27.EXE") == NULL) {
-        kbo_log_runtimef("host is not ootp27.exe, skipping KBO military team-add guard patch host=%s", host);
+    if (!kbo_patch_host_matches_product(host)) {
+        kbo_log_runtimef("host is not " KBO_OOTP_EXECUTABLE_NAME ", skipping KBO military team-add guard patch host=%s", host);
         return 0;
     }
 

@@ -15,6 +15,7 @@
 #include "../../team/lookup/team_lookup.h"
 #include "fa_compensation_news_transfer.h"
 #include "fa_compensation_news_transfer_internal.h"
+#include "../../core/dates/constants/kbo_date_constants.h"
 
 void kbo_emit_fa_compensation_obligation_news(
     const KboFaCompensationRecord* rec,
@@ -29,7 +30,7 @@ void kbo_emit_fa_compensation_obligation_news(
     uint32_t year = event_yyyymmdd / 10000u;
     uint32_t month = (event_yyyymmdd / 100u) % 100u;
     uint32_t day = event_yyyymmdd % 100u;
-    if (year < 1982u || month == 0u || day == 0u) {
+    if (year < KBO_SEASON_YEAR_MIN || month == 0u || day == 0u) {
         return;
     }
 
@@ -106,7 +107,7 @@ void kbo_emit_fa_compensation_protected_list_submitted_news(
     uint32_t year = generated_yyyymmdd / 10000u;
     uint32_t month = (generated_yyyymmdd / 100u) % 100u;
     uint32_t day = generated_yyyymmdd % 100u;
-    if (year < 1982u || month == 0u || day == 0u) {
+    if (year < KBO_SEASON_YEAR_MIN || month == 0u || day == 0u) {
         return;
     }
 
@@ -187,7 +188,7 @@ void kbo_emit_fa_compensation_player_selected_news(
     uint32_t year = decided_yyyymmdd / 10000u;
     uint32_t month = (decided_yyyymmdd / 100u) % 100u;
     uint32_t day = decided_yyyymmdd % 100u;
-    if (year < 1982u || month == 0u || day == 0u) {
+    if (year < KBO_SEASON_YEAR_MIN || month == 0u || day == 0u) {
         return;
     }
 

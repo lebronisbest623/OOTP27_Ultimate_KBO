@@ -10,7 +10,9 @@
 #include "../../core/core_flags/api/flags_api.h"
 #include "../../core/csv/core_csv.h"
 #include "../../core/dates/core_current_date.h"
+#include "../../core/dates/constants/kbo_date_constants.h"
 #include "../../core/dates/tick/current_date_tick_capture.h"
+#include "../../core/league_roles/kbo_league_roles.h"
 #include "../../core/logging/core_log.h"
 #include "../../foreign/common/dates/foreign_waiver_date.h"
 #include "../../foreign/common/player_eval/foreign_waiver_player_eval.h"
@@ -120,11 +122,11 @@ int kbo_fa_declaration_repair_retained_contract_salary(
     int32_t before_start_year = *start_year_ptr;
     int32_t start_year = before_start_year;
 
-    int season_valid = season >= 1982u && season <= 2200u;
-    int start_year_valid = start_year >= 1982 && start_year <= 2200;
+    int season_valid = season >= KBO_SEASON_YEAR_MIN && season <= KBO_SIM_YEAR_MAX;
+    int start_year_valid = start_year >= (int32_t)KBO_SEASON_YEAR_MIN && start_year <= (int32_t)KBO_SIM_YEAR_MAX;
     uint32_t original_season_index = 0u;
     int original_season_index_valid = 0;
-    if (start_year >= 1982 && start_year <= 2200 && season >= (uint32_t)start_year) {
+    if (start_year_valid && season >= (uint32_t)start_year) {
         uint32_t index = season - (uint32_t)start_year;
         if (index < OOTP27_PLAYER_CONTRACT_SALARY_YEARS) {
             original_season_index = index;
@@ -273,7 +275,7 @@ int kbo_fa_declaration_repair_retained_contracts_for_season(
             season = today / 10000u;
         }
     }
-    if (season < 1982u || season > 2200u) {
+    if (season < KBO_SEASON_YEAR_MIN || season > KBO_SIM_YEAR_MAX) {
         return 0;
     }
 
@@ -354,7 +356,7 @@ int kbo_fa_declaration_repair_retained_contracts_for_season(
                     int attach = 0;
                     uint32_t fallback_league_id = decisions[i].league_id != 0u
                         ? decisions[i].league_id
-                        : OOTP27_KBO_MAIN_LEAGUE_ID;
+                        : kbo_league_role_main_league_id();
                     kbo_assign_player_to_team_like_ootp(player, team, fallback_league_id, &pre, &reg, &attach);
                     current_team_id = *(uint32_t*)(player + OOTP27_PLAYER_CURRENT_TEAM_ID_OFFSET);
                     current_league_id = *(uint32_t*)(player + OOTP27_PLAYER_CURRENT_LEAGUE_ID_OFFSET);

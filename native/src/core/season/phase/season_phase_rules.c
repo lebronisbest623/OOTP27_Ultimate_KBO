@@ -2,6 +2,7 @@
 
 #include "../../../bootstrap/abi/ootp_offsets.h"
 #include "../../dates/core_text_date.h"
+#include "../../dates/constants/kbo_date_constants.h"
 
 static int kbo_season_phase_date_valid(uint32_t yyyymmdd)
 {
@@ -13,7 +14,7 @@ static int kbo_season_phase_date_valid(uint32_t yyyymmdd)
 
 static int kbo_season_phase_year_plausible(uint32_t year)
 {
-    return year >= 1982u && year <= 2200u;
+    return year >= KBO_SEASON_YEAR_MIN && year <= KBO_SIM_YEAR_MAX;
 }
 
 static int kbo_season_phase_known(uint8_t phase)

@@ -1,5 +1,6 @@
 #include "../allstar_league_context.h"
 #include <Windows.h>
+#include "../../../core/dates/constants/kbo_date_constants.h"
 
 /* All-Star league and team context helpers. */
 
@@ -59,7 +60,7 @@ int kbo_allstar_league_core_plausible(uintptr_t league_ptr)
 
     uint8_t* league = (uint8_t*)league_ptr;
     uint32_t year = *(uint32_t*)(league + OOTP27_KBO_LEAGUE_YEAR_OFFSET);
-    if (year < 1982u || year > 2200u) {
+    if (year < KBO_SEASON_YEAR_MIN || year > KBO_SIM_YEAR_MAX) {
         return 0;
     }
 
@@ -69,7 +70,7 @@ int kbo_allstar_league_core_plausible(uintptr_t league_ptr)
     }
 
     uint32_t phase_year = *(uint32_t*)(league + OOTP27_KBO_LEAGUE_PHASE_YEAR_OFFSET);
-    if (phase_year != 0u && (phase_year < 1982u || phase_year > 2200u)) {
+    if (phase_year != 0u && (phase_year < KBO_SEASON_YEAR_MIN || phase_year > KBO_SIM_YEAR_MAX)) {
         return 0;
     }
 

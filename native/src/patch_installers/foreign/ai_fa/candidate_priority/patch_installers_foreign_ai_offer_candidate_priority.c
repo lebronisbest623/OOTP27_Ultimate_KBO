@@ -1,6 +1,7 @@
 #include <windows.h>
 #include <stdint.h>
 #include <string.h>
+#include "../../../common/patch_host.h"
 
 #include "../../../../bootstrap/abi/ootp_offsets.h"
 #include "../../../../bootstrap/abi/hook_entrypoints.h"
@@ -18,8 +19,8 @@ int install_kbo_foreign_ai_offer_candidate_priority_patch(void)
 
     char host[MAX_PATH] = {0};
     GetModuleFileNameA(exe, host, (DWORD)sizeof(host));
-    if (strstr(host, "ootp27.exe") == NULL && strstr(host, "OOTP27.EXE") == NULL) {
-        kbo_log_runtimef("host is not ootp27.exe, skipping KBO foreign AI offer candidate priority patch host=%s", host);
+    if (!kbo_patch_host_matches_product(host)) {
+        kbo_log_runtimef("host is not " KBO_OOTP_EXECUTABLE_NAME ", skipping KBO foreign AI offer candidate priority patch host=%s", host);
         return 0;
     }
 

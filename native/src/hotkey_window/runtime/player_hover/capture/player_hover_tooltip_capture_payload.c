@@ -1,4 +1,5 @@
 #include "player_hover_manager_probe_internal.h"
+#include "../../../../core/product/ootp_product.h"
 
 static void kbo_write_tooltip_capture_debug_file(uint32_t player_id, const char* payload)
 {
@@ -12,7 +13,7 @@ static void kbo_write_tooltip_capture_debug_file(uint32_t player_id, const char*
         return;
     }
 
-    snprintf(path, sizeof(path), "%s\\OOTP-KBO\\player_tooltip_capture_last.txt", local_appdata);
+    snprintf(path, sizeof(path), "%s\\" KBO_PRODUCT_LOCAL_DATA_DIR "\\player_tooltip_capture_last.txt", local_appdata);
     FILE* fp = fopen(path, "wb");
     if (fp == NULL) {
         return;
