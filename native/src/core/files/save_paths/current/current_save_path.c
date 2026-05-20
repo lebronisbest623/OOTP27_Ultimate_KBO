@@ -175,16 +175,12 @@ static int kbo_get_current_save_path_from_own_file_handles(char* out, size_t out
     return found;
 }
 
-int kbo_get_current_save_path(char* out, size_t out_size)
+static int kbo_get_current_save_path_from_ootp_global(char* out, size_t out_size)
 {
     if (out == NULL || out_size == 0) {
         return 0;
     }
     out[0] = '\0';
-
-    if (kbo_get_cached_current_save_path(out, out_size)) {
-        return 1;
-    }
 
     uintptr_t global = get_ootp_global_database();
     if (global != 0 && memory_range_readable((void*)(global + OOTP27_MESSAGE_SAVE_PATH_OFFSET), 0x20)) {
@@ -193,46 +189,86 @@ int kbo_get_current_save_path(char* out, size_t out_size)
 
     if (!kbo_path_looks_like_absolute_save_path(out)) {
         out[0] = '\0';
+        return 0;
     }
 
-    if (out[0] == '\0') {
-        char local_app_data[KBO_UTF8_PATH_BYTES] = {0};
-        if (kbo_get_localappdata_utf8(local_app_data, sizeof(local_app_data))) {
-            char cache_path[KBO_UTF8_PATH_BYTES] = {0};
-            snprintf(
-                cache_path,
-                sizeof(cache_path),
-                "%s\\OOTP-KBO\\current_save_path_%lu.txt",
-                local_app_data,
-                (unsigned long)GetCurrentProcessId());
-            HANDLE file = kbo_create_file_read_utf8(cache_path);
-            if (file != INVALID_HANDLE_VALUE) {
-                DWORD read = 0;
-                char cached[KBO_UTF8_PATH_BYTES] = {0};
-                if (ReadFile(file, cached, (DWORD)sizeof(cached) - 1u, &read, NULL) && read > 0) {
-                    cached[read] = '\0';
-                    for (DWORD i = 0; i < read; i++) {
-                        if (cached[i] == '\r' || cached[i] == '\n') {
-                            cached[i] = '\0';
-                            break;
-                        }
-                    }
-                    if (kbo_path_looks_like_absolute_save_path(cached)) {
-                        snprintf(out, out_size, "%s", cached);
-                        kbo_cache_current_save_path(out);
-                    }
-                }
-                CloseHandle(file);
+    kbo_log_runtimef("KBO save path resolved by OOTP global path=%s", out);
+    return 1;
+}
+
+static int kbo_get_current_save_path_from_launcher_cache_file(char* out, size_t out_size)
+{
+    if (out == NULL || out_size == 0) {
+        return 0;
+    }
+    out[0] = '\0';
+
+    char local_app_data[KBO_UTF8_PATH_BYTES] = {0};
+    if (!kbo_get_localappdata_utf8(local_app_data, sizeof(local_app_data))) {
+        return 0;
+    }
+
+    char cache_path[KBO_UTF8_PATH_BYTES] = {0};
+    snprintf(
+        cache_path,
+        sizeof(cache_path),
+        "%s\\OOTP-KBO\\current_save_path_%lu.txt",
+        local_app_data,
+        (unsigned long)GetCurrentProcessId());
+    HANDLE file = kbo_create_file_read_utf8(cache_path);
+    if (file == INVALID_HANDLE_VALUE) {
+        return 0;
+    }
+
+    DWORD read = 0;
+    char cached[KBO_UTF8_PATH_BYTES] = {0};
+    int found = 0;
+    if (ReadFile(file, cached, (DWORD)sizeof(cached) - 1u, &read, NULL) && read > 0) {
+        cached[read] = '\0';
+        for (DWORD i = 0; i < read; i++) {
+            if (cached[i] == '\r' || cached[i] == '\n') {
+                cached[i] = '\0';
+                break;
             }
         }
+        if (kbo_path_looks_like_absolute_save_path(cached)) {
+            snprintf(out, out_size, "%s", cached);
+            found = out[0] != '\0';
+        }
     }
+    CloseHandle(file);
 
-    if (out[0] == '\0') {
-        kbo_get_current_save_path_from_own_file_handles(out, out_size);
+    if (found) {
+        kbo_log_runtimef("KBO save path resolved by launcher cache path=%s", out);
     }
+    return found;
+}
 
-    if (out[0] != '\0') {
+int kbo_get_current_save_path(char* out, size_t out_size)
+{
+    if (out == NULL || out_size == 0) {
+        return 0;
+    }
+    out[0] = '\0';
+
+    if (kbo_get_current_save_path_from_ootp_global(out, out_size)) {
         kbo_cache_current_save_path(out);
+        return 1;
     }
-    return out[0] != '\0';
+
+    if (kbo_get_current_save_path_from_own_file_handles(out, out_size)) {
+        kbo_cache_current_save_path(out);
+        return 1;
+    }
+
+    if (kbo_get_cached_current_save_path(out, out_size)) {
+        return 1;
+    }
+
+    if (kbo_get_current_save_path_from_launcher_cache_file(out, out_size)) {
+        kbo_cache_current_save_path(out);
+        return 1;
+    }
+
+    return 0;
 }

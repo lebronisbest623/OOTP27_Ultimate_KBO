@@ -195,6 +195,55 @@ public sealed class RosterMarkerGuardTests : IDisposable
         log.Should().Contain("required marker missing");
     }
 
+    [Fact]
+    public void SelectCurrentSavePathCacheValue_DoesNotCacheFallbackSave()
+    {
+        var savePath = Path.Combine(tempDir, "KBO.lg");
+        var directOk = new global::RosterMarkerInfo(
+            true,
+            "marked_save_completed",
+            savePath,
+            Path.Combine(savePath, "description.txt"),
+            Path.Combine(savePath, "flag_save_completed.dat"),
+            DateTimeOffset.UtcNow,
+            null);
+        var directFailed = global::RosterMarkerInfo.Fail(
+            "current_save_unavailable",
+            null,
+            null,
+            "current save path unavailable");
+
+        global::LauncherGuardStatus.SelectCurrentSavePathCacheValue(directOk, usedFallback: false).Should().Be(savePath);
+        global::LauncherGuardStatus.SelectCurrentSavePathCacheValue(directOk, usedFallback: true).Should().BeNull();
+        global::LauncherGuardStatus.SelectCurrentSavePathCacheValue(directFailed, usedFallback: false).Should().BeNull();
+        global::LauncherGuardStatus.SelectCurrentSavePathCacheValue(null, usedFallback: false).Should().BeNull();
+    }
+
+    [Fact]
+    public void WriteCurrentSavePathCache_RemovesStaleCacheWhenSavePathIsUnavailable()
+    {
+        var pid = int.MaxValue - Math.Abs(Guid.NewGuid().GetHashCode() % 100000);
+        var logPath = Path.Combine(tempDir, "launcher.log");
+        var cachePath = global::LauncherPaths.GetKboLocalDataPath($"current_save_path_{pid}.txt");
+
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(cachePath)!);
+            File.WriteAllText(cachePath, "stale-save");
+
+            global::LauncherGuardStatus.WriteCurrentSavePathCache(pid, null, logPath);
+
+            File.Exists(cachePath).Should().BeFalse();
+        }
+        finally
+        {
+            if (File.Exists(cachePath))
+            {
+                File.Delete(cachePath);
+            }
+        }
+    }
+
     public void Dispose()
     {
         try
