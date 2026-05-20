@@ -1563,9 +1563,9 @@ int32_t kbo_read_clamped_policy_int(
     return fallback;
 }
 
-uint32_t read_u32_leading_number_from_file(const char* filename)
+uint32_t kbo_read_u32_leading_number_from_foreign_policy_file(const char* file_name)
 {
-    (void)filename;
+    (void)file_name;
     return 0u;
 }
 

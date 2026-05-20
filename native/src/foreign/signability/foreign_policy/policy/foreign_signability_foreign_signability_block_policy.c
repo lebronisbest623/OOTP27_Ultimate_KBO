@@ -235,7 +235,8 @@ int kbo_enforce_foreign_waiver_signability(
             }
 
             uint32_t team_id = (uint32_t)requesting_team_id;
-            if (caller_rva == 0x1b0e3e9u && team_id != holder_team_id) {
+            if (caller_rva == OOTP27_FOREIGN_SIGNABILITY_FA_LIST_DISPLAY_CALLER_RVA
+                    && team_id != holder_team_id) {
                 kbo_log_foreign_reserve_blocked_display_signability(
                     player,
                     player_id,

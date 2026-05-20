@@ -154,7 +154,8 @@ int32_t kbo_get_foreign_waiver_value_threshold(void)
         }
     }
 
-    uint32_t configured = read_u32_leading_number_from_file("foreign_waiver_value_threshold.txt");
+    uint32_t configured =
+        kbo_read_u32_leading_number_from_foreign_policy_file(KBO_FOREIGN_POLICY_VALUE_THRESHOLD_FILE);
     if (configured != 0u && configured <= 250000u) {
         InterlockedExchange(&s_cached_threshold, (LONG)configured);
         InterlockedExchange(&s_cached_tick, (LONG)now);
@@ -182,7 +183,8 @@ int32_t kbo_get_foreign_waiver_asian_value_threshold(void)
         }
     }
 
-    uint32_t configured = read_u32_leading_number_from_file("foreign_waiver_asian_value_threshold.txt");
+    uint32_t configured =
+        kbo_read_u32_leading_number_from_foreign_policy_file(KBO_FOREIGN_POLICY_ASIAN_VALUE_THRESHOLD_FILE);
     if (configured != 0u && configured <= 250000u) {
         InterlockedExchange(&s_cached_threshold, (LONG)configured);
         InterlockedExchange(&s_cached_tick, (LONG)now);

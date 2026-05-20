@@ -55,9 +55,9 @@ static int kbo_team_add_target_is_kbo_affiliate_league(
 
 int kbo_team_add_known_foreign_market_minor_caller(uint32_t caller_rva)
 {
-    return caller_rva == 0x8515f3u
-        || caller_rva == 0xaa638du
-        || caller_rva == 0xa4a0cbu;
+    return caller_rva == OOTP27_TEAM_ADD_PLAYER_FOREIGN_MARKET_MINOR_CALLER_PRIMARY_RVA
+        || caller_rva == OOTP27_TEAM_ADD_PLAYER_FOREIGN_MARKET_MINOR_CALLER_AI_RVA
+        || caller_rva == OOTP27_TEAM_ADD_PLAYER_FOREIGN_MARKET_MINOR_CALLER_DIRECT_RVA;
 }
 
 static uint32_t kbo_team_add_kbo_org_team_id(uint32_t team_id, uint32_t kbo_league_id)

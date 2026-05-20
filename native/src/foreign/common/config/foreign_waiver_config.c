@@ -1,33 +1,52 @@
 #include "foreign_waiver_config.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-#include "../../../bootstrap/abi/ootp_offsets.h"
-#include "../../../core/logging/core_log.h"
-#include "../../../core/dates/core_current_date.h"
 #include "../../../core/files/save_paths/core_save_paths.h"
-#include "../../../core/dates/core_text_date.h"
-#include "../../../core/core_flags/api/flags_api.h"
-#include "../../../runtime_memory/runtime_memory.h"
 
-uint32_t read_u32_leading_number_from_file(const char* filename)
+static HANDLE kbo_open_foreign_policy_config_file(const char* file_name)
 {
-    if (filename == NULL) {
-        return 0;
+    if (file_name == NULL || file_name[0] == '\0') {
+        return INVALID_HANDLE_VALUE;
     }
 
     char path[MAX_PATH] = {0};
-    if (!kbo_get_global_data_file(filename, path, sizeof(path))) {
+    if (kbo_get_save_scoped_data_file(file_name, path, sizeof(path))) {
+        HANDLE file = CreateFileA(
+            path,
+            GENERIC_READ,
+            FILE_SHARE_READ,
+            NULL,
+            OPEN_EXISTING,
+            FILE_ATTRIBUTE_NORMAL,
+            NULL);
+        if (file != INVALID_HANDLE_VALUE) {
+            return file;
+        }
+    }
+
+    path[0] = '\0';
+    if (kbo_get_global_data_file(file_name, path, sizeof(path))) {
+        return CreateFileA(
+            path,
+            GENERIC_READ,
+            FILE_SHARE_READ,
+            NULL,
+            OPEN_EXISTING,
+            FILE_ATTRIBUTE_NORMAL,
+            NULL);
+    }
+
+    return INVALID_HANDLE_VALUE;
+}
+
+uint32_t kbo_read_u32_leading_number_from_foreign_policy_file(const char* file_name)
+{
+    if (file_name == NULL) {
         return 0;
     }
 
-    HANDLE file = CreateFileA(
-        path,
-        GENERIC_READ,
-        FILE_SHARE_READ,
-        NULL,
-        OPEN_EXISTING,
-        FILE_ATTRIBUTE_NORMAL,
-        NULL);
+    HANDLE file = kbo_open_foreign_policy_config_file(file_name);
     if (file == INVALID_HANDLE_VALUE) {
         return 0;
     }
@@ -58,7 +77,7 @@ uint32_t read_u32_leading_number_from_file(const char* filename)
 
 uint32_t kbo_get_foreign_waiver_auto_target_team_id(void)
 {
-    return read_u32_leading_number_from_file("foreign_waiver_ai_targets.txt");
+    return kbo_read_u32_leading_number_from_foreign_policy_file(KBO_FOREIGN_POLICY_AI_TARGET_TEAM_FILE);
 }
 
 int kbo_is_forced_foreign_candidate_id(uint32_t player_id)
@@ -67,19 +86,7 @@ int kbo_is_forced_foreign_candidate_id(uint32_t player_id)
         return 0;
     }
 
-    char path[MAX_PATH] = {0};
-    if (!kbo_get_global_data_file("foreign_player_ids.txt", path, sizeof(path))) {
-        return 0;
-    }
-
-    HANDLE file = CreateFileA(
-        path,
-        GENERIC_READ,
-        FILE_SHARE_READ,
-        NULL,
-        OPEN_EXISTING,
-        FILE_ATTRIBUTE_NORMAL,
-        NULL);
+    HANDLE file = kbo_open_foreign_policy_config_file(KBO_FOREIGN_POLICY_FORCED_PLAYER_IDS_FILE);
     if (file == INVALID_HANDLE_VALUE) {
         return 0;
     }
