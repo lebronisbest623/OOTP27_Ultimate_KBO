@@ -80,6 +80,19 @@ void kbo_count_team_asian_quota_probe(
     uint32_t foreign_count = 0u;
     uint32_t asian_count = 0u;
     uint32_t non_asian_count = 0u;
+    if (kbo_foreign_org_count_cache_hit(
+            team_id,
+            &foreign_count,
+            &asian_count,
+            &non_asian_count)) {
+        if (out_foreign_count != NULL) { *out_foreign_count = foreign_count; }
+        if (out_asian_quota_count != NULL) { *out_asian_quota_count = asian_count; }
+        if (out_non_asian_foreign_count != NULL) { *out_non_asian_foreign_count = non_asian_count; }
+        KBO_PROFILE_END(profile_foreign_org_count, "foreign_policy.org_count.cache_hit");
+        return;
+    }
+
+    uint32_t generation_before = kbo_foreign_org_count_cache_generation_for_team(team_id);
     int scanned = kbo_count_team_asian_quota_scan_live(
         team_id,
         &foreign_count,
@@ -88,7 +101,8 @@ void kbo_count_team_asian_quota_probe(
     if (out_foreign_count != NULL) { *out_foreign_count = foreign_count; }
     if (out_asian_quota_count != NULL) { *out_asian_quota_count = asian_count; }
     if (out_non_asian_foreign_count != NULL) { *out_non_asian_foreign_count = non_asian_count; }
-    if (scanned) {
+    uint32_t generation_after = kbo_foreign_org_count_cache_generation_for_team(team_id);
+    if (scanned && generation_before == generation_after) {
         kbo_foreign_org_count_cache_store(
             team_id,
             foreign_count,

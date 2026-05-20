@@ -96,27 +96,38 @@ void kbo_foreign_org_count_cache_store(
     uint32_t non_asian_count,
     DWORD now)
 {
+    if (team_id == 0u) {
+        return;
+    }
+    uint32_t generation = kbo_foreign_org_count_cache_generation_for_team(team_id);
+    if (now == 0u) {
+        now = 1u;
+    }
     KboForeignOrgCountCacheEntry* cached =
         &g_kbo_foreign_org_count_cache[kbo_foreign_org_count_cache_slot(team_id)];
     cached->team_id = team_id;
     cached->foreign_count = foreign_count;
     cached->asian_count = asian_count;
     cached->non_asian_count = non_asian_count;
+    cached->generation = generation;
     cached->tick = now;
 }
 
 int kbo_foreign_org_count_cache_hit(
     uint32_t team_id,
-    DWORD now,
     uint32_t* out_foreign_count,
     uint32_t* out_asian_quota_count,
     uint32_t* out_non_asian_foreign_count)
 {
+    if (team_id == 0u) {
+        return 0;
+    }
+    uint32_t generation = kbo_foreign_org_count_cache_generation_for_team(team_id);
     KboForeignOrgCountCacheEntry* cached =
         &g_kbo_foreign_org_count_cache[kbo_foreign_org_count_cache_slot(team_id)];
     if (cached->team_id != team_id
             || cached->tick == 0u
-            || now - cached->tick > KBO_FOREIGN_ORG_COUNT_CACHE_TTL_MS) {
+            || cached->generation != generation) {
         return 0;
     }
 

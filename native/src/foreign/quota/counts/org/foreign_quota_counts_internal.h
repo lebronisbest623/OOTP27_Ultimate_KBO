@@ -18,7 +18,6 @@
 
 enum {
     KBO_FOREIGN_ORG_COUNT_CACHE_SIZE = 512,
-    KBO_FOREIGN_ORG_COUNT_CACHE_TTL_MS = 5000u,
     KBO_FOREIGN_ORG_SNAPSHOT_MAX_TEAMS = 256,
     KBO_FOREIGN_ORG_PARENT_CACHE_SIZE = 512,
     KBO_FOREIGN_ORG_TEAM_GENERATION_CACHE_SIZE = 1024
@@ -29,6 +28,7 @@ typedef struct KboForeignOrgCountCacheEntry {
     uint32_t foreign_count;
     uint32_t asian_count;
     uint32_t non_asian_count;
+    uint32_t generation;
     DWORD tick;
 } KboForeignOrgCountCacheEntry;
 
@@ -54,7 +54,7 @@ uint32_t kbo_foreign_org_team_id_for_team_id(uint32_t team_id);
 void kbo_foreign_org_count_bump_team_generation(uint32_t team_id);
 void kbo_foreign_org_count_cache_invalidate_team(uint32_t team_id);
 void kbo_foreign_org_count_cache_store(uint32_t team_id, uint32_t foreign_count, uint32_t asian_count, uint32_t non_asian_count, DWORD now);
-int kbo_foreign_org_count_cache_hit(uint32_t team_id, DWORD now, uint32_t* out_foreign_count, uint32_t* out_asian_quota_count, uint32_t* out_non_asian_foreign_count);
+int kbo_foreign_org_count_cache_hit(uint32_t team_id, uint32_t* out_foreign_count, uint32_t* out_asian_quota_count, uint32_t* out_non_asian_foreign_count);
 int kbo_foreign_org_snapshot_get(uint32_t team_id, DWORD now, uint32_t* out_foreign_count, uint32_t* out_asian_quota_count, uint32_t* out_non_asian_foreign_count, int* out_rebuilt);
 
 #endif

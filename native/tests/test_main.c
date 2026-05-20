@@ -2729,6 +2729,69 @@ static void test_foreign_org_live_count_ignores_stale_snapshot(void)
     printf("test_foreign_org_live_count_ignores_stale_snapshot: PASS\n");
 }
 
+static void test_foreign_org_count_cache_reuses_generation_without_ttl(void)
+{
+    uint8_t non_asian[OOTP27_PLAYER_SCAN_BYTES];
+    memset(non_asian, 0, sizeof(non_asian));
+
+    memset(g_kbo_foreign_org_count_cache, 0, sizeof(g_kbo_foreign_org_count_cache));
+    memset(g_kbo_foreign_org_snapshot, 0, sizeof(g_kbo_foreign_org_snapshot));
+    memset(g_kbo_foreign_org_parent_cache_team_ids, 0, sizeof(g_kbo_foreign_org_parent_cache_team_ids));
+    memset(g_kbo_foreign_org_parent_cache_org_ids, 0, sizeof(g_kbo_foreign_org_parent_cache_org_ids));
+    memset(g_kbo_foreign_org_team_generation_team_ids, 0, sizeof(g_kbo_foreign_org_team_generation_team_ids));
+    memset(g_kbo_foreign_org_team_generations, 0, sizeof(g_kbo_foreign_org_team_generations));
+    g_kbo_foreign_org_snapshot_count = 0;
+    g_kbo_foreign_org_snapshot_tick = 0u;
+    g_kbo_foreign_org_count_cache_generation = 1;
+
+    *(uint32_t*)(non_asian + OOTP27_PLAYER_ID_OFFSET) = 7201u;
+    *(uint32_t*)(non_asian + OOTP27_PLAYER_NATION_ID_OFFSET) = 206u;
+    *(uint32_t*)(non_asian + OOTP27_PLAYER_CURRENT_TEAM_ID_OFFSET) = 2u;
+    *(uint32_t*)(non_asian + OOTP27_PLAYER_ACTIVE_TEAM_ID_OFFSET) = 2u;
+
+    g_test_player_vector_storage[0] = (uintptr_t)non_asian;
+    g_test_player_vector_count = 1;
+    g_test_player_vector_enabled = 1;
+
+    uint32_t foreign_count = 0u;
+    uint32_t asian_count = 0u;
+    uint32_t non_asian_count = 0u;
+    kbo_count_team_asian_quota_probe(2u, &foreign_count, &asian_count, &non_asian_count);
+    assert(foreign_count == 1u);
+    assert(asian_count == 0u);
+    assert(non_asian_count == 1u);
+
+    g_test_player_vector_enabled = 0;
+    g_test_player_vector_count = 0;
+    foreign_count = 99u;
+    asian_count = 99u;
+    non_asian_count = 99u;
+    kbo_count_team_asian_quota_probe(2u, &foreign_count, &asian_count, &non_asian_count);
+    assert(foreign_count == 1u);
+    assert(asian_count == 0u);
+    assert(non_asian_count == 1u);
+
+    kbo_foreign_org_count_bump_team_generation(2u);
+    foreign_count = 99u;
+    asian_count = 99u;
+    non_asian_count = 99u;
+    kbo_count_team_asian_quota_probe(2u, &foreign_count, &asian_count, &non_asian_count);
+    assert(foreign_count == 0u);
+    assert(asian_count == 0u);
+    assert(non_asian_count == 0u);
+
+    memset(g_test_player_vector_storage, 0, sizeof(g_test_player_vector_storage));
+    memset(g_kbo_foreign_org_count_cache, 0, sizeof(g_kbo_foreign_org_count_cache));
+    memset(g_kbo_foreign_org_snapshot, 0, sizeof(g_kbo_foreign_org_snapshot));
+    memset(g_kbo_foreign_org_parent_cache_team_ids, 0, sizeof(g_kbo_foreign_org_parent_cache_team_ids));
+    memset(g_kbo_foreign_org_parent_cache_org_ids, 0, sizeof(g_kbo_foreign_org_parent_cache_org_ids));
+    memset(g_kbo_foreign_org_team_generation_team_ids, 0, sizeof(g_kbo_foreign_org_team_generation_team_ids));
+    memset(g_kbo_foreign_org_team_generations, 0, sizeof(g_kbo_foreign_org_team_generations));
+    g_kbo_foreign_org_snapshot_count = 0;
+    g_kbo_foreign_org_snapshot_tick = 0u;
+    g_kbo_foreign_org_count_cache_generation = 1;
+    printf("test_foreign_org_count_cache_reuses_generation_without_ttl: PASS\n");
+}
 static void test_flag_key_from_file_name(void)
 {
     char out[64];
@@ -3115,6 +3178,7 @@ int main(void)
     test_foreign_injury_foreign_count_exclusion();
     test_foreign_org_snapshot_updates_on_assignment_change();
     test_foreign_org_live_count_ignores_stale_snapshot();
+    test_foreign_org_count_cache_reuses_generation_without_ttl();
     test_amateur_assignment_policy();
     test_amateur_reputation_balanced_deltas_prevent_inflation();
     test_independent_acquisition_score_policy();
