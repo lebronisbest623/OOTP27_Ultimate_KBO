@@ -1,4 +1,4 @@
-#include "ortools/amateur_assignment_ortools_internal.h"
+#include "ortools/amateur_assignment_ortools.h"
 #include "../../core/optimizer/kbo_optimizer.h"
 
 KboAmateurBatchAssignment g_kbo_amateur_batch_assignments[KBO_AMATEUR_LEAGUE_BATCH_PLAYER_MAX];

@@ -1,4 +1,4 @@
-#include "../award_schedule_probe_internal.h"
+#include "../award_schedule_probe_module.h"
 
 static OotpCreateLeagueEventFn g_kbo_award_schedule_create_league_event_original = NULL;
 static volatile LONG g_kbo_award_schedule_create_event_missing_original_logs = 0;

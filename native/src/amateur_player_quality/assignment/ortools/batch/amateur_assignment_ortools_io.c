@@ -1,4 +1,4 @@
-#include "..\amateur_assignment_ortools_internal.h"
+#include "..\amateur_assignment_ortools.h"
 
 uint32_t kbo_amateur_batch_resolve_source_team_id(uint8_t* player, uintptr_t source_team_ptr)
 {

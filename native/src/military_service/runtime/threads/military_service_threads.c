@@ -5,7 +5,7 @@
 #include "../../../core/dates/tick/current_date_tick_capture.h"
 #include "../../../core/logging/core_log.h"
 #include "../../military_service.h"
-#include "../days_tick/military_service_days_tick_internal.h"
+#include "../days_tick/military_service_days_tick.h"
 #include "../state/military_service_runtime_state.h"
 
 void start_kbo_military_seed_bootstrap_thread(void)

@@ -28,7 +28,7 @@
 #include "../../seed/registry/military_seed_registry.h"
 #include "../assignment/military_service_assignment.h"
 #include "../state/military_service_runtime_state.h"
-#include "military_service_days_tick_internal.h"
+#include "military_service_days_tick.h"
 #include "military_service_tick.h"
 
 static uint32_t kbo_military_days_tick_serial_from_work_date(uint32_t date)

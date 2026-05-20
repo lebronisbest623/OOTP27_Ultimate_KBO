@@ -1,4 +1,4 @@
-#include "../no_withdraw/arbitration_no_withdraw_patch_internal.h"
+#include "../no_withdraw/arbitration_no_withdraw_patch_module.h"
 
 int32_t kbo_salary_arbitration_resolve_minimum_salary(uint32_t league_id)
 {

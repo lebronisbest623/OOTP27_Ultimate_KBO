@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "../../awards/schedule/award_schedule_probe_internal.h"
+#include "../../awards/schedule/award_schedule_probe_module.h"
 #include "../../bootstrap/abi/hook_entrypoints.h"
 #include "../../bootstrap/abi/ootp_offsets.h"
 #include "../../build_verify/build_verify.h"

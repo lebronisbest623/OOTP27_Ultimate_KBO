@@ -9,7 +9,7 @@
 #include "../../../../fa_market_classification/api/fa_market_classification.h"
 #include "../../../../foreign/replacement_seed/api/foreign_replacement_seed.h"
 #include "../../../seed/registry/military_seed_registry.h"
-#include "../military_service_days_tick_internal.h"
+#include "../military_service_days_tick.h"
 
 void kbo_military_prewarm_save_scoped_bootstrap_files(const char* save_path)
 {

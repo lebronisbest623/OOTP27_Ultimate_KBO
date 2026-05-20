@@ -1,4 +1,4 @@
-#include "..\amateur_assignment_ortools_internal.h"
+#include "..\amateur_assignment_ortools.h"
 #include "../../../../core/runtime_tuning/runtime_tuning_policy.h"
 
 static DWORD WINAPI kbo_amateur_league_batch_flush_thread(LPVOID parameter)

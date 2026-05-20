@@ -1,4 +1,4 @@
-#include "..\amateur_assignment_ortools_internal.h"
+#include "..\amateur_assignment_ortools.h"
 #include "../../policy/amateur_assignment_policy_values.h"
 #include "../../../../core/optimizer/kbo_optimizer.h"
 #include "../../../../core/logging/rule_audit.h"

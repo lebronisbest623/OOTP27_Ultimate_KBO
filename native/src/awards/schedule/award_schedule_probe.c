@@ -1,4 +1,4 @@
-#include "award_schedule_probe_internal.h"
+#include "award_schedule_probe_module.h"
 
 volatile LONG g_kbo_award_schedule_probe_started = 0;
 

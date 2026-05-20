@@ -24,7 +24,7 @@
 #include "../src/captain/season/captain_season.h"
 #include "../src/captain/seed/parse/captain_seed_parse.h"
 #include "../src/patch_helpers/patch_helpers.h"
-#include "../src/awards/schedule/award_schedule_probe_internal.h"
+#include "../src/awards/schedule/award_schedule_probe_module.h"
 
 static uint32_t g_test_current_yyyymmdd = 0u;
 static char g_test_current_save_path[MAX_PATH] = {0};

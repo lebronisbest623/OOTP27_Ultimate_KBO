@@ -1,4 +1,4 @@
-#include "../award_schedule_probe_internal.h"
+#include "../award_schedule_probe_module.h"
 
 static int kbo_award_schedule_title_is_relevant(const char* title)
 {

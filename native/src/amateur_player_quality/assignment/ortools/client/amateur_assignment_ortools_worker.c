@@ -1,4 +1,4 @@
-#include "..\amateur_assignment_ortools_internal.h"
+#include "..\amateur_assignment_ortools.h"
 
 uint32_t kbo_amateur_ortools_read_result(const char* result_path)
 {

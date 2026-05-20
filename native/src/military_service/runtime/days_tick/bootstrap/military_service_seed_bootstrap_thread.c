@@ -15,7 +15,7 @@
 #include "../../../../runtime_memory/runtime_memory.h"
 #include "../../../../team/lookup/team_lookup.h"
 #include "../../../calendar/military_service_date.h"
-#include "../military_service_days_tick_internal.h"
+#include "../military_service_days_tick.h"
 #include "../military_service_tick.h"
 
 DWORD WINAPI kbo_military_seed_bootstrap_thread(LPVOID parameter)

@@ -1,4 +1,4 @@
-#include "../award_schedule_probe_internal.h"
+#include "../award_schedule_probe_module.h"
 #include "../../../core/files/save_paths/platform/core_path_io.h"
 
 static int kbo_award_schedule_read_file(const char* path, char** out_text, DWORD* out_size)

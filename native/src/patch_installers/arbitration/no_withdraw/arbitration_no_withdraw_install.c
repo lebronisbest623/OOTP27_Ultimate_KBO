@@ -1,4 +1,4 @@
-#include "arbitration_no_withdraw_patch_internal.h"
+#include "arbitration_no_withdraw_patch_module.h"
 
 int install_kbo_salary_arbitration_no_withdraw_patch(void)
 {

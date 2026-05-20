@@ -18,7 +18,7 @@
 #include "arbitration_no_withdraw_patch.h"
 #include "../common/arbitration_offer_floor_stubs.h"
 #include "../common/arbitration_patch_helpers.h"
-#include "arbitration_no_withdraw_patch_internal.h"
+#include "arbitration_no_withdraw_patch_module.h"
 typedef void (__fastcall *OotpArbitrationNonTenderFn)(void* team, void* player, uint8_t notify);
 typedef uint8_t* (__fastcall *KboArbitrationLeagueFinancialsLookupFn)(void* global_db, int32_t league_id);
 
