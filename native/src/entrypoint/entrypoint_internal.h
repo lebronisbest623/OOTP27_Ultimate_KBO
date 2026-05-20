@@ -18,7 +18,7 @@
 #include "../core/logging/core_log.h"
 #include "../core/files/save_paths/core_save_paths.h"
 #include "../custom_events/asian_games/player_eval/asian_games_player_eval.h"
-#include "../custom_events/diagnostics/cbt_service_time_probe.h"
+#include "../custom_events/diagnostics/cbt_service_time/cbt_service_time_probe.h"
 #include "../custom_events/runtime/monitor/custom_event_monitor.h"
 #include "../competitive_balance_tax/events/cbt_events.h"
 #include "../fa_market_investigation/api/fa_market_investigation.h"

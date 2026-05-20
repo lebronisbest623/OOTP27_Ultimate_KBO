@@ -6,11 +6,11 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "../../bootstrap/abi/ootp_offsets.h"
-#include "../../core/logging/core_log.h"
-#include "../../core/core_league_context_parts/api/league_context_lookup.h"
-#include "../../runtime_memory/runtime_memory.h"
-#include "../../team/lookup/team_lookup.h"
+#include "../../../bootstrap/abi/ootp_offsets.h"
+#include "../../../core/logging/core_log.h"
+#include "../../../core/core_league_context_parts/api/league_context_lookup.h"
+#include "../../../runtime_memory/runtime_memory.h"
+#include "../../../team/lookup/team_lookup.h"
 
 void kbo_scan_nation_id_offset_once(void)
 {

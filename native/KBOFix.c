@@ -125,7 +125,7 @@
 #include "src/custom_events/schedules/priority/foreign_priority_event_schedule.h"
 #include "src/custom_events/runtime/dispatch/custom_event_dispatch.h"
 #include "src/custom_events/runtime/scan/custom_event_scan.h"
-#include "src/custom_events/diagnostics/nation_id_scan.h"
+#include "src/custom_events/diagnostics/nation_id_scan/nation_id_scan.h"
 #include "src/custom_events/schedules/offseason/offseason_transition_schedule.h"
 #include "src/custom_events/runtime/monitor/custom_event_monitor.h"
 #include "src/allstar/allstar_league_context/allstar_league_context.h"

@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "../cbt_service_time_probe.h"
+#include "cbt_service_time_probe.h"
 #include "../../../bootstrap/abi/ootp_offsets.h"
 #include "../../../core/core_league_context_parts/api/league_context_lookup.h"
 #include "../../../core/logging/core_log.h"

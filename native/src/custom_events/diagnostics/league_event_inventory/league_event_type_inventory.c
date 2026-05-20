@@ -6,11 +6,11 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "../../bootstrap/abi/ootp_offsets.h"
-#include "../../core/core_league_context_parts/event_manager/event_manager.h"
-#include "../../core/logging/core_log.h"
-#include "../../runtime_memory/runtime_memory.h"
-#include "../../team/names/team_string.h"
+#include "../../../bootstrap/abi/ootp_offsets.h"
+#include "../../../core/core_league_context_parts/event_manager/event_manager.h"
+#include "../../../core/logging/core_log.h"
+#include "../../../runtime_memory/runtime_memory.h"
+#include "../../../team/names/team_string.h"
 
 static volatile LONG g_kbo_league_event_type_inventory_dumped = 0;
 static volatile uint32_t g_kbo_league_event_type_inventory_last_date = 0u;

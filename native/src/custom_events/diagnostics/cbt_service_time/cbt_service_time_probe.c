@@ -1,4 +1,4 @@
-#include "cbt_service_time/cbt_service_time_probe_internal.h"
+#include "cbt_service_time_probe_internal.h"
 
 int kbo_cbt_probe_year_plausible(uint32_t value, uint32_t current_year)
 {

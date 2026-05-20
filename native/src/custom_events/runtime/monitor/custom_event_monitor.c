@@ -15,7 +15,7 @@
 #include "../../../core/season/phase/capture/season_phase_capture.h"
 #include "../../schedules/independent/independent_team_acquisition_schedule.h"
 #include "../calendar/custom_event_calendar_due.h"
-#include "../../diagnostics/league_event_type_inventory.h"
+#include "../../diagnostics/league_event_inventory/league_event_type_inventory.h"
 
 static volatile LONG64 g_kbo_custom_event_schedule_deferred_log_ms = 0;
 static volatile LONG64 g_kbo_custom_event_scan_deferred_log_ms = 0;
