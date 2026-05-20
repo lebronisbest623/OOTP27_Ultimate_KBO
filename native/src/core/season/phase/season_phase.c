@@ -5,9 +5,9 @@
 #include "capture/season_phase_capture.h"
 
 #include "../../../bootstrap/abi/ootp_offsets.h"
-#include "../../../fa_salary_snapshot/paths/salary_snapshot_paths_dates.h"
 #include "../../../runtime_memory/runtime_memory.h"
 #include "../../core_league_context_parts/api/league_context_lookup.h"
+#include "../season_calendar.h"
 
 static void kbo_season_phase_init_info(KboSeasonPhaseInfo* info)
 {
@@ -99,20 +99,13 @@ static int kbo_season_phase_resolve_opening_day(
     }
 
     uint32_t schedule_year = kbo_season_phase_schedule_year(today, raw_info->league_year);
-    uint32_t opening_day = 0u;
-    if (raw_info->league_ptr != 0u
-            && kbo_fa_salary_snapshot_read_opening_day(raw_info->league_ptr, &opening_day)
-            && opening_day / 10000u == schedule_year) {
-        *out_opening_day = opening_day;
-        return 1;
-    }
-
-    if (kbo_fa_salary_snapshot_load_schedule_opening_day(schedule_year, &opening_day)
-            && opening_day / 10000u == schedule_year) {
-        *out_opening_day = opening_day;
-        return 1;
-    }
-    return 0;
+    return kbo_season_calendar_resolve_opening_day_with_league_ptr(
+        raw_info->league_id,
+        schedule_year,
+        today,
+        raw_info->league_ptr,
+        "season_phase_resolve",
+        out_opening_day);
 }
 
 int kbo_season_phase_resolve(

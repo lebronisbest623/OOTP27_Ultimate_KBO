@@ -12,6 +12,7 @@
 #include "../../core/core_league_context_parts/api/league_context_lookup.h"
 #include "../../core/logging/core_log.h"
 #include "../../core/runtime_tuning/runtime_tuning_policy.h"
+#include "../../core/season/season_calendar.h"
 #include "../../runtime_memory/runtime_memory.h"
 #include "../paths/salary_snapshot_paths_dates.h"
 #include "../state/salary_snapshot_state.h"
@@ -107,7 +108,7 @@ static void kbo_fa_salary_snapshot_try_pending_phase_event(uint32_t date)
     }
 
     uint32_t opening_day = 0u;
-    if (!kbo_fa_salary_snapshot_read_opening_day(league_ptr, &opening_day)) {
+    if (!kbo_season_calendar_read_league_opening_day(league_ptr, &opening_day)) {
         return;
     }
 
@@ -124,6 +125,12 @@ static void kbo_fa_salary_snapshot_try_pending_phase_event(uint32_t date)
         InterlockedExchange(&g_kbo_fa_salary_snapshot_phase_pending_active, 0);
         return;
     }
+    (void)kbo_season_calendar_store_opening_day(
+        league_id,
+        season,
+        opening_day,
+        date,
+        "season_phase_hook");
 
     if (kbo_fa_salary_snapshot_file_exists(season)) {
         InterlockedExchange(&g_kbo_fa_salary_snapshot_phase_pending_active, 0);

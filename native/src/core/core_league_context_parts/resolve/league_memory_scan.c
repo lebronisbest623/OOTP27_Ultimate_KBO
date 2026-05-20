@@ -9,6 +9,7 @@
 #include "../../logging/core_log.h"
 
 #define KBO_LEAGUE_PTR_SCAN_COOLDOWN_MS 60000ull
+#define KBO_LEAGUE_PTR_RETRY_COOLDOWN_MS 2000ull
 #define KBO_LEAGUE_PTR_BUSY_LOG_COOLDOWN_MS 10000ull
 #define KBO_LEAGUE_PTR_BOUNDED_SCAN_MAX_REGION ((SIZE_T)0x00400000u)
 
@@ -92,17 +93,22 @@ uintptr_t kbo_find_league_ptr_by_memory_scan(uint32_t league_id)
     static uint32_t cached_id_offset = 0;
     static ULONGLONG last_scan_ms = 0;
     static ULONGLONG last_busy_log_ms = 0;
+    static int last_scan_found = 0;
 
     if (cached_league_id == league_id
             && kbo_cached_league_ptr_valid(cached_ptr, league_id, cached_id_offset)) {
         return cached_ptr;
     }
+    int cached_invalidated = cached_league_id == league_id && cached_ptr != 0u;
     cached_ptr = 0;
     cached_league_id = 0;
     cached_id_offset = 0;
 
     ULONGLONG now = GetTickCount64();
-    if (last_scan_ms != 0u && now - last_scan_ms < KBO_LEAGUE_PTR_SCAN_COOLDOWN_MS) {
+    ULONGLONG cooldown_ms = (cached_invalidated || !last_scan_found)
+        ? KBO_LEAGUE_PTR_RETRY_COOLDOWN_MS
+        : KBO_LEAGUE_PTR_SCAN_COOLDOWN_MS;
+    if (last_scan_ms != 0u && now - last_scan_ms < cooldown_ms) {
         return 0;
     }
 
@@ -155,6 +161,7 @@ done:
         cached_league_id = league_id;
         cached_id_offset = result_id_offset;
     }
+    last_scan_found = result != 0u;
     InterlockedExchange(&g_kbo_league_ptr_memory_scan_in_progress, 0);
     return result;
 }

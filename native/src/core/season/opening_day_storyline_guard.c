@@ -8,7 +8,7 @@
 #include "../dates/core_text_date.h"
 #include "../dates/tick/current_date_tick_capture.h"
 #include "../logging/core_log.h"
-#include "../../fa_salary_snapshot/paths/salary_snapshot_paths_dates.h"
+#include "season_calendar.h"
 
 int kbo_opening_day_storyline_guard_active(
     const char* source,
@@ -36,7 +36,13 @@ int kbo_opening_day_storyline_guard_active(
     uint32_t league_id = kbo_resolve_kbo_league_id();
     uintptr_t league_ptr = league_id != 0u ? kbo_find_league_ptr_from_id(league_id) : 0u;
     uint32_t opening_day = 0u;
-    if (league_ptr == 0u || !kbo_fa_salary_snapshot_read_opening_day(league_ptr, &opening_day)) {
+    if (!kbo_season_calendar_resolve_opening_day_with_league_ptr(
+            league_id,
+            year,
+            date_key,
+            league_ptr,
+            "opening_day_storyline_guard",
+            &opening_day)) {
         return 0;
     }
     if (out_opening_day != NULL) {

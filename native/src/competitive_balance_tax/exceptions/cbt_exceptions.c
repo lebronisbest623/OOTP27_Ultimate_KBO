@@ -11,9 +11,9 @@
 #include "../../core/files/atomic/core_atomic_file.h"
 #include "../../core/files/save_paths/core_save_paths.h"
 #include "../../core/logging/core_log.h"
+#include "../../core/season/season_calendar.h"
 #include "../../fa_salary_snapshot/csv/salary_snapshot_csv_parse.h"
 #include "../../fa_salary_snapshot/grading/salary_snapshot_grade_rows.h"
-#include "../../fa_salary_snapshot/paths/salary_snapshot_paths_dates.h"
 #include "../../foreign/common/dates/foreign_waiver_date.h"
 #include "../rules/cbt_rules.h"
 
@@ -82,35 +82,6 @@ static int kbo_cbt_opening_day_cache_load(uint32_t season, uint32_t* out_opening
     return 1;
 }
 
-static void kbo_cbt_opening_day_cache_store(uint32_t season, uint32_t opening_day)
-{
-    if (!kbo_cbt_opening_day_valid(season, opening_day)) {
-        return;
-    }
-
-    uint32_t cached = 0u;
-    if (kbo_cbt_opening_day_cache_load(season, &cached) && cached == opening_day) {
-        return;
-    }
-
-    char path[MAX_PATH] = {0};
-    if (!kbo_cbt_opening_day_cache_path(path, sizeof(path))) {
-        return;
-    }
-
-    FILE* file = fopen(path, "a");
-    if (file == NULL) {
-        kbo_log_runtimef(
-            "KBO CBT opening day cache skipped season=%u opening_day=%u reason=open_failed path=%s",
-            season,
-            opening_day,
-            path);
-        return;
-    }
-    fprintf(file, "%u,%u\n", season, opening_day);
-    fclose(file);
-}
-
 static int kbo_cbt_opening_day_snapshot_load(uint32_t season, uint32_t* out_opening_day)
 {
     if (out_opening_day != NULL) {
@@ -141,21 +112,13 @@ int kbo_cbt_exception_resolve_opening_day(uint32_t season, uint32_t* out_opening
     }
 
     uint32_t league_id = kbo_resolve_kbo_league_id();
-    uintptr_t league_ptr = league_id != 0u ? kbo_find_league_ptr_from_id(league_id) : 0u;
     uint32_t opening_day = 0u;
-    if (league_ptr != 0u
-            && kbo_fa_salary_snapshot_read_opening_day(league_ptr, &opening_day)
+    if (kbo_season_calendar_resolve_opening_day(
+            league_id,
+            season,
+            0u,
+            &opening_day)
             && opening_day / 10000u == season) {
-        kbo_cbt_opening_day_cache_store(season, opening_day);
-        if (out_opening_day != NULL) {
-            *out_opening_day = opening_day;
-        }
-        return 1;
-    }
-
-    if (kbo_fa_salary_snapshot_load_schedule_opening_day(season, &opening_day)
-            && opening_day / 10000u == season) {
-        kbo_cbt_opening_day_cache_store(season, opening_day);
         if (out_opening_day != NULL) {
             *out_opening_day = opening_day;
         }
@@ -163,6 +126,14 @@ int kbo_cbt_exception_resolve_opening_day(uint32_t season, uint32_t* out_opening
     }
 
     if (kbo_cbt_opening_day_cache_load(season, &opening_day)) {
+        if (league_id != 0u) {
+            (void)kbo_season_calendar_store_opening_day(
+                league_id,
+                season,
+                opening_day,
+                0u,
+                "legacy_cbt_opening_days");
+        }
         if (out_opening_day != NULL) {
             *out_opening_day = opening_day;
         }
@@ -170,7 +141,14 @@ int kbo_cbt_exception_resolve_opening_day(uint32_t season, uint32_t* out_opening
     }
 
     if (kbo_cbt_opening_day_snapshot_load(season, &opening_day)) {
-        kbo_cbt_opening_day_cache_store(season, opening_day);
+        if (league_id != 0u) {
+            (void)kbo_season_calendar_store_opening_day(
+                league_id,
+                season,
+                opening_day,
+                0u,
+                "fa_salary_snapshot");
+        }
         if (out_opening_day != NULL) {
             *out_opening_day = opening_day;
         }
