@@ -35,6 +35,8 @@ write durable state through a save-state SQLite table. Large append-only logs,
 debug snapshots, OR-Tools exchange files, and regenerable caches can remain as
 files under `logs\`, `cache\`, or `work\`. User-editable save overrides should
 live under `config\`.
+`kbo_get_save_scoped_data_file` creates intermediate directories for nested
+save-scoped paths, so modules can request paths such as `logs\foo.csv` directly.
 
 ## Initial Tables
 
@@ -62,6 +64,12 @@ The first migrated subsystems are:
   state, formerly `independent_acquisition_window.txt`.
 - `independent_acquisition_ai_cursor`: independent Futures acquisition AI
   processed-date cursor, formerly `independent_acquisition_ai_cursor.txt`.
+- `independent_acquisition_requests`: independent Futures acquisition buyer
+  request ledger, formerly `independent_acquisition_requests.jsonl`.
+- `independent_acquisition_decisions`: independent Futures acquisition seller
+  decision ledger, formerly `independent_acquisition_decisions.jsonl`.
+- `foreign_roster_daily_audit_state`: daily foreign-roster audit cursor,
+  formerly `kbo_daily_audit_state.json`.
 
 The shared SQLite opener lives in:
 
@@ -113,8 +121,13 @@ the old CSV/TXT/JSONL names retired for new saves:
 - Idempotency and cursors: `custom_news_runs.jsonl` and the news marker files
   now live in `custom_news_runs`; `independent_acquisition_window.txt` now
   lives in `independent_acquisition_window`; `independent_acquisition_ai_cursor.txt`
-  now lives in `independent_acquisition_ai_cursor`; `*_state.txt` and small
-  state JSON files such as `kbo_daily_audit_state.json` still need table owners.
+  now lives in `independent_acquisition_ai_cursor`;
+  `independent_acquisition_requests.jsonl` now lives in
+  `independent_acquisition_requests`; `independent_acquisition_decisions.jsonl`
+  now lives in `independent_acquisition_decisions`;
+  `kbo_daily_audit_state.json` now lives in
+  `foreign_roster_daily_audit_state`; `*_state.txt` and other small state JSON
+  files still need table owners.
 
 ### Move Under `logs\`
 
@@ -122,32 +135,36 @@ These are observation, audit, or investigation outputs. They can be large and
 should stay outside the main state DB:
 
 - `rule_audit.ndjson`
-- `foreign_roster_audit.csv`
-- `domestic_fa_market_investigation.csv`
-- `foreign_waiver_candidates.csv`
-- `fa_compensation_protection_debug.csv`
-- `intl_established_fa_postscan.csv` unless a later implementation proves it is
+- `foreign_roster_audit.csv` now writes to `logs\foreign_roster_audit.csv`.
+- `domestic_fa_market_investigation.csv` now writes to
+  `logs\domestic_fa_market_investigation.csv`.
+- `foreign_waiver_candidates.csv` now writes to
+  `logs\foreign_waiver_candidates.csv`.
+- `fa_compensation_protection_debug.csv` now writes to
+  `logs\fa_compensation_protection_debug.csv`.
+- `intl_established_fa_postscan.csv` now writes to
+  `logs\intl_established_fa_postscan.csv` unless a later implementation proves it is
   required as durable decision state.
 
 ### Move Under `cache\`
 
 These files are derived or copied from OOTP data and can be regenerated:
 
-- `fa_market_text_data_<pid>.sqlite3`
-- `fa_market_text_data_<pid>.sqlite3-wal`
-- `fa_market_text_data_<pid>.sqlite3-shm`
-- `fa_market_classification.csv`
-- `foreign_roster_snapshot.csv`
+- `fa_market_text_data_<pid>.sqlite3`, `-wal`, and `-shm` now write under
+  `cache\`.
+- `fa_market_classification.csv` now writes to
+  `cache\fa_market_classification.csv`.
+- `foreign_roster_snapshot.csv` now writes to
+  `cache\foreign_roster_snapshot.csv`.
 
 ### Move Under `work\`
 
 These are external solver exchange files. They should not become save-state
 tables unless the solver protocol itself changes:
 
-- `*_ortools_request.csv`
-- `*_ortools_result.csv`
-- `*_ortools_batch_request.csv`
-- `*_ortools_batch_result.csv`
+- `*_ortools_request.csv`, `*_ortools_result.csv`,
+  `*_ortools_batch_request.csv`, and `*_ortools_batch_result.csv` now write
+  under `work\`.
 
 ### Move Under `config\`
 

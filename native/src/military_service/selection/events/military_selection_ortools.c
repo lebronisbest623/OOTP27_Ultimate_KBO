@@ -143,8 +143,8 @@ int kbo_route_queued_military_draft_candidates_ortools(
     }
     char request_path[MAX_PATH * 3] = {0};
     char result_path[MAX_PATH * 3] = {0};
-    if (!kbo_get_save_scoped_data_file("military_selection_ortools_request.csv", request_path, sizeof(request_path))
-            || !kbo_get_save_scoped_data_file("military_selection_ortools_result.csv", result_path, sizeof(result_path))) {
+    if (!kbo_get_save_scoped_data_file("work\\military_selection_ortools_request.csv", request_path, sizeof(request_path))
+            || !kbo_get_save_scoped_data_file("work\\military_selection_ortools_result.csv", result_path, sizeof(result_path))) {
         return 0;
     }
     int considered = 0;

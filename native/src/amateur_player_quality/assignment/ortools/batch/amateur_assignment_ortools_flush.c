@@ -199,8 +199,8 @@ int kbo_amateur_flush_league_batch_ortools(const char* reason, int force)
 
     char request_path[MAX_PATH * 3] = {0};
     char result_path[MAX_PATH * 3] = {0};
-    if (!kbo_get_save_scoped_data_file("amateur_assignment_ortools_batch_request.csv", request_path, sizeof(request_path))
-            || !kbo_get_save_scoped_data_file("amateur_assignment_ortools_batch_result.csv", result_path, sizeof(result_path))) {
+    if (!kbo_get_save_scoped_data_file("work\\amateur_assignment_ortools_batch_request.csv", request_path, sizeof(request_path))
+            || !kbo_get_save_scoped_data_file("work\\amateur_assignment_ortools_batch_result.csv", result_path, sizeof(result_path))) {
         kbo_amateur_audit_ortools_batch(
             "fallback", "path_unavailable", reason, league_id,
             optimizer_player_count, accumulated_teams, count, -1, deferred_count, -1, 0u);

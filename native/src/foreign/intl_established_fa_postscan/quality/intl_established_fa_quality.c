@@ -175,7 +175,7 @@ int kbo_intl_established_fa_postscan_open_csv(HANDLE* out_file, char* out_path, 
     *out_file = INVALID_HANDLE_VALUE;
     out_path[0] = '\0';
 
-    if (!kbo_get_save_scoped_data_file("intl_established_fa_postscan.csv", out_path, out_path_size)) {
+    if (!kbo_get_save_scoped_data_file("logs\\intl_established_fa_postscan.csv", out_path, out_path_size)) {
         return 0;
     }
 

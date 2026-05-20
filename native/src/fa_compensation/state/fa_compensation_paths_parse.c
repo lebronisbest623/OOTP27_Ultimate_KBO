@@ -41,7 +41,7 @@ int kbo_get_fa_compensation_protection_debug_path(char* out, size_t out_size)
         return 0;
     }
     out[0] = '\0';
-    return kbo_get_save_scoped_data_file("fa_compensation_protection_debug.csv", out, out_size);
+    return kbo_get_save_scoped_data_file("logs\\fa_compensation_protection_debug.csv", out, out_size);
 }
 
 uint32_t kbo_fa_compensation_parse_u32(const char* text)

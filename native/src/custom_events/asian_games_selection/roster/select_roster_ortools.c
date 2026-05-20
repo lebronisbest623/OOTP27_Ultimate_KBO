@@ -209,8 +209,8 @@ int kbo_select_asian_games_roster_ortools(
 
     char request_path[MAX_PATH * 3] = {0};
     char result_path[MAX_PATH * 3] = {0};
-    if (!kbo_get_save_scoped_data_file("asian_games_roster_ortools_request.csv", request_path, sizeof(request_path))
-            || !kbo_get_save_scoped_data_file("asian_games_roster_ortools_result.csv", result_path, sizeof(result_path))) {
+    if (!kbo_get_save_scoped_data_file("work\\asian_games_roster_ortools_request.csv", request_path, sizeof(request_path))
+            || !kbo_get_save_scoped_data_file("work\\asian_games_roster_ortools_result.csv", result_path, sizeof(result_path))) {
         return 0;
     }
     if (!kbo_asian_games_write_ortools_request(

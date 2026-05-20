@@ -133,8 +133,8 @@ uint8_t* kbo_choose_amateur_assignment_team_ortools(
 
     char request_path[MAX_PATH * 3] = {0};
     char result_path[MAX_PATH * 3] = {0};
-    if (!kbo_get_save_scoped_data_file("amateur_assignment_ortools_request.csv", request_path, sizeof(request_path))
-            || !kbo_get_save_scoped_data_file("amateur_assignment_ortools_result.csv", result_path, sizeof(result_path))) {
+    if (!kbo_get_save_scoped_data_file("work\\amateur_assignment_ortools_request.csv", request_path, sizeof(request_path))
+            || !kbo_get_save_scoped_data_file("work\\amateur_assignment_ortools_result.csv", result_path, sizeof(result_path))) {
         static volatile LONG path_fail_log_count = 0;
         if (InterlockedIncrement(&path_fail_log_count) <= 5) {
             kbo_log_runtime_line("amateur OR-Tools save-scoped request/result path unavailable");

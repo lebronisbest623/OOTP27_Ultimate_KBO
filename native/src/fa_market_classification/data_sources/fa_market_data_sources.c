@@ -14,7 +14,7 @@ int kbo_get_fa_market_classification_csv_path(char* out, size_t out_size)
     if (out == NULL || out_size < 2) {
         return 0;
     }
-    return kbo_get_save_scoped_data_file("fa_market_classification.csv", out, out_size);
+    return kbo_get_save_scoped_data_file("cache\\fa_market_classification.csv", out, out_size);
 }
 
 void kbo_fa_market_text_data_source_paths(
@@ -196,12 +196,6 @@ int kbo_fa_market_copy_text_data_sqlite(char* out_path, size_t out_path_size)
         return 0;
     }
 
-    char data_dir[MAX_PATH] = {0};
-    if (!kbo_get_save_scoped_data_dir(data_dir, sizeof(data_dir))) {
-        kbo_log_runtime_line("FA market history sqlite skipped reason=no_save_scoped_data_dir");
-        return 0;
-    }
-
     char source_db[MAX_PATH] = {0};
     char source_wal[MAX_PATH] = {0};
     char source_shm[MAX_PATH] = {0};
@@ -220,10 +214,15 @@ int kbo_fa_market_copy_text_data_sqlite(char* out_path, size_t out_path_size)
     }
 
     DWORD pid = GetCurrentProcessId();
+    char dest_name[128] = {0};
     char dest_db[MAX_PATH] = {0};
     char dest_wal[MAX_PATH] = {0};
     char dest_shm[MAX_PATH] = {0};
-    snprintf(dest_db, sizeof(dest_db), "%s\\fa_market_text_data_%lu.sqlite3", data_dir, (unsigned long)pid);
+    snprintf(dest_name, sizeof(dest_name), "cache\\fa_market_text_data_%lu.sqlite3", (unsigned long)pid);
+    if (!kbo_get_save_scoped_data_file(dest_name, dest_db, sizeof(dest_db))) {
+        kbo_log_runtime_line("FA market history sqlite skipped reason=no_cache_path");
+        return 0;
+    }
     snprintf(dest_wal, sizeof(dest_wal), "%s-wal", dest_db);
     snprintf(dest_shm, sizeof(dest_shm), "%s-shm", dest_db);
 

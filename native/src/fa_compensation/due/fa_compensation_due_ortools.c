@@ -85,8 +85,8 @@ int kbo_fa_compensation_apply_ortools_order(
 
     char request_path[MAX_PATH * 3] = {0};
     char result_path[MAX_PATH * 3] = {0};
-    if (!kbo_get_save_scoped_data_file("fa_compensation_ortools_request.csv", request_path, sizeof(request_path))
-            || !kbo_get_save_scoped_data_file("fa_compensation_ortools_result.csv", result_path, sizeof(result_path))) {
+    if (!kbo_get_save_scoped_data_file("work\\fa_compensation_ortools_request.csv", request_path, sizeof(request_path))
+            || !kbo_get_save_scoped_data_file("work\\fa_compensation_ortools_result.csv", result_path, sizeof(result_path))) {
         return 0;
     }
     if (!kbo_fa_compensation_write_ortools_request(request_path, rec, candidates, candidate_count)) {

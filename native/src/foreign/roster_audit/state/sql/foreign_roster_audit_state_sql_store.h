@@ -1,0 +1,9 @@
+#ifndef KBOFIX_SRC_FOREIGN_ROSTER_AUDIT_STATE_SQL_FOREIGN_ROSTER_AUDIT_STATE_SQL_STORE_H_
+#define KBOFIX_SRC_FOREIGN_ROSTER_AUDIT_STATE_SQL_FOREIGN_ROSTER_AUDIT_STATE_SQL_STORE_H_
+
+#include <stdint.h>
+
+uint32_t kbo_foreign_roster_audit_sql_load_last_audit_date(const char* source);
+int kbo_foreign_roster_audit_sql_persist_last_audit_date(uint32_t today, const char* source);
+
+#endif

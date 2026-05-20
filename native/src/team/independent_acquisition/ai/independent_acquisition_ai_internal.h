@@ -6,8 +6,6 @@
 #include "../window/independent_acquisition_window.h"
 #include "../../classification/team_classification.h"
 
-#define KBO_INDEPENDENT_ACQUISITION_REQUEST_FILE "independent_acquisition_requests.jsonl"
-#define KBO_INDEPENDENT_ACQUISITION_DECISION_FILE "independent_acquisition_decisions.jsonl"
 #define KBO_INDEPENDENT_ACQUISITION_MAX_BUYERS 32
 #define KBO_INDEPENDENT_ACQUISITION_MAX_SELLERS 8
 #define KBO_INDEPENDENT_ACQUISITION_MAX_QUEUE 256

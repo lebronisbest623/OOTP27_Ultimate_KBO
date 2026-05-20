@@ -43,6 +43,24 @@ static char g_cached_save_scoped_dir_key[KBO_UTF8_PATH_BYTES] = {0};
 static char g_cached_save_scoped_dir[KBO_UTF8_PATH_BYTES] = {0};
 static volatile LONG g_cached_save_scoped_dir_valid = 0;
 
+static void kbo_create_save_scoped_parent_dirs(char* path, size_t start_at)
+{
+    if (path == NULL || path[0] == '\0') {
+        return;
+    }
+    for (char* p = path + start_at; *p != '\0'; p++) {
+        if (*p != '\\' && *p != '/') {
+            continue;
+        }
+        char saved = *p;
+        *p = '\0';
+        if (path[0] != '\0') {
+            kbo_create_directory_utf8(path);
+        }
+        *p = saved;
+    }
+}
+
 int kbo_get_save_scoped_data_dir(char* out, size_t out_size)
 {
     if (out == NULL || out_size == 0) {
@@ -130,6 +148,11 @@ int kbo_get_save_scoped_data_file(const char* file_name, char* out, size_t out_s
     if (!kbo_get_save_scoped_data_dir(dir, sizeof(dir))) {
         return 0;
     }
-    snprintf(out, out_size, "%s\\%s", dir, file_name);
+    int len = snprintf(out, out_size, "%s\\%s", dir, file_name);
+    if (len <= 0 || (size_t)len >= out_size) {
+        out[0] = '\0';
+        return 0;
+    }
+    kbo_create_save_scoped_parent_dirs(out, strlen(dir) + 1u);
     return out[0] != '\0';
 }

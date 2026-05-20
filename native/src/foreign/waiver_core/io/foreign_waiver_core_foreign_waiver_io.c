@@ -23,7 +23,7 @@ static int get_kbo_foreign_waiver_csv_path(char* out, size_t out_size)
     if (out == NULL || out_size < 2) {
         return 0;
     }
-    return kbo_get_save_scoped_data_file("foreign_waiver_candidates.csv", out, out_size);
+    return kbo_get_save_scoped_data_file("logs\\foreign_waiver_candidates.csv", out, out_size);
 }
 
 static int append_foreign_waiver_candidate_csv_header(HANDLE file)

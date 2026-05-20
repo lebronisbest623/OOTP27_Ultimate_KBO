@@ -253,7 +253,7 @@ int kbo_domestic_fa_write_investigation_csv(
     }
 
     char path[MAX_PATH] = {0};
-    if (!kbo_get_save_scoped_data_file("domestic_fa_market_investigation.csv", path, sizeof(path))) {
+    if (!kbo_get_save_scoped_data_file("logs\\domestic_fa_market_investigation.csv", path, sizeof(path))) {
         kbo_log_runtime_line("domestic FA market investigation: unable to resolve CSV path");
         return 0;
     }
