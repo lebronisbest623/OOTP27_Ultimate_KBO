@@ -58,6 +58,27 @@ int kbo_attach_foreign_injury_replacement_after_signing(
     if (replacement_player_id == 0u) {
         return 0;
     }
+    KboForeignInjuryLiveMemory replacement_injury;
+    memset(&replacement_injury, 0, sizeof(replacement_injury));
+    if (kbo_foreign_injury_read_live_memory(replacement, &replacement_injury)
+            && kbo_foreign_injury_runtime_injury_present_from_memory(replacement)) {
+        do {
+            KboLogFields audit_fields;
+            kbo_log_fields_init(&audit_fields);
+            kbo_log_field_u32(&audit_fields, "team_id", team_id);
+            kbo_log_field_u32(&audit_fields, "replacement_player_id", replacement_player_id);
+            kbo_log_field_i32(&audit_fields, "days_left", replacement_injury.days_left);
+            kbo_log_field_i32(&audit_fields, "active_injury_count", replacement_injury.active_count);
+            kbo_log_field_u32(&audit_fields, "injury_id", replacement_injury.injury_id);
+            kbo_rule_audit_emit_fields(
+                "foreign_injury.replacement.lifecycle",
+                "skip_attach",
+                "replacement_player_injured",
+                source,
+                &audit_fields);
+        } while (0);
+        return 0;
+    }
 
     uint32_t today = 0u;
     kbo_current_date_tick_latest_published_date(&today);
