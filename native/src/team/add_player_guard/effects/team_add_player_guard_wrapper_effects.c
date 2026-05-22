@@ -74,20 +74,21 @@ void kbo_team_add_apply_success_side_effects(
     uint32_t before_loan_team_id,
     uint32_t before_original_team_id)
 {
-    if (player != NULL && kbo_player_is_foreign_for_kbo_rights(player)) {
+    int player_is_foreign = player != NULL && kbo_player_is_foreign_for_kbo_rights(player);
+    if (player_is_foreign) {
         kbo_mark_foreign_ai_roster_daily_callup_dirty("team_add_foreign_assignment_success");
+        kbo_team_add_note_foreign_assignment_success(
+            player,
+            before_current_team_id,
+            before_active_team_id,
+            before_loan_team_id);
+        KBO_PROFILE_BEGIN(profile_team_add_foreign_injury_attach);
+        kbo_team_add_attach_foreign_injury_replacement_success(
+            effective_team_ptr,
+            player_ptr,
+            "team_add_player_success");
+        KBO_PROFILE_END(profile_team_add_foreign_injury_attach, "team_add_guard.foreign_injury_attach");
     }
-    kbo_team_add_note_foreign_assignment_success(
-        player,
-        before_current_team_id,
-        before_active_team_id,
-        before_loan_team_id);
-    KBO_PROFILE_BEGIN(profile_team_add_foreign_injury_attach);
-    kbo_team_add_attach_foreign_injury_replacement_success(
-        effective_team_ptr,
-        player_ptr,
-        "team_add_player_success");
-    KBO_PROFILE_END(profile_team_add_foreign_injury_attach, "team_add_guard.foreign_injury_attach");
 
     KBO_PROFILE_BEGIN(profile_team_add_fa_comp);
     kbo_team_add_player_record_fa_compensation_success(

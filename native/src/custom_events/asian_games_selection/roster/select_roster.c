@@ -8,6 +8,7 @@
 #include "../../../core/core_league_context_parts/api/league_context_lookup.h"
 #include "../../../foreign/common/policy/foreign_waiver_policy.h"
 #include "../../../team/lookup/team_lookup.h"
+#include "../../asian_games/history/asian_games_player_history.h"
 #include "../../asian_games/player_eval/asian_games_player_eligibility.h"
 #include "../../asian_games/roster/asian_games_roster_store.h"
 #include "select_roster_ortools.h"
@@ -203,6 +204,7 @@ int kbo_select_asian_games_roster(uint32_t event_yyyymmdd, const char* source)
         rejected_team,
         rejected_service_team,
         rejected_parentless_affiliate);
+    int history_recorded = 0;
     for (int i = 0; i < selected_count; i++) {
         KboAsianGamesRosterEntry* entry = &g_kbo_asian_games_roster[i];
         kbo_log_runtimef(
@@ -217,7 +219,14 @@ int kbo_select_asian_games_roster(uint32_t event_yyyymmdd, const char* source)
             kbo_asian_games_role_bucket_label(entry->role),
             (uint32_t)entry->wildcard,
             entry->score);
+        history_recorded += kbo_record_asian_games_selection_history(entry, event_yyyymmdd, source);
     }
+    kbo_log_runtimef(
+        "KBO Asian Games selection player history source=%s date=%u selected=%d recorded=%d",
+        source != NULL ? source : "",
+        event_yyyymmdd,
+        selected_count,
+        history_recorded);
 
     HeapFree(GetProcessHeap(), 0, candidates);
     kbo_save_asian_games_roster_csv(source);

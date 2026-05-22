@@ -13,6 +13,7 @@
 #include "../../../team/assignment/assignment/team_assignment.h"
 #include "../../../team/lookup/team_lookup.h"
 #include "../../../team/assignment/roster_arrays/team_roster_arrays.h"
+#include "../../history/military_service_player_history.h"
 #include "../../players/loans/military_active_loan.h"
 #include "../../players/state/military_player_state.h"
 #include "../../selection/events/policy/military_selection_policy.h"
@@ -59,6 +60,7 @@ int kbo_apply_military_service_seed_assignments(uint8_t* sang, uint8_t* kpb, con
     uint32_t kpb_id  = kpb  != NULL ? *(uint32_t*)(kpb  + OOTP27_KBO_TEAM_ID_OFFSET) : 0u;
     uint32_t today_serial = kbo_current_date_serial();
     int applied = 0;
+    int history_recorded = 0;
     KboMilitaryServiceSeed seeds[KBO_MILITARY_SERVICE_SEED_MAX];
     int seed_count = kbo_snapshot_military_service_seeds(seeds, KBO_MILITARY_SERVICE_SEED_MAX);
 
@@ -85,6 +87,8 @@ int kbo_apply_military_service_seed_assignments(uint8_t* sang, uint8_t* kpb, con
 
         uint32_t current_team_id = *(uint32_t*)(player + OOTP27_PLAYER_CURRENT_TEAM_ID_OFFSET);
         uint32_t loan_team_id    = *(uint32_t*)(player + OOTP27_PLAYER_LOAN_TEAM_ID_OFFSET);
+        int was_registered = find_active_kbo_military_loan_index(seed->player_id) >= 0;
+        int was_on_service_team = current_team_id == service_team_id || loan_team_id == service_team_id;
         uint32_t seed_return_serial = kbo_military_yyyymmdd_to_serial(seed->service_return_yyyymmdd);
         if (today_serial != 0u
                 && seed_return_serial != 0u
@@ -207,12 +211,31 @@ int kbo_apply_military_service_seed_assignments(uint8_t* sang, uint8_t* kpb, con
             }
             player[OOTP27_PLAYER_MILITARY_ACTIVE_OFFSET] = 1;
             kbo_clear_military_unavailable_flags(player);
+            if (!was_registered && !was_on_service_team) {
+                uint32_t history_yyyymmdd = seed->service_start_yyyymmdd;
+                if (history_yyyymmdd == 0u && loan->service_start_date_serial != 0u) {
+                    history_yyyymmdd = kbo_military_serial_to_yyyymmdd(loan->service_start_date_serial);
+                }
+                if (history_yyyymmdd == 0u && today_serial != 0u) {
+                    history_yyyymmdd = kbo_military_serial_to_yyyymmdd(today_serial);
+                }
+                history_recorded += kbo_record_military_seed_assignment_player_history(
+                    seed->player_id,
+                    service_team_id,
+                    original_team_id,
+                    history_yyyymmdd,
+                    source);
+            }
             applied++;
         }
     }
 
     if (applied > 0) {
-        kbo_log_runtimef("KBO military service seed applied source=%s assignments=%d", source != NULL ? source : "", applied);
+        kbo_log_runtimef(
+            "KBO military service seed applied source=%s assignments=%d history=%d",
+            source != NULL ? source : "",
+            applied,
+            history_recorded);
     }
     return applied;
 }

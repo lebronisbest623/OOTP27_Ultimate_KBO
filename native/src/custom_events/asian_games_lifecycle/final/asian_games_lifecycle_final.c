@@ -12,6 +12,7 @@
 #include "../../../foreign/common/player_eval/foreign_waiver_player_eval.h"
 #include "../../../team/lookup/team_lookup.h"
 #include "../../../team/assignment/roster_arrays/team_roster_arrays.h"
+#include "../../asian_games/history/asian_games_player_history.h"
 
 /* Asian Games final return and exemption lifecycle. */
 
@@ -162,6 +163,7 @@ int kbo_asian_games_finalize_selected_players(uint32_t event_yyyymmdd, const cha
     int exempted = 0;
     int missing = 0;
     int no_team = 0;
+    int history_recorded = 0;
     for (LONG i = 0; i < roster_count; i++) {
         KboAsianGamesRosterEntry* entry = &g_kbo_asian_games_roster[i];
         if (entry->player_id == 0u || entry->returned != 0u) {
@@ -251,6 +253,11 @@ int kbo_asian_games_finalize_selected_players(uint32_t event_yyyymmdd, const cha
 
         entry->returned = 1u;
         returned++;
+        history_recorded += kbo_record_asian_games_final_history(
+            entry,
+            event_yyyymmdd,
+            final_result,
+            source);
         kbo_log_runtimef(
             "KBO Asian Games finalized #%ld player_id=%u team=%u league=%u result=%u gold=%d exempted=%u removed_restricted=%d removed_current=%d removed_active=%d added_assignment=%d restored_restricted=%u restored_secondary=%u restored_injury=%u restored_days=%d",
             i + 1,
@@ -281,6 +288,12 @@ int kbo_asian_games_finalize_selected_players(uint32_t event_yyyymmdd, const cha
         exempted,
         missing,
         no_team);
+    kbo_log_runtimef(
+        "KBO Asian Games final player history source=%s date=%u returned=%d recorded=%d",
+        source != NULL ? source : "",
+        event_yyyymmdd,
+        returned,
+        history_recorded);
     kbo_save_asian_games_roster_csv(source);
     kbo_append_asian_games_tournament_history(
         event_yyyymmdd / 10000u,

@@ -202,28 +202,35 @@ void kbo_emit_fa_compensation_player_selected_news(
         "%s",
         selected->player_name[0] != '\0' ? selected->player_name : "Compensation player");
 
-    const char* fa_player_name = rec->player_name[0] != '\0' ? rec->player_name : "FA signing";
-    char signing_team_id_text[16] = {0};
-    char original_team_id_text[16] = {0};
-    snprintf(signing_team_id_text, sizeof(signing_team_id_text), "%u", rec->signing_team_id);
-    snprintf(original_team_id_text, sizeof(original_team_id_text), "%u", rec->original_team_id);
-
-    KboNewsTemplateVar history_vars[] = {
-        { "fa_player_name", fa_player_name },
-        { "signing_team_id", signing_team_id_text },
-        { "original_team_id", original_team_id_text },
-        { "cash_text", cash_text },
-    };
+    const char* fa_player_name = rec->player_name[0] != '\0' ? rec->player_name : "the FA signing";
+    char signing_team_name[96] = {0};
+    char original_team_name[96] = {0};
     char history_text[512] = {0};
-    if (kbo_news_template_render_key(
-            "fa_compensation.history.selected",
-            history_vars,
-            (int)(sizeof(history_vars) / sizeof(history_vars[0])),
-            history_text,
-            sizeof(history_text),
-            "fa_compensation_player")) {
-        insert_kbo_player_history_sql(selected->player_id, year, month, day, history_text, "fa_compensation_player");
-    }
+    kbo_fa_compensation_copy_team_history_name(rec->signing_team_id, signing_team_name, sizeof(signing_team_name));
+    kbo_fa_compensation_copy_team_history_name(rec->original_team_id, original_team_name, sizeof(original_team_name));
+    snprintf(
+        history_text,
+        sizeof(history_text),
+        "[G]Selected as the KBO FA compensation player for %s. Rights transferred from %s to %s, with %s cash compensation recorded.",
+        fa_player_name,
+        signing_team_name[0] != '\0' ? signing_team_name : "his previous KBO organization",
+        original_team_name[0] != '\0' ? original_team_name : "his new KBO organization",
+        cash_text);
+    int history_recorded = insert_kbo_player_history_sql(
+        selected->player_id,
+        year,
+        month,
+        day,
+        history_text,
+        "fa_compensation_player");
+    kbo_log_runtimef(
+        "KBO FA compensation selected player history source=fa_compensation_player fa_player=%u selected=%u date=%u signing_team=%u original_team=%u recorded=%d",
+        rec->player_id,
+        selected->player_id,
+        decided_yyyymmdd,
+        rec->signing_team_id,
+        rec->original_team_id,
+        history_recorded);
 
     char title[160] = {0};
     char body[1200] = {0};
@@ -266,6 +273,61 @@ void kbo_emit_fa_compensation_player_selected_news(
     }
 
     create_kbo_native_live_news_with_body(year, month, day, rec->league_id, 10u, title, body);
+}
+
+static int kbo_record_fa_compensation_transfer_player_history(
+    const KboFaCompensationRecord* rec,
+    const KboFaProtectedCandidate* selected,
+    uint32_t transfer_yyyymmdd,
+    const char* source)
+{
+    if (rec == NULL || selected == NULL || selected->player_id == 0u || transfer_yyyymmdd == 0u) {
+        return 0;
+    }
+
+    uint32_t year = transfer_yyyymmdd / 10000u;
+    uint32_t month = (transfer_yyyymmdd / 100u) % 100u;
+    uint32_t day = transfer_yyyymmdd % 100u;
+    if (year < KBO_SEASON_YEAR_MIN || month == 0u || month > 12u || day == 0u || day > 31u) {
+        return 0;
+    }
+
+    char original_team_name[96] = {0};
+    char signing_team_name[96] = {0};
+    char history_text[512] = {0};
+    kbo_fa_compensation_copy_team_history_name(
+        rec->original_team_id,
+        original_team_name,
+        sizeof(original_team_name));
+    kbo_fa_compensation_copy_team_history_name(
+        rec->signing_team_id,
+        signing_team_name,
+        sizeof(signing_team_name));
+    snprintf(
+        history_text,
+        sizeof(history_text),
+        "[G]Joined %s from %s as the KBO FA compensation player for %s.",
+        original_team_name[0] != '\0' ? original_team_name : "his new KBO organization",
+        signing_team_name[0] != '\0' ? signing_team_name : "his previous KBO organization",
+        rec->player_name[0] != '\0' ? rec->player_name : "the FA signing");
+
+    int recorded = insert_kbo_player_history_sql(
+        selected->player_id,
+        year,
+        month,
+        day,
+        history_text,
+        source != NULL ? source : "fa_compensation_transfer");
+    kbo_log_runtimef(
+        "KBO FA compensation transfer player history source=%s fa_player=%u selected=%u date=%u original_team=%u signing_team=%u recorded=%d",
+        source != NULL ? source : "",
+        rec->player_id,
+        selected->player_id,
+        transfer_yyyymmdd,
+        rec->original_team_id,
+        rec->signing_team_id,
+        recorded);
+    return recorded;
 }
 
 int kbo_transfer_fa_compensation_player_to_original_team(
@@ -335,28 +397,14 @@ int kbo_transfer_fa_compensation_player_to_original_team(
         return 0;
     }
 
-    int year = (int)(transfer_yyyymmdd / 10000u);
-    int month = (int)((transfer_yyyymmdd / 100u) % 100u);
-    int day = (int)(transfer_yyyymmdd % 100u);
-    char original_team_id_text[16] = {0};
-    snprintf(original_team_id_text, sizeof(original_team_id_text), "%u", rec->original_team_id);
-    KboNewsTemplateVar history_vars[] = {
-        { "original_team_id", original_team_id_text },
-        { "fa_player_name", rec->player_name[0] != '\0' ? rec->player_name : "the signing" },
-    };
-    char history_text[256] = {0};
-    if (kbo_news_template_render_key(
-            "fa_compensation.history.transfer",
-            history_vars,
-            (int)(sizeof(history_vars) / sizeof(history_vars[0])),
-            history_text,
-            sizeof(history_text),
-            source)) {
-        insert_kbo_player_history_sql(selected->player_id, year, month, day, history_text, "fa_compensation_transfer");
-    }
+    int history_recorded = kbo_record_fa_compensation_transfer_player_history(
+        rec,
+        selected,
+        transfer_yyyymmdd,
+        "fa_compensation_transfer");
 
     kbo_log_runtimef(
-        "KBO FA compensation player transferred fa_player=%u selected=%u name=%s signing_team=%u original_team=%u current=%u->%u active=%u->%u pre=%d register=%d attach=%d source=%s",
+        "KBO FA compensation player transferred fa_player=%u selected=%u name=%s signing_team=%u original_team=%u current=%u->%u active=%u->%u pre=%d register=%d attach=%d history=%d source=%s",
         rec->player_id,
         selected->player_id,
         selected->player_name,
@@ -369,6 +417,7 @@ int kbo_transfer_fa_compensation_player_to_original_team(
         called_pre_change,
         called_register,
         called_attach,
+        history_recorded,
         source != NULL ? source : "");
     return 1;
 }

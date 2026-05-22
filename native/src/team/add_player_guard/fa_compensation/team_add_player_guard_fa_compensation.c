@@ -4,6 +4,7 @@
 
 #include "../../../bootstrap/abi/ootp_offsets.h"
 #include "../../../bootstrap/profiling/profiler.h"
+#include "../../../core/core_league_context_parts/api/league_context_lookup.h"
 #include "../../../core/core_flags/api/flags_api.h"
 #include "../../../core/logging/core_log.h"
 #include "../../../fa_compensation/history/fa_compensation_history.h"
@@ -15,6 +16,31 @@
 #include "../internal/team_add_player_guard_internal.h"
 #include "../../../core/core_flags/keys/runtime_flag_keys.generated.h"
 
+static int kbo_team_add_fa_comp_team_in_kbo_scope(uint8_t* team, uint32_t team_id, uint32_t league_id)
+{
+    if (team == NULL || team_id == 0u || league_id == 0u) {
+        return 0;
+    }
+
+    uint32_t kbo_league_id = kbo_resolve_kbo_league_id();
+    if (kbo_league_id == 0u || league_id == kbo_league_id) {
+        return 1;
+    }
+
+    uint32_t parent_team_id = 0u;
+    if (memory_range_readable(team + OOTP27_KBO_TEAM_PARENT_TEAM_ID_OFFSET, sizeof(uint32_t))) {
+        parent_team_id = *(uint32_t*)(team + OOTP27_KBO_TEAM_PARENT_TEAM_ID_OFFSET);
+    }
+    if (parent_team_id == 0u) {
+        return 0;
+    }
+
+    uint8_t* parent_team = find_kbo_team_by_numeric_id_any_league(parent_team_id, 1);
+    return parent_team != NULL
+        && memory_range_readable(parent_team, OOTP27_KBO_TEAM_READABLE_BYTES)
+        && *(uint32_t*)(parent_team + OOTP27_KBO_TEAM_LEAGUE_ID_OFFSET) == kbo_league_id;
+}
+
 void kbo_team_add_player_record_fa_compensation_success(
     uintptr_t team_ptr,
     uintptr_t player_ptr,
@@ -24,7 +50,6 @@ void kbo_team_add_player_record_fa_compensation_success(
 {
     KBO_PROFILE_BEGIN(profile_fa_comp_probe_inner);
     if (!kbo_fix_enabled()
-            || read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_DISABLE_KBO_FA_COMPENSATION_FILE)
             || team_ptr == 0
             || !memory_range_readable((void*)team_ptr, OOTP27_KBO_TEAM_READABLE_BYTES)
             || !kbo_player_pointer_plausible(player_ptr)) {
@@ -43,6 +68,14 @@ void kbo_team_add_player_record_fa_compensation_success(
     uint32_t league_id = *(uint32_t*)(team + OOTP27_KBO_TEAM_LEAGUE_ID_OFFSET);
     if (team_id == 0u || league_id == 0u || kbo_team_id_is_military_service_team(team_id)) {
         KBO_PROFILE_END(profile_fa_comp_probe_inner, "team_add_guard.fa_comp_inner.bad_team");
+        return;
+    }
+    if (!kbo_team_add_fa_comp_team_in_kbo_scope(team, team_id, league_id)) {
+        KBO_PROFILE_END(profile_fa_comp_probe_inner, "team_add_guard.fa_comp_inner.non_kbo_team");
+        return;
+    }
+    if (read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_DISABLE_KBO_FA_COMPENSATION_FILE)) {
+        KBO_PROFILE_END(profile_fa_comp_probe_inner, "team_add_guard.fa_comp_inner.flag_disabled");
         return;
     }
 

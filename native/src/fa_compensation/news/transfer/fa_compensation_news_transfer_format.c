@@ -42,7 +42,7 @@ static int kbo_fa_compensation_team_name_placeholder(const char* text)
         || _stricmp(text, "Unknown") == 0;
 }
 
-static void kbo_fa_compensation_copy_team_name(uint32_t team_id, char* out, size_t out_size)
+void kbo_fa_compensation_copy_team_history_name(uint32_t team_id, char* out, size_t out_size)
 {
     if (out == NULL || out_size == 0u) {
         return;
@@ -135,6 +135,6 @@ void kbo_fa_compensation_copy_team_link(uint32_t team_id, char* out, size_t out_
     out[0] = '\0';
 
     char team_name[96] = {0};
-    kbo_fa_compensation_copy_team_name(team_id, team_name, sizeof(team_name));
+    kbo_fa_compensation_copy_team_history_name(team_id, team_name, sizeof(team_name));
     snprintf(out, out_size, "<%s:team#%u>", team_name, team_id);
 }

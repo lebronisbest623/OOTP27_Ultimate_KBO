@@ -267,18 +267,20 @@ static int32_t kbo_player_asian_quota_salary(uint8_t* player)
 #define KBO_FOREIGN_INJURY_SLOT_REGULAR         1
 #define KBO_FOREIGN_INJURY_SLOT_ASIAN_QUOTA     2
 
-static int32_t kbo_cached_asian_quota_salary_limit(void)
+int kbo_player_is_asian_quota_candidate_with_salary_limit(uint8_t* player, int32_t salary_limit)
 {
-    return kbo_get_asian_quota_salary_limit();
+    if (salary_limit <= 0 || !kbo_player_is_asian_quota_slot_candidate(player)) {
+        return 0;
+    }
+    int32_t salary = kbo_player_asian_quota_salary(player);
+    return salary > 0 && salary <= salary_limit;
 }
 
 int kbo_player_is_asian_quota_candidate(uint8_t* player)
 {
-    if (!kbo_player_is_asian_quota_slot_candidate(player)) {
-        return 0;
-    }
-    int32_t salary = kbo_player_asian_quota_salary(player);
-    return salary > 0 && salary <= kbo_cached_asian_quota_salary_limit();
+    return kbo_player_is_asian_quota_candidate_with_salary_limit(
+        player,
+        kbo_get_asian_quota_salary_limit());
 }
 
 int kbo_player_is_asian_quota_slot_candidate(uint8_t* player)

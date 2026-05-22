@@ -14,6 +14,7 @@
 #include "../../../foreign/common/player_eval/foreign_waiver_player_eval.h"
 #include "../../../foreign/common/policy/foreign_waiver_policy.h"
 #include "../../../team/lookup/team_lookup.h"
+#include "../../asian_games/history/asian_games_player_history.h"
 #include "../../asian_games/player_eval/asian_games_player_eligibility.h"
 #include "../roster/asian_games_lifecycle_roster.h"
 #include "../../asian_games_news/emit/emit.h"
@@ -213,6 +214,20 @@ int kbo_asian_games_replace_unavailable_players(uint32_t event_yyyymmdd, const c
     }
 
     if (replacements > 0) {
+        int history_recorded = 0;
+        for (int i = 0; i < replacements && i < KBO_ASIAN_GAMES_ROSTER_SIZE; i++) {
+            history_recorded += kbo_record_asian_games_replacement_history(
+                &old_entries[i],
+                &new_entries[i],
+                event_yyyymmdd,
+                source);
+        }
+        kbo_log_runtimef(
+            "KBO Asian Games replacement player history source=%s date=%u replacements=%d recorded=%d",
+            source != NULL ? source : "",
+            event_yyyymmdd,
+            replacements,
+            history_recorded);
         kbo_save_asian_games_roster_csv(source);
         kbo_emit_asian_games_replacement_news_batch(
             event_yyyymmdd,

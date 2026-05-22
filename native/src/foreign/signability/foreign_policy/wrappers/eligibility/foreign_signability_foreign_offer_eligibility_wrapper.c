@@ -1,4 +1,5 @@
 #include "../../internal/foreign_signability_internal.h"
+#include "../../../../../core/core_league_context_parts/api/league_context_lookup.h"
 #include "../../../../../core/core_flags/keys/runtime_flag_keys.generated.h"
 
 /* Player offer-eligibility hook wrapper. Included from native/KBOFix.c. */
@@ -69,6 +70,75 @@ static int kbo_offer_eligibility_player_is_foreign(uintptr_t player_ptr)
     return nation_id != 0u && nation_id != OOTP27_KBO_KOREA_NATION_ID;
 }
 
+typedef struct KboOfferEligibilityTeamScopeCacheEntry {
+    uintptr_t global;
+    uint32_t team_id;
+    uint32_t kbo_league_id;
+    uint8_t in_scope;
+    uint8_t valid;
+} KboOfferEligibilityTeamScopeCacheEntry;
+
+enum {
+    KBO_OFFER_ELIGIBILITY_TEAM_SCOPE_CACHE_SIZE = 256
+};
+
+static KboOfferEligibilityTeamScopeCacheEntry
+    g_kbo_offer_eligibility_team_scope_cache[KBO_OFFER_ELIGIBILITY_TEAM_SCOPE_CACHE_SIZE];
+
+static int kbo_offer_eligibility_requester_in_kbo_scope(uint32_t team_id)
+{
+    if (team_id == 0u) {
+        return 1;
+    }
+
+    uint32_t kbo_league_id = kbo_resolve_kbo_league_id();
+    if (kbo_league_id == 0u) {
+        return 1;
+    }
+
+    uintptr_t global = get_ootp_cached_global_database();
+    uint32_t slot = (team_id ^ (team_id >> 8) ^ kbo_league_id)
+        & (KBO_OFFER_ELIGIBILITY_TEAM_SCOPE_CACHE_SIZE - 1u);
+    KboOfferEligibilityTeamScopeCacheEntry* cached =
+        &g_kbo_offer_eligibility_team_scope_cache[slot];
+    if (cached->valid
+            && cached->global == global
+            && cached->team_id == team_id
+            && cached->kbo_league_id == kbo_league_id) {
+        return cached->in_scope ? 1 : 0;
+    }
+
+    int in_scope = 0;
+    uint8_t* team = find_kbo_team_by_numeric_id_any_league(team_id, 1);
+    if (team != NULL && memory_range_readable(team, OOTP27_KBO_TEAM_READABLE_BYTES)) {
+        uint32_t team_league_id = *(uint32_t*)(team + OOTP27_KBO_TEAM_LEAGUE_ID_OFFSET);
+        if (team_league_id == kbo_league_id) {
+            in_scope = 1;
+        } else {
+            uint32_t parent_team_id = 0u;
+            if (memory_range_readable(team + OOTP27_KBO_TEAM_PARENT_TEAM_ID_OFFSET, sizeof(uint32_t))) {
+                parent_team_id = *(uint32_t*)(team + OOTP27_KBO_TEAM_PARENT_TEAM_ID_OFFSET);
+            }
+            if (parent_team_id != 0u) {
+                uint8_t* parent_team = find_kbo_team_by_numeric_id_any_league(parent_team_id, 1);
+                if (parent_team != NULL
+                        && memory_range_readable(parent_team, OOTP27_KBO_TEAM_READABLE_BYTES)
+                        && *(uint32_t*)(parent_team + OOTP27_KBO_TEAM_LEAGUE_ID_OFFSET) == kbo_league_id) {
+                    in_scope = 1;
+                }
+            }
+        }
+    }
+
+    cached->valid = 0u;
+    cached->global = global;
+    cached->team_id = team_id;
+    cached->kbo_league_id = kbo_league_id;
+    cached->in_scope = in_scope ? 1u : 0u;
+    cached->valid = 1u;
+    return in_scope;
+}
+
 __declspec(noinline) uint8_t ootp_kbo_player_offer_eligibility_wrapper(
     uintptr_t player_ptr,
     int32_t team_id,
@@ -87,6 +157,16 @@ __declspec(noinline) uint8_t ootp_kbo_player_offer_eligibility_wrapper(
             KBO_HOOK_PROFILE_RESUME(profile_hook);
         }
         KBO_HOOK_PROFILE_RETURN(profile_hook, "foreign.offer_eligibility", save_result);
+    }
+
+    if (team_id > 0 && !kbo_offer_eligibility_requester_in_kbo_scope((uint32_t)team_id)) {
+        uint8_t out_of_scope_result = 0u;
+        KBO_HOOK_PROFILE_PAUSE(profile_hook);
+        if (original_func != NULL) {
+            out_of_scope_result = original_func((void*)player_ptr, team_id, flag);
+        }
+        KBO_HOOK_PROFILE_RESUME(profile_hook);
+        KBO_HOOK_PROFILE_RETURN(profile_hook, "foreign.offer_eligibility.out_of_scope", out_of_scope_result);
     }
 
     if (!kbo_offer_eligibility_player_is_foreign(player_ptr)) {

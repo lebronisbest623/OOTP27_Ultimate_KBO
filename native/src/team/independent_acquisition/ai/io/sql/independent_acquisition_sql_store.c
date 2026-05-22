@@ -11,6 +11,7 @@
 #include "../../../../../core/logging/core_log.h"
 #include "../../../../../core/sql/escape/core_sql_escape.h"
 #include "../../../../../core/sql/save_state/save_state_sqlite.h"
+#include "../../../../../core/sync/lock.h"
 
 typedef struct KboIndependentAcquisitionSqlExistsResult {
     int found;
@@ -48,8 +49,25 @@ typedef struct KboIndependentAcquisitionSqlDecisionLoadContext {
     int count;
 } KboIndependentAcquisitionSqlDecisionLoadContext;
 
+static KboLock g_kbo_independent_acquisition_sql_schema_lock = KBO_LOCK_INIT;
+static char g_kbo_independent_acquisition_sql_schema_path[MAX_PATH];
+static int g_kbo_independent_acquisition_sql_schema_ready = 0;
+
 static int kbo_independent_acquisition_sql_ensure_schema(const char* source)
 {
+    char path[MAX_PATH] = {0};
+    if (!kbo_save_state_db_path(path, sizeof(path))) {
+        return 0;
+    }
+
+    kbo_lock_enter(&g_kbo_independent_acquisition_sql_schema_lock);
+    if (g_kbo_independent_acquisition_sql_schema_ready
+            && strcmp(g_kbo_independent_acquisition_sql_schema_path, path) == 0) {
+        kbo_lock_leave(&g_kbo_independent_acquisition_sql_schema_lock);
+        return 1;
+    }
+    kbo_lock_leave(&g_kbo_independent_acquisition_sql_schema_lock);
+
     static const char* sql =
         "CREATE TABLE IF NOT EXISTS independent_acquisition_requests ("
         "id INTEGER PRIMARY KEY AUTOINCREMENT,"
@@ -104,7 +122,20 @@ static int kbo_independent_acquisition_sql_ensure_schema(const char* source)
         "VALUES('independent_acquisition_requests', 1, datetime('now'));"
         "INSERT OR REPLACE INTO kbo_schema(schema_key, schema_version, updated_at) "
         "VALUES('independent_acquisition_decisions', 1, datetime('now'));";
-    return kbo_save_state_exec(sql, source != NULL ? source : "independent_acquisition_sql_schema");
+    int ok = kbo_save_state_exec(sql, source != NULL ? source : "independent_acquisition_sql_schema");
+    if (!ok) {
+        return 0;
+    }
+
+    kbo_lock_enter(&g_kbo_independent_acquisition_sql_schema_lock);
+    snprintf(
+        g_kbo_independent_acquisition_sql_schema_path,
+        sizeof(g_kbo_independent_acquisition_sql_schema_path),
+        "%s",
+        path);
+    g_kbo_independent_acquisition_sql_schema_ready = 1;
+    kbo_lock_leave(&g_kbo_independent_acquisition_sql_schema_lock);
+    return 1;
 }
 
 static int kbo_independent_acquisition_sql_exists_cb(void* user_data, int ncols, char** vals, char** names)

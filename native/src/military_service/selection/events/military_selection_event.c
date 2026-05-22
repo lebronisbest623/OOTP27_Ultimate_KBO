@@ -8,6 +8,7 @@
 #include "../../../runtime_memory/runtime_memory.h"
 #include "../../../team/assignment/assignment/team_assignment.h"
 #include "../../../team/lookup/team_lookup.h"
+#include "../../history/military_service_player_history.h"
 #include "../../players/loans/military_active_loan.h"
 #include "../draft/military_draft_queue.h"
 #include "../../players/state/military_player_state.h"
@@ -311,7 +312,14 @@ int run_kbo_custom_military_event(
         source);
     uint32_t news_yyyymmdd = kbo_custom_event_effective_news_date(event_yyyymmdd);
     int results_saved = 0;
+    int history_recorded = 0;
     if (routed > 0) {
+        history_recorded = kbo_record_military_selection_player_history_batch(
+            news_yyyymmdd,
+            sang_id,
+            news_entries,
+            routed,
+            source);
         results_saved = kbo_append_military_selection_result_history(
             event_year,
             news_yyyymmdd,
@@ -329,7 +337,7 @@ int run_kbo_custom_military_event(
             source);
     }
     kbo_log_runtimef(
-        "KBO military selection reached source=%s event=%s year=%u event_date=%u news_date=%u routed=%d seeded=%d returned=%d refreshed=%d results_saved=%d news=%d queued_left=%d",
+        "KBO military selection reached source=%s event=%s year=%u event_date=%u news_date=%u routed=%d seeded=%d returned=%d refreshed=%d history=%d results_saved=%d news=%d queued_left=%d",
         source != NULL ? source : "",
         event_name != NULL ? event_name : "",
         event_year,
@@ -339,6 +347,7 @@ int run_kbo_custom_military_event(
         seeded,
         returned,
         refreshed,
+        history_recorded,
         results_saved,
         news_created,
         kbo_count_military_draft_candidates_for_year((uint16_t)event_year));

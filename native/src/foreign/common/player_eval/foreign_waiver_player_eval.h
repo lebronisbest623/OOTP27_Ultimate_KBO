@@ -17,6 +17,7 @@ int kbo_nation_is_asian_quota_candidate(uint32_t nation_id);
 /* Stable slot identity for prospective offers; independent of transient FA demand. */
 int kbo_player_is_asian_quota_slot_candidate(uint8_t* player);
 /* Current-contract AQ compliance for players already being counted on rosters. */
+int kbo_player_is_asian_quota_candidate_with_salary_limit(uint8_t* player, int32_t salary_limit);
 int kbo_player_is_asian_quota_candidate(uint8_t* player);
 
 #endif

@@ -130,14 +130,18 @@ int kbo_team_add_foreign_policy_should_block(
     uint32_t kbo_league_id = kbo_resolve_kbo_league_id();
     uint32_t parent_team_id = 0u;
     int non_kbo_league = team_league_id != 0u && kbo_league_id != 0u && team_league_id != kbo_league_id;
+    int known_market_minor_caller = kbo_team_add_known_foreign_market_minor_caller(caller_rva);
     int kbo_affiliate_league = kbo_team_add_target_is_kbo_affiliate_league(
         (uint8_t*)team_ptr,
         kbo_league_id,
         &parent_team_id);
+    if (non_kbo_league && !kbo_affiliate_league && !known_market_minor_caller) {
+        return 0;
+    }
     if (before_current_team_id == 0u
             && before_active_team_id == 0u
             && non_kbo_league
-            && (kbo_affiliate_league || kbo_team_add_known_foreign_market_minor_caller(caller_rva))) {
+            && kbo_affiliate_league) {
         static volatile LONG minor_market_block_log_count = 0;
         LONG minor_slot = InterlockedIncrement(&minor_market_block_log_count);
         if (minor_slot <= 200) {
@@ -154,7 +158,7 @@ int kbo_team_add_foreign_policy_should_block(
                 before_original_team_id,
                 (uint32_t)player[OOTP27_PLAYER_CONTRACT_LEVEL_FLAG_OFFSET],
                 kbo_affiliate_league,
-                kbo_team_add_known_foreign_market_minor_caller(caller_rva),
+                known_market_minor_caller,
                 caller_rva);
         }
         return 1;
