@@ -1,1 +1,86 @@
-[]
+[
+  {
+    "rule": "native.source.max-lines",
+    "path": "amateur_player_quality/assignment/ortools/batch/amateur_assignment_ortools_flush.c",
+    "severity": "error",
+    "message": "455 lines exceeds the 400-line native source checkpoint."
+  },
+  {
+    "rule": "native.source.max-lines",
+    "path": "core/season/season_calendar.c",
+    "severity": "error",
+    "message": "445 lines exceeds the 400-line native source checkpoint."
+  },
+  {
+    "rule": "native.source.max-lines",
+    "path": "core/sql/history_transactions/core_sql_history_transactions.c",
+    "severity": "error",
+    "message": "448 lines exceeds the 400-line native source checkpoint."
+  },
+  {
+    "rule": "native.source.max-lines",
+    "path": "custom_events/asian_games/roster/sql/asian_games_roster_sql_store.c",
+    "severity": "error",
+    "message": "524 lines exceeds the 400-line native source checkpoint."
+  },
+  {
+    "rule": "native.source.max-lines",
+    "path": "fa_compensation/news/fa_compensation_news_transfer.c",
+    "severity": "error",
+    "message": "424 lines exceeds the 400-line native source checkpoint."
+  },
+  {
+    "rule": "native.source.max-lines",
+    "path": "fa_market_classification/policy/fa_market_row_policy.c",
+    "severity": "error",
+    "message": "417 lines exceeds the 400-line native source checkpoint."
+  },
+  {
+    "rule": "native.source.max-lines",
+    "path": "foreign/injury/scanner/lifecycle/foreign_injury_existing_replacements.c",
+    "severity": "error",
+    "message": "463 lines exceeds the 400-line native source checkpoint."
+  },
+  {
+    "rule": "native.source.max-lines",
+    "path": "foreign/injury/scanner/loop/foreign_injury_scanner_player_loop.c",
+    "severity": "error",
+    "message": "417 lines exceeds the 400-line native source checkpoint."
+  },
+  {
+    "rule": "native.source.max-lines",
+    "path": "foreign/injury/state/foreign_injury_state.c",
+    "severity": "error",
+    "message": "458 lines exceeds the 400-line native source checkpoint."
+  },
+  {
+    "rule": "native.source.max-lines",
+    "path": "foreign/quota/candidates/foreign_quota_candidate_limits.c",
+    "severity": "error",
+    "message": "404 lines exceeds the 400-line native source checkpoint."
+  },
+  {
+    "rule": "native.source.max-lines",
+    "path": "foreign/quota/counts/org/foreign_quota_count_snapshot.c",
+    "severity": "error",
+    "message": "784 lines exceeds the 400-line native source checkpoint."
+  },
+  {
+    "rule": "native.source.max-lines",
+    "path": "foreign/waiver_decisions/command/foreign_waiver_decisions_foreign_waiver_command_execute.c",
+    "severity": "error",
+    "message": "401 lines exceeds the 400-line native source checkpoint."
+  },
+  {
+    "rule": "native.source.max-lines",
+    "path": "team/independent_acquisition/ai/io/sql/independent_acquisition_sql_store.c",
+    "severity": "error",
+    "message": "718 lines exceeds the 400-line native source checkpoint."
+  },
+  {
+    "rule": "native.thread.lifecycle-guard",
+    "path": "amateur_player_quality/assignment/ortools/batch/amateur_assignment_ortools_flush.c",
+    "severity": "warn",
+    "message": "This file starts a thread but does not reference the runtime stop/sleep helpers."
+  }
+]
