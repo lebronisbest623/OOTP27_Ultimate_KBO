@@ -12,6 +12,7 @@
 #include "../../../../core/logging/core_log.h"
 #include "../../../../core/news/live/core_live_news.h"
 #include "../../../../core/news/templates/core_news_templates.h"
+#include "../../../../core/sql/history_transactions/core_sql_history_transactions.h"
 #include "../../../../foreign/common/policy/foreign_waiver_policy.h"
 #include "../../../../runtime_memory/runtime_memory.h"
 #include "../../../classification/team_classification.h"
@@ -226,6 +227,22 @@ int kbo_emit_independent_acquisition_transfer_news(
     }
     kbo_independent_acquisition_format_cash_cost(cash_cost, cash_cost_text, sizeof(cash_cost_text));
 
+    char history_text[384] = {0};
+    snprintf(
+        history_text,
+        sizeof(history_text),
+        "Purchased by %s from %s for $%s through the independent acquisition window.",
+        buyer_name,
+        seller_name,
+        cash_cost_text);
+    int history_inserted = insert_kbo_player_history_sql(
+        player_id,
+        today / 10000u,
+        (today / 100u) % 100u,
+        today % 100u,
+        history_text,
+        "independent_acquisition_transfer");
+
     char title[180] = {0};
     char body[1024] = {0};
     const KboNewsTemplateVar vars[] = {
@@ -269,13 +286,14 @@ int kbo_emit_independent_acquisition_transfer_news(
         title,
         body);
     kbo_log_runtimef(
-        "independent acquisition transfer news source=%s player=%u buyer=%u seller=%u league=%u cash_cost=%d created=%d",
+        "independent acquisition transfer news source=%s player=%u buyer=%u seller=%u league=%u cash_cost=%d created=%d history_inserted=%d",
         source != NULL ? source : "",
         player_id,
         buyer_team_id,
         seller_team_id,
         league_id,
         cash_cost,
-        created);
+        created,
+        history_inserted);
     return created;
 }

@@ -12,8 +12,34 @@
 #include "../../logging/core_log.h"
 #include "../escape/core_sql_escape.h"
 #include "../league_news/core_sql_league_news.h"
+#include "../text_data/core_sql_text_data_exec.h"
 #include "../../dates/constants/kbo_date_constants.h"
 #include "../../dates/core_text_date.h"
+
+static int kbo_history_sqlite_exec_logged(void* database, const char* sql, const char* op, const char* source)
+{
+    if (sql == NULL) {
+        kbo_log_runtimef(
+            "history sql exec skipped source=%s op=%s reason=missing_sql",
+            source != NULL ? source : "",
+            op != NULL ? op : "");
+        return 0;
+    }
+
+    int ok = kbo_core_sql_text_data_exec(sql, source, op);
+    if (ok) {
+        return 1;
+    }
+
+    ok = kbo_sqlite_exec_direct(database, sql);
+    if (!ok) {
+        kbo_log_runtimef(
+            "history sql exec failed source=%s op=%s mode=text_data_then_live_sql",
+            source != NULL ? source : "",
+            op != NULL ? op : "");
+    }
+    return ok;
+}
 
 int insert_kbo_player_history_sql(
     uint32_t player_id,
@@ -25,18 +51,6 @@ int insert_kbo_player_history_sql(
 {
     if (player_id == 0u || text == NULL || text[0] == '\0'
             || year < (int)KBO_HISTORY_YEAR_MIN || year > (int)KBO_RECORD_YEAR_MAX || month < 1 || month > 12 || day < 1 || day > 31) {
-        return 0;
-    }
-
-    uintptr_t global = get_ootp_global_database();
-    if (global == 0 || !memory_range_readable((void*)(global + OOTP27_GLOBAL_SQL_DATABASE_OFFSET), sizeof(uintptr_t))) {
-        kbo_log_runtimef("player history sql skipped source=%s player=%u reason=no_global", source != NULL ? source : "", player_id);
-        return 0;
-    }
-
-    uintptr_t database = *(uintptr_t*)(global + OOTP27_GLOBAL_SQL_DATABASE_OFFSET);
-    if (database == 0 || !memory_range_readable((void*)database, 0x10) || kbo_get_sqlite3_exec_fn() == NULL) {
-        kbo_log_runtimef("player history sql skipped source=%s player=%u reason=db_or_exec_unavailable", source != NULL ? source : "", player_id);
         return 0;
     }
 
@@ -72,9 +86,15 @@ int insert_kbo_player_history_sql(
         escaped_text,
         year);
 
-    int create_result = kbo_sqlite_exec_direct((void*)database, create_sql);
-    int delete_result = kbo_sqlite_exec_direct((void*)database, delete_sql);
-    int insert_result = kbo_sqlite_exec_direct((void*)database, insert_sql);
+    uintptr_t database = 0u;
+    uintptr_t global = get_ootp_global_database();
+    if (global != 0 && memory_range_readable((void*)(global + OOTP27_GLOBAL_SQL_DATABASE_OFFSET), sizeof(uintptr_t))) {
+        database = *(uintptr_t*)(global + OOTP27_GLOBAL_SQL_DATABASE_OFFSET);
+    }
+
+    int create_result = kbo_history_sqlite_exec_logged((void*)database, create_sql, "player_history.create", source);
+    int delete_result = kbo_history_sqlite_exec_logged((void*)database, delete_sql, "player_history.delete_duplicate", source);
+    int insert_result = kbo_history_sqlite_exec_logged((void*)database, insert_sql, "player_history.insert", source);
     kbo_log_runtimef(
         "player history sql insert source=%s player=%u date=%s create=%d delete=%d insert=%d",
         source != NULL ? source : "",
@@ -103,18 +123,6 @@ int insert_kbo_roster_transaction_sql(
         return 0;
     }
 
-    uintptr_t global = get_ootp_global_database();
-    if (global == 0 || !memory_range_readable((void*)(global + OOTP27_GLOBAL_SQL_DATABASE_OFFSET), sizeof(uintptr_t))) {
-        kbo_log_runtimef("roster transaction sql skipped source=%s reason=no_global", source != NULL ? source : "");
-        return 0;
-    }
-
-    uintptr_t database = *(uintptr_t*)(global + OOTP27_GLOBAL_SQL_DATABASE_OFFSET);
-    if (database == 0 || !memory_range_readable((void*)database, 0x10) || kbo_get_sqlite3_exec_fn() == NULL) {
-        kbo_log_runtimef("roster transaction sql skipped source=%s reason=db_or_exec_unavailable", source != NULL ? source : "");
-        return 0;
-    }
-
     char date[16] = {0};
     char escaped_league[2048] = {0};
     char escaped_team[2048] = {0};
@@ -128,8 +136,15 @@ int insert_kbo_roster_transaction_sql(
         "CREATE TABLE IF NOT EXISTS league_transactions (transaction_id INTEGER PRIMARY KEY AUTOINCREMENT, league_id INTEGER, transaction_date VARCHAR(8), transaction_type INTEGER DEFAULT 0, transaction_text TEXT, season INTEGER);";
     const char* create_team_sql =
         "CREATE TABLE IF NOT EXISTS team_transactions (transaction_id INTEGER PRIMARY KEY AUTOINCREMENT, team_id INTEGER, transaction_date VARCHAR(8), transaction_type INTEGER DEFAULT 0, transaction_text TEXT, season INTEGER);";
-    int create_league = kbo_sqlite_exec_direct((void*)database, create_league_sql);
-    int create_team = kbo_sqlite_exec_direct((void*)database, create_team_sql);
+
+    uintptr_t database = 0u;
+    uintptr_t global = get_ootp_global_database();
+    if (global != 0 && memory_range_readable((void*)(global + OOTP27_GLOBAL_SQL_DATABASE_OFFSET), sizeof(uintptr_t))) {
+        database = *(uintptr_t*)(global + OOTP27_GLOBAL_SQL_DATABASE_OFFSET);
+    }
+
+    int create_league = kbo_history_sqlite_exec_logged((void*)database, create_league_sql, "league_transactions.create", source);
+    int create_team = kbo_history_sqlite_exec_logged((void*)database, create_team_sql, "team_transactions.create", source);
 
     int league_insert = 0;
     int team_insert = 0;
@@ -144,7 +159,7 @@ int insert_kbo_roster_transaction_sql(
             transaction_type,
             escaped_league,
             year);
-        league_insert = kbo_sqlite_exec_direct((void*)database, sql);
+        league_insert = kbo_history_sqlite_exec_logged((void*)database, sql, "league_transactions.insert", source);
     }
     if (escaped_team[0] != '\0') {
         char sql[2600] = {0};
@@ -157,7 +172,7 @@ int insert_kbo_roster_transaction_sql(
             transaction_type,
             escaped_team,
             year);
-        team_insert = kbo_sqlite_exec_direct((void*)database, sql);
+        team_insert = kbo_history_sqlite_exec_logged((void*)database, sql, "team_transactions.insert", source);
     }
 
     kbo_log_runtimef(
