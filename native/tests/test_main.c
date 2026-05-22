@@ -110,6 +110,9 @@ void kbo_apply_amateur_reputation_balanced_deltas(
     int32_t* out_raw_delta_sum,
     int32_t* out_balance_adjustment,
     int32_t* out_final_delta_sum);
+int kbo_foreign_injury_reset_open_replacements_for_offseason_locked(
+    uint32_t close_date_yyyymmdd,
+    const char* source);
 
 static uint32_t g_test_fa_market_team_leagues[512];
 static int g_test_fa_market_team_independent_kinds[512];
@@ -2654,6 +2657,57 @@ static void test_foreign_injury_foreign_count_exclusion(void)
     printf("test_foreign_injury_foreign_count_exclusion: PASS\n");
 }
 
+static void test_foreign_injury_offseason_reset_closes_open_slots(void)
+{
+    memset(g_kbo_foreign_injury_replacements, 0, sizeof(g_kbo_foreign_injury_replacements));
+    g_kbo_foreign_injury_replacement_count = 4;
+
+    g_kbo_foreign_injury_replacements[0].team_id = 8u;
+    g_kbo_foreign_injury_replacements[0].league_id = 100u;
+    g_kbo_foreign_injury_replacements[0].injured_player_id = 5372u;
+    g_kbo_foreign_injury_replacements[0].replacement_player_id = 0u;
+    g_kbo_foreign_injury_replacements[0].opened_on_yyyymmdd = 20260301u;
+    g_kbo_foreign_injury_replacements[0].expected_end_yyyymmdd = 20270305u;
+    g_kbo_foreign_injury_replacements[0].status = KBO_FOREIGN_INJURY_STATUS_OPEN;
+
+    g_kbo_foreign_injury_replacements[1].team_id = 7u;
+    g_kbo_foreign_injury_replacements[1].league_id = 100u;
+    g_kbo_foreign_injury_replacements[1].injured_player_id = 5293u;
+    g_kbo_foreign_injury_replacements[1].replacement_player_id = 630u;
+    g_kbo_foreign_injury_replacements[1].opened_on_yyyymmdd = 20260505u;
+    g_kbo_foreign_injury_replacements[1].expected_end_yyyymmdd = 20270517u;
+    g_kbo_foreign_injury_replacements[1].status = KBO_FOREIGN_INJURY_STATUS_ACTIVE;
+
+    g_kbo_foreign_injury_replacements[2].team_id = 6u;
+    g_kbo_foreign_injury_replacements[2].league_id = 100u;
+    g_kbo_foreign_injury_replacements[2].injured_player_id = 5417u;
+    g_kbo_foreign_injury_replacements[2].replacement_player_id = 5471u;
+    g_kbo_foreign_injury_replacements[2].opened_on_yyyymmdd = 20260605u;
+    g_kbo_foreign_injury_replacements[2].expected_end_yyyymmdd = 20270624u;
+    g_kbo_foreign_injury_replacements[2].status = KBO_FOREIGN_INJURY_STATUS_PENDING;
+
+    g_kbo_foreign_injury_replacements[3].team_id = 10u;
+    g_kbo_foreign_injury_replacements[3].league_id = 100u;
+    g_kbo_foreign_injury_replacements[3].injured_player_id = 5471u;
+    g_kbo_foreign_injury_replacements[3].replacement_player_id = 5312u;
+    g_kbo_foreign_injury_replacements[3].opened_on_yyyymmdd = 20260628u;
+    g_kbo_foreign_injury_replacements[3].closed_on_yyyymmdd = 20260809u;
+    g_kbo_foreign_injury_replacements[3].status = KBO_FOREIGN_INJURY_STATUS_CLOSED;
+
+    assert(kbo_foreign_injury_reset_open_replacements_for_offseason_locked(20261001u, "test") == 3);
+    for (int i = 0; i < 3; i++) {
+        assert(g_kbo_foreign_injury_replacements[i].status == KBO_FOREIGN_INJURY_STATUS_CLOSED);
+        assert(g_kbo_foreign_injury_replacements[i].closed_on_yyyymmdd == 20261001u);
+        assert(g_kbo_foreign_injury_replacements[i].converted == 0u);
+        assert(g_kbo_foreign_injury_replacements[i].close_choice == KBO_FOREIGN_INJURY_CLOSE_KEEP_INJURED);
+    }
+    assert(g_kbo_foreign_injury_replacements[3].closed_on_yyyymmdd == 20260809u);
+
+    g_kbo_foreign_injury_replacement_count = 0;
+    memset(g_kbo_foreign_injury_replacements, 0, sizeof(g_kbo_foreign_injury_replacements));
+    printf("test_foreign_injury_offseason_reset_closes_open_slots: PASS\n");
+}
+
 static void test_foreign_org_snapshot_updates_on_assignment_change(void)
 {
     uint8_t non_asian[OOTP27_PLAYER_SCAN_BYTES];
@@ -3310,6 +3364,7 @@ int main(void)
     test_foreign_injury_live_memory_fields();
     test_foreign_injury_episode_policy();
     test_foreign_injury_foreign_count_exclusion();
+    test_foreign_injury_offseason_reset_closes_open_slots();
     test_foreign_org_snapshot_updates_on_assignment_change();
     test_foreign_org_live_count_ignores_stale_snapshot();
     test_foreign_org_count_cache_reuses_generation_without_ttl();
@@ -3327,6 +3382,37 @@ void kbo_log_runtimef_at(const char* file, int line, const char* fmt, ...)
     (void)file;
     (void)line;
     (void)fmt;
+}
+
+int kbo_foreign_injury_status_uses_slot(uint8_t status)
+{
+    return status == KBO_FOREIGN_INJURY_STATUS_OPEN
+        || status == KBO_FOREIGN_INJURY_STATUS_ACTIVE;
+}
+
+void kbo_ensure_foreign_injury_replacements_loaded(void)
+{
+}
+
+void kbo_lock_foreign_injury_replacements(void)
+{
+}
+
+void kbo_unlock_foreign_injury_replacements(void)
+{
+}
+
+int kbo_persist_foreign_injury_replacements_locked(void)
+{
+    return 1;
+}
+
+int kbo_foreign_injury_release_replacement_player(uint32_t team_id, uint32_t player_id, const char* source)
+{
+    (void)team_id;
+    (void)player_id;
+    (void)source;
+    return 1;
 }
 
 int kbo_profiler_begin(LARGE_INTEGER* out_start)

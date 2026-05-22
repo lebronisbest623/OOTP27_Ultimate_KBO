@@ -15,6 +15,7 @@
 #include "../../../competitive_balance_tax/finance/cbt_cash_charge.h"
 #include "../../../core/core_league_context_parts/api/league_context_lookup.h"
 #include "../../../foreign/common/policy/foreign_waiver_policy.h"
+#include "../../../foreign/injury/api/foreign_injury.h"
 
 static void kbo_audit_offseason_transition(
     const char* decision,
@@ -340,6 +341,9 @@ int kbo_custom_event_monitor_check_offseason_transition(
                     (unsigned)phase);
                 kbo_cbt_apply_offseason_cash_charges(
                     league_year,
+                    transition_anchor,
+                    source != NULL ? source : "offseason_transition");
+                kbo_foreign_injury_reset_open_replacements_for_offseason(
                     transition_anchor,
                     source != NULL ? source : "offseason_transition");
             } else {

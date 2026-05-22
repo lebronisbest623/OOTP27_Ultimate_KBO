@@ -86,6 +86,9 @@ int kbo_foreign_injury_replacement_close_decision_allowed(
     uint32_t today_yyyymmdd,
     const char* source,
     const char* context);
+int kbo_foreign_injury_reset_open_replacements_for_offseason(
+    uint32_t close_date_yyyymmdd,
+    const char* source);
 int kbo_foreign_injury_active_record_has_roster_basis(
     uint8_t status,
     uint32_t replacement_player_id,

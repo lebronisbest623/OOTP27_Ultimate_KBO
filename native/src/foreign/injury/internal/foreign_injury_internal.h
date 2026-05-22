@@ -115,6 +115,12 @@ int kbo_foreign_injury_replacement_close_decision_allowed(
     uint32_t today_yyyymmdd,
     const char* source,
     const char* context);
+int kbo_foreign_injury_reset_open_replacements_for_offseason_locked(
+    uint32_t close_date_yyyymmdd,
+    const char* source);
+int kbo_foreign_injury_reset_open_replacements_for_offseason(
+    uint32_t close_date_yyyymmdd,
+    const char* source);
 int kbo_foreign_injury_active_record_has_roster_basis(
     uint8_t status,
     uint32_t replacement_player_id,
@@ -217,6 +223,7 @@ int kbo_attach_foreign_injury_replacement_after_signing(
     uint8_t slot_type,
     uint32_t injured_player_id,
     const char* source);
+int kbo_foreign_injury_release_replacement_player(uint32_t team_id, uint32_t player_id, const char* source);
 void kbo_count_foreign_injury_replacements_for_team(
     uint32_t team_id,
     int* out_open,
