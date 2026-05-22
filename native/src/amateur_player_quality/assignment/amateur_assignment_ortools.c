@@ -13,6 +13,7 @@ uint32_t g_kbo_amateur_league_batch_team_ids[KBO_AMATEUR_LEAGUE_BATCH_TEAM_MAX];
 uint32_t g_kbo_amateur_league_batch_league_id = 0u;
 int32_t g_kbo_amateur_league_batch_player_count = 0;
 int32_t g_kbo_amateur_league_batch_team_count = 0;
+int32_t g_kbo_amateur_league_batch_candidate_count = 0;
 DWORD g_kbo_amateur_league_batch_last_tick = 0u;
 volatile LONG g_kbo_amateur_league_batch_flush_thread_started = 0;
 KboAmateurDeferredTeamAdd g_kbo_amateur_deferred_team_adds[KBO_AMATEUR_LEAGUE_BATCH_PLAYER_MAX];

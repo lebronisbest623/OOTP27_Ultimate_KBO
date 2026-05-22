@@ -53,6 +53,7 @@ void kbo_intl_established_fa_postscan_run(const KboIntlEstablishedFaPostscanStat
     int demand_initialized = 0;
     int logged = 0;
     int quality_shaping_enabled = kbo_intl_established_fa_quality_shaping_enabled();
+    int observed_count = kbo_intl_established_fa_postscan_observed_player_count();
     int pitcher_count = 0;
     int asian_pitcher_count = 0;
     int non_asian_pitcher_count = 0;
@@ -293,7 +294,7 @@ void kbo_intl_established_fa_postscan_run(const KboIntlEstablishedFaPostscanStat
     int non_asian_avg = non_asian > 0 ? (int)(non_asian_score_sum / non_asian) : 0;
 
     kbo_log_runtimef(
-        "international established FA postscan summary batch=%ld date=%s before_count=%d after_count=%d before_max_player=%u original=%d expected=%d matched=%d valid=%d foreign=%d asian=%d non_asian=%d teamless=%d league_match=%d market_candidate=%d market_normalized=%d original_league_seeded=%d draft_league_cleared=%d draft_fields_cleared=%d contract_level_cleared=%d demand_initialized=%d market_block=team:%d retired:%d age:%d draft:%d contract:%d demand:%d context:%d draft_eligible_cleared=%d avg_score=%d asian_avg=%d non_asian_avg=%d max_score=%d asian_max=%d non_asian_max=%d quality_shaping=%d pitchers=%d asian_pitchers=%d non_asian_pitchers=%d asian_starters=%d asian_bullpen=%d non_asian_starters=%d non_asian_bullpen=%d adjusted=%d asian_adjusted=%d non_asian_adjusted=%d starter_adjusted=%d bullpen_adjusted=%d csv=%s",
+        "international established FA postscan summary batch=%ld date=%s before_count=%d after_count=%d before_max_player=%u original=%d expected=%d observed=%d matched=%d valid=%d foreign=%d asian=%d non_asian=%d teamless=%d league_match=%d market_candidate=%d market_normalized=%d original_league_seeded=%d draft_league_cleared=%d draft_fields_cleared=%d contract_level_cleared=%d demand_initialized=%d market_block=team:%d retired:%d age:%d draft:%d contract:%d demand:%d context:%d draft_eligible_cleared=%d avg_score=%d asian_avg=%d non_asian_avg=%d max_score=%d asian_max=%d non_asian_max=%d quality_shaping=%d pitchers=%d asian_pitchers=%d non_asian_pitchers=%d asian_starters=%d asian_bullpen=%d non_asian_starters=%d non_asian_bullpen=%d adjusted=%d asian_adjusted=%d non_asian_adjusted=%d starter_adjusted=%d bullpen_adjusted=%d csv=%s",
         batch->batch_id,
         date,
         batch->before_count,
@@ -301,6 +302,7 @@ void kbo_intl_established_fa_postscan_run(const KboIntlEstablishedFaPostscanStat
         batch->before_max_player_id,
         batch->original_count,
         batch->expected_count,
+        observed_count,
         matched,
         valid,
         foreign,

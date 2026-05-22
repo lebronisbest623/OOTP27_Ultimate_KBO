@@ -11,16 +11,6 @@
       }
     },
     {
-      "key": "disable_intl_established_fa_generation_filter",
-      "defaultValue": null,
-      "lifecycle": "Recovery",
-      "ui": {
-        "label": "International FA generation filter",
-        "enabledValue": 0,
-        "defaultEnabled": true
-      }
-    },
-    {
       "key": "disable_kbo_fa_salary_opening_day_snapshot",
       "defaultValue": false,
       "lifecycle": "Recovery",
@@ -285,16 +275,6 @@
         "label": "Domestic FA orphan rescue",
         "enabledValue": 1,
         "defaultEnabled": false
-      }
-    },
-    {
-      "key": "enable_intl_established_fa_quality_probe_patch",
-      "defaultValue": true,
-      "lifecycle": "Recovery",
-      "ui": {
-        "label": "International FA quality probe",
-        "enabledValue": 1,
-        "defaultEnabled": true
       }
     },
     {

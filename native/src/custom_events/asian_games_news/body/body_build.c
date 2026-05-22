@@ -115,11 +115,13 @@ void kbo_build_asian_games_news_body(
     int departed = 0;
     int returned = 0;
     int exempted = 0;
+    int exemption_candidates = 0;
     int wildcards = 0;
     for (LONG i = 0; i < roster_count; i++) {
         if (g_kbo_asian_games_roster[i].departed) { departed++; }
         if (g_kbo_asian_games_roster[i].returned) { returned++; }
         if (g_kbo_asian_games_roster[i].exempted) { exempted++; }
+        if (g_kbo_asian_games_roster[i].military_unserved) { exemption_candidates++; }
         if (g_kbo_asian_games_roster[i].wildcard) { wildcards++; }
     }
     KboAsianGamesRosterEntry* captain = kbo_asian_games_choose_captain();
@@ -148,6 +150,7 @@ void kbo_build_asian_games_news_body(
     char departed_text[16] = {0};
     char returned_text[16] = {0};
     char exempted_text[16] = {0};
+    char exemption_candidates_text[16] = {0};
     char roster_year_text[16] = {0};
     char host_city[64] = {0};
     char host_country[64] = {0};
@@ -163,6 +166,10 @@ void kbo_build_asian_games_news_body(
     kbo_asian_games_u32_text((uint32_t)departed, departed_text, sizeof(departed_text));
     kbo_asian_games_u32_text((uint32_t)returned, returned_text, sizeof(returned_text));
     kbo_asian_games_u32_text((uint32_t)exempted, exempted_text, sizeof(exempted_text));
+    kbo_asian_games_u32_text(
+        (uint32_t)exemption_candidates,
+        exemption_candidates_text,
+        sizeof(exemption_candidates_text));
     kbo_asian_games_build_news_context(
         event_yyyymmdd,
         roster_year_text,
@@ -199,6 +206,8 @@ void kbo_build_asian_games_news_body(
         { "returned_plural", kbo_asian_games_plural(returned) },
         { "exempted", exempted_text },
         { "exempted_plural", kbo_asian_games_plural(exempted) },
+        { "exemption_candidates", exemption_candidates_text },
+        { "exemption_candidates_plural", kbo_asian_games_plural(exemption_candidates) },
         { "roster_year", roster_year_text },
         { "host_city", host_city },
         { "host_country", host_country },

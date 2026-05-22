@@ -681,13 +681,6 @@
       }
     },
     {
-      "name": "OOTP27_INTL_ESTABLISHED_FA_PLAYER_PROBE_RVA",
-      "canonicalRva": "0x006B5769",
-      "builds": {
-        "steam_2026_05_04": "0x006B5769"
-      }
-    },
-    {
       "name": "OOTP27_INTL_ESTABLISHED_FA_REGISTER_GATE_RVA",
       "canonicalRva": "0x006B57DA",
       "builds": {

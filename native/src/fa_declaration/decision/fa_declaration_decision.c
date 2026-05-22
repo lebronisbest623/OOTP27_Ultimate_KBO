@@ -74,6 +74,18 @@ int32_t kbo_fa_declaration_contract_salary_for_season(
     }
 
     int32_t start_year = *(int32_t*)(player + OOTP27_PLAYER_CONTRACT_START_YEAR_OFFSET);
+    if (start_year > 0 && season < (uint32_t)start_year) {
+        if (out_next_salary != NULL) {
+            for (uint32_t i = 0u; i < OOTP27_PLAYER_CONTRACT_SALARY_YEARS; i++) {
+                if (years[i] > 0) {
+                    *out_next_salary = years[i];
+                    break;
+                }
+            }
+        }
+        return 0;
+    }
+
     uint32_t index = 0u;
     int have_index = 0;
     if (start_year > 0 && season >= (uint32_t)start_year) {

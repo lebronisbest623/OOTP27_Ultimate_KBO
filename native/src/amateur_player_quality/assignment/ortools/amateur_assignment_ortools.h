@@ -38,6 +38,7 @@ extern uint32_t g_kbo_amateur_league_batch_team_ids[KBO_AMATEUR_LEAGUE_BATCH_TEA
 extern uint32_t g_kbo_amateur_league_batch_league_id;
 extern int32_t g_kbo_amateur_league_batch_player_count;
 extern int32_t g_kbo_amateur_league_batch_team_count;
+extern int32_t g_kbo_amateur_league_batch_candidate_count;
 extern DWORD g_kbo_amateur_league_batch_last_tick;
 extern volatile LONG g_kbo_amateur_league_batch_flush_thread_started;
 extern KboAmateurDeferredTeamAdd g_kbo_amateur_deferred_team_adds[KBO_AMATEUR_LEAGUE_BATCH_PLAYER_MAX];
@@ -105,6 +106,7 @@ void kbo_amateur_apply_deferred_ortools_batch(
     int candidate_count,
     const char* reason);
 int kbo_amateur_flush_league_batch_ortools(const char* reason, int force);
+int kbo_amateur_start_league_switch_flush_locked(const char* reason, uint32_t next_league_id);
 void kbo_amateur_start_league_batch_flush_thread(void);
 
 #endif

@@ -60,15 +60,23 @@ int find_kbo_global_player_vector(uintptr_t* out_vector, int32_t* out_count, uin
     } KboPlayerVectorLookupCache;
     static KboPlayerVectorLookupCache cache = {0};
 
-    if (cache.valid
-            && cache.global == global
-            && cache.vector != 0
-            && cache.count > 0
-            && memory_range_readable((void*)cache.vector, (SIZE_T)cache.count * sizeof(uintptr_t))) {
-        if (out_vector != NULL) { *out_vector = cache.vector; }
-        if (out_count  != NULL) { *out_count  = cache.count;  }
-        if (out_offset != NULL) { *out_offset = cache.offset; }
-        return 1;
+    if (cache.valid && cache.global == global && cache.offset != 0) {
+        if (memory_range_readable((void*)(global + cache.offset), 0x10)) {
+            uintptr_t cached_vector = *(uintptr_t*)(global + cache.offset);
+            int32_t cached_count = *(int32_t*)(global + cache.offset + OOTP27_GLOBAL_VECTOR_COUNT_DELTA);
+            if (cached_vector != 0
+                    && cached_count > 0
+                    && cached_count <= KBO_RUNTIME_MAX_PLAYER_VECTOR_COUNT
+                    && memory_range_readable((void*)cached_vector, (SIZE_T)cached_count * sizeof(uintptr_t))) {
+                cache.vector = cached_vector;
+                cache.count = cached_count;
+                if (out_vector != NULL) { *out_vector = cache.vector; }
+                if (out_count  != NULL) { *out_count  = cache.count;  }
+                if (out_offset != NULL) { *out_offset = cache.offset; }
+                return 1;
+            }
+        }
+        cache.valid = 0u;
     }
 
     int best_matches     = 0;
@@ -83,7 +91,7 @@ int find_kbo_global_player_vector(uintptr_t* out_vector, int32_t* out_count, uin
 
         uintptr_t vector = *(uintptr_t*)(global + offset);
         int32_t   count  = *(int32_t*)(global + offset + OOTP27_GLOBAL_VECTOR_COUNT_DELTA);
-        if (vector == 0 || count <= 0 || count > 200000) {
+        if (vector == 0 || count <= 0 || count > KBO_RUNTIME_MAX_PLAYER_VECTOR_COUNT) {
             continue;
         }
         if (!memory_range_readable((void*)vector, (SIZE_T)count * sizeof(uintptr_t))) {

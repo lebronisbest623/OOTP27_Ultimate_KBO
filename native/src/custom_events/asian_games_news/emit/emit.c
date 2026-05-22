@@ -56,6 +56,7 @@ int kbo_emit_asian_games_news(uint32_t event_yyyymmdd, const char* template_pref
     char departed_text[16] = {0};
     char returned_text[16] = {0};
     char exempted_text[16] = {0};
+    char exemption_candidates_text[16] = {0};
 
     LONG roster_count = g_kbo_asian_games_roster_count;
     if (roster_count < 0 || roster_count > KBO_ASIAN_GAMES_ROSTER_SIZE) {
@@ -64,11 +65,13 @@ int kbo_emit_asian_games_news(uint32_t event_yyyymmdd, const char* template_pref
     int departed = 0;
     int returned = 0;
     int exempted = 0;
+    int exemption_candidates = 0;
     int wildcards = 0;
     for (LONG i = 0; i < roster_count; i++) {
         if (g_kbo_asian_games_roster[i].departed) { departed++; }
         if (g_kbo_asian_games_roster[i].returned) { returned++; }
         if (g_kbo_asian_games_roster[i].exempted) { exempted++; }
+        if (g_kbo_asian_games_roster[i].military_unserved) { exemption_candidates++; }
         if (g_kbo_asian_games_roster[i].wildcard) { wildcards++; }
     }
     kbo_asian_games_emit_u32_text((uint32_t)roster_count, roster_count_text, sizeof(roster_count_text));
@@ -76,6 +79,10 @@ int kbo_emit_asian_games_news(uint32_t event_yyyymmdd, const char* template_pref
     kbo_asian_games_emit_u32_text((uint32_t)departed, departed_text, sizeof(departed_text));
     kbo_asian_games_emit_u32_text((uint32_t)returned, returned_text, sizeof(returned_text));
     kbo_asian_games_emit_u32_text((uint32_t)exempted, exempted_text, sizeof(exempted_text));
+    kbo_asian_games_emit_u32_text(
+        (uint32_t)exemption_candidates,
+        exemption_candidates_text,
+        sizeof(exemption_candidates_text));
     kbo_asian_games_build_news_context(
         event_yyyymmdd,
         roster_year_text,
@@ -111,6 +118,8 @@ int kbo_emit_asian_games_news(uint32_t event_yyyymmdd, const char* template_pref
         { "returned_plural", kbo_asian_games_emit_plural(returned) },
         { "exempted", exempted_text },
         { "exempted_plural", kbo_asian_games_emit_plural(exempted) },
+        { "exemption_candidates", exemption_candidates_text },
+        { "exemption_candidates_plural", kbo_asian_games_emit_plural(exemption_candidates) },
         { "roster_year", roster_year_text },
         { "host_city", host_city },
         { "host_country", host_country },

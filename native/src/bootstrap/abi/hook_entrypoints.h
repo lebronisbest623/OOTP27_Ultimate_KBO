@@ -105,8 +105,6 @@ __declspec(noinline) uint8_t ootp_kbo_foreign_ai_offer_final_gate_probe_wrapper(
     uintptr_t team_ptr, uintptr_t player_ptr, int32_t salary, uintptr_t offer_ptr);
 __declspec(noinline) int32_t ootp_kbo_intl_established_fa_count_wrapper(
     int32_t original_count, uintptr_t league_ptr);
-__declspec(noinline) void ootp_kbo_intl_established_fa_player_probe_wrapper(
-    uintptr_t player_ptr, uintptr_t league_ptr);
 __declspec(noinline) uint8_t ootp_kbo_intl_established_fa_generation_filter_allows_wrapper(
     uintptr_t player_ptr, uintptr_t league_ptr);
 __declspec(noinline) int32_t ootp_kbo_active_foreign_hitter_count_wrapper(

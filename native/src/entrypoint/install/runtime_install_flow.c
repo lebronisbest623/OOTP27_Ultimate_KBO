@@ -183,14 +183,13 @@ void install_kbo_full_runtime_after_roster_marker(HINSTANCE instance)
         && (explicit_enable_ai_fa_status_candidate_insert_hook
             || auto_enable_ai_fa_status_candidate_insert_hook);
     kbo_log_runtimef(
-        "KBO FA market diagnostic flags: enable_ai_fa_status_candidate_insert_hook=%d explicit=%d auto_foreign_injury=%d auto_foreign_ai=%d auto_foreign_controller=%d disable=%d disable_intl_established_fa_generation_filter=%d",
+        "KBO FA market diagnostic flags: enable_ai_fa_status_candidate_insert_hook=%d explicit=%d auto_foreign_injury=%d auto_foreign_ai=%d auto_foreign_controller=%d disable=%d",
         enable_ai_fa_status_candidate_insert_hook,
         explicit_enable_ai_fa_status_candidate_insert_hook,
         kbo_foreign_injury_replacement_enabled(),
         auto_enable_ai_fa_status_candidate_insert_hook_for_foreign_ai,
         auto_enable_ai_fa_status_candidate_insert_hook_for_foreign_controller,
-        disable_ai_fa_status_candidate_insert_hook,
-        read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_DISABLE_INTL_ESTABLISHED_FA_GENERATION_FILTER_FILE));
+        disable_ai_fa_status_candidate_insert_hook);
     if (enable_ai_fa_status_candidate_insert_hook) {
         install_kbo_ai_fa_status_candidate_insert_patch();
     } else {
@@ -265,17 +264,9 @@ void install_kbo_full_runtime_after_roster_marker(HINSTANCE instance)
         kbo_log_runtime_line("KBO salary arbitration no-withdraw patch disabled: kbo_flags.json disable_kbo_salary_arbitration_no_withdraw_patch is true");
     }
     install_kbo_intl_established_fa_multiplier_patch();
-    if (!read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_DISABLE_INTL_ESTABLISHED_FA_GENERATION_FILTER_FILE)) {
-        install_kbo_intl_established_fa_generation_filter_patch();
-    } else {
-        kbo_log_runtime_line("KBO international established FA generation filter patch disabled: kbo_flags.json disable_intl_established_fa_generation_filter is true");
-    }
+    install_kbo_intl_established_fa_generation_filter_patch();
     start_kbo_intl_established_fa_postscan_thread();
-    if (read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_INTL_ESTABLISHED_FA_QUALITY_PROBE_PATCH_FILE)) {
-        install_kbo_intl_established_fa_player_probe_patch();
-    } else {
-        kbo_log_runtime_line("KBO international established FA player probe patch disabled: kbo_flags.json enable_intl_established_fa_quality_probe_patch is false");
-    }
+    kbo_log_runtime_line("KBO international established FA player probe patch retired: using postscan diagnostics after OOTP registration");
     install_kbo_foreign_count_patches();
     if (read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_KBO_CALLUP_FOREIGN_LIMIT_PATCH_FILE)) {
         install_kbo_callup_foreign_limit_branch_patches();

@@ -6,7 +6,6 @@
 #include <windows.h>
 
 int install_kbo_intl_established_fa_multiplier_patch(void);
-int install_kbo_intl_established_fa_player_probe_patch(void);
 int install_kbo_intl_established_fa_generation_filter_patch(void);
 
 #endif

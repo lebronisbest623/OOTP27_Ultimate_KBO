@@ -214,7 +214,6 @@ public sealed class KboFlagsTests : IDisposable
         flags["enable_kbo_player_team_signability_patch"].Should().BeTrue();
         flags["enable_kbo_offer_eligibility_patch"].Should().BeTrue();
         flags["enable_kbo_callup_foreign_limit_patch"].Should().BeTrue();
-        flags["enable_intl_established_fa_quality_probe_patch"].Should().BeTrue();
         flags["enable_kbo_current_date_tick_watchpoint"].Should().BeTrue();
         flags["enable_kbo_season_phase_monitor"].Should().BeFalse();
         flags["disable_kbo_fa_salary_opening_day_snapshot"].Should().BeFalse();

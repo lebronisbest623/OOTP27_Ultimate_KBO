@@ -142,7 +142,6 @@ internal static partial class KboFlags
         {
             changed |= EnsureFlagValue(raw, key, true);
         }
-        changed |= EnsureMissingFlag(raw, "enable_intl_established_fa_quality_probe_patch", true);
 
         if (!changed)
         {

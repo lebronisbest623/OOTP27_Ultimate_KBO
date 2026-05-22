@@ -288,6 +288,8 @@ void kbo_intl_established_fa_postscan_schedule(
         return;
     }
 
+    kbo_intl_established_fa_postscan_reset_observed_players();
+
     uintptr_t player_vector = 0;
     int32_t player_count = 0;
     uint32_t max_player_id = 0u;

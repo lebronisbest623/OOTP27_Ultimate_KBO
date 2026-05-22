@@ -9,6 +9,8 @@ typedef struct KboWindowTextBuffer {
     size_t length;
 } KboWindowTextBuffer;
 
+void kbo_window_text_append_raw(KboWindowTextBuffer* buffer, const char* text, size_t length);
+void kbo_window_text_append_char(KboWindowTextBuffer* buffer, char ch);
 void kbo_window_text_appendf(KboWindowTextBuffer* buffer, const char* format, ...);
 void kbo_html_append_escaped(KboWindowTextBuffer* buffer, const char* text);
 

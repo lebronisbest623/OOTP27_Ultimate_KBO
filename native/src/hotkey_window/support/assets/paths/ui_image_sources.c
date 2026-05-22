@@ -13,19 +13,19 @@ static void kbo_webview_append_file_url(KboWindowTextBuffer* buffer, const char*
         return;
     }
 
-    kbo_window_text_appendf(buffer, "file:///");
+    kbo_window_text_append_raw(buffer, "file:///", 8u);
     for (const char* p = path; *p != '\0'; p++) {
         unsigned char ch = (unsigned char)*p;
         if (ch == '\\') {
-            kbo_window_text_appendf(buffer, "/");
+            kbo_window_text_append_char(buffer, '/');
         } else if (ch == ' ') {
-            kbo_window_text_appendf(buffer, "%%20");
+            kbo_window_text_append_raw(buffer, "%20", 3u);
         } else if (ch == '#') {
-            kbo_window_text_appendf(buffer, "%%23");
+            kbo_window_text_append_raw(buffer, "%23", 3u);
         } else if (ch == '%') {
-            kbo_window_text_appendf(buffer, "%%25");
+            kbo_window_text_append_raw(buffer, "%25", 3u);
         } else {
-            kbo_window_text_appendf(buffer, "%c", ch);
+            kbo_window_text_append_char(buffer, (char)ch);
         }
     }
 }
@@ -124,11 +124,13 @@ void kbo_webview_append_image_src(KboWindowTextBuffer* buffer, const char* path)
         int remaining = (int)(read - i);
         if (remaining > 1) { value |= ((unsigned int)data[i + 1]) << 8; }
         if (remaining > 2) { value |= ((unsigned int)data[i + 2]); }
-        kbo_window_text_appendf(buffer, "%c%c%c%c",
+        char encoded[4] = {
             alphabet[(value >> 18) & 0x3f],
             alphabet[(value >> 12) & 0x3f],
             remaining > 1 ? alphabet[(value >> 6) & 0x3f] : '=',
-            remaining > 2 ? alphabet[value & 0x3f] : '=');
+            remaining > 2 ? alphabet[value & 0x3f] : '='
+        };
+        kbo_window_text_append_raw(buffer, encoded, sizeof(encoded));
     }
     HeapFree(GetProcessHeap(), 0, data);
 }

@@ -116,10 +116,13 @@ void kbo_prepare_amateur_assignment_batch_ortools(uintptr_t player_list_ptr, int
             && g_kbo_amateur_league_batch_league_id != league_id
             && (g_kbo_amateur_league_batch_player_count > 0
                 || g_kbo_amateur_deferred_team_add_count > 0)) {
-        kbo_amateur_batch_unlock();
-        kbo_amateur_flush_league_batch_ortools("league_switch", 1);
-        kbo_amateur_batch_lock();
+        if (!kbo_amateur_start_league_switch_flush_locked("league_switch", league_id)) {
+            kbo_amateur_batch_unlock();
+            kbo_amateur_flush_league_batch_ortools("league_switch", 1);
+            kbo_amateur_batch_lock();
+        }
     }
+    g_kbo_amateur_league_batch_candidate_count = count;
     if (g_kbo_amateur_league_batch_league_id == league_id
             && g_kbo_amateur_deferred_team_add_count > 0) {
         g_kbo_amateur_league_batch_last_tick = GetTickCount();
@@ -177,14 +180,21 @@ void kbo_prepare_amateur_assignment_batch_ortools(uintptr_t player_list_ptr, int
     int32_t accumulated_teams = g_kbo_amateur_league_batch_team_count;
     int ready = accumulated_teams >= count || accumulated_teams >= KBO_AMATEUR_LEAGUE_BATCH_TEAM_MAX;
     if (!ready) {
-        kbo_log_runtimef(
-            "amateur OR-Tools league batch accumulating league=%u teams=%d/%d players=%d latest_team=%u latest_players=%d",
-            league_id,
-            accumulated_teams,
-            count,
-            accumulated_players,
-            source_team_id,
-            player_count);
+        static volatile LONG accumulating_log_count = 0;
+        LONG log_slot = InterlockedIncrement(&accumulating_log_count);
+        if (log_slot <= 30 || (log_slot % 50) == 0 || accumulated_teams + 1 >= count) {
+            kbo_log_runtimef(
+                "amateur OR-Tools league batch accumulating league=%u teams=%d/%d players=%d latest_team=%u latest_players=%d",
+                league_id,
+                accumulated_teams,
+                count,
+                accumulated_players,
+                source_team_id,
+                player_count);
+        } else if (log_slot == 31) {
+            kbo_log_runtime_line(
+                "amateur OR-Tools league batch accumulating log suppressed after 30 calls; logging every 50th call and near completion");
+        }
         kbo_amateur_batch_unlock();
         kbo_amateur_start_league_batch_flush_thread();
         return;

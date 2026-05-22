@@ -15,6 +15,10 @@ $IndependentAcquisitionCashFlowTestSrc = Join-Path $PSScriptRoot "test_independe
 $IndependentAcquisitionCashFlowTestExe = Join-Path $PSScriptRoot "test_independent_acquisition_cash_flow.exe"
 $IntlEstablishedFaMarketNormalizeTestSrc = Join-Path $PSScriptRoot "test_intl_established_fa_market_normalize.c"
 $IntlEstablishedFaMarketNormalizeTestExe = Join-Path $PSScriptRoot "test_intl_established_fa_market_normalize.exe"
+$IntlEstablishedFaObservedPlayersTestSrc = Join-Path $PSScriptRoot "test_intl_established_fa_observed_players.c"
+$IntlEstablishedFaObservedPlayersTestExe = Join-Path $PSScriptRoot "test_intl_established_fa_observed_players.exe"
+$TeamLookupPlayerVectorCacheTestSrc = Join-Path $PSScriptRoot "test_team_lookup_player_vector_cache.c"
+$TeamLookupPlayerVectorCacheTestExe = Join-Path $PSScriptRoot "test_team_lookup_player_vector_cache.exe"
 $IntlEstablishedFaEventTimingTestSrc = Join-Path $PSScriptRoot "test_intl_established_fa_event_timing.c"
 $IntlEstablishedFaEventTimingTestExe = Join-Path $PSScriptRoot "test_intl_established_fa_event_timing.exe"
 $AsianGamesHandlerSaveContextTestSrc = Join-Path $PSScriptRoot "test_asian_games_handler_save_context.c"
@@ -25,6 +29,8 @@ $AsianGamesRestrictedMaintenancePolicyTestSrc = Join-Path $PSScriptRoot "test_as
 $AsianGamesRestrictedMaintenancePolicyTestExe = Join-Path $PSScriptRoot "test_asian_games_restricted_maintenance_policy.exe"
 $FaDeclarationRepairTestSrc = Join-Path $PSScriptRoot "test_fa_declaration_repair.c"
 $FaDeclarationRepairTestExe = Join-Path $PSScriptRoot "test_fa_declaration_repair.exe"
+$FaDeclarationContractTestSrc = Join-Path $PSScriptRoot "test_fa_declaration_contract.c"
+$FaDeclarationContractTestExe = Join-Path $PSScriptRoot "test_fa_declaration_contract.exe"
 $WebViewCommandRouterTestSrc = Join-Path $PSScriptRoot "test_webview_command_router.c"
 $WebViewCommandRouterTestExe = Join-Path $PSScriptRoot "test_webview_command_router.exe"
 
@@ -178,6 +184,38 @@ if ($LASTEXITCODE -ne 0) {
 & $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
     -I $Root `
     -I (Join-Path $Root "src") `
+    -o $IntlEstablishedFaObservedPlayersTestExe `
+    $IntlEstablishedFaObservedPlayersTestSrc `
+    (Join-Path $Root "src\foreign\intl_established_fa_postscan\state\intl_established_fa_postscan_state.c") `
+    (Join-Path $Root "src\foreign\intl_established_fa_postscan\state\intl_established_fa_observed_players.c") `
+    (Join-Path $Root "src\foreign\intl_established_fa_postscan\visibility\intl_established_fa_visibility.c")
+if ($LASTEXITCODE -ne 0) {
+    throw "International established FA observed player test build failed"
+}
+
+& $IntlEstablishedFaObservedPlayersTestExe
+if ($LASTEXITCODE -ne 0) {
+    throw "International established FA observed player tests failed"
+}
+
+& $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
+    -I $Root `
+    -I (Join-Path $Root "src") `
+    -o $TeamLookupPlayerVectorCacheTestExe `
+    $TeamLookupPlayerVectorCacheTestSrc `
+    (Join-Path $Root "src\team\lookup\team_lookup.c")
+if ($LASTEXITCODE -ne 0) {
+    throw "Team lookup player vector cache test build failed"
+}
+
+& $TeamLookupPlayerVectorCacheTestExe
+if ($LASTEXITCODE -ne 0) {
+    throw "Team lookup player vector cache tests failed"
+}
+
+& $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
+    -I $Root `
+    -I (Join-Path $Root "src") `
     -o $IntlEstablishedFaEventTimingTestExe `
     $IntlEstablishedFaEventTimingTestSrc `
     (Join-Path $Root "src\foreign\intl_established_fa_postscan\timing\intl_established_fa_event_timing.c")
@@ -252,6 +290,22 @@ if ($LASTEXITCODE -ne 0) {
 & $FaDeclarationRepairTestExe
 if ($LASTEXITCODE -ne 0) {
     throw "FA declaration repair tests failed"
+}
+
+& $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
+    -I $Root `
+    -I (Join-Path $Root "src") `
+    -o $FaDeclarationContractTestExe `
+    $FaDeclarationContractTestSrc `
+    (Join-Path $Root "src\fa_declaration\decision\fa_declaration_decision.c") `
+    (Join-Path $Root "src\fa_declaration\decision\scoring\fa_declaration_decision_score.c")
+if ($LASTEXITCODE -ne 0) {
+    throw "FA declaration contract test build failed"
+}
+
+& $FaDeclarationContractTestExe
+if ($LASTEXITCODE -ne 0) {
+    throw "FA declaration contract tests failed"
 }
 
 & $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `

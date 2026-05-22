@@ -24,6 +24,7 @@
 #define KBO_INTL_ESTABLISHED_FA_POSTSCAN_RETRY_MS ((ULONGLONG)kbo_runtime_tuning_policy()->intl_established_fa_postscan_retry_ms)
 #define KBO_INTL_ESTABLISHED_FA_POSTSCAN_MAX_RETRIES (kbo_runtime_tuning_policy()->intl_established_fa_postscan_max_retries)
 #define KBO_INTL_ESTABLISHED_FA_POSTSCAN_MAX_DETAIL_LOGS (kbo_runtime_tuning_policy()->intl_established_fa_postscan_max_detail_logs)
+#define KBO_INTL_ESTABLISHED_FA_OBSERVED_PLAYER_MAX 1024
 enum {
     KBO_INTL_FA_POSTSCAN_IDLE = 0,
     KBO_INTL_FA_POSTSCAN_PENDING = 1,
@@ -73,6 +74,8 @@ typedef struct KboIntlEstablishedFaMarketNormalization {
 
 extern KboIntlEstablishedFaPostscanState g_kbo_intl_established_fa_postscan;
 extern volatile LONG g_kbo_intl_established_fa_postscan_worker_started;
+extern uintptr_t g_kbo_intl_established_fa_observed_players[KBO_INTL_ESTABLISHED_FA_OBSERVED_PLAYER_MAX];
+extern volatile LONG g_kbo_intl_established_fa_observed_player_count;
 
 int kbo_intl_established_fa_quality_shaping_enabled(void);
 int kbo_intl_established_fa_pitcher_role_is_starter(uint8_t position_role);
@@ -132,6 +135,10 @@ int kbo_intl_established_fa_postscan_candidate_matches(
     int32_t index,
     int32_t player_count,
     uint8_t* player);
+void kbo_intl_established_fa_postscan_reset_observed_players(void);
+void kbo_intl_established_fa_postscan_note_observed_player(uintptr_t player_ptr);
+int kbo_intl_established_fa_postscan_observed_player_count(void);
+int kbo_intl_established_fa_postscan_player_was_observed(uint8_t* player);
 int kbo_intl_established_fa_normalize_market_state(
     uint8_t* player,
     uint32_t primary_league_id,

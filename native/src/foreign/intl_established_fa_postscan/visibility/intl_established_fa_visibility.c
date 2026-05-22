@@ -10,6 +10,10 @@ int kbo_intl_established_fa_postscan_candidate_matches(
         return 0;
     }
 
+    if (kbo_intl_established_fa_postscan_player_was_observed(player)) {
+        return 1;
+    }
+
     uint32_t player_id = *(uint32_t*)(player + OOTP27_PLAYER_ID_OFFSET);
     if (batch->before_max_player_id != 0u) {
         return player_id > batch->before_max_player_id;

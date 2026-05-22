@@ -18,7 +18,6 @@ internal static partial class KboFlags
     private static readonly RuntimeFlagDefinition[] RuntimeFlags =
     [
         new("disable_foreign_injury_replacement", null, RuntimeFlagLifecycle.Recovery),
-        new("disable_intl_established_fa_generation_filter", null, RuntimeFlagLifecycle.Recovery),
         new("disable_kbo_fa_salary_opening_day_snapshot", false, RuntimeFlagLifecycle.Recovery),
         new("disable_kbo_no_minor_contract_patch", false, RuntimeFlagLifecycle.Recovery),
         new("enable_kbo_ai_fa_status_candidate_insert_hook", false, RuntimeFlagLifecycle.Recovery),
@@ -49,7 +48,6 @@ internal static partial class KboFlags
         new("enable_kbo_domestic_fa_market_investigation", false, RuntimeFlagLifecycle.Diagnostic),
         new("enable_kbo_domestic_fa_orphan_rescue_dry_run", false, RuntimeFlagLifecycle.Diagnostic),
         new("enable_kbo_domestic_fa_orphan_rescue", false, RuntimeFlagLifecycle.Recovery),
-        new("enable_intl_established_fa_quality_probe_patch", true, RuntimeFlagLifecycle.Recovery),
         new("enable_kbo_ai_fa_fallback_patch", true, RuntimeFlagLifecycle.Recovery),
         new("enable_kbo_asian_quota_probe_logs", null, RuntimeFlagLifecycle.Diagnostic),
         new("enable_kbo_callup_foreign_limit_patch", true, RuntimeFlagLifecycle.Recovery),

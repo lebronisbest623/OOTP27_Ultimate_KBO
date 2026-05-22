@@ -4,7 +4,6 @@
    Source: config/kbo-runtime-flags.json */
 const KboModRuntimeFlagSetting KBO_MOD_RUNTIME_FLAG_SETTINGS[] = {
     { "disable_foreign_injury_replacement", "Foreign injury replacement", 0, 1, NULL, KBO_MOD_FLAG_RECOVERY },
-    { "disable_intl_established_fa_generation_filter", "International FA generation filter", 0, 1, NULL, KBO_MOD_FLAG_RECOVERY },
     { "disable_kbo_fa_salary_opening_day_snapshot", "FA salary opening-day snapshot", 0, 1, NULL, KBO_MOD_FLAG_RECOVERY },
     { "disable_kbo_no_minor_contract_patch", "No minor-contract patch", 0, 1, NULL, KBO_MOD_FLAG_RECOVERY },
     { "enable_kbo_ai_fa_status_candidate_insert_hook", "AI FA candidate hook", 1, 0, NULL, KBO_MOD_FLAG_RECOVERY },
@@ -28,7 +27,6 @@ const KboModRuntimeFlagSetting KBO_MOD_RUNTIME_FLAG_SETTINGS[] = {
     { "enable_kbo_domestic_fa_market_investigation", "Domestic FA market investigation", 1, 0, NULL, KBO_MOD_FLAG_DIAGNOSTIC },
     { "enable_kbo_domestic_fa_orphan_rescue_dry_run", "Domestic FA orphan rescue dry-run", 1, 0, NULL, KBO_MOD_FLAG_DIAGNOSTIC },
     { "enable_kbo_domestic_fa_orphan_rescue", "Domestic FA orphan rescue", 1, 0, NULL, KBO_MOD_FLAG_RECOVERY },
-    { "enable_intl_established_fa_quality_probe_patch", "International FA quality probe", 1, 1, NULL, KBO_MOD_FLAG_RECOVERY },
     { "enable_kbo_ai_fa_fallback_patch", "AI FA fallback patch", 1, 1, NULL, KBO_MOD_FLAG_RECOVERY },
     { "enable_kbo_callup_foreign_limit_patch", "Foreign call-up limit patch", 1, 1, NULL, KBO_MOD_FLAG_RECOVERY },
     { "enable_kbo_offer_eligibility_patch", "Offer eligibility patch", 1, 1, NULL, KBO_MOD_FLAG_RECOVERY },

@@ -118,109 +118,8 @@ int install_kbo_intl_established_fa_multiplier_patch(void)
     return 1;
 }
 
-int install_kbo_intl_established_fa_player_probe_patch(void)
-{
-    HMODULE exe = GetModuleHandleA(NULL);
-    if (exe == NULL) {
-        kbo_log_runtime_line("GetModuleHandleA(NULL) failed for KBO international established FA player probe patch");
-        return 0;
-    }
-
-    char host[MAX_PATH] = {0};
-    GetModuleFileNameA(exe, host, (DWORD)sizeof(host));
-    if (!kbo_patch_host_matches_product(host)) {
-        kbo_log_runtimef("host is not " KBO_OOTP_EXECUTABLE_NAME ", skipping KBO international established FA player probe patch host=%s", host);
-        return 0;
-    }
-
-    const uint8_t expected[OOTP27_INTL_ESTABLISHED_FA_PLAYER_PROBE_STOLEN_LEN] = {
-        0x48, 0x8B, 0xD8,                               /* mov rbx,rax */
-        0x48, 0x89, 0x45, 0x08,                         /* mov [rbp+0x8],rax */
-        0x0F, 0x57, 0xC0,                               /* xorps xmm0,xmm0 */
-        0x33, 0xC0,                                     /* xor eax,eax */
-        0x0F, 0x11, 0x83, 0x38, 0x08, 0x00, 0x00        /* movups [rbx+0x838],xmm0 */
-    };
-    const uint8_t context[64] = {
-        0xC0, 0x49, 0x8B, 0xD4, 0x48, 0x8B, 0x0D, 0xBC,
-        0x4C, 0xB3, 0x02, 0xE8, 0x17, 0x0D, 0x6A, 0x00,
-        0x48, 0x8B, 0xD8, 0x48, 0x89, 0x45, 0x08, 0x0F,
-        0x57, 0xC0, 0x33, 0xC0, 0x0F, 0x11, 0x83, 0x38,
-        0x08, 0x00, 0x00, 0x0F, 0x11, 0x83, 0x48, 0x08,
-        0x00, 0x00, 0x0F, 0x11, 0x83, 0x58, 0x08, 0x00,
-        0x00, 0x0F, 0x11, 0x83, 0x68, 0x08, 0x00, 0x00,
-        0x0F, 0x11, 0x83, 0x78, 0x08, 0x00, 0x00, 0x0F
-    };
-    const uint8_t context_mask[64] = {
-        1,1,1,1,1,1,1,0, 0,0,0,1,0,0,0,0,
-        1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,
-        1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,
-        1,1,1,1,1,1,1,1, 1,1,1,1,0,1,1,1
-    };
-
-    uint8_t* target = resolve_patch_target_by_rva_or_masked_context_pattern(
-        exe,
-        OOTP27_INTL_ESTABLISHED_FA_PLAYER_PROBE_RVA,
-        expected,
-        sizeof(expected),
-        context,
-        context_mask,
-        sizeof(context),
-        16u,
-        "KBO international established FA player probe patch");
-    if (target == NULL) {
-        return 0;
-    }
-    if (is_rip_absolute_jump_patch(target) || is_rax_absolute_jump_patch(target)) {
-        kbo_log_runtimef("KBO international established FA player probe patch already installed target=%p", target);
-        return 1;
-    }
-    if (memcmp(target, expected, sizeof(expected)) != 0) {
-        log_patch_bytes_mismatch("KBO international established FA player probe patch", target, sizeof(expected));
-        return 0;
-    }
-
-    void* continuation = target + sizeof(expected);
-    uint8_t* stub = build_kbo_intl_established_fa_player_probe_stub(continuation);
-    if (stub == NULL) {
-        kbo_log_runtime_line("failed to allocate KBO international established FA player probe stub");
-        return 0;
-    }
-
-    uint8_t patch[OOTP27_INTL_ESTABLISHED_FA_PLAYER_PROBE_STOLEN_LEN] = {
-        0xFF, 0x25, 0x00, 0x00, 0x00, 0x00,
-        0,0,0,0,0,0,0,0,
-        0x90, 0x90, 0x90, 0x90, 0x90
-    };
-    write_u64(&patch[6], (uint64_t)(uintptr_t)stub);
-
-    DWORD old_protect = 0;
-    if (!VirtualProtect(target, sizeof(patch), PAGE_EXECUTE_READWRITE, &old_protect)) {
-        kbo_log_runtimef("VirtualProtect failed for KBO international established FA player probe patch error=%lu", GetLastError());
-        return 0;
-    }
-
-    memcpy(target, patch, sizeof(patch));
-    FlushInstructionCache(GetCurrentProcess(), target, sizeof(patch));
-
-    DWORD ignored = 0;
-    VirtualProtect(target, sizeof(patch), old_protect, &ignored);
-
-    kbo_log_runtimef(
-        "installed KBO international established FA player probe patch target=%p stub=%p continuation=%p wrapper=%p",
-        target,
-        stub,
-        continuation,
-        &ootp_kbo_intl_established_fa_player_probe_wrapper);
-    return 1;
-}
-
 int install_kbo_intl_established_fa_generation_filter_patch(void)
 {
-    if (read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_DISABLE_INTL_ESTABLISHED_FA_GENERATION_FILTER_FILE)) {
-        kbo_log_runtime_line("KBO international established FA generation filter patch disabled: kbo_flags.json disable_intl_established_fa_generation_filter is true");
-        return 1;
-    }
-
     HMODULE exe = GetModuleHandleA(NULL);
     if (exe == NULL) {
         kbo_log_runtime_line("GetModuleHandleA(NULL) failed for KBO international established FA generation filter patch");
@@ -293,18 +192,7 @@ int install_kbo_intl_established_fa_generation_filter_patch(void)
     }
 
     void* continuation = target + sizeof(expected);
-    intptr_t retry_delta =
-        (intptr_t)OOTP27_INTL_ESTABLISHED_FA_RETRY_LOOP_RVA -
-        (intptr_t)OOTP27_INTL_ESTABLISHED_FA_REGISTER_GATE_RVA;
-    void* retry_continuation = target + retry_delta;
-    if (!memory_range_readable(retry_continuation, 8u)) {
-        kbo_log_runtimef(
-            "KBO international established FA generation filter retry continuation invalid target=%p retry=%p delta=%lld",
-            target,
-            retry_continuation,
-            (long long)retry_delta);
-        return 0;
-    }
+    void* retry_continuation = (uint8_t*)((uintptr_t)exe + OOTP27_INTL_ESTABLISHED_FA_RETRY_LOOP_RVA);
     uint8_t* stub = build_kbo_intl_established_fa_register_gate_stub(
         continuation,
         retry_continuation,
@@ -335,7 +223,7 @@ int install_kbo_intl_established_fa_generation_filter_patch(void)
     VirtualProtect(target, sizeof(patch), old_protect, &ignored);
 
     kbo_log_runtimef(
-        "installed KBO international established FA generation filter patch target=%p stub=%p continuation=%p retry=%p global_slot=%p register=%p wrapper=%p",
+        "installed KBO international established FA generation filter patch target=%p stub=%p continuation=%p retry=%p global_slot=%p register=%p wrapper=%p action=retry_without_registering",
         target,
         stub,
         continuation,

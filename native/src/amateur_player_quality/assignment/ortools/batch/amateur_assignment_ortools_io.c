@@ -327,6 +327,7 @@ void kbo_amateur_league_batch_clear(uint32_t league_id)
     g_kbo_amateur_league_batch_league_id = league_id;
     g_kbo_amateur_league_batch_player_count = 0;
     g_kbo_amateur_league_batch_team_count = 0;
+    g_kbo_amateur_league_batch_candidate_count = 0;
     g_kbo_amateur_deferred_team_add_count = 0;
     g_kbo_amateur_league_batch_last_tick = 0u;
 }
