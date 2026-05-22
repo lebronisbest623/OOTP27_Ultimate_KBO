@@ -45,7 +45,7 @@ def _row_is_wildcard(row, wildcard_age_min=None):
         return to_int(row, "wildcard") != 0
     if wildcard_age_min is not None:
         return to_int(row, "age") >= wildcard_age_min
-    return to_int(row, "age") > 24
+    return to_int(row, "age") >= 24
 
 
 def _row_is_military_unserved(row):

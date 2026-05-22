@@ -181,7 +181,7 @@ int kbo_return_completed_military_loan_player(
     uint32_t history_yyyymmdd = year * 10000u + month * 100u + day;
     int history_inserted = 0;
     int history_skipped_duplicate = 0;
-    if (kbo_mark_military_return_history_once(player_id, history_yyyymmdd)) {
+    if (!kbo_military_return_history_was_recorded(player_id, history_yyyymmdd)) {
         history_inserted = insert_kbo_player_history_sql(
             player_id,
             year,
@@ -189,6 +189,9 @@ int kbo_return_completed_military_loan_player(
             day,
             history_text,
             "military_service_return");
+        if (history_inserted) {
+            kbo_mark_military_return_history_once(player_id, history_yyyymmdd);
+        }
     } else {
         history_skipped_duplicate = 1;
     }

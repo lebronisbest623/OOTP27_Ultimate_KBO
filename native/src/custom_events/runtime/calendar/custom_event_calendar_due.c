@@ -151,14 +151,6 @@ static uint32_t kbo_custom_event_calendar_normalize_cursor(
             today_yyyymmdd);
         return 0u;
     }
-    if (previous_cursor == today_yyyymmdd
-            && kbo_custom_event_calendar_should_log_idle_due(0, 0, 0)) {
-        kbo_log_runtimef(
-            "KBO custom event calendar due-through repairing current cursor source=%s previous_cursor=%u today=%u reason=cursor_current",
-            source != NULL ? source : "",
-            previous_cursor,
-            today_yyyymmdd);
-    }
     return previous_cursor;
 }
 
@@ -227,6 +219,13 @@ int kbo_process_custom_events_due_through(uint32_t today_yyyymmdd, const char* s
         kbo_custom_event_calendar_read_cursor(),
         today_yyyymmdd,
         source);
+    if (previous_cursor == today_yyyymmdd) {
+        int asian_hold = kbo_maintain_asian_games_restricted_players(today_yyyymmdd, source);
+        InterlockedExchange(&g_kbo_custom_event_calendar_due_processing, 0);
+        return asian_hold > 0
+            ? KBO_CUSTOM_EVENT_DUE_RESULT_CHANGED
+            : KBO_CUSTOM_EVENT_DUE_RESULT_SCANNED_IDLE;
+    }
 
     KboCustomEventDueResults r = {0};
     kbo_custom_event_calendar_run_all(today_yyyymmdd, source, &r);

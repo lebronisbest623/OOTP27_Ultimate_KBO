@@ -40,7 +40,6 @@ static BOOL CALLBACK kbo_military_selection_policy_init_once(PINIT_ONCE init_onc
     p->draft_score_old_base_bonus = kbo_military_selection_policy_int("draft_score_old_base_bonus", 120, -1000000, 1000000);
     p->draft_score_old_step_penalty = kbo_military_selection_policy_int("draft_score_old_step_penalty", 15, 0, 1000000);
     p->draft_score_player_id_mod = kbo_military_selection_policy_int("draft_score_player_id_mod", 97, 1, 1000000);
-    p->fa_recent_block_ttl_ms = kbo_military_selection_policy_int("fa_recent_block_ttl_ms", 120000, 0, 3600000);
     p->fa_fast_block_log_max = kbo_military_selection_policy_int("fa_fast_block_log_max", 120, 0, 1000000);
     p->fa_offer_eligibility_log_max = kbo_military_selection_policy_int("fa_offer_eligibility_log_max", 120, 0, 1000000);
     p->fa_signability_log_max = kbo_military_selection_policy_int("fa_signability_log_max", 200, 0, 1000000);

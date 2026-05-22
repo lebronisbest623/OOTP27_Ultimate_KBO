@@ -18,14 +18,12 @@ typedef struct KboPlayerIdLookupCacheEntry {
     int32_t player_count;
     uint32_t player_id;
     uintptr_t player_ptr;
-    DWORD tick;
     uint8_t valid;
 } KboPlayerIdLookupCacheEntry;
 
 enum {
     KBO_PLAYER_ID_LOOKUP_CACHE_SIZE = 4096,
-    KBO_PLAYER_ID_LOOKUP_CACHE_WAYS = 4,
-    KBO_PLAYER_ID_LOOKUP_CACHE_TTL_MS = 10000u
+    KBO_PLAYER_ID_LOOKUP_CACHE_WAYS = 4
 };
 
 static KboPlayerIdLookupCacheEntry
@@ -49,7 +47,6 @@ static int kbo_player_id_lookup_cache_hit(
         return 0;
     }
 
-    DWORD now = GetTickCount();
     uint32_t base_slot = kbo_player_id_lookup_cache_slot(player_id);
     for (uint32_t way = 0; way < KBO_PLAYER_ID_LOOKUP_CACHE_WAYS; way++) {
         KboPlayerIdLookupCacheEntry* entry = &g_kbo_player_id_lookup_cache[base_slot + way];
@@ -57,9 +54,7 @@ static int kbo_player_id_lookup_cache_hit(
                 || entry->player_id != player_id
                 || entry->player_vector != player_vector
                 || entry->player_count != player_count
-                || entry->player_ptr == 0
-                || entry->tick == 0u
-                || now - entry->tick > KBO_PLAYER_ID_LOOKUP_CACHE_TTL_MS) {
+                || entry->player_ptr == 0) {
             continue;
         }
         if (!kbo_player_pointer_plausible(entry->player_ptr)) {
@@ -97,9 +92,6 @@ static void kbo_player_id_lookup_cache_store(
             entry = candidate;
             break;
         }
-        if (candidate->tick < entry->tick) {
-            entry = candidate;
-        }
     }
 
     entry->valid = 0u;
@@ -107,7 +99,6 @@ static void kbo_player_id_lookup_cache_store(
     entry->player_count = player_count;
     entry->player_id = player_id;
     entry->player_ptr = (uintptr_t)player;
-    entry->tick = GetTickCount();
     entry->valid = 1u;
 }
 
@@ -140,60 +131,22 @@ int32_t kbo_foreign_waiver_value_score(uint8_t* player)
 
 int32_t kbo_get_foreign_waiver_value_threshold(void)
 {
-    enum { KBO_FOREIGN_VALUE_THRESHOLD_CACHE_MS = 1000u };
-    static volatile LONG s_cached_tick = 0;
-    static volatile LONG s_cached_threshold = 0;
-
-    DWORD now = GetTickCount();
-    LONG cached_tick = InterlockedCompareExchange(&s_cached_tick, 0, 0);
-    if (cached_tick != 0
-            && (DWORD)(now - (DWORD)cached_tick) <= KBO_FOREIGN_VALUE_THRESHOLD_CACHE_MS) {
-        LONG cached_threshold = InterlockedCompareExchange(&s_cached_threshold, 0, 0);
-        if (cached_threshold > 0) {
-            return (int32_t)cached_threshold;
-        }
-    }
-
     uint32_t configured =
         kbo_read_u32_leading_number_from_foreign_policy_file(KBO_FOREIGN_POLICY_VALUE_THRESHOLD_FILE);
     if (configured != 0u && configured <= 250000u) {
-        InterlockedExchange(&s_cached_threshold, (LONG)configured);
-        InterlockedExchange(&s_cached_tick, (LONG)now);
         return (int32_t)configured;
     }
-    int32_t threshold = kbo_foreign_player_policy()->regular_value_threshold;
-    InterlockedExchange(&s_cached_threshold, (LONG)threshold);
-    InterlockedExchange(&s_cached_tick, (LONG)now);
-    return threshold;
+    return kbo_foreign_player_policy()->regular_value_threshold;
 }
 
 int32_t kbo_get_foreign_waiver_asian_value_threshold(void)
 {
-    enum { KBO_FOREIGN_ASIAN_VALUE_THRESHOLD_CACHE_MS = 1000u };
-    static volatile LONG s_cached_tick = 0;
-    static volatile LONG s_cached_threshold = 0;
-
-    DWORD now = GetTickCount();
-    LONG cached_tick = InterlockedCompareExchange(&s_cached_tick, 0, 0);
-    if (cached_tick != 0
-            && (DWORD)(now - (DWORD)cached_tick) <= KBO_FOREIGN_ASIAN_VALUE_THRESHOLD_CACHE_MS) {
-        LONG cached_threshold = InterlockedCompareExchange(&s_cached_threshold, 0, 0);
-        if (cached_threshold > 0) {
-            return (int32_t)cached_threshold;
-        }
-    }
-
     uint32_t configured =
         kbo_read_u32_leading_number_from_foreign_policy_file(KBO_FOREIGN_POLICY_ASIAN_VALUE_THRESHOLD_FILE);
     if (configured != 0u && configured <= 250000u) {
-        InterlockedExchange(&s_cached_threshold, (LONG)configured);
-        InterlockedExchange(&s_cached_tick, (LONG)now);
         return (int32_t)configured;
     }
-    int32_t threshold = kbo_foreign_player_policy()->asian_value_threshold;
-    InterlockedExchange(&s_cached_threshold, (LONG)threshold);
-    InterlockedExchange(&s_cached_tick, (LONG)now);
-    return threshold;
+    return kbo_foreign_player_policy()->asian_value_threshold;
 }
 
 int32_t kbo_get_foreign_waiver_value_threshold_for_player(uint8_t* player)
@@ -254,6 +207,20 @@ uint8_t* kbo_find_player_by_id(uint32_t player_id, uint32_t* out_current_team_id
     return NULL;
 }
 
+int kbo_player_is_retired(uint8_t* player)
+{
+    if (player == NULL
+            || !memory_range_readable(player + OOTP27_PLAYER_RETIRED_FLAG_OFFSET, sizeof(uint8_t))) {
+        return 0;
+    }
+    return player[OOTP27_PLAYER_RETIRED_FLAG_OFFSET] != 0u;
+}
+
+int kbo_player_is_active_for_roster_scan(uint8_t* player)
+{
+    return player != NULL && !kbo_player_is_retired(player);
+}
+
 int kbo_player_is_foreign_for_kbo_rights(uint8_t* player)
 {
     if (player == NULL
@@ -302,24 +269,7 @@ static int32_t kbo_player_asian_quota_salary(uint8_t* player)
 
 static int32_t kbo_cached_asian_quota_salary_limit(void)
 {
-    enum { KBO_ASIAN_QUOTA_SALARY_LIMIT_CACHE_MS = 1000u };
-    static volatile LONG s_cached_tick = 0;
-    static volatile LONG s_cached_limit = 0;
-
-    DWORD now = GetTickCount();
-    LONG cached_tick = InterlockedCompareExchange(&s_cached_tick, 0, 0);
-    if (cached_tick != 0
-            && (DWORD)(now - (DWORD)cached_tick) <= KBO_ASIAN_QUOTA_SALARY_LIMIT_CACHE_MS) {
-        LONG cached_limit = InterlockedCompareExchange(&s_cached_limit, 0, 0);
-        if (cached_limit > 0) {
-            return (int32_t)cached_limit;
-        }
-    }
-
-    int32_t limit = kbo_get_asian_quota_salary_limit();
-    InterlockedExchange(&s_cached_limit, (LONG)limit);
-    InterlockedExchange(&s_cached_tick, (LONG)now);
-    return limit;
+    return kbo_get_asian_quota_salary_limit();
 }
 
 int kbo_player_is_asian_quota_candidate(uint8_t* player)

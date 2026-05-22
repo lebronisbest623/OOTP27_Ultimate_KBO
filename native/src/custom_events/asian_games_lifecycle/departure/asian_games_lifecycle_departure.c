@@ -147,9 +147,10 @@ int kbo_asian_games_depart_selected_players(uint32_t event_yyyymmdd, const char*
 
         int removed = kbo_remove_player_id_from_known_team_roster_arrays(team, entry->player_id);
         int added_restricted = kbo_add_player_id_to_team_fixed_array(team, OOTP27_TEAM_RESTRICTED_PLAYER_IDS_OFFSET, entry->player_id);
+        *(uint32_t*)(player + OOTP27_PLAYER_ACTIVE_TEAM_ID_OFFSET) = 0u;
         player[OOTP27_PLAYER_RESTRICTED_FLAG_OFFSET] = 1u;
         player[OOTP27_PLAYER_SECONDARY_RESTRICTED_FLAG_OFFSET] = 1u;
-        player[OOTP27_PLAYER_INJURY_ACTIVE_OFFSET] = 0u;
+        player[OOTP27_PLAYER_INJURY_ACTIVE_OFFSET] = 1u;
         kbo_set_military_days_left(player, days_left);
         kbo_record_asian_games_restricted_reason(
             entry,
@@ -161,7 +162,7 @@ int kbo_asian_games_depart_selected_players(uint32_t event_yyyymmdd, const char*
         departed++;
 
         kbo_log_runtimef(
-            "KBO Asian Games departed #%ld player_id=%u team=%u league=%u role=%u bucket=%s days_left=%d removed=%d added_restricted=%d old_restricted=%u old_secondary=%u old_injury=%u old_days=%d",
+            "KBO Asian Games departed #%ld player_id=%u team=%u league=%u role=%u bucket=%s days_left=%d removed=%d added_restricted=%d active_cleared=1 old_restricted=%u old_secondary=%u old_injury=%u old_days=%d",
             i + 1,
             entry->player_id,
             current_team_id,

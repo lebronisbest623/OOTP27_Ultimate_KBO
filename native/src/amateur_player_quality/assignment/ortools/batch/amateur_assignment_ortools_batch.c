@@ -65,13 +65,13 @@ int kbo_amateur_defer_team_add_if_generation(
 
     static volatile LONG inline_log_count = 0;
     LONG slot = InterlockedIncrement(&inline_log_count);
-    if (slot <= 5 || kbo_amateur_verbose_log_enabled_cached()) {
+    if (slot <= 5 || (slot % 500) == 0) {
         kbo_log_runtimef(
             "amateur deferred team-add skipped caller_rva=0x%x reason=post_original_batch_reassignment",
             caller_rva);
     } else if (slot == 6) {
         kbo_log_runtime_line(
-            "amateur deferred team-add skip log suppressed after 5 calls; create enable_amateur_assignment_verbose_log.txt for full logging");
+            "amateur deferred team-add skip log suppressed after 5 calls; logging every 500th call");
     }
     return 0;
 }
@@ -167,6 +167,8 @@ void kbo_prepare_amateur_assignment_batch_ortools(uintptr_t player_list_ptr, int
             int32_t index = g_kbo_amateur_league_batch_player_count++;
             g_kbo_amateur_league_batch_players[index] = (uintptr_t)player;
             g_kbo_amateur_league_batch_source_teams[index] = 0;
+            g_kbo_amateur_league_batch_player_ids[index] = player_id;
+            g_kbo_amateur_league_batch_source_team_ids[index] = source_team_id;
         }
     }
 

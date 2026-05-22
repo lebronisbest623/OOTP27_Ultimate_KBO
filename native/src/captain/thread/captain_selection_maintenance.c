@@ -3,6 +3,52 @@
 #include "../../bootstrap/profiling/profiler.h"
 #include "../../core/dates/constants/kbo_date_constants.h"
 
+static uint32_t g_kbo_captain_regular_repair_date = 0u;
+static uint32_t g_kbo_captain_regular_repair_season = 0u;
+static uint32_t g_kbo_captain_regular_repair_league_id = 0u;
+static char g_kbo_captain_regular_repair_save_path[MAX_PATH] = {0};
+
+static int kbo_captain_regular_repair_due(
+    uint32_t date,
+    uint32_t season,
+    uint32_t league_id,
+    const char* save_path)
+{
+    if (date == 0u || save_path == NULL || save_path[0] == '\0') {
+        return 1;
+    }
+    if (g_kbo_captain_regular_repair_save_path[0] == '\0'
+            || strcmp(g_kbo_captain_regular_repair_save_path, save_path) != 0
+            || g_kbo_captain_regular_repair_season != season
+            || g_kbo_captain_regular_repair_league_id != league_id) {
+        return 1;
+    }
+    if (g_kbo_captain_regular_repair_date == date) {
+        return 0;
+    }
+
+    uint32_t day = date % 100u;
+    return day == 1u || day == 8u || day == 15u || day == 22u;
+}
+
+static void kbo_captain_note_regular_repair(
+    uint32_t date,
+    uint32_t season,
+    uint32_t league_id,
+    const char* save_path)
+{
+    g_kbo_captain_regular_repair_date = date;
+    g_kbo_captain_regular_repair_season = season;
+    g_kbo_captain_regular_repair_league_id = league_id;
+    if (save_path != NULL) {
+        snprintf(
+            g_kbo_captain_regular_repair_save_path,
+            sizeof(g_kbo_captain_regular_repair_save_path),
+            "%s",
+            save_path);
+    }
+}
+
 int kbo_run_captain_selection_maintenance_for_date(uint32_t date, const char* source)
 {
     KBO_PROFILE_BEGIN(profile_captain_selection_maintenance);
@@ -72,7 +118,10 @@ int kbo_run_captain_selection_maintenance_for_date(uint32_t date, const char* so
     static int last_thread_csv_exists = -1;
     static int last_thread_calendar_recovery = -1;
     static int last_thread_calendar_preseason = -1;
-    int source_is_captain_thread = source != NULL && strcmp(source, "captain_selection_thread") == 0;
+    int source_is_captain_thread = source != NULL
+        && (strcmp(source, "captain_selection_thread") == 0
+            || strcmp(source, "captain_selection_background_save_enter") == 0
+            || strcmp(source, "captain_selection_background_post_advance") == 0);
     if (source_is_captain_thread
             && (last_thread_save_path[0] == '\0' || strcmp(last_thread_save_path, save_path) != 0)) {
         snprintf(last_thread_save_path, sizeof(last_thread_save_path), "%s", save_path);
@@ -195,6 +244,10 @@ int kbo_run_captain_selection_maintenance_for_date(uint32_t date, const char* so
             KBO_PROFILE_END(profile_captain_selection_maintenance, "captain.maintenance.regular_missing_after_first_day");
             return 0;
         }
+        if (!kbo_captain_regular_repair_due(date, season, league_id, save_path)) {
+            KBO_PROFILE_END(profile_captain_selection_maintenance, "captain.maintenance.inseason_repair_regular_cached");
+            return 0;
+        }
         kbo_captain_audit_maintenance(
             "inseason_repair",
             "regular_season_existing_csv",
@@ -214,6 +267,9 @@ int kbo_run_captain_selection_maintenance_for_date(uint32_t date, const char* so
             season,
             league_id,
             source != NULL ? source : "captain_inseason_thread");
+        if (result >= 0) {
+            kbo_captain_note_regular_repair(date, season, league_id, save_path);
+        }
         KBO_PROFILE_END(profile_captain_selection_maintenance, "captain.maintenance.inseason_repair_regular");
         return result;
     }

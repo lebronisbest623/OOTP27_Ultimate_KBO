@@ -69,6 +69,8 @@ int kbo_foreign_injury_release_injured_player(uint32_t team_id, uint32_t player_
 int kbo_foreign_injury_replacement_scan_source_is_read_only(const char* source);
 int kbo_foreign_injury_same_date_idle_scan_cached(uint32_t today, const char* source);
 void kbo_foreign_injury_note_same_date_idle_scan(uint32_t today, const char* source, int idle);
+int kbo_foreign_injury_same_date_existing_idle_cached(uint32_t today, uint64_t fingerprint);
+void kbo_foreign_injury_note_same_date_existing_idle(uint32_t today, uint64_t fingerprint, int idle);
 int kbo_foreign_injury_pending_diagnosis_find(
     uint32_t player_id,
     KboForeignInjuryPendingDiagnosis* out);

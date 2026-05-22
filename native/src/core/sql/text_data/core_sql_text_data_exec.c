@@ -158,22 +158,17 @@ int kbo_core_sql_text_data_exec(
         return 0;
     }
 
-    char* busy_err = NULL;
     char* exec_err = NULL;
-    int busy_rc = api->exec(database, "PRAGMA busy_timeout=5000;", NULL, NULL, &busy_err);
     int exec_rc = api->exec(database, sql, NULL, NULL, &exec_err);
     int ok = exec_rc == 0;
     kbo_log_runtimef(
-        "text_data sql exec source=%s op=%s busy_rc=%d exec_rc=%d ok=%d busy_err=%s exec_err=%s path=%s",
+        "text_data sql exec source=%s op=%s exec_rc=%d ok=%d exec_err=%s path=%s",
         source != NULL ? source : "",
         op != NULL ? op : "",
-        busy_rc,
         exec_rc,
         ok,
-        busy_err != NULL ? busy_err : "",
         exec_err != NULL ? exec_err : "",
         db_path);
-    kbo_text_data_sqlite_free_error(api, busy_err);
     kbo_text_data_sqlite_free_error(api, exec_err);
     api->close(database);
     kbo_spin_unlock(&g_kbo_text_data_sqlite_lock);

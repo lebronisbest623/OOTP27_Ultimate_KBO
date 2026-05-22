@@ -56,6 +56,9 @@ KboForeignInjuryScannerPlayerLoopResult kbo_foreign_injury_scan_player_loop(
             continue;
         }
         uint8_t* player = (uint8_t*)player_ptr;
+        if (!kbo_player_is_active_for_roster_scan(player)) {
+            continue;
+        }
         uint32_t player_id = *(uint32_t*)(player + OOTP27_PLAYER_ID_OFFSET);
         if (player_id == 0u || !kbo_player_is_foreign_for_kbo_rights(player)) {
             continue;

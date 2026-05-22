@@ -89,12 +89,12 @@ uintptr_t kbo_amateur_team_add_player_reroute_before_original(uintptr_t team_ptr
     if (source != NULL && strcmp(source, "team_add_player_before_original") == 0) {
         static volatile LONG post_add_log_count = 0;
         LONG post_add_slot = InterlockedIncrement(&post_add_log_count);
-        if (post_add_slot <= 5 || kbo_amateur_verbose_log_enabled_cached()) {
+        if (post_add_slot <= 5 || (post_add_slot % 500) == 0) {
             kbo_log_runtimef(
                 "amateur assignment pre-reroute skipped source=%s reason=post_original_batch_reassignment",
                 source);
         } else if (post_add_slot == 6) {
-            kbo_log_runtime_line("amateur assignment pre-reroute skip log suppressed after 5 calls; create enable_amateur_assignment_verbose_log.txt for full logging");
+            kbo_log_runtime_line("amateur assignment pre-reroute skip log suppressed after 5 calls; logging every 500th call");
         }
         return team_ptr;
     }

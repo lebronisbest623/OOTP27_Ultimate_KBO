@@ -11,7 +11,9 @@ static uint64_t kbo_foreign_injury_replacement_fingerprint_mix(uint64_t hash, ui
 
 uint64_t kbo_foreign_injury_replacement_fingerprint(void)
 {
-    kbo_ensure_foreign_injury_replacements_loaded();
+    if (g_kbo_foreign_injury_replacement_loaded_path[0] == '\0') {
+        kbo_ensure_foreign_injury_replacements_loaded();
+    }
 
     uint64_t hash = 1469598103934665603ull;
     kbo_lock_foreign_injury_replacements();
@@ -57,6 +59,7 @@ int kbo_persist_foreign_injury_replacements_locked(void)
 void kbo_ensure_foreign_injury_replacements_loaded(void)
 {
     KBO_PROFILE_BEGIN(profile_foreign_injury_ensure);
+    DWORD now = GetTickCount();
     char path[MAX_PATH] = {0};
     if (!kbo_get_foreign_injury_replacement_path(path, sizeof(path))) {
         KBO_PROFILE_END(profile_foreign_injury_ensure, "foreign_injury.ensure.no_path");
@@ -70,7 +73,6 @@ void kbo_ensure_foreign_injury_replacements_loaded(void)
         last_empty_import_attempt_tick = 0u;
         kbo_load_foreign_injury_replacements_locked(path);
     }
-    DWORD now = GetTickCount();
     int should_import_seed = path_changed;
     if (!should_import_seed
             && g_kbo_foreign_injury_replacement_count == 0

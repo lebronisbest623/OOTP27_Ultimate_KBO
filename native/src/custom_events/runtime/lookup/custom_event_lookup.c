@@ -25,7 +25,6 @@ typedef struct KboLatestOffseasonStartsCache {
     uint32_t cached_at_yyyymmdd;
     uint32_t latest_offseason_start;
     uint32_t next_offseason_start;
-    DWORD tick;
     uint8_t valid;
 } KboLatestOffseasonStartsCache;
 
@@ -52,14 +51,11 @@ uint32_t kbo_get_latest_offseason_starts_event(uint32_t today_yyyymmdd)
     }
 
     KboLatestOffseasonStartsCache cached = g_kbo_latest_offseason_starts_cache;
-    DWORD now = GetTickCount();
     if (cached.valid
             && cached.event_manager == event_manager
             && cached.event_vector == event_vector
             && cached.event_count == event_count
             && cached.league_id == league_id
-            && cached.tick != 0u
-            && now - cached.tick <= 1000u
             && today_yyyymmdd >= cached.cached_at_yyyymmdd
             && (cached.next_offseason_start == 0u || today_yyyymmdd < cached.next_offseason_start)) {
         return cached.latest_offseason_start;
@@ -114,7 +110,6 @@ uint32_t kbo_get_latest_offseason_starts_event(uint32_t today_yyyymmdd)
         .cached_at_yyyymmdd = today_yyyymmdd,
         .latest_offseason_start = latest_offseason_start,
         .next_offseason_start = next_offseason_start,
-        .tick = now,
         .valid = 1u,
     };
     return latest_offseason_start;

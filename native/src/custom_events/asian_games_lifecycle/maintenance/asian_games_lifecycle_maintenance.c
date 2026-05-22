@@ -174,7 +174,7 @@ static int kbo_asian_games_maintain_restricted_entry(
     field_changes += kbo_asian_games_set_u32_field(
         player,
         OOTP27_PLAYER_ACTIVE_TEAM_ID_OFFSET,
-        hold_team_id);
+        0u);
     field_changes += kbo_asian_games_set_u8_field(
         player,
         OOTP27_PLAYER_RESTRICTED_FLAG_OFFSET,
@@ -186,7 +186,7 @@ static int kbo_asian_games_maintain_restricted_entry(
     field_changes += kbo_asian_games_set_u8_field(
         player,
         OOTP27_PLAYER_INJURY_ACTIVE_OFFSET,
-        0u);
+        1u);
 
     int32_t days_left = kbo_asian_games_restricted_days_left(today_yyyymmdd, entry->return_date);
     if (before_days_left != days_left) {

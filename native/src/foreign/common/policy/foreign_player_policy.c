@@ -50,7 +50,6 @@ static BOOL CALLBACK kbo_foreign_player_policy_init_once(PINIT_ONCE init_once, P
     p->phase_transition_anchor_max_age_days = kbo_foreign_player_policy_int("phase_transition_anchor_max_age_days", 70, 0, 3660);
     p->waiver_retention_years = kbo_foreign_player_policy_int("waiver_retention_years", 5, 0, 20);
     p->retention_guard_days = kbo_foreign_player_policy_int("retention_guard_days", 180, 0, 3660);
-    p->retention_opportunity_cache_ttl_ms = kbo_foreign_player_policy_int("retention_opportunity_cache_ttl_ms", 1000, 0, 600000);
     p->market_age_min = kbo_foreign_player_policy_int("market_age_min", 16, 0, 80);
     p->market_age_max = kbo_foreign_player_policy_int("market_age_max", 60, 0, 80);
     p->player_id_max = kbo_foreign_player_policy_int("player_id_max", 200000000, 1, 2000000000);
@@ -61,8 +60,6 @@ static BOOL CALLBACK kbo_foreign_player_policy_init_once(PINIT_ONCE init_once, P
     p->pending_offer_ttl_days = kbo_foreign_player_policy_int("pending_offer_ttl_days", 45, 0, 3660);
     p->independent_acquisition_seller_transfer_limit = kbo_foreign_player_policy_int("independent_acquisition_seller_transfer_limit", 5, 0, 100);
     p->ai_roster_daily_callup_max_attempts = kbo_foreign_player_policy_int("ai_roster_daily_callup_max_attempts", 24, 0, 10000);
-    p->recent_allow_ttl_ms = kbo_foreign_player_policy_int("recent_allow_ttl_ms", 10 * 60 * 1000, 0, 3600000);
-    p->recent_block_ttl_ms = kbo_foreign_player_policy_int("recent_block_ttl_ms", 120000, 0, 3600000);
     p->no_minor_scan_initial_delay_ms = kbo_foreign_player_policy_int("no_minor_scan_initial_delay_ms", 1000, 0, 600000);
     p->no_minor_scan_warmup_interval_ms = kbo_foreign_player_policy_int("no_minor_scan_warmup_interval_ms", 2000, 0, 600000);
     p->no_minor_scan_warmup_attempts = kbo_foreign_player_policy_int("no_minor_scan_warmup_attempts", 5, 0, 10000);

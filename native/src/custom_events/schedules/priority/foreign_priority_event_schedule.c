@@ -20,12 +20,29 @@
 #include "../../../runtime_memory/runtime_memory.h"
 #include "../../runtime/catalog/custom_event_catalog.h"
 
+static volatile LONG g_kbo_foreign_priority_schedule_running = 0;
+
+#define KBO_FOREIGN_PRIORITY_SCHEDULE_RETURN(value) \
+    do { \
+        InterlockedExchange(&g_kbo_foreign_priority_schedule_running, 0); \
+        return (value); \
+    } while (0)
+
 int kbo_schedule_foreign_priority_custom_events_at_anchor(
     const char* source,
     uint32_t today,
     uint32_t league_id,
     uint32_t offseason_starts_yyyymmdd)
 {
+    if (InterlockedCompareExchange(&g_kbo_foreign_priority_schedule_running, 1, 0) != 0) {
+        kbo_log_runtimef(
+            "KBO custom event schedule skipped source=%s reason=foreign_priority_schedule_already_running today=%u season_end=%u",
+            source != NULL ? source : "",
+            today,
+            offseason_starts_yyyymmdd);
+        return 0;
+    }
+
     KboForeignPriorityEventAudit audit = {0};
     audit.today = today;
     audit.league_id = league_id;
@@ -38,7 +55,7 @@ int kbo_schedule_foreign_priority_custom_events_at_anchor(
             source != NULL ? source : "",
             today,
             offseason_starts_yyyymmdd);
-        return -1;
+        KBO_FOREIGN_PRIORITY_SCHEDULE_RETURN(-1);
     }
     if (today == 0u || offseason_starts_yyyymmdd == 0u) {
         kbo_audit_foreign_priority_schedule("skip", "anchor_unavailable", source, &audit);
@@ -47,7 +64,7 @@ int kbo_schedule_foreign_priority_custom_events_at_anchor(
             source != NULL ? source : "",
             today,
             offseason_starts_yyyymmdd);
-        return -1;
+        KBO_FOREIGN_PRIORITY_SCHEDULE_RETURN(-1);
     }
 
     if (offseason_starts_yyyymmdd > today) {
@@ -57,7 +74,7 @@ int kbo_schedule_foreign_priority_custom_events_at_anchor(
             source != NULL ? source : "",
             offseason_starts_yyyymmdd,
             today);
-        return 0;
+        KBO_FOREIGN_PRIORITY_SCHEDULE_RETURN(0);
     }
 
     uint32_t anchor_date = offseason_starts_yyyymmdd;
@@ -91,11 +108,11 @@ int kbo_schedule_foreign_priority_custom_events_at_anchor(
             close_date,
             fa_declaration_date,
             intl_established_fa_date);
-        return -1;
+        KBO_FOREIGN_PRIORITY_SCHEDULE_RETURN(-1);
     }
 
     if (kbo_foreign_priority_ready_cache_hit(offseason_starts_yyyymmdd, league_id)) {
-        return 0;
+        KBO_FOREIGN_PRIORITY_SCHEDULE_RETURN(0);
     }
 
     char open_title[160] = {0};
@@ -113,7 +130,7 @@ int kbo_schedule_foreign_priority_custom_events_at_anchor(
             "KBO custom event schedule skipped source=%s reason=title_unavailable season_end=%u",
             source != NULL ? source : "",
             offseason_starts_yyyymmdd);
-        return -1;
+        KBO_FOREIGN_PRIORITY_SCHEDULE_RETURN(-1);
     }
 
     int open_exists = kbo_custom_event_exists_for_date(
@@ -164,7 +181,7 @@ int kbo_schedule_foreign_priority_custom_events_at_anchor(
             audit.ready = 1;
             kbo_audit_foreign_priority_schedule("skip", "already_scheduled", source, &audit);
         }
-        return 0;
+        KBO_FOREIGN_PRIORITY_SCHEDULE_RETURN(0);
     }
 
     int created_open = 0;
@@ -300,7 +317,7 @@ int kbo_schedule_foreign_priority_custom_events_at_anchor(
 
     if (!(open_exists && close_exists && fa_declaration_exists && intl_established_fa_exists && military_exists)) {
         kbo_audit_foreign_priority_schedule("fail", "events_not_ready", source, &audit);
-        return -1;
+        KBO_FOREIGN_PRIORITY_SCHEDULE_RETURN(-1);
     }
     g_kbo_foreign_priority_last_scheduled_date = offseason_starts_yyyymmdd;
     kbo_foreign_priority_ready_cache_store(offseason_starts_yyyymmdd, league_id);
@@ -311,6 +328,8 @@ int kbo_schedule_foreign_priority_custom_events_at_anchor(
         || pruned_old_intl_established_fa
         || created_military;
     kbo_audit_foreign_priority_schedule(changed ? "schedule" : "ready", "created_or_existing_events", source, &audit);
-    return changed;
+    KBO_FOREIGN_PRIORITY_SCHEDULE_RETURN(changed);
 }
+
+#undef KBO_FOREIGN_PRIORITY_SCHEDULE_RETURN
 

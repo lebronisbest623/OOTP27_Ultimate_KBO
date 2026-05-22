@@ -24,6 +24,35 @@
 #include "../state/salary_snapshot_state.h"
 #include "../capture/salary_snapshot_write_capture.h"
 
+static char g_kbo_fa_salary_snapshot_cbt_default_done_save_path[MAX_PATH] = {0};
+static uint32_t g_kbo_fa_salary_snapshot_cbt_default_done_season = 0u;
+
+static int kbo_fa_salary_snapshot_cbt_default_exception_done(
+    const char* save_path,
+    uint32_t season)
+{
+    return save_path != NULL
+        && save_path[0] != '\0'
+        && g_kbo_fa_salary_snapshot_cbt_default_done_save_path[0] != '\0'
+        && strcmp(g_kbo_fa_salary_snapshot_cbt_default_done_save_path, save_path) == 0
+        && g_kbo_fa_salary_snapshot_cbt_default_done_season == season;
+}
+
+static void kbo_fa_salary_snapshot_note_cbt_default_exception_done(
+    const char* save_path,
+    uint32_t season)
+{
+    if (save_path == NULL || save_path[0] == '\0' || season == 0u) {
+        return;
+    }
+    snprintf(
+        g_kbo_fa_salary_snapshot_cbt_default_done_save_path,
+        sizeof(g_kbo_fa_salary_snapshot_cbt_default_done_save_path),
+        "%s",
+        save_path);
+    g_kbo_fa_salary_snapshot_cbt_default_done_season = season;
+}
+
 static int kbo_fa_salary_snapshot_process_date_work(uint32_t date, const char* source)
 {
     if (!kbo_fix_enabled()) {
@@ -70,15 +99,19 @@ static int kbo_fa_salary_snapshot_process_date_work(uint32_t date, const char* s
 
     int in_opening_window = kbo_fa_salary_snapshot_current_date_in_opening_window(date, opening_day);
     int snapshot_exists = kbo_fa_salary_snapshot_file_exists(year);
-    KboCbtRules rules;
-    kbo_cbt_rules_load(&rules);
-    uint32_t cbt_announcement_day = opening_day / 10000u == year
-        ? kbo_add_days_yyyymmdd(opening_day, rules.announcement_days_after_opening)
-        : 0u;
 
     if (snapshot_exists && opening_day / 10000u == year && date >= opening_day) {
+        if (kbo_fa_salary_snapshot_cbt_default_exception_done(save_path, year)) {
+            return 1;
+        }
+
+        KboCbtRules rules;
+        kbo_cbt_rules_load(&rules);
+        uint32_t cbt_announcement_day =
+            kbo_add_days_yyyymmdd(opening_day, rules.announcement_days_after_opening);
         if (cbt_announcement_day == 0u || date >= cbt_announcement_day) {
             kbo_cbt_exception_auto_designate_missing(year, "snapshot_sync_default_exception");
+            kbo_fa_salary_snapshot_note_cbt_default_exception_done(save_path, year);
         }
         return 1;
     }

@@ -100,7 +100,6 @@ static int kbo_recent_foreign_allow_matches(
         return 0;
     }
 
-    ULONGLONG now = GetTickCount64();
     ULONGLONG best_tick = 0;
     uint32_t best_team = 0u;
 
@@ -110,9 +109,7 @@ static int kbo_recent_foreign_allow_matches(
         if (rec.player_id != player_id || rec.requester_team_id == 0u || rec.date_yyyymmdd != today) {
             continue;
         }
-        if (rec.tick == 0
-                || now < rec.tick
-                || now - rec.tick > (ULONGLONG)kbo_foreign_player_policy()->recent_allow_ttl_ms) {
+        if (rec.tick == 0) {
             continue;
         }
         if (rec.tick >= best_tick) {
@@ -198,15 +195,7 @@ int kbo_recent_foreign_offer_block_matches(
 
     LONG cached_player = InterlockedCompareExchange(&g_kbo_foreign_offer_block_player_id, 0, 0);
     LONG cached_date = InterlockedCompareExchange(&g_kbo_foreign_offer_block_date, 0, 0);
-    LONG64 cached_tick = InterlockedCompareExchange64(&g_kbo_foreign_offer_block_tick, 0, 0);
     if ((uint32_t)cached_player != player_id || (uint32_t)cached_date != today) {
-        return 0;
-    }
-
-    ULONGLONG now = GetTickCount64();
-    if (cached_tick <= 0
-            || now < (ULONGLONG)cached_tick
-            || now - (ULONGLONG)cached_tick > (ULONGLONG)kbo_foreign_player_policy()->recent_block_ttl_ms) {
         return 0;
     }
 
@@ -244,15 +233,7 @@ int kbo_recent_custom_foreign_policy_block_matches(uint32_t player_id, uint32_t 
 
     LONG cached_player = InterlockedCompareExchange(&g_kbo_custom_foreign_policy_block_player_id, 0, 0);
     LONG cached_date = InterlockedCompareExchange(&g_kbo_custom_foreign_policy_block_date, 0, 0);
-    LONG64 cached_tick = InterlockedCompareExchange64(&g_kbo_custom_foreign_policy_block_tick, 0, 0);
     if ((uint32_t)cached_player != player_id || (uint32_t)cached_date != today) {
-        return 0;
-    }
-
-    ULONGLONG now = GetTickCount64();
-    if (cached_tick <= 0
-            || now < (ULONGLONG)cached_tick
-            || now - (ULONGLONG)cached_tick > (ULONGLONG)kbo_foreign_player_policy()->recent_block_ttl_ms) {
         return 0;
     }
 

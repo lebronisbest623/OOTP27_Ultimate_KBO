@@ -13,7 +13,6 @@
 
 enum {
     KBO_FA_TEAM_ROLE_COUNT_CACHE_SIZE = 64,
-    KBO_FA_TEAM_ROLE_COUNT_CACHE_TTL_MS = 10000u,
     KBO_FA_ROLE_BUCKET_COUNT = 5
 };
 
@@ -21,7 +20,6 @@ typedef struct KboFaTeamRoleCountCacheEntry {
     uint32_t team_id;
     uintptr_t player_vector;
     int32_t player_count;
-    DWORD tick;
     int counts[KBO_FA_ROLE_BUCKET_COUNT];
     uint8_t valid;
 } KboFaTeamRoleCountCacheEntry;
@@ -68,15 +66,13 @@ int kbo_fa_team_role_count(uint32_t team_id, int role_bucket)
         return 0;
     }
 
-    DWORD now = GetTickCount();
     uint32_t slot_index = ((team_id * 2654435761u) ^ ((uint32_t)player_count << 3))
         & (KBO_FA_TEAM_ROLE_COUNT_CACHE_SIZE - 1u);
     KboFaTeamRoleCountCacheEntry* cached = &g_kbo_fa_team_role_count_cache[slot_index];
     if (cached->valid
             && cached->team_id == team_id
             && cached->player_vector == player_vector
-            && cached->player_count == player_count
-            && now - cached->tick <= KBO_FA_TEAM_ROLE_COUNT_CACHE_TTL_MS) {
+            && cached->player_count == player_count) {
         return cached->counts[role_bucket];
     }
 
@@ -112,7 +108,6 @@ int kbo_fa_team_role_count(uint32_t team_id, int role_bucket)
     for (int i = 0; i < KBO_FA_ROLE_BUCKET_COUNT; i++) {
         cached->counts[i] = counts[i];
     }
-    cached->tick = now;
     cached->valid = 1u;
     return counts[role_bucket];
 }

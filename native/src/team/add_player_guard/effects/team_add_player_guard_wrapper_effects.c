@@ -38,7 +38,7 @@ uintptr_t kbo_team_add_prepare_amateur_pre_original_reroute(
         if (amateur_league_id != 0u && kbo_amateur_player_age_eligible(amateur_league_id, age)) {
             static volatile LONG amateur_caller_log_count = 0;
             LONG slot = InterlockedIncrement(&amateur_caller_log_count);
-            if (slot <= 200 || kbo_team_add_amateur_verbose_log_enabled_cached()) {
+            if (slot <= 10 || (slot % 500) == 0) {
                 uint32_t player_id = *(uint32_t*)(player + OOTP27_PLAYER_ID_OFFSET);
                 uint32_t team_id = *(uint32_t*)(team + OOTP27_KBO_TEAM_ID_OFFSET);
                 kbo_log_runtimef(
@@ -50,6 +50,8 @@ uintptr_t kbo_team_add_prepare_amateur_pre_original_reroute(
                     (int)age,
                     team_id,
                     amateur_pre_rerouted);
+            } else if (slot == 11) {
+                kbo_log_runtime_line("amateur team_add caller trace suppressed after 10 calls; logging every 500th call");
             }
         }
     }

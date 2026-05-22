@@ -1,9 +1,11 @@
 #include "..\amateur_assignment_ortools.h"
 #include "../../../../core/logging/rule_audit.h"
 #include "../../../../team/assignment/assignment/team_assignment.h"
+#include "../../../../foreign/common/player_eval/foreign_waiver_player_eval.h"
 
 int kbo_amateur_apply_post_original_batch_assignments(
     uintptr_t* league_players,
+    uint32_t* league_player_ids,
     int32_t player_count,
     uint32_t league_id,
     KboAmateurAssignmentCandidate* candidates,
@@ -17,12 +19,20 @@ int kbo_amateur_apply_post_original_batch_assignments(
     int failed = 0;
 
     for (int32_t i = 0; i < player_count; i++) {
-        uint8_t* player = (uint8_t*)league_players[i];
+        uint32_t expected_player_id = league_player_ids != NULL ? league_player_ids[i] : 0u;
+        uint8_t* player = expected_player_id != 0u ? kbo_find_player_by_id(expected_player_id, NULL, NULL) : NULL;
+        if (player == NULL) {
+            player = (uint8_t*)league_players[i];
+        }
         if (player == NULL || !memory_range_readable(player, OOTP27_PLAYER_SCAN_BYTES)) {
             stale_or_invalid++;
             continue;
         }
         uint32_t player_id = *(uint32_t*)(player + OOTP27_PLAYER_ID_OFFSET);
+        if (expected_player_id != 0u && player_id != expected_player_id) {
+            stale_or_invalid++;
+            continue;
+        }
         uint32_t source_team_id = kbo_amateur_player_assignment_team_id(player);
         if (player_id == 0u
                 || source_team_id == 0u

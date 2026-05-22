@@ -25,7 +25,8 @@ typedef struct KboForeignRetentionOpportunity {
 typedef struct KboForeignRetentionOpportunityCacheEntry {
     uint32_t team_id;
     uint32_t today;
-    DWORD tick;
+    LONG rights_generation;
+    uint8_t valid;
     KboForeignRetentionOpportunity opportunity;
 } KboForeignRetentionOpportunityCacheEntry;
 
@@ -96,15 +97,15 @@ static int kbo_retention_opportunity_cache_get(
         return 0;
     }
 
-    DWORD now = GetTickCount();
+    LONG rights_generation = InterlockedCompareExchange(&g_kbo_foreign_waiver_rights_generation, 0, 0);
     uint32_t cache_index = (team_id ^ (today >> 4)) % KBO_RETENTION_OPPORTUNITY_CACHE_SIZE;
     kbo_retention_opportunity_cache_lock();
     KboForeignRetentionOpportunityCacheEntry cached =
         g_kbo_retention_opportunity_cache[cache_index];
-    if (cached.team_id == team_id
+    if (cached.valid
+            && cached.team_id == team_id
             && cached.today == today
-            && cached.tick != 0u
-            && now - cached.tick <= (DWORD)kbo_foreign_player_policy()->retention_opportunity_cache_ttl_ms) {
+            && cached.rights_generation == rights_generation) {
         *out_opportunity = cached.opportunity;
         kbo_retention_opportunity_cache_unlock();
         return out_opportunity->protectable_rights > 0u;
@@ -162,7 +163,8 @@ static int kbo_retention_opportunity_cache_get(
     g_kbo_retention_opportunity_cache[cache_index] = (KboForeignRetentionOpportunityCacheEntry){
         .team_id = team_id,
         .today = today,
-        .tick = now,
+        .rights_generation = InterlockedCompareExchange(&g_kbo_foreign_waiver_rights_generation, 0, 0),
+        .valid = 1u,
         .opportunity = opportunity
     };
     kbo_retention_opportunity_cache_unlock();

@@ -15,6 +15,7 @@
 #include "../../../core/events/core_league_events.h"
 #include "../../../foreign/common/policy/foreign_waiver_policy.h"
 #include "../../asian_games_schedule_seed/query/query_helpers.h"
+#include "../../runtime/dispatch/custom_event_dispatch.h"
 #include "../../runtime/ledger/custom_event_ledger.h"
 #include "../../runtime/runner/custom_event_runner.h"
 
@@ -44,9 +45,18 @@ static int kbo_process_due_asian_games_custom_event(
     if (event_date == 0u || today == 0u || today < event_date) {
         return 0;
     }
-    if (kbo_custom_event_processed_marker_exists_for_kind(event_date, kind)
-            || kbo_custom_event_ledger_completed(league_id, event_date, kind)) {
+    int completed = kbo_custom_event_processed_marker_exists_for_kind(event_date, kind)
+        || kbo_custom_event_ledger_completed(league_id, event_date, kind);
+    if (completed && kbo_custom_event_completed_state_is_valid(league_id, event_date, kind)) {
         return 0;
+    }
+    if (completed) {
+        kbo_log_runtimef(
+            "KBO Asian Games due event stale completion ignored source=%s kind=%s event_date=%u today=%u",
+            source != NULL ? source : "",
+            kbo_custom_event_kind_key(kind),
+            event_date,
+            today);
     }
 
     int result = kbo_run_custom_event_by_kind(

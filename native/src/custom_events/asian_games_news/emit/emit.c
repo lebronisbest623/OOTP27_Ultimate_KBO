@@ -13,7 +13,20 @@
 #include "../../../core/news/live/core_live_news.h"
 #include "../../../core/news/templates/core_news_templates.h"
 #include "../../../foreign/common/policy/foreign_waiver_policy.h"
+#include "../body/body.h"
 #include "../links/links.h"
+
+static const char* kbo_asian_games_emit_plural(int value)
+{
+    return value == 1 ? "" : "s";
+}
+
+static void kbo_asian_games_emit_u32_text(uint32_t value, char* out, size_t out_size)
+{
+    if (out != NULL && out_size > 0u) {
+        snprintf(out, out_size, "%u", value);
+    }
+}
 
 int kbo_emit_asian_games_news(uint32_t event_yyyymmdd, const char* template_prefix, const char* source)
 {
@@ -38,6 +51,31 @@ int kbo_emit_asian_games_news(uint32_t event_yyyymmdd, const char* template_pref
     char final_score[16] = {0};
     char korea_score[16] = {0};
     char opponent_score[16] = {0};
+    char roster_count_text[16] = {0};
+    char wildcards_text[16] = {0};
+    char departed_text[16] = {0};
+    char returned_text[16] = {0};
+    char exempted_text[16] = {0};
+
+    LONG roster_count = g_kbo_asian_games_roster_count;
+    if (roster_count < 0 || roster_count > KBO_ASIAN_GAMES_ROSTER_SIZE) {
+        roster_count = 0;
+    }
+    int departed = 0;
+    int returned = 0;
+    int exempted = 0;
+    int wildcards = 0;
+    for (LONG i = 0; i < roster_count; i++) {
+        if (g_kbo_asian_games_roster[i].departed) { departed++; }
+        if (g_kbo_asian_games_roster[i].returned) { returned++; }
+        if (g_kbo_asian_games_roster[i].exempted) { exempted++; }
+        if (g_kbo_asian_games_roster[i].wildcard) { wildcards++; }
+    }
+    kbo_asian_games_emit_u32_text((uint32_t)roster_count, roster_count_text, sizeof(roster_count_text));
+    kbo_asian_games_emit_u32_text((uint32_t)wildcards, wildcards_text, sizeof(wildcards_text));
+    kbo_asian_games_emit_u32_text((uint32_t)departed, departed_text, sizeof(departed_text));
+    kbo_asian_games_emit_u32_text((uint32_t)returned, returned_text, sizeof(returned_text));
+    kbo_asian_games_emit_u32_text((uint32_t)exempted, exempted_text, sizeof(exempted_text));
     kbo_asian_games_build_news_context(
         event_yyyymmdd,
         roster_year_text,
@@ -64,6 +102,15 @@ int kbo_emit_asian_games_news(uint32_t event_yyyymmdd, const char* template_pref
         opponent_score,
         sizeof(opponent_score));
     KboNewsTemplateVar vars[] = {
+        { "roster_count", roster_count_text },
+        { "wildcards", wildcards_text },
+        { "wildcards_plural", kbo_asian_games_emit_plural(wildcards) },
+        { "departed", departed_text },
+        { "departed_plural", kbo_asian_games_emit_plural(departed) },
+        { "returned", returned_text },
+        { "returned_plural", kbo_asian_games_emit_plural(returned) },
+        { "exempted", exempted_text },
+        { "exempted_plural", kbo_asian_games_emit_plural(exempted) },
         { "roster_year", roster_year_text },
         { "host_city", host_city },
         { "host_country", host_country },

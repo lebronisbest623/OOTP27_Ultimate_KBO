@@ -22,7 +22,6 @@ typedef struct KboMilitarySelectionPolicy {
     int32_t draft_score_old_base_bonus;
     int32_t draft_score_old_step_penalty;
     int32_t draft_score_player_id_mod;
-    int32_t fa_recent_block_ttl_ms;
     int32_t fa_fast_block_log_max;
     int32_t fa_offer_eligibility_log_max;
     int32_t fa_signability_log_max;

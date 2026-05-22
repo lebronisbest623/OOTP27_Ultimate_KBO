@@ -9,7 +9,6 @@
 #include "../../../core/sync/lock.h"
 
 #define KBO_FA_PROTECTION_TEAM_CACHE_SIZE 8
-#define KBO_FA_PROTECTION_TEAM_CACHE_TTL_MS 2000u
 
 typedef struct KboFaProtectionTeamCandidateCacheEntry {
     uint8_t valid;
@@ -17,7 +16,6 @@ typedef struct KboFaProtectionTeamCandidateCacheEntry {
     uint32_t league_id;
     uintptr_t player_vector;
     int32_t player_count;
-    DWORD tick_ms;
     int candidate_count;
     KboFaProtectedCandidate candidates[KBO_FA_PROTECTION_TEAM_CACHE_CANDIDATE_MAX];
     KboFaProtectedCandidate auto_protected[KBO_FA_COMPENSATION_PROTECTED_LIST_MAX];
@@ -92,7 +90,6 @@ int kbo_fa_try_materialize_cached_protection_candidates(
     if (rec == NULL || candidates == NULL || max_candidates <= 0 || player_vector == 0 || player_count <= 0) {
         return -1;
     }
-    DWORD now = GetTickCount();
     int result = -1;
     kbo_rw_lock_enter_shared(&g_kbo_fa_protection_team_cache_lock);
     for (int i = 0; i < KBO_FA_PROTECTION_TEAM_CACHE_SIZE; i++) {
@@ -101,8 +98,7 @@ int kbo_fa_try_materialize_cached_protection_candidates(
                 || entry->signing_team_id != rec->signing_team_id
                 || entry->league_id != rec->league_id
                 || entry->player_vector != player_vector
-                || entry->player_count != player_count
-                || (DWORD)(now - entry->tick_ms) > KBO_FA_PROTECTION_TEAM_CACHE_TTL_MS) {
+                || entry->player_count != player_count) {
             continue;
         }
         result = kbo_fa_materialize_protection_candidates(
@@ -146,7 +142,6 @@ void kbo_fa_store_protection_candidate_cache(
     entry->league_id = rec->league_id;
     entry->player_vector = player_vector;
     entry->player_count = player_count;
-    entry->tick_ms = GetTickCount();
     entry->candidate_count = candidate_count > KBO_FA_PROTECTION_TEAM_CACHE_CANDIDATE_MAX
         ? KBO_FA_PROTECTION_TEAM_CACHE_CANDIDATE_MAX
         : candidate_count;

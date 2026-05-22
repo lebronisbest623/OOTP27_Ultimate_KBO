@@ -28,7 +28,6 @@ typedef struct KboCustomEventIdleScanCache {
     uint32_t league_id;
     uint32_t cached_at_yyyymmdd;
     uint32_t next_due_yyyymmdd;
-    DWORD tick;
     uint8_t valid;
 } KboCustomEventIdleScanCache;
 
@@ -71,14 +70,11 @@ int scan_kbo_custom_events_once_for_date(uint32_t current_yyyymmdd, const char* 
     uint32_t configured_league_id = kbo_resolve_kbo_league_id();
 
     KboCustomEventIdleScanCache cached = g_kbo_custom_event_idle_scan_cache;
-    DWORD now = GetTickCount();
     if (cached.valid
             && cached.event_manager == event_manager
             && cached.event_vector == event_vector
             && cached.event_count == event_count
             && cached.league_id == configured_league_id
-            && cached.tick != 0u
-            && now - cached.tick <= 1000u
             && current_yyyymmdd >= cached.cached_at_yyyymmdd
             && (cached.next_due_yyyymmdd == 0u || current_yyyymmdd < cached.next_due_yyyymmdd)) {
         return 0;
@@ -236,12 +232,11 @@ int scan_kbo_custom_events_once_for_date(uint32_t current_yyyymmdd, const char* 
             .event_manager = event_manager,
             .event_vector = event_vector,
             .event_count = event_count,
-            .league_id = configured_league_id,
-            .cached_at_yyyymmdd = current_yyyymmdd,
-            .next_due_yyyymmdd = next_due_yyyymmdd,
-            .tick = now,
-            .valid = 1u,
-        };
+        .league_id = configured_league_id,
+        .cached_at_yyyymmdd = current_yyyymmdd,
+        .next_due_yyyymmdd = next_due_yyyymmdd,
+        .valid = 1u,
+    };
     }
     return triggered;
 }

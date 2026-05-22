@@ -13,7 +13,6 @@
 #define KBO_ASIAN_GAMES_ROSTER_POLICY_FILE "asian_games_roster_policy.json"
 #define KBO_ASIAN_GAMES_MAX_WILDCARDS_KEY "max_wildcards"
 #define KBO_ASIAN_GAMES_WILDCARD_AGE_MIN_KEY "wildcard_age_min"
-#define KBO_ASIAN_GAMES_LEGACY_WILDCARD_AGE_MAX_KEY "wildcard_age_max"
 
 static INIT_ONCE g_kbo_asian_games_roster_policy_once = INIT_ONCE_STATIC_INIT;
 static KboAsianGamesRosterPolicy g_kbo_asian_games_roster_policy;
@@ -43,23 +42,6 @@ int kbo_asian_games_policy_clamp_wildcard_age_min(int value)
         return KBO_ASIAN_GAMES_WILDCARD_AGE_MIN_MAX;
     }
     return value;
-}
-
-static int32_t kbo_asian_games_policy_default_wildcard_age_min(void)
-{
-    int32_t legacy_max = kbo_asian_games_policy_int(
-        KBO_ASIAN_GAMES_LEGACY_WILDCARD_AGE_MAX_KEY,
-        23,
-        KBO_ASIAN_GAMES_WILDCARD_AGE_MIN_MIN,
-        KBO_ASIAN_GAMES_WILDCARD_AGE_MIN_MAX);
-    int32_t fallback = legacy_max < KBO_ASIAN_GAMES_WILDCARD_AGE_MIN_MAX
-        ? legacy_max + 1
-        : KBO_ASIAN_GAMES_WILDCARD_AGE_MIN_MAX;
-    return kbo_asian_games_policy_int(
-        KBO_ASIAN_GAMES_WILDCARD_AGE_MIN_KEY,
-        fallback,
-        KBO_ASIAN_GAMES_WILDCARD_AGE_MIN_MIN,
-        KBO_ASIAN_GAMES_WILDCARD_AGE_MIN_MAX);
 }
 
 static void kbo_asian_games_policy_string(const char* key, const char* fallback, char* out, size_t out_size)
@@ -94,7 +76,11 @@ static BOOL CALLBACK kbo_asian_games_roster_policy_init_once(PINIT_ONCE init_onc
         KBO_ASIAN_GAMES_MAX_WILDCARDS_MAX);
     p->team_min_players = kbo_asian_games_policy_int("team_min_players", 1, 0, KBO_ASIAN_GAMES_ROSTER_SIZE);
     p->team_max_players = kbo_asian_games_policy_int("team_max_players", 3, 0, KBO_ASIAN_GAMES_ROSTER_SIZE);
-    p->wildcard_age_min = kbo_asian_games_policy_default_wildcard_age_min();
+    p->wildcard_age_min = kbo_asian_games_policy_int(
+        KBO_ASIAN_GAMES_WILDCARD_AGE_MIN_KEY,
+        24,
+        KBO_ASIAN_GAMES_WILDCARD_AGE_MIN_MIN,
+        KBO_ASIAN_GAMES_WILDCARD_AGE_MIN_MAX);
     p->score_talent_weight = kbo_asian_games_policy_int("score_talent_weight", 45, 0, 10000);
     p->score_overall_weight = kbo_asian_games_policy_int("score_overall_weight", 30, 0, 10000);
     p->score_ratings_weight = kbo_asian_games_policy_int("score_ratings_weight", 15, 0, 10000);

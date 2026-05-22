@@ -113,9 +113,19 @@ static void kbo_foreign_injury_replacement_scan_for_date_mode(
     int active_count = 0;
     int closed_count = 0;
     if (process_existing_replacements) {
-        KBO_PROFILE_BEGIN(profile_foreign_injury_existing);
-        kbo_foreign_injury_process_existing_replacements(today, source, &active_count, &closed_count);
-        KBO_PROFILE_END(profile_foreign_injury_existing, "foreign_injury.scan.existing_replacements");
+        uint64_t existing_fingerprint = kbo_foreign_injury_replacement_fingerprint();
+        if (opened == 0
+                && kbo_foreign_injury_same_date_existing_idle_cached(today, existing_fingerprint)) {
+            kbo_profiler_record_us("foreign_injury.scan.existing_replacements_cached", 0);
+        } else {
+            KBO_PROFILE_BEGIN(profile_foreign_injury_existing);
+            kbo_foreign_injury_process_existing_replacements(today, source, &active_count, &closed_count);
+            KBO_PROFILE_END(profile_foreign_injury_existing, "foreign_injury.scan.existing_replacements");
+            kbo_foreign_injury_note_same_date_existing_idle(
+                today,
+                existing_fingerprint,
+                active_count == 0 && closed_count == 0);
+        }
     } else {
         kbo_profiler_record_us("foreign_injury.scan.discovery_only_existing_skipped", 0);
     }

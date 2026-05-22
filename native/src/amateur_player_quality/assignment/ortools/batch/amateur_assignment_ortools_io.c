@@ -1,5 +1,6 @@
 #include "..\amateur_assignment_ortools.h"
 #include "../../../../build_verify/build_verify.h"
+#include "../../../../foreign/common/player_eval/foreign_waiver_player_eval.h"
 
 uint32_t kbo_amateur_batch_resolve_source_team_id(uint8_t* player, uintptr_t source_team_ptr)
 {
@@ -50,6 +51,8 @@ int kbo_amateur_ortools_write_batch_request(
     const char* path,
     uintptr_t* players,
     uintptr_t* source_teams,
+    uint32_t* player_ids,
+    uint32_t* batch_source_team_ids,
     int32_t player_count,
     uint32_t league_id,
     KboAmateurAssignmentCandidate* candidates,
@@ -75,18 +78,28 @@ int kbo_amateur_ortools_write_batch_request(
     memset(source_position_counts, 0, sizeof(source_position_counts));
 
     for (int32_t p = 0; p < player_count; p++) {
-        uint8_t* player = (uint8_t*)players[p];
+        uint32_t expected_player_id = player_ids != NULL ? player_ids[p] : 0u;
+        uint8_t* player = expected_player_id != 0u ? kbo_find_player_by_id(expected_player_id, NULL, NULL) : NULL;
+        if (player == NULL) {
+            player = (uint8_t*)players[p];
+        }
         if (player == NULL || !memory_range_readable(player, OOTP27_PLAYER_SCAN_BYTES)) {
             continue;
         }
         uint32_t player_id = *(uint32_t*)(player + OOTP27_PLAYER_ID_OFFSET);
+        if (expected_player_id != 0u && player_id != expected_player_id) {
+            continue;
+        }
         int16_t age = *(int16_t*)(player + OOTP27_PLAYER_AGE_OFFSET);
         if (player_id == 0u || !kbo_amateur_player_age_eligible(league_id, age)) {
             continue;
         }
-        uint32_t source_team_id = kbo_amateur_batch_resolve_source_team_id(
-            player,
-            source_teams != NULL ? source_teams[p] : 0);
+        uint32_t source_team_id = batch_source_team_ids != NULL ? batch_source_team_ids[p] : 0u;
+        if (source_team_id == 0u) {
+            source_team_id = kbo_amateur_batch_resolve_source_team_id(
+                player,
+                source_teams != NULL ? source_teams[p] : 0);
+        }
         if (source_team_id == 0u) {
             continue;
         }
@@ -114,20 +127,30 @@ int kbo_amateur_ortools_write_batch_request(
 
     int written_players = 0;
     for (int32_t p = 0; p < player_count; p++) {
-        uint8_t* player = (uint8_t*)players[p];
+        uint32_t expected_player_id = player_ids != NULL ? player_ids[p] : 0u;
+        uint8_t* player = expected_player_id != 0u ? kbo_find_player_by_id(expected_player_id, NULL, NULL) : NULL;
+        if (player == NULL) {
+            player = (uint8_t*)players[p];
+        }
         if (player == NULL || !memory_range_readable(player, OOTP27_PLAYER_SCAN_BYTES)) {
             continue;
         }
         uint32_t player_id = *(uint32_t*)(player + OOTP27_PLAYER_ID_OFFSET);
+        if (expected_player_id != 0u && player_id != expected_player_id) {
+            continue;
+        }
         int16_t age = *(int16_t*)(player + OOTP27_PLAYER_AGE_OFFSET);
         int32_t quality_score = kbo_amateur_quality_score(player);
         if (player_id == 0u || quality_score <= 0 || !kbo_amateur_player_age_eligible(league_id, age)) {
             continue;
         }
 
-        uint32_t current_team_id = kbo_amateur_batch_resolve_source_team_id(
-            player,
-            source_teams != NULL ? source_teams[p] : 0);
+        uint32_t current_team_id = batch_source_team_ids != NULL ? batch_source_team_ids[p] : 0u;
+        if (current_team_id == 0u) {
+            current_team_id = kbo_amateur_batch_resolve_source_team_id(
+                player,
+                source_teams != NULL ? source_teams[p] : 0);
+        }
 
         uint8_t current_reputation = 0u;
         for (int i = 0; i < count; i++) {
@@ -258,10 +281,7 @@ int kbo_amateur_league_batch_has_team(uint32_t team_id)
 int32_t kbo_amateur_league_batch_find_player_index(uint32_t player_id)
 {
     for (int32_t i = 0; i < g_kbo_amateur_league_batch_player_count; i++) {
-        uint8_t* player = (uint8_t*)g_kbo_amateur_league_batch_players[i];
-        if (player != NULL
-                && memory_range_readable(player, OOTP27_PLAYER_SCAN_BYTES)
-                && *(uint32_t*)(player + OOTP27_PLAYER_ID_OFFSET) == player_id) {
+        if (g_kbo_amateur_league_batch_player_ids[i] == player_id) {
             return i;
         }
     }
@@ -300,6 +320,8 @@ void kbo_amateur_league_batch_clear(uint32_t league_id)
 {
     memset(g_kbo_amateur_league_batch_players, 0, sizeof(g_kbo_amateur_league_batch_players));
     memset(g_kbo_amateur_league_batch_source_teams, 0, sizeof(g_kbo_amateur_league_batch_source_teams));
+    memset(g_kbo_amateur_league_batch_player_ids, 0, sizeof(g_kbo_amateur_league_batch_player_ids));
+    memset(g_kbo_amateur_league_batch_source_team_ids, 0, sizeof(g_kbo_amateur_league_batch_source_team_ids));
     memset(g_kbo_amateur_league_batch_team_ids, 0, sizeof(g_kbo_amateur_league_batch_team_ids));
     memset(g_kbo_amateur_deferred_team_adds, 0, sizeof(g_kbo_amateur_deferred_team_adds));
     g_kbo_amateur_league_batch_league_id = league_id;

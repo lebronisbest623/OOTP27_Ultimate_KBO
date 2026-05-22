@@ -71,25 +71,10 @@ void kbo_award_schedule_log_event_inventory(uint32_t league_id, uint32_t current
             continue;
         }
 
-        uint32_t event_year = *(uint16_t*)(event + OOTP27_LEAGUE_EVENT_YEAR_OFFSET);
-        uint32_t event_month = event[OOTP27_LEAGUE_EVENT_MONTH_OFFSET];
-        uint32_t event_day = event[OOTP27_LEAGUE_EVENT_DAY_OFFSET];
-        uint32_t event_over = *(uint16_t*)(event + OOTP27_LEAGUE_EVENT_EVENT_OVER_OFFSET);
         relevant++;
         if (is_voting_type) {
             voting_type++;
         }
-        kbo_log_runtimef(
-            "KBO award schedule event inventory item date=%08u league_id=%u event=%p type=%u event_date=%04u-%02u-%02u over=%u title=%s",
-            current_date,
-            league_id,
-            (void*)event_ptr,
-            event_type,
-            event_year,
-            event_month,
-            event_day,
-            event_over,
-            title);
     }
     kbo_log_runtimef(
         "KBO award schedule event inventory summary date=%08u league_id=%u manager=%p count=%d relevant=%d voting_type=%d",

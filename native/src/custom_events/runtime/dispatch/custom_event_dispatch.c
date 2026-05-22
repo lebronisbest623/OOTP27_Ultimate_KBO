@@ -11,10 +11,78 @@
 #include "../../../runtime_memory/runtime_memory.h"
 #include "../../../team/independent_acquisition/window/independent_acquisition_window.h"
 #include "../../../foreign/intl_established_fa_postscan/api/intl_established_fa_postscan.h"
+#include "../../asian_games/roster/asian_games_roster_store.h"
+#include "../../asian_games/state/asian_games_state.h"
 #include "../names/custom_event_names.h"
+
+static LONG kbo_asian_games_completed_state_roster_count(uint32_t event_yyyymmdd)
+{
+    LONG roster_count = g_kbo_asian_games_roster_count;
+    uint32_t event_year = event_yyyymmdd / 10000u;
+    if (roster_count <= 0 || roster_count > KBO_ASIAN_GAMES_ROSTER_SIZE
+            || (event_year != 0u && g_kbo_asian_games_roster_year != event_year)) {
+        kbo_load_asian_games_roster_csv("custom_event_completed_state");
+        roster_count = g_kbo_asian_games_roster_count;
+    }
+    if (roster_count <= 0 || roster_count > KBO_ASIAN_GAMES_ROSTER_SIZE) {
+        return 0;
+    }
+    if (event_year != 0u && g_kbo_asian_games_roster_year != 0u && g_kbo_asian_games_roster_year != event_year) {
+        return 0;
+    }
+    return roster_count;
+}
+
+static int kbo_asian_games_selection_completed_state_is_valid(uint32_t event_yyyymmdd)
+{
+    return kbo_asian_games_completed_state_roster_count(event_yyyymmdd) > 0;
+}
+
+static int kbo_asian_games_departure_completed_state_is_valid(uint32_t event_yyyymmdd)
+{
+    LONG roster_count = kbo_asian_games_completed_state_roster_count(event_yyyymmdd);
+    if (roster_count <= 0) {
+        return 0;
+    }
+    for (LONG i = 0; i < roster_count; i++) {
+        const KboAsianGamesRosterEntry* entry = &g_kbo_asian_games_roster[i];
+        if (entry->player_id == 0u) {
+            return 0;
+        }
+        if (entry->departed == 0u && entry->returned == 0u) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+static int kbo_asian_games_final_completed_state_is_valid(uint32_t event_yyyymmdd)
+{
+    LONG roster_count = kbo_asian_games_completed_state_roster_count(event_yyyymmdd);
+    if (roster_count <= 0) {
+        return 0;
+    }
+    for (LONG i = 0; i < roster_count; i++) {
+        const KboAsianGamesRosterEntry* entry = &g_kbo_asian_games_roster[i];
+        if (entry->player_id == 0u || entry->returned == 0u) {
+            return 0;
+        }
+    }
+    return 1;
+}
 
 int kbo_custom_event_completed_state_is_valid(uint32_t league_id, uint32_t event_yyyymmdd, KboCustomEventKind kind)
 {
+    (void)league_id;
+    if (kind == KBO_CUSTOM_EVENT_KIND_ASIAN_GAMES_SELECTION) {
+        return kbo_asian_games_selection_completed_state_is_valid(event_yyyymmdd);
+    }
+    if (kind == KBO_CUSTOM_EVENT_KIND_ASIAN_GAMES_DEPARTURE) {
+        return kbo_asian_games_departure_completed_state_is_valid(event_yyyymmdd);
+    }
+    if (kind == KBO_CUSTOM_EVENT_KIND_ASIAN_GAMES_FINAL) {
+        return kbo_asian_games_final_completed_state_is_valid(event_yyyymmdd);
+    }
     if (kind == KBO_CUSTOM_EVENT_KIND_CBT_EXCEPTION_DEADLINE
             || kind == KBO_CUSTOM_EVENT_KIND_CBT_ANNOUNCEMENT) {
         return kbo_cbt_custom_event_completion_valid(league_id, event_yyyymmdd, kind);

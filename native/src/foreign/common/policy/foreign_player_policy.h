@@ -19,7 +19,6 @@ typedef struct KboForeignPlayerPolicy {
     int32_t phase_transition_anchor_max_age_days;
     int32_t waiver_retention_years;
     int32_t retention_guard_days;
-    int32_t retention_opportunity_cache_ttl_ms;
     int32_t market_age_min;
     int32_t market_age_max;
     int32_t player_id_max;
@@ -30,8 +29,6 @@ typedef struct KboForeignPlayerPolicy {
     int32_t pending_offer_ttl_days;
     int32_t independent_acquisition_seller_transfer_limit;
     int32_t ai_roster_daily_callup_max_attempts;
-    int32_t recent_allow_ttl_ms;
-    int32_t recent_block_ttl_ms;
     int32_t no_minor_scan_initial_delay_ms;
     int32_t no_minor_scan_warmup_interval_ms;
     int32_t no_minor_scan_warmup_attempts;

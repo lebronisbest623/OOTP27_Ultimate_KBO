@@ -57,6 +57,58 @@ void audit_foreign_roster_state(const char* source, int write_snapshot)
         }
         return;
     }
+    if (player_vector == 0u
+            || player_count <= 0
+            || player_count > KBO_RUNTIME_MAX_PLAYER_VECTOR_COUNT) {
+        kbo_log_runtimef(
+            "foreign roster audit: invalid player vector source=%s vector=0x%llx count=%d",
+            source != NULL ? source : "",
+            (unsigned long long)player_vector,
+            player_count);
+        return;
+    }
+    SIZE_T player_vector_bytes = (SIZE_T)player_count * sizeof(uintptr_t);
+    if (!memory_range_readable((void*)player_vector, player_vector_bytes)) {
+        kbo_log_runtimef(
+            "foreign roster audit: unreadable player vector source=%s vector=0x%llx count=%d",
+            source != NULL ? source : "",
+            (unsigned long long)player_vector,
+            player_count);
+        return;
+    }
+    uintptr_t* player_snapshot = (uintptr_t*)HeapAlloc(GetProcessHeap(), 0, player_vector_bytes);
+    if (player_snapshot == NULL) {
+        kbo_log_runtimef(
+            "foreign roster audit: player snapshot alloc failed source=%s count=%d",
+            source != NULL ? source : "",
+            player_count);
+        return;
+    }
+    SIZE_T bytes_read = 0u;
+    if (!ReadProcessMemory(
+            GetCurrentProcess(),
+            (LPCVOID)player_vector,
+            player_snapshot,
+            player_vector_bytes,
+            &bytes_read)
+            || bytes_read != player_vector_bytes) {
+        kbo_log_runtimef(
+            "foreign roster audit: player snapshot copy failed source=%s vector=0x%llx count=%d bytes=%llu",
+            source != NULL ? source : "",
+            (unsigned long long)player_vector,
+            player_count,
+            (unsigned long long)bytes_read);
+        HeapFree(GetProcessHeap(), 0, player_snapshot);
+        return;
+    }
+    if (kbo_runtime_save_in_progress()) {
+        kbo_log_runtimef(
+            "foreign roster audit: aborted reason=save_in_progress stage=after_player_snapshot source=%s count=%d",
+            source != NULL ? source : "",
+            player_count);
+        HeapFree(GetProcessHeap(), 0, player_snapshot);
+        return;
+    }
 
     char save_path[MAX_PATH] = {0};
     if (!kbo_get_current_save_path(save_path, sizeof(save_path))) {
@@ -101,13 +153,26 @@ void audit_foreign_roster_state(const char* source, int write_snapshot)
     static volatile LONG release_detail_log_count = 0;
 
     for (int32_t i = 0; i < player_count; i++) {
-        uintptr_t player_ptr = *(uintptr_t*)(player_vector + ((uintptr_t)i * sizeof(uintptr_t)));
-        if (!kbo_player_pointer_plausible(player_ptr)) {
+        if ((i & 0x3ff) == 0 && kbo_runtime_save_in_progress()) {
+            kbo_log_runtimef(
+                "foreign roster audit: aborted reason=save_in_progress stage=scan_loop source=%s index=%d count=%d",
+                source != NULL ? source : "",
+                i,
+                player_count);
+            break;
+        }
+
+        uintptr_t player_ptr = player_snapshot[i];
+        if (!kbo_player_pointer_plausible(player_ptr)
+                || !memory_range_readable((void*)player_ptr, OOTP27_PLAYER_SCAN_BYTES)) {
             continue;
         }
 
         uint8_t* player = (uint8_t*)player_ptr;
         scanned++;
+        if (!kbo_player_is_active_for_roster_scan(player)) {
+            continue;
+        }
         if (!kbo_player_is_foreign_for_kbo_rights(player)) {
             continue;
         }
@@ -223,6 +288,7 @@ void audit_foreign_roster_state(const char* source, int write_snapshot)
     if (snapshot_file != INVALID_HANDLE_VALUE) {
         kbo_close_foreign_roster_snapshot_file(snapshot_file);
     }
+    HeapFree(GetProcessHeap(), 0, player_snapshot);
 
     if (baseline_scan || changed > 0) {
         kbo_log_runtimef(

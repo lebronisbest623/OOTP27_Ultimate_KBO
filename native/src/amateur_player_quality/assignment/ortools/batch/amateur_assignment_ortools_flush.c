@@ -3,6 +3,7 @@
 #include "../../../../core/optimizer/kbo_optimizer.h"
 #include "../../../../core/logging/rule_audit.h"
 #include "../../../../team/assignment/assignment/team_assignment.h"
+#include "../../../../foreign/common/player_eval/foreign_waiver_player_eval.h"
 
 static void kbo_amateur_audit_ortools_batch(
     const char* decision,
@@ -39,7 +40,10 @@ static int kbo_amateur_batch_players_have_current_assignments(uint32_t league_id
 {
     int checked = 0;
     for (int32_t i = 0; i < player_count; i++) {
-        uint8_t* player = (uint8_t*)g_kbo_amateur_league_batch_players[i];
+        uint32_t expected_player_id = g_kbo_amateur_league_batch_player_ids[i];
+        uint8_t* player = expected_player_id != 0u
+            ? kbo_find_player_by_id(expected_player_id, NULL, NULL)
+            : (uint8_t*)g_kbo_amateur_league_batch_players[i];
         if (player == NULL || !memory_range_readable(player, OOTP27_PLAYER_SCAN_BYTES)) {
             return 0;
         }
@@ -125,6 +129,8 @@ int kbo_amateur_flush_league_batch_ortools(const char* reason, int force)
     int32_t deferred_count = 0;
     uintptr_t league_players[KBO_AMATEUR_LEAGUE_BATCH_PLAYER_MAX];
     uintptr_t league_source_teams[KBO_AMATEUR_LEAGUE_BATCH_PLAYER_MAX];
+    uint32_t league_player_ids[KBO_AMATEUR_LEAGUE_BATCH_PLAYER_MAX];
+    uint32_t league_source_team_ids[KBO_AMATEUR_LEAGUE_BATCH_PLAYER_MAX];
     KboAmateurDeferredTeamAdd deferred_team_adds[KBO_AMATEUR_LEAGUE_BATCH_PLAYER_MAX];
 
     kbo_amateur_batch_lock();
@@ -157,6 +163,8 @@ int kbo_amateur_flush_league_batch_ortools(const char* reason, int force)
     }
     memcpy(league_players, g_kbo_amateur_league_batch_players, (size_t)accumulated_players * sizeof(uintptr_t));
     memcpy(league_source_teams, g_kbo_amateur_league_batch_source_teams, (size_t)accumulated_players * sizeof(uintptr_t));
+    memcpy(league_player_ids, g_kbo_amateur_league_batch_player_ids, (size_t)accumulated_players * sizeof(uint32_t));
+    memcpy(league_source_team_ids, g_kbo_amateur_league_batch_source_team_ids, (size_t)accumulated_players * sizeof(uint32_t));
     memcpy(deferred_team_adds, g_kbo_amateur_deferred_team_adds, (size_t)deferred_count * sizeof(deferred_team_adds[0]));
     kbo_amateur_league_batch_clear(league_id);
     kbo_amateur_batch_unlock();
@@ -165,6 +173,8 @@ int kbo_amateur_flush_league_batch_ortools(const char* reason, int force)
     if (deferred_count > 0) {
         memset(league_players, 0, sizeof(league_players));
         memset(league_source_teams, 0, sizeof(league_source_teams));
+        memset(league_player_ids, 0, sizeof(league_player_ids));
+        memset(league_source_team_ids, 0, sizeof(league_source_team_ids));
         optimizer_player_count = 0;
         for (int32_t i = 0; i < deferred_count && optimizer_player_count < KBO_AMATEUR_LEAGUE_BATCH_PLAYER_MAX; i++) {
             KboAmateurDeferredTeamAdd* item = &deferred_team_adds[i];
@@ -176,6 +186,8 @@ int kbo_amateur_flush_league_batch_ortools(const char* reason, int force)
             }
             league_players[optimizer_player_count] = item->player_ptr;
             league_source_teams[optimizer_player_count] = item->team_ptr;
+            league_player_ids[optimizer_player_count] = item->player_id;
+            league_source_team_ids[optimizer_player_count] = item->source_team_id;
             optimizer_player_count++;
         }
     }
@@ -215,6 +227,8 @@ int kbo_amateur_flush_league_batch_ortools(const char* reason, int force)
             request_path,
             league_players,
             league_source_teams,
+            league_player_ids,
+            league_source_team_ids,
             optimizer_player_count,
             league_id,
             candidates,
@@ -249,6 +263,7 @@ int kbo_amateur_flush_league_batch_ortools(const char* reason, int force)
     if (deferred_count <= 0) {
         (void)kbo_amateur_apply_post_original_batch_assignments(
             league_players,
+            league_player_ids,
             optimizer_player_count,
             league_id,
             candidates,

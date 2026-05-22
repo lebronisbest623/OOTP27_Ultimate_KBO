@@ -7,6 +7,8 @@ LONG g_kbo_amateur_batch_assignment_count = 0;
 KboLock g_kbo_amateur_batch_assignment_lock = KBO_LOCK_INIT;
 uintptr_t g_kbo_amateur_league_batch_players[KBO_AMATEUR_LEAGUE_BATCH_PLAYER_MAX];
 uintptr_t g_kbo_amateur_league_batch_source_teams[KBO_AMATEUR_LEAGUE_BATCH_PLAYER_MAX];
+uint32_t g_kbo_amateur_league_batch_player_ids[KBO_AMATEUR_LEAGUE_BATCH_PLAYER_MAX];
+uint32_t g_kbo_amateur_league_batch_source_team_ids[KBO_AMATEUR_LEAGUE_BATCH_PLAYER_MAX];
 uint32_t g_kbo_amateur_league_batch_team_ids[KBO_AMATEUR_LEAGUE_BATCH_TEAM_MAX];
 uint32_t g_kbo_amateur_league_batch_league_id = 0u;
 int32_t g_kbo_amateur_league_batch_player_count = 0;

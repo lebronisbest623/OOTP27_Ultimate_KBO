@@ -32,6 +32,8 @@ extern LONG g_kbo_amateur_batch_assignment_count;
 extern KboLock g_kbo_amateur_batch_assignment_lock;
 extern uintptr_t g_kbo_amateur_league_batch_players[KBO_AMATEUR_LEAGUE_BATCH_PLAYER_MAX];
 extern uintptr_t g_kbo_amateur_league_batch_source_teams[KBO_AMATEUR_LEAGUE_BATCH_PLAYER_MAX];
+extern uint32_t g_kbo_amateur_league_batch_player_ids[KBO_AMATEUR_LEAGUE_BATCH_PLAYER_MAX];
+extern uint32_t g_kbo_amateur_league_batch_source_team_ids[KBO_AMATEUR_LEAGUE_BATCH_PLAYER_MAX];
 extern uint32_t g_kbo_amateur_league_batch_team_ids[KBO_AMATEUR_LEAGUE_BATCH_TEAM_MAX];
 extern uint32_t g_kbo_amateur_league_batch_league_id;
 extern int32_t g_kbo_amateur_league_batch_player_count;
@@ -73,6 +75,8 @@ int kbo_amateur_ortools_write_batch_request(
     const char* path,
     uintptr_t* players,
     uintptr_t* source_teams,
+    uint32_t* player_ids,
+    uint32_t* batch_source_team_ids,
     int32_t player_count,
     uint32_t league_id,
     KboAmateurAssignmentCandidate* candidates,
@@ -82,6 +86,7 @@ uint32_t kbo_amateur_ortools_read_result(const char* result_path);
 int kbo_amateur_ortools_read_batch_result(const char* result_path, uint32_t league_id);
 int kbo_amateur_apply_post_original_batch_assignments(
     uintptr_t* league_players,
+    uint32_t* league_player_ids,
     int32_t player_count,
     uint32_t league_id,
     KboAmateurAssignmentCandidate* candidates,

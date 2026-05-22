@@ -15,6 +15,53 @@
 
 /* Asian Games final return and exemption lifecycle. */
 
+static uint8_t* kbo_asian_games_find_restricted_team_for_player(uint32_t player_id, uint32_t* out_team_id, uint32_t* out_league_id)
+{
+    if (out_team_id != NULL) {
+        *out_team_id = 0u;
+    }
+    if (out_league_id != NULL) {
+        *out_league_id = 0u;
+    }
+    if (player_id == 0u) {
+        return NULL;
+    }
+
+    uintptr_t global = get_ootp_global_database();
+    if (global == 0 || !memory_range_readable((void*)(global + OOTP27_KBO_TEAM_VECTOR_OFFSET), 0x10)) {
+        return NULL;
+    }
+
+    uintptr_t team_vector = *(uintptr_t*)(global + OOTP27_KBO_TEAM_VECTOR_OFFSET);
+    int32_t team_count = *(int32_t*)(global + OOTP27_KBO_TEAM_COUNT_OFFSET);
+    if (team_vector == 0 || team_count <= 0 || team_count > KBO_RUNTIME_MAX_TEAM_VECTOR_COUNT
+            || !memory_range_readable((void*)team_vector, (SIZE_T)team_count * sizeof(uintptr_t))) {
+        return NULL;
+    }
+
+    for (int32_t i = 0; i < team_count; i++) {
+        uintptr_t team_ptr = *(uintptr_t*)(team_vector + ((uintptr_t)i * sizeof(uintptr_t)));
+        if (team_ptr == 0 || !memory_range_readable((void*)team_ptr, OOTP27_KBO_TEAM_READABLE_BYTES)) {
+            continue;
+        }
+
+        uint8_t* team = (uint8_t*)team_ptr;
+        if (team[OOTP27_KBO_TEAM_DELETED_OFFSET] != 0
+                || !kbo_team_fixed_array_contains_player(team, OOTP27_TEAM_RESTRICTED_PLAYER_IDS_OFFSET, player_id)) {
+            continue;
+        }
+
+        if (out_team_id != NULL) {
+            *out_team_id = *(uint32_t*)(team + OOTP27_KBO_TEAM_ID_OFFSET);
+        }
+        if (out_league_id != NULL) {
+            *out_league_id = *(uint32_t*)(team + OOTP27_KBO_TEAM_LEAGUE_ID_OFFSET);
+        }
+        return team;
+    }
+    return NULL;
+}
+
 static uint32_t kbo_asian_games_result_hash_add(uint32_t hash, uint32_t value)
 {
     hash ^= value;
@@ -139,6 +186,26 @@ int kbo_asian_games_finalize_selected_players(uint32_t event_yyyymmdd, const cha
             : *(uint32_t*)(player + OOTP27_PLAYER_CURRENT_LEAGUE_ID_OFFSET);
         uint8_t* team = find_kbo_team_by_numeric_id_any_league(team_id, 0);
         if (team == NULL) {
+            uint32_t restricted_team_id = 0u;
+            uint32_t restricted_league_id = 0u;
+            team = kbo_asian_games_find_restricted_team_for_player(
+                entry->player_id,
+                &restricted_team_id,
+                &restricted_league_id);
+            if (team != NULL) {
+                team_id = restricted_team_id;
+                if (restricted_league_id != 0u) {
+                    league_id = restricted_league_id;
+                }
+                if (entry->original_team_id == 0u) {
+                    entry->original_team_id = team_id;
+                }
+                if (entry->original_league_id == 0u) {
+                    entry->original_league_id = league_id;
+                }
+            }
+        }
+        if (team == NULL) {
             no_team++;
             kbo_log_runtimef(
                 "KBO Asian Games final no team player_id=%u team=%u league=%u index=%ld",
@@ -235,11 +302,33 @@ int kbo_asian_games_roster_already_finalized(const char* source)
     }
 
     int finalized = 0;
+    int repaired_teamless = 0;
     for (LONG i = 0; i < roster_count; i++) {
         KboAsianGamesRosterEntry* entry = &g_kbo_asian_games_roster[i];
         if (entry->player_id != 0u && entry->returned != 0u) {
             finalized++;
+            if (entry->original_team_id != 0u) {
+                uint8_t* player = kbo_find_player_by_id(entry->player_id, NULL, NULL);
+                uint8_t* team = find_kbo_team_by_numeric_id_any_league(entry->original_team_id, 0);
+                if (player != NULL && team != NULL && kbo_player_pointer_plausible((uintptr_t)player)
+                        && *(uint32_t*)(player + OOTP27_PLAYER_CURRENT_TEAM_ID_OFFSET) == 0u) {
+                    *(uint32_t*)(player + OOTP27_PLAYER_CURRENT_TEAM_ID_OFFSET) = entry->original_team_id;
+                    if (entry->original_league_id != 0u) {
+                        *(uint32_t*)(player + OOTP27_PLAYER_CURRENT_LEAGUE_ID_OFFSET) = entry->original_league_id;
+                    }
+                    *(uint32_t*)(player + OOTP27_PLAYER_ACTIVE_TEAM_ID_OFFSET) = entry->original_team_id;
+                    kbo_add_player_id_to_team_assignment_arrays(team, entry->player_id);
+                    repaired_teamless++;
+                }
+            }
         }
+    }
+    if (repaired_teamless > 0) {
+        kbo_log_runtimef(
+            "KBO Asian Games finalized roster repaired teamless players source=%s repaired=%d roster=%ld",
+            source != NULL ? source : "",
+            repaired_teamless,
+            roster_count);
     }
     return finalized > 0 && finalized == roster_count;
 }

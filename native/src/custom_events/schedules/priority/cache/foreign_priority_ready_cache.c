@@ -12,7 +12,6 @@ typedef struct KboForeignPriorityReadyCache {
     uintptr_t event_manager;
     uintptr_t event_vector;
     int32_t event_count;
-    DWORD tick;
     uint8_t valid;
 } KboForeignPriorityReadyCache;
 
@@ -51,9 +50,7 @@ int kbo_foreign_priority_ready_cache_hit(uint32_t anchor_date, uint32_t league_i
     KboForeignPriorityReadyCache cached = g_kbo_foreign_priority_ready_cache;
     if (!cached.valid
             || cached.anchor_date != anchor_date
-            || cached.league_id != league_id
-            || cached.tick == 0u
-            || GetTickCount() - cached.tick > 5000u) {
+            || cached.league_id != league_id) {
         return 0;
     }
 
@@ -83,7 +80,6 @@ void kbo_foreign_priority_ready_cache_store(uint32_t anchor_date, uint32_t leagu
         .event_manager = event_manager,
         .event_vector = event_vector,
         .event_count = event_count,
-        .tick = GetTickCount(),
         .valid = 1u,
     };
 }
