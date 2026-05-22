@@ -26,6 +26,8 @@ typedef struct KboAsianGamesRosterPolicy {
     int32_t score_age_decline_after;
     int32_t score_age_decline_penalty_per_year;
     int32_t score_non_exempt_bonus;
+    int32_t score_wildcard_unserved_bonus;
+    int32_t score_wildcard_served_penalty;
     int32_t score_current_team_bonus;
     int32_t main_league_for_minor_inclusion;
     int32_t included_minor_league_id;

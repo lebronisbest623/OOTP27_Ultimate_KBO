@@ -17,6 +17,10 @@ from .constants import (
 )
 from .csv_io import to_int
 
+ASIAN_GAMES_MILITARY_UNSERVED_BONUS = 2_500_000
+ASIAN_GAMES_WILDCARD_UNSERVED_BONUS = 30_000_000
+ASIAN_GAMES_WILDCARD_SERVED_PENALTY = 30_000_000
+
 
 def _role_bucket(row):
     return (row.get("role_bucket") or "").strip().upper()
@@ -44,6 +48,11 @@ def _row_is_wildcard(row, wildcard_age_min=None):
     return to_int(row, "age") > 24
 
 
+def _row_is_military_unserved(row):
+    raw = row.get("military_unserved")
+    return raw is not None and str(raw).strip() != "" and to_int(row, "military_unserved") != 0
+
+
 def _solve_asian_games_model(rows, hard_required_orgs, hard_role_minimums):
     if not rows:
         return None
@@ -69,7 +78,7 @@ def _solve_asian_games_model(rows, hard_required_orgs, hard_role_minimums):
     wildcard_age_min = _policy_int(
         rows,
         "policy_wildcard_age_min",
-        25,
+        24,
         0,
         80,
     )
@@ -111,8 +120,16 @@ def _solve_asian_games_model(rows, hard_required_orgs, hard_role_minimums):
         role = _role_bucket(row)
         org_id = to_int(row, "org_team_id")
         weight = score * 100
-        if not _row_is_wildcard(row, wildcard_age_min):
+        is_wildcard = _row_is_wildcard(row, wildcard_age_min)
+        is_unserved = _row_is_military_unserved(row)
+        if not is_wildcard:
             weight += 25000
+        if is_unserved:
+            weight += ASIAN_GAMES_MILITARY_UNSERVED_BONUS
+        if is_wildcard and is_unserved:
+            weight += ASIAN_GAMES_WILDCARD_UNSERVED_BONUS
+        elif is_wildcard:
+            weight -= ASIAN_GAMES_WILDCARD_SERVED_PENALTY
         if org_id in required_orgs:
             weight += ASIAN_GAMES_REQUIRED_ORG_BONUS
         if role in ASIAN_GAMES_ROLE_TARGETS:

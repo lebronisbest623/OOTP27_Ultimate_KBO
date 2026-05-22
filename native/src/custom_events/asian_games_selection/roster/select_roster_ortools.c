@@ -44,7 +44,7 @@ static int kbo_asian_games_write_ortools_request(
     const KboAsianGamesRosterPolicy* policy = kbo_asian_games_roster_policy();
     int wildcard_age_min = kbo_asian_games_policy_wildcard_age_min();
     fputs(
-        "player_id,score,age,role,role_bucket,org_team_id,required_org,wildcard,policy_roster_size,policy_max_wildcards,policy_team_max_players,policy_wildcard_age_min\r\n",
+        "player_id,score,age,role,role_bucket,org_team_id,required_org,wildcard,military_unserved,policy_roster_size,policy_max_wildcards,policy_team_max_players,policy_wildcard_age_min\r\n",
         file);
     for (int i = 0; i < candidate_count; i++) {
         const KboAsianGamesCandidate* candidate = &candidates[i];
@@ -58,7 +58,7 @@ static int kbo_asian_games_write_ortools_request(
             candidate->org_team_id) >= 0;
         fprintf(
             file,
-            "%u,%d,%u,%u,%s,%u,%d,%d,%d,%d,%d,%d\r\n",
+            "%u,%d,%u,%u,%s,%u,%d,%d,%d,%d,%d,%d,%d\r\n",
             player_id,
             candidate->entry.score,
             (uint32_t)candidate->entry.age,
@@ -67,6 +67,7 @@ static int kbo_asian_games_write_ortools_request(
             candidate->org_team_id,
             required,
             kbo_asian_games_policy_is_wildcard_age(candidate->entry.age) ? 1 : 0,
+            candidate->entry.military_unserved ? 1 : 0,
             policy->roster_size,
             policy->max_wildcards,
             policy->team_max_players,

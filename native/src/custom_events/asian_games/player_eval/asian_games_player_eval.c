@@ -13,6 +13,7 @@
 #include "../../../team/lookup/team_lookup.h"
 #include "../../../team/names/team_string.h"
 #include "../../asian_games_schedule_seed/query/query_helpers.h"
+#include "asian_games_player_eligibility.h"
 
 int kbo_asian_games_candidate_compare_desc(const void* left, const void* right)
 {
@@ -53,8 +54,16 @@ int32_t kbo_asian_games_player_score(uint8_t* player)
             score -= (int32_t)(age - decline_after) * policy->score_age_decline_penalty_per_year;
         }
     }
-    if (player[OOTP27_PLAYER_MILITARY_EXEMPT_OFFSET] == 0u) {
+    int military_unserved = kbo_asian_games_player_military_unserved(player) != 0u;
+    if (military_unserved) {
         score += policy->score_non_exempt_bonus;
+    }
+    if (kbo_asian_games_policy_is_wildcard_age(age)) {
+        if (military_unserved) {
+            score += policy->score_wildcard_unserved_bonus;
+        } else {
+            score -= policy->score_wildcard_served_penalty;
+        }
     }
     if (*(uint32_t*)(player + OOTP27_PLAYER_CURRENT_TEAM_ID_OFFSET) != 0u) {
         score += policy->score_current_team_bonus;

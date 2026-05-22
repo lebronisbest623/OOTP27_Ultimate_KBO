@@ -49,7 +49,7 @@ static int32_t kbo_asian_games_policy_default_wildcard_age_min(void)
 {
     int32_t legacy_max = kbo_asian_games_policy_int(
         KBO_ASIAN_GAMES_LEGACY_WILDCARD_AGE_MAX_KEY,
-        24,
+        23,
         KBO_ASIAN_GAMES_WILDCARD_AGE_MIN_MIN,
         KBO_ASIAN_GAMES_WILDCARD_AGE_MIN_MAX);
     int32_t fallback = legacy_max < KBO_ASIAN_GAMES_WILDCARD_AGE_MIN_MAX
@@ -105,7 +105,9 @@ static BOOL CALLBACK kbo_asian_games_roster_policy_init_once(PINIT_ONCE init_onc
     p->score_prime_bonus = kbo_asian_games_policy_int("score_prime_bonus", 200, -1000000, 1000000);
     p->score_age_decline_after = kbo_asian_games_policy_int("score_age_decline_after", 27, 0, 80);
     p->score_age_decline_penalty_per_year = kbo_asian_games_policy_int("score_age_decline_penalty_per_year", 120, 0, 1000000);
-    p->score_non_exempt_bonus = kbo_asian_games_policy_int("score_non_exempt_bonus", 900, -1000000, 1000000);
+    p->score_non_exempt_bonus = kbo_asian_games_policy_int("score_non_exempt_bonus", 40000, -1000000, 1000000);
+    p->score_wildcard_unserved_bonus = kbo_asian_games_policy_int("score_wildcard_unserved_bonus", 90000, -1000000, 1000000);
+    p->score_wildcard_served_penalty = kbo_asian_games_policy_int("score_wildcard_served_penalty", 90000, 0, 1000000);
     p->score_current_team_bonus = kbo_asian_games_policy_int("score_current_team_bonus", 150, -1000000, 1000000);
     p->main_league_for_minor_inclusion = kbo_asian_games_policy_int(
         "main_league_for_minor_inclusion",
