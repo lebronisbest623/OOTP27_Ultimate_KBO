@@ -278,6 +278,51 @@ int kbo_amateur_league_batch_has_team(uint32_t team_id)
     return 0;
 }
 
+static uint32_t kbo_amateur_league_batch_player_hash_slot(uint32_t player_id)
+{
+    uint32_t h = player_id * 2654435761u;
+    h ^= h >> 16;
+    return h & (KBO_AMATEUR_LEAGUE_BATCH_PLAYER_HASH_SIZE - 1u);
+}
+
+static int kbo_amateur_league_batch_hash_has_player(uint32_t player_id)
+{
+    if (player_id == 0u) {
+        return 0;
+    }
+    uint32_t slot = kbo_amateur_league_batch_player_hash_slot(player_id);
+    for (uint32_t probe = 0; probe < KBO_AMATEUR_LEAGUE_BATCH_PLAYER_HASH_SIZE; probe++) {
+        uint32_t* entry = &g_kbo_amateur_league_batch_player_hash_ids[
+            (slot + probe) & (KBO_AMATEUR_LEAGUE_BATCH_PLAYER_HASH_SIZE - 1u)];
+        if (*entry == player_id) {
+            return 1;
+        }
+        if (*entry == 0u) {
+            return 0;
+        }
+    }
+    return 0;
+}
+
+void kbo_amateur_league_batch_note_player_id(uint32_t player_id)
+{
+    if (player_id == 0u) {
+        return;
+    }
+    uint32_t slot = kbo_amateur_league_batch_player_hash_slot(player_id);
+    for (uint32_t probe = 0; probe < KBO_AMATEUR_LEAGUE_BATCH_PLAYER_HASH_SIZE; probe++) {
+        uint32_t* entry = &g_kbo_amateur_league_batch_player_hash_ids[
+            (slot + probe) & (KBO_AMATEUR_LEAGUE_BATCH_PLAYER_HASH_SIZE - 1u)];
+        if (*entry == player_id) {
+            return;
+        }
+        if (*entry == 0u) {
+            *entry = player_id;
+            return;
+        }
+    }
+}
+
 int32_t kbo_amateur_league_batch_find_player_index(uint32_t player_id)
 {
     for (int32_t i = 0; i < g_kbo_amateur_league_batch_player_count; i++) {
@@ -290,6 +335,9 @@ int32_t kbo_amateur_league_batch_find_player_index(uint32_t player_id)
 
 int kbo_amateur_league_batch_has_player(uint32_t player_id)
 {
+    if (kbo_amateur_league_batch_hash_has_player(player_id)) {
+        return 1;
+    }
     return kbo_amateur_league_batch_find_player_index(player_id) >= 0;
 }
 
@@ -321,6 +369,7 @@ void kbo_amateur_league_batch_clear(uint32_t league_id)
     memset(g_kbo_amateur_league_batch_players, 0, sizeof(g_kbo_amateur_league_batch_players));
     memset(g_kbo_amateur_league_batch_source_teams, 0, sizeof(g_kbo_amateur_league_batch_source_teams));
     memset(g_kbo_amateur_league_batch_player_ids, 0, sizeof(g_kbo_amateur_league_batch_player_ids));
+    memset(g_kbo_amateur_league_batch_player_hash_ids, 0, sizeof(g_kbo_amateur_league_batch_player_hash_ids));
     memset(g_kbo_amateur_league_batch_source_team_ids, 0, sizeof(g_kbo_amateur_league_batch_source_team_ids));
     memset(g_kbo_amateur_league_batch_team_ids, 0, sizeof(g_kbo_amateur_league_batch_team_ids));
     memset(g_kbo_amateur_deferred_team_adds, 0, sizeof(g_kbo_amateur_deferred_team_adds));

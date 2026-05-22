@@ -11,6 +11,7 @@ typedef struct KboAmateurBatchAssignment {
 
 #define KBO_AMATEUR_LEAGUE_BATCH_PLAYER_MAX 4096
 #define KBO_AMATEUR_LEAGUE_BATCH_TEAM_MAX 256
+#define KBO_AMATEUR_LEAGUE_BATCH_PLAYER_HASH_SIZE 8192
 
 typedef struct KboAmateurDeferredTeamAdd {
     uintptr_t team_ptr;
@@ -33,6 +34,7 @@ extern KboLock g_kbo_amateur_batch_assignment_lock;
 extern uintptr_t g_kbo_amateur_league_batch_players[KBO_AMATEUR_LEAGUE_BATCH_PLAYER_MAX];
 extern uintptr_t g_kbo_amateur_league_batch_source_teams[KBO_AMATEUR_LEAGUE_BATCH_PLAYER_MAX];
 extern uint32_t g_kbo_amateur_league_batch_player_ids[KBO_AMATEUR_LEAGUE_BATCH_PLAYER_MAX];
+extern uint32_t g_kbo_amateur_league_batch_player_hash_ids[KBO_AMATEUR_LEAGUE_BATCH_PLAYER_HASH_SIZE];
 extern uint32_t g_kbo_amateur_league_batch_source_team_ids[KBO_AMATEUR_LEAGUE_BATCH_PLAYER_MAX];
 extern uint32_t g_kbo_amateur_league_batch_team_ids[KBO_AMATEUR_LEAGUE_BATCH_TEAM_MAX];
 extern uint32_t g_kbo_amateur_league_batch_league_id;
@@ -54,6 +56,7 @@ void kbo_amateur_league_batch_clear(uint32_t league_id);
 int kbo_amateur_league_batch_has_team(uint32_t team_id);
 int32_t kbo_amateur_league_batch_find_player_index(uint32_t player_id);
 int kbo_amateur_league_batch_has_player(uint32_t player_id);
+void kbo_amateur_league_batch_note_player_id(uint32_t player_id);
 int kbo_amateur_local_player_list_has_id(uintptr_t* players, int32_t count, uint32_t player_id);
 uintptr_t kbo_amateur_candidate_team_ptr_by_id(
     KboAmateurAssignmentCandidate* candidates,

@@ -79,11 +79,38 @@ typedef struct KboOfferEligibilityTeamScopeCacheEntry {
 } KboOfferEligibilityTeamScopeCacheEntry;
 
 enum {
-    KBO_OFFER_ELIGIBILITY_TEAM_SCOPE_CACHE_SIZE = 256
+    KBO_OFFER_ELIGIBILITY_TEAM_SCOPE_CACHE_SIZE = 4096
 };
 
 static KboOfferEligibilityTeamScopeCacheEntry
     g_kbo_offer_eligibility_team_scope_cache[KBO_OFFER_ELIGIBILITY_TEAM_SCOPE_CACHE_SIZE];
+static volatile LONG64 g_kbo_offer_eligibility_cached_global = 0;
+static volatile LONG g_kbo_offer_eligibility_cached_kbo_league_id = 0;
+
+static uint32_t kbo_offer_eligibility_kbo_league_id_cached(void)
+{
+    uintptr_t global = get_ootp_cached_global_database();
+    LONG64 cached_global = InterlockedCompareExchange64(
+        &g_kbo_offer_eligibility_cached_global,
+        0,
+        0);
+    LONG cached_league_id = InterlockedCompareExchange(
+        &g_kbo_offer_eligibility_cached_kbo_league_id,
+        0,
+        0);
+    if (global != 0
+            && cached_global == (LONG64)global
+            && cached_league_id > 0) {
+        return (uint32_t)cached_league_id;
+    }
+
+    uint32_t league_id = kbo_resolve_kbo_league_id();
+    if (global != 0 && league_id != 0u) {
+        InterlockedExchange(&g_kbo_offer_eligibility_cached_kbo_league_id, (LONG)league_id);
+        InterlockedExchange64(&g_kbo_offer_eligibility_cached_global, (LONG64)global);
+    }
+    return league_id;
+}
 
 static int kbo_offer_eligibility_requester_in_kbo_scope(uint32_t team_id)
 {
@@ -91,7 +118,7 @@ static int kbo_offer_eligibility_requester_in_kbo_scope(uint32_t team_id)
         return 1;
     }
 
-    uint32_t kbo_league_id = kbo_resolve_kbo_league_id();
+    uint32_t kbo_league_id = kbo_offer_eligibility_kbo_league_id_cached();
     if (kbo_league_id == 0u) {
         return 1;
     }
@@ -159,16 +186,6 @@ __declspec(noinline) uint8_t ootp_kbo_player_offer_eligibility_wrapper(
         KBO_HOOK_PROFILE_RETURN(profile_hook, "foreign.offer_eligibility", save_result);
     }
 
-    if (team_id > 0 && !kbo_offer_eligibility_requester_in_kbo_scope((uint32_t)team_id)) {
-        uint8_t out_of_scope_result = 0u;
-        KBO_HOOK_PROFILE_PAUSE(profile_hook);
-        if (original_func != NULL) {
-            out_of_scope_result = original_func((void*)player_ptr, team_id, flag);
-        }
-        KBO_HOOK_PROFILE_RESUME(profile_hook);
-        KBO_HOOK_PROFILE_RETURN(profile_hook, "foreign.offer_eligibility.out_of_scope", out_of_scope_result);
-    }
-
     if (!kbo_offer_eligibility_player_is_foreign(player_ptr)) {
         uint8_t non_foreign_result = 0u;
         KBO_HOOK_PROFILE_PAUSE(profile_hook);
@@ -179,6 +196,16 @@ __declspec(noinline) uint8_t ootp_kbo_player_offer_eligibility_wrapper(
         KBO_PROFILE_END(profile_foreign_offer_original, "foreign_policy.offer_eligibility.original");
         KBO_HOOK_PROFILE_RESUME(profile_hook);
         KBO_HOOK_PROFILE_RETURN(profile_hook, "foreign.offer_eligibility", non_foreign_result);
+    }
+
+    if (team_id > 0 && !kbo_offer_eligibility_requester_in_kbo_scope((uint32_t)team_id)) {
+        uint8_t out_of_scope_result = 0u;
+        KBO_HOOK_PROFILE_PAUSE(profile_hook);
+        if (original_func != NULL) {
+            out_of_scope_result = original_func((void*)player_ptr, team_id, flag);
+        }
+        KBO_HOOK_PROFILE_RESUME(profile_hook);
+        KBO_HOOK_PROFILE_RETURN(profile_hook, "foreign.offer_eligibility.out_of_scope", out_of_scope_result);
     }
 
     if (kbo_fast_block_fa_candidate_before_original(player_ptr, team_id, "offer_eligibility", NULL)) {

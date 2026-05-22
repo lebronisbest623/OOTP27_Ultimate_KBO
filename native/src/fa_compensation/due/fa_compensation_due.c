@@ -212,16 +212,10 @@ int kbo_process_due_fa_compensation_protected_lists_for_date(uint32_t today, con
 
     KboFaCompensationRecord* records = (KboFaCompensationRecord*)HeapAlloc(
         GetProcessHeap(), HEAP_ZERO_MEMORY, (SIZE_T)KBO_FA_COMPENSATION_MAX * sizeof(KboFaCompensationRecord));
-    KboFaProtectedCandidate* candidates = (KboFaProtectedCandidate*)HeapAlloc(
-        GetProcessHeap(), HEAP_ZERO_MEMORY, (SIZE_T)KBO_FA_COMPENSATION_PROTECTED_LIST_MAX * sizeof(KboFaProtectedCandidate));
-    KboFaProtectedCandidate* auto_protected = (KboFaProtectedCandidate*)HeapAlloc(
-        GetProcessHeap(), HEAP_ZERO_MEMORY, (SIZE_T)KBO_FA_COMPENSATION_PROTECTED_LIST_MAX * sizeof(KboFaProtectedCandidate));
     KboFaCompensationDueTask* tasks = (KboFaCompensationDueTask*)HeapAlloc(
         GetProcessHeap(), HEAP_ZERO_MEMORY, (SIZE_T)KBO_FA_COMPENSATION_MAX * sizeof(KboFaCompensationDueTask));
-    if (records == NULL || candidates == NULL || auto_protected == NULL || tasks == NULL) {
+    if (records == NULL || tasks == NULL) {
         if (records != NULL) { HeapFree(GetProcessHeap(), 0, records); }
-        if (candidates != NULL) { HeapFree(GetProcessHeap(), 0, candidates); }
-        if (auto_protected != NULL) { HeapFree(GetProcessHeap(), 0, auto_protected); }
         if (tasks != NULL) { HeapFree(GetProcessHeap(), 0, tasks); }
         InterlockedExchange(&g_kbo_fa_compensation_due_processing, 0);
         return 0;
@@ -231,6 +225,7 @@ int kbo_process_due_fa_compensation_protected_lists_for_date(uint32_t today, con
     char path[MAX_PATH] = {0};
     int record_count = kbo_load_fa_compensation_records(records, KBO_FA_COMPENSATION_MAX, path, sizeof(path));
     int task_count = 0;
+    int needs_protected_candidates = 0;
     for (int i = 0; i < record_count; i++) {
         KboFaCompensationRecord* rec = &records[i];
         if (rec->status == KBO_FA_COMPENSATION_STATUS_CASH_ONLY_SELECTED) {
@@ -266,9 +261,34 @@ int kbo_process_due_fa_compensation_protected_lists_for_date(uint32_t today, con
 
         tasks[task_count].rec = *rec;
         tasks[task_count].action = KBO_FA_COMPENSATION_DUE_TASK_SUBMIT_LIST;
+        needs_protected_candidates = 1;
         task_count++;
     }
     kbo_fa_compensation_unlock_ledger();
+
+    if (task_count <= 0) {
+        HeapFree(GetProcessHeap(), 0, tasks);
+        HeapFree(GetProcessHeap(), 0, records);
+        InterlockedExchange(&g_kbo_fa_compensation_due_processing, 0);
+        return 0;
+    }
+
+    KboFaProtectedCandidate* candidates = NULL;
+    KboFaProtectedCandidate* auto_protected = NULL;
+    if (needs_protected_candidates) {
+        candidates = (KboFaProtectedCandidate*)HeapAlloc(
+            GetProcessHeap(), HEAP_ZERO_MEMORY, (SIZE_T)KBO_FA_COMPENSATION_PROTECTED_LIST_MAX * sizeof(KboFaProtectedCandidate));
+        auto_protected = (KboFaProtectedCandidate*)HeapAlloc(
+            GetProcessHeap(), HEAP_ZERO_MEMORY, (SIZE_T)KBO_FA_COMPENSATION_PROTECTED_LIST_MAX * sizeof(KboFaProtectedCandidate));
+        if (candidates == NULL || auto_protected == NULL) {
+            if (auto_protected != NULL) { HeapFree(GetProcessHeap(), 0, auto_protected); }
+            if (candidates != NULL) { HeapFree(GetProcessHeap(), 0, candidates); }
+            HeapFree(GetProcessHeap(), 0, tasks);
+            HeapFree(GetProcessHeap(), 0, records);
+            InterlockedExchange(&g_kbo_fa_compensation_due_processing, 0);
+            return 0;
+        }
+    }
 
     int generated = 0;
     for (int t = 0; t < task_count; t++) {
@@ -360,8 +380,8 @@ int kbo_process_due_fa_compensation_protected_lists_for_date(uint32_t today, con
     }
 
     HeapFree(GetProcessHeap(), 0, tasks);
-    HeapFree(GetProcessHeap(), 0, auto_protected);
-    HeapFree(GetProcessHeap(), 0, candidates);
+    if (auto_protected != NULL) { HeapFree(GetProcessHeap(), 0, auto_protected); }
+    if (candidates != NULL) { HeapFree(GetProcessHeap(), 0, candidates); }
     HeapFree(GetProcessHeap(), 0, records);
     InterlockedExchange(&g_kbo_fa_compensation_due_processing, 0);
     return generated;

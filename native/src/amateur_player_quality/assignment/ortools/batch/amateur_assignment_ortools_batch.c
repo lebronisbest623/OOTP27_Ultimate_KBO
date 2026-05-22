@@ -171,6 +171,7 @@ void kbo_prepare_amateur_assignment_batch_ortools(uintptr_t player_list_ptr, int
             g_kbo_amateur_league_batch_players[index] = (uintptr_t)player;
             g_kbo_amateur_league_batch_source_teams[index] = 0;
             g_kbo_amateur_league_batch_player_ids[index] = player_id;
+            kbo_amateur_league_batch_note_player_id(player_id);
             g_kbo_amateur_league_batch_source_team_ids[index] = source_team_id;
         }
     }
