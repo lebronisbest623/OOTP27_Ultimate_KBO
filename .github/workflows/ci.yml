@@ -28,6 +28,11 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
       - name: Setup MSYS2 MinGW
         uses: msys2/setup-msys2@v2
         with:
@@ -56,6 +61,13 @@ jobs:
       - name: Build native DLL
         shell: pwsh
         run: .\native\build.ps1
+
+      - name: Build optimizer tool
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pyinstaller ortools
+          .\scripts\build-optimizer.ps1 -RebuildOptimizer
 
       - name: Build managed solution
         run: dotnet build .\OOTP27-KBO-Launcher.sln --configuration Release --no-restore
