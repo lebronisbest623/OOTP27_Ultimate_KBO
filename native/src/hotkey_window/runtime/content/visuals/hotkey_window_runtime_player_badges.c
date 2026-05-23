@@ -73,11 +73,6 @@ const char* kbo_hub_foreign_slot_code_for_player(uint8_t* player)
                 }
             }
         }
-
-        uint8_t replacement_slot_type = 0u;
-        if (kbo_foreign_replacement_player_seed_matches_loaded(player, &replacement_slot_type)) {
-            return "REPL";
-        }
     }
     return kbo_player_is_asian_quota_candidate(player) ? "AQ" : "REG";
 }

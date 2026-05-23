@@ -149,6 +149,22 @@ void kbo_count_team_asian_quota_probe(
         scanned ? "foreign_policy.org_count.live_scan" : "foreign_policy.org_count.no_vector");
 }
 
+int kbo_count_team_asian_quota_probe_cached(
+    uint32_t team_id,
+    uint32_t* out_foreign_count,
+    uint32_t* out_asian_quota_count,
+    uint32_t* out_non_asian_foreign_count)
+{
+    if (out_foreign_count != NULL) { *out_foreign_count = 0u; }
+    if (out_asian_quota_count != NULL) { *out_asian_quota_count = 0u; }
+    if (out_non_asian_foreign_count != NULL) { *out_non_asian_foreign_count = 0u; }
+    return kbo_foreign_org_count_cache_hit(
+        team_id,
+        out_foreign_count,
+        out_asian_quota_count,
+        out_non_asian_foreign_count);
+}
+
 void kbo_count_team_asian_quota_probe_fresh(
     uint32_t team_id,
     uint32_t* out_foreign_count,

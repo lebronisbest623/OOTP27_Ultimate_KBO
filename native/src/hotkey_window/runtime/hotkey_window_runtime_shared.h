@@ -70,6 +70,7 @@
 #define KBO_WM_TOGGLE_SERVICE_MONITOR (WM_APP + 0x4b0u)
 #define KBO_WM_REFRESH_HUB            (WM_APP + 0x4b1u)
 #define KBO_WM_SHOW_HUB_CONTENT       (WM_APP + 0x4b2u)
+#define KBO_WM_WEBVIEW_DISABLE        (WM_APP + 0x4b3u)
 #define KBO_HUB_CONTROL_EDIT            3
 #define KBO_HUB_CONTROL_FOREIGN_LIST    41
 #define KBO_HUB_CONTROL_FOREIGN_KEEP    42

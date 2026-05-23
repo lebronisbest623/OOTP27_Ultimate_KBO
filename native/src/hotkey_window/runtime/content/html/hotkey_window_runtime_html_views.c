@@ -1,6 +1,7 @@
 #include "../hotkey_window_runtime_content.h"
 #include "../../hotkey_window_domain_contract.h"
 #include "../../../../fa_market_classification/api/fa_market_classification.h"
+#include "../../../../foreign/quota/counts/foreign_quota_counts.h"
 
 void kbo_webview_append_asian_quota_view(KboWindowTextBuffer* buffer)
 {
@@ -8,14 +9,20 @@ void kbo_webview_append_asian_quota_view(KboWindowTextBuffer* buffer)
     uint32_t team_foreign = 0u;
     uint32_t team_asian = 0u;
     uint32_t team_non_asian = 0u;
-    kbo_count_team_asian_quota_probe(g_kbo_hub_selected_team_id, &team_foreign, &team_asian, &team_non_asian);
+    int counts_available = kbo_count_team_asian_quota_probe_cached(
+        g_kbo_hub_selected_team_id,
+        &team_foreign,
+        &team_asian,
+        &team_non_asian);
     uint32_t team_effective = kbo_effective_foreign_count_with_asian_quota(team_asian, team_non_asian);
 
     char summary_text[256] = {0};
     snprintf(
         summary_text,
         sizeof(summary_text),
-        "View: Foreign Players - Raw %u / Asian %u / Non-Asian %u / Effective %u - AQ Nations: %d",
+        counts_available
+            ? "View: Foreign Players - Raw %u / Asian %u / Non-Asian %u / Effective %u - AQ Nations: %d"
+            : "View: Foreign Players - Raw - / Asian - / Non-Asian - / Effective - - AQ Nations: %d",
         team_foreign,
         team_asian,
         team_non_asian,

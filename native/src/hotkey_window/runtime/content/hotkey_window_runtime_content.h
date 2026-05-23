@@ -76,6 +76,8 @@ int kbo_webview_current_view_has_sub_tabs(void);
 WCHAR* kbo_build_webview_hub_html(void);
 int kbo_webview_is_failed(void);
 void kbo_webview_mark_failed(const char* reason, HRESULT hr);
+void kbo_webview_shutdown_failed_surface(void);
+void kbo_webview_note_navigation_completed(BOOL is_success, COREWEBVIEW2_WEB_ERROR_STATUS web_error);
 void kbo_webview_navigate_loading(void);
 void kbo_webview_navigate_current(void);
 void kbo_webview_navigate_current_immediate(void);

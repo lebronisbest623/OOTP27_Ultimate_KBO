@@ -2,6 +2,7 @@
 #include "../../hotkey_window_domain_contract.h"
 #include "../../../../core/product/ootp_product.h"
 #include "../../../../core/dates/tick/current_date_tick_capture.h"
+#include "../../../../foreign/quota/counts/foreign_quota_counts.h"
 
 static void kbo_refresh_foreign_injury_slots_for_hub(const char* source)
 {
@@ -38,7 +39,11 @@ void kbo_build_foreign_injury_replacement_hub_text(char* out, size_t out_size)
     uint32_t team_foreign = 0u;
     uint32_t team_asian = 0u;
     uint32_t team_non_asian = 0u;
-    kbo_count_team_asian_quota_probe(selected_team_id, &team_foreign, &team_asian, &team_non_asian);
+    int counts_available = kbo_count_team_asian_quota_probe_cached(
+        selected_team_id,
+        &team_foreign,
+        &team_asian,
+        &team_non_asian);
     uint32_t team_effective = kbo_effective_foreign_count_with_asian_quota(team_asian, team_non_asian);
 
     kbo_window_text_appendf(&buffer, "FOREIGN INJURY REPLACEMENT\r\n");
@@ -46,7 +51,9 @@ void kbo_build_foreign_injury_replacement_hub_text(char* out, size_t out_size)
     kbo_window_text_appendf(&buffer, "Open: %d / Decision due: %d / Closed: %d\r\n", open_count, pending_count, closed_count);
     kbo_window_text_appendf(
         &buffer,
-        "Raw foreign: %u / Asian: %u / Non-Asian: %u / Effective foreign: %u\r\n\r\n",
+        counts_available
+            ? "Raw foreign: %u / Asian: %u / Non-Asian: %u / Effective foreign: %u\r\n\r\n"
+            : "Raw foreign: - / Asian: - / Non-Asian: - / Effective foreign: -\r\n\r\n",
         team_foreign,
         team_asian,
         team_non_asian,
@@ -164,7 +171,11 @@ void kbo_build_foreign_policy_hub_text(char* out, size_t out_size)
     uint32_t team_foreign = 0u;
     uint32_t team_asian = 0u;
     uint32_t team_non_asian = 0u;
-    kbo_count_team_asian_quota_probe(g_kbo_hub_selected_team_id, &team_foreign, &team_asian, &team_non_asian);
+    int counts_available = kbo_count_team_asian_quota_probe_cached(
+        g_kbo_hub_selected_team_id,
+        &team_foreign,
+        &team_asian,
+        &team_non_asian);
     uint32_t team_effective = kbo_effective_foreign_count_with_asian_quota(team_asian, team_non_asian);
     kbo_window_text_appendf(&buffer, "KBO FOREIGN PLAYERS\r\n");
     kbo_window_text_appendf(
@@ -175,7 +186,9 @@ void kbo_build_foreign_policy_hub_text(char* out, size_t out_size)
         configured_nations);
     kbo_window_text_appendf(
         &buffer,
-        "Raw foreign: %u / Asian: %u / Non-Asian: %u / Effective foreign: %u\r\n\r\n",
+        counts_available
+            ? "Raw foreign: %u / Asian: %u / Non-Asian: %u / Effective foreign: %u\r\n\r\n"
+            : "Raw foreign: - / Asian: - / Non-Asian: - / Effective foreign: -\r\n\r\n",
         team_foreign,
         team_asian,
         team_non_asian,

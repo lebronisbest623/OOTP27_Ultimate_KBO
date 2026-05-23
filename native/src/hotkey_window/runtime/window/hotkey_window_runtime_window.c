@@ -217,7 +217,17 @@ LRESULT CALLBACK kbo_hotkey_window_proc(HWND hwnd, UINT message, WPARAM wparam, 
         kbo_log_runtimef("KBO F2 hub refreshed by request hwnd=%p", (void*)hwnd);
         return 0;
 
+    case KBO_WM_WEBVIEW_DISABLE:
+        kbo_webview_shutdown_failed_surface();
+        InvalidateRect(hwnd, NULL, TRUE);
+        return 0;
+
     case KBO_WM_SHOW_HUB_CONTENT:
+        if (kbo_webview_is_failed()) {
+            kbo_webview_shutdown_failed_surface();
+            InvalidateRect(hwnd, NULL, TRUE);
+            return 0;
+        }
         if (IsWindowVisible(hwnd)) {
             kbo_refresh_hotkey_window_layout(hwnd);
             kbo_log_runtimef("KBO F2 hub content loaded after loading screen hwnd=%p", (void*)hwnd);

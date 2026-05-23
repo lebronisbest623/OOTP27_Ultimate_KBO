@@ -51,13 +51,6 @@ void kbo_webview_append_military_roster_view(KboWindowTextBuffer* buffer)
                 kpb_id,
                 &original_team_id,
                 &original_league_id);
-            kbo_military_repair_original_team_memory(
-                player,
-                original_team_id,
-                original_league_id,
-                service_team_id,
-                sang_id,
-                kpb_id);
 
             char player_name[96] = {0};
             char uniform_number[8] = {0};

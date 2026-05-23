@@ -24,9 +24,11 @@ typedef LONG (WINAPI* KboNtQuerySystemInformationFn)(ULONG, PVOID, ULONG, PULONG
 #define KBO_SYSTEM_EXTENDED_HANDLE_INFORMATION_CLASS 64u
 #define KBO_SYSTEM_HANDLE_QUERY_INITIAL_BYTES 0x10000u
 #define KBO_NTSTATUS_INFO_LENGTH_MISMATCH ((LONG)0xC0000004u)
+#define KBO_CURRENT_SAVE_CACHE_TTL_MS 1000ull
 #define KBO_CURRENT_SAVE_HANDLE_PROBE_MIN_INTERVAL_MS 2000ull
 
 static char g_kbo_cached_current_save_path[KBO_UTF8_PATH_BYTES] = {0};
+static volatile LONG64 g_kbo_cached_current_save_path_tick = 0;
 static volatile LONG64 g_kbo_last_current_save_handle_probe_tick = 0;
 static volatile LONG g_kbo_current_save_handle_probe_active = 0;
 static char g_kbo_last_logged_current_save_path[KBO_UTF8_PATH_BYTES] = {0};
@@ -38,11 +40,20 @@ static void kbo_cache_current_save_path(const char* path)
         return;
     }
     snprintf(g_kbo_cached_current_save_path, sizeof(g_kbo_cached_current_save_path), "%s", path);
+    InterlockedExchange64(&g_kbo_cached_current_save_path_tick, (LONG64)GetTickCount64());
 }
 
 static int kbo_get_cached_current_save_path(char* out, size_t out_size)
 {
     if (out == NULL || out_size == 0 || g_kbo_cached_current_save_path[0] == '\0') {
+        return 0;
+    }
+    LONG64 cached_tick = InterlockedCompareExchange64(&g_kbo_cached_current_save_path_tick, 0, 0);
+    ULONGLONG now = GetTickCount64();
+    if (cached_tick <= 0
+            || now < (ULONGLONG)cached_tick
+            || now - (ULONGLONG)cached_tick > KBO_CURRENT_SAVE_CACHE_TTL_MS) {
+        g_kbo_cached_current_save_path[0] = '\0';
         return 0;
     }
     if (!kbo_path_looks_like_absolute_save_path(g_kbo_cached_current_save_path)) {
@@ -323,16 +334,14 @@ int kbo_get_current_save_path(char* out, size_t out_size)
         return 1;
     }
 
-    /* File-handle discovery is a last resort. OOTP can keep handles to old
-     * saves open after a save switch, so it must not override launcher/global
-     * evidence for the current process. */
+    /* File-handle discovery is useful for diagnostics, but it is not safe as
+     * an authoritative current-save source. OOTP can keep handles to old saves
+     * open after switching saves, which can make save-scoped SQLite state bleed
+     * into the wrong .lg folder. Wait for OOTP global or launcher evidence. */
     if (kbo_begin_current_save_handle_probe()) {
-        int found = kbo_get_current_save_path_from_own_file_handles(out, out_size);
+        char diagnostic_path[KBO_UTF8_PATH_BYTES] = {0};
+        (void)kbo_get_current_save_path_from_own_file_handles(diagnostic_path, sizeof(diagnostic_path));
         kbo_end_current_save_handle_probe();
-        if (found) {
-            kbo_cache_current_save_path(out);
-            return 1;
-        }
     }
 
     return 0;

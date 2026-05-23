@@ -171,13 +171,6 @@ void kbo_build_military_service_window_text(char* out, size_t out_size)
             kpb_id,
             &original_team_id,
             &original_league_id);
-        kbo_military_repair_original_team_memory(
-            player,
-            original_team_id,
-            original_league_id,
-            service_team_id,
-            sang_id,
-            kpb_id);
         int32_t days_left     = kbo_military_effective_days_left(player);
         uint8_t military_active = player[OOTP27_PLAYER_MILITARY_ACTIVE_OFFSET];
         uint8_t loan_active     = player[OOTP27_PLAYER_LOAN_ACTIVE_FLAG_OFFSET];

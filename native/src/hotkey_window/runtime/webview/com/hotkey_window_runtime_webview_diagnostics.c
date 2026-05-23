@@ -69,6 +69,7 @@ static HRESULT STDMETHODCALLTYPE kbo_webview_nav_completed_invoke(
             (unsigned long)error_hr,
             (unsigned long)id_hr);
     }
+    kbo_webview_note_navigation_completed(is_success, web_error);
     return S_OK;
 }
 

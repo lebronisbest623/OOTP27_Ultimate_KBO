@@ -8,6 +8,11 @@ void kbo_count_team_asian_quota_probe(
     uint32_t* out_foreign_count,
     uint32_t* out_asian_quota_count,
     uint32_t* out_non_asian_foreign_count);
+int kbo_count_team_asian_quota_probe_cached(
+    uint32_t team_id,
+    uint32_t* out_foreign_count,
+    uint32_t* out_asian_quota_count,
+    uint32_t* out_non_asian_foreign_count);
 void kbo_count_team_asian_quota_probe_fresh(
     uint32_t team_id,
     uint32_t* out_foreign_count,
