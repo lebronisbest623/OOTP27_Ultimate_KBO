@@ -74,6 +74,7 @@ void kbo_custom_foreign_policy_trade_adjust_counts_for_player(
     uint32_t* asian_count,
     uint32_t* non_asian_count,
     uint32_t* incoming_foreign_count,
+    uint32_t* incoming_asian_count,
     uint32_t* first_incoming_player_id)
 {
     uint8_t* player = NULL;
@@ -90,6 +91,9 @@ void kbo_custom_foreign_policy_trade_adjust_counts_for_player(
         asian_quota = kbo_player_is_asian_quota_slot_candidate(player);
         if (asian_quota) {
             (*asian_count)++;
+            if (incoming_asian_count != NULL) {
+                (*incoming_asian_count)++;
+            }
         } else {
             (*non_asian_count)++;
         }
@@ -208,8 +212,10 @@ static int kbo_custom_foreign_policy_trade_allows_uncached(
                 &asian_after,
                 &non_asian_after,
                 NULL,
+                NULL,
                 NULL);
         }
+        uint32_t incoming_asian_count = 0u;
         for (int slot = 0; slot < KBO_CUSTOM_FOREIGN_TRADE_PLAYER_SLOTS; slot++) {
             kbo_custom_foreign_policy_trade_adjust_counts_for_player(
                 team_id,
@@ -218,13 +224,16 @@ static int kbo_custom_foreign_policy_trade_allows_uncached(
                 &asian_after,
                 &non_asian_after,
                 &incoming_foreign_count,
+                &incoming_asian_count,
                 &first_incoming_player_id);
         }
 
         uint32_t effective_after = kbo_effective_foreign_count_with_asian_quota(asian_after, non_asian_after);
         uint32_t effective_limit = KBO_CUSTOM_FOREIGN_BASE_EFFECTIVE_LIMIT
             + kbo_custom_foreign_policy_trade_extra_slots(trade_ptr, incoming_side, team_id);
-        if (incoming_foreign_count > 0u && effective_after > effective_limit) {
+        if (incoming_foreign_count > 0u
+                && (effective_after > effective_limit
+                    || (incoming_asian_count > 0u && asian_after > 1u))) {
             if (out_blocked_side != NULL) { *out_blocked_side = side; }
             if (out_team_id != NULL) { *out_team_id = team_id; }
             if (out_incoming_player_id != NULL) { *out_incoming_player_id = first_incoming_player_id; }

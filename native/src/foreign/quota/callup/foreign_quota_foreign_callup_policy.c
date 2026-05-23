@@ -56,7 +56,8 @@ uint8_t kbo_custom_foreign_policy_callup_allows(
     uint32_t non_asian_before = non_asian_hitters + non_asian_pitchers;
     uint32_t asian_after = asian_before;
     uint32_t non_asian_after = non_asian_before;
-    if (kbo_player_is_asian_quota_candidate(player)) {
+    uint8_t candidate_asian = kbo_player_is_asian_quota_candidate(player) ? 1u : 0u;
+    if (candidate_asian) {
         asian_after++;
     } else {
         non_asian_after++;
@@ -73,6 +74,9 @@ uint8_t kbo_custom_foreign_policy_callup_allows(
     uint32_t effective_after = kbo_effective_foreign_count_with_asian_quota(asian_after, non_asian_after);
     uint32_t effective_limit = KBO_CUSTOM_FOREIGN_BASE_EFFECTIVE_LIMIT + extra_slots;
     uint8_t allowed = effective_after <= effective_limit ? 1u : 0u;
+    if (allowed && candidate_asian && asian_before > 0u) {
+        allowed = 0u;
+    }
 
     static volatile LONG log_count = 0;
     LONG slot = InterlockedIncrement(&log_count);
@@ -158,6 +162,9 @@ uint8_t kbo_callup_foreign_limit_allows_with_asian_quota(
         &asian_pitchers,
         &non_asian_hitters,
         &non_asian_pitchers);
+    if (asian_hitters + asian_pitchers > 0u) {
+        return 0u;
+    }
 
     int candidate_pitcher = (*(uint8_t*)(player + OOTP27_PLAYER_POSITION_GROUP_OFFSET) == 1u);
     uint32_t effective_after = 0u;
