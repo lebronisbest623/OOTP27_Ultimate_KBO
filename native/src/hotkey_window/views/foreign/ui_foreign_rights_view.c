@@ -182,7 +182,18 @@ void kbo_webview_append_foreign_rights_view(
                     if (!kbo_player_pointer_plausible(player_ptr)) { continue; }
                     uint8_t* player = (uint8_t*)player_ptr;
                     uint32_t player_id = *(uint32_t*)(player + OOTP27_PLAYER_ID_OFFSET);
+                    if (player_id == 0u || !kbo_player_is_foreign_for_kbo_rights(player)) {
+                        continue;
+                    }
                     uint32_t decision_team_id = kbo_get_foreign_waiver_decision_team_id(player);
+                    if (window_open && decision_team_id != selected_team_id) {
+                        continue;
+                    }
+                    int has_active_right = today != 0u
+                        && kbo_has_active_foreign_waiver_right(selected_team_id, player_id, today);
+                    if (!window_open && !has_active_right) {
+                        continue;
+                    }
                     char latest_action[16] = {0};
                     int has_decision = kbo_foreign_waiver_latest_decision_action(
                         window_end,
@@ -190,16 +201,10 @@ void kbo_webview_append_foreign_rights_view(
                         player_id,
                         latest_action,
                         sizeof(latest_action));
-                    int has_active_right = today != 0u
-                        && kbo_has_active_foreign_waiver_right(selected_team_id, player_id, today)
-                        && (!has_decision || _stricmp(latest_action, "SKIP") != 0);
                     int skip_chosen = has_decision && _stricmp(latest_action, "SKIP") == 0;
+                    has_active_right = has_active_right && !skip_chosen;
                     int retain_requested = has_decision && _stricmp(latest_action, "RETAIN") == 0;
-                    if (player_id == 0u
-                            || !kbo_player_is_foreign_for_kbo_rights(player)
-                            || (window_open
-                                ? decision_team_id != selected_team_id
-                                : !has_active_right)) {
+                    if (!window_open && !has_active_right) {
                         continue;
                     }
                     char flags[96] = {0};
