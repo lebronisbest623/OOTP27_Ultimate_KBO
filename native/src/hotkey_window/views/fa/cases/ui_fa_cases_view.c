@@ -4,11 +4,70 @@
 #include "../../../support/assets/paths/ui_image_sources.h"
 #include "../../../support/text/js/ui_js_string.h"
 
+enum {
+    KBO_FA_MARKET_TEAM_ABBREV_CACHE_MAX = 256
+};
+
+typedef struct KboFaMarketTeamAbbrevCacheEntry {
+    uint32_t team_id;
+    char abbrev[16];
+} KboFaMarketTeamAbbrevCacheEntry;
+
+static void kbo_fa_market_copy_team_abbrev_cached(
+    KboFaMarketTeamAbbrevCacheEntry* cache,
+    int* cache_count,
+    uint32_t team_id,
+    char* out,
+    size_t out_size,
+    const char* fallback)
+{
+    if (out == NULL || out_size == 0u) {
+        return;
+    }
+    out[0] = '\0';
+
+    if (cache != NULL && cache_count != NULL) {
+        for (int i = 0; i < *cache_count; i++) {
+            if (cache[i].team_id == team_id) {
+                snprintf(out, out_size, "%s", cache[i].abbrev);
+                return;
+            }
+        }
+    }
+
+    kbo_hub_copy_team_abbrev_by_id(team_id, out, out_size, fallback);
+
+    if (cache != NULL
+            && cache_count != NULL
+            && *cache_count >= 0
+            && *cache_count < KBO_FA_MARKET_TEAM_ABBREV_CACHE_MAX) {
+        cache[*cache_count].team_id = team_id;
+        snprintf(cache[*cache_count].abbrev, sizeof(cache[*cache_count].abbrev), "%s", out);
+        *cache_count += 1;
+    }
+}
+
+static void kbo_webview_append_fa_market_player_name_cell(
+    KboWindowTextBuffer* buffer,
+    const char* player_name,
+    uint32_t player_id)
+{
+    kbo_window_text_appendf(buffer, "<td class='roName'");
+    if (player_id != 0u) {
+        kbo_window_text_appendf(buffer, " data-player-id='%u' data-kbo-player-hover='1'", player_id);
+    }
+    kbo_window_text_appendf(buffer, "><span class='roNameInner'><span class='roNameText'>");
+    kbo_html_append_escaped(buffer, player_name != NULL && player_name[0] != '\0' ? player_name : "Unknown player");
+    kbo_window_text_appendf(buffer, "</span></span></td>");
+}
+
 static void kbo_webview_append_fa_market_grade_cell(
     KboWindowTextBuffer* buffer,
     const KboFaMarketClassification* row,
     const char* grade_display,
-    uint32_t grade_sort_rank)
+    uint32_t grade_sort_rank,
+    KboFaMarketTeamAbbrevCacheEntry* team_abbrev_cache,
+    int* team_abbrev_cache_count)
 {
     int has_grade = grade_display != NULL && strcmp(grade_display, "-") != 0;
     kbo_window_text_appendf(
@@ -27,7 +86,13 @@ static void kbo_webview_append_fa_market_grade_cell(
             ? row->fa_grade_snapshot_team_id
             : kbo_fa_market_display_team_id(row);
 
-        kbo_hub_copy_team_abbrev_by_id(team_id, previous_team, sizeof(previous_team), "-");
+        kbo_fa_market_copy_team_abbrev_cached(
+            team_abbrev_cache,
+            team_abbrev_cache_count,
+            team_id,
+            previous_team,
+            sizeof(previous_team),
+            "-");
         kbo_fa_market_format_salary(row->fa_grade_salary, salary_text, sizeof(salary_text));
         if (salary_text[0] != '\0' && strcmp(salary_text, "-") != 0) {
             snprintf(salary_with_currency, sizeof(salary_with_currency), "$%s", salary_text);
@@ -71,16 +136,17 @@ static void kbo_webview_append_fa_market_compact_nation_cell(
 
 static void kbo_webview_append_fa_market_row_html(
     KboWindowTextBuffer* buffer,
-    const KboFaMarketClassification* row)
+    const KboFaMarketClassification* row,
+    const char* rights_abbrev,
+    KboFaMarketTeamAbbrevCacheEntry* team_abbrev_cache,
+    int* team_abbrev_cache_count)
 {
     if (buffer == NULL || row == NULL) {
         return;
     }
 
-    char rights_abbrev[16] = "-";
     const char* grade_display = kbo_fa_market_display_grade(row->grade);
     uint32_t grade_sort_rank = kbo_fa_market_display_grade_sort_rank(row->grade);
-    kbo_hub_copy_team_abbrev_by_id(row->rights_team_id, rights_abbrev, sizeof(rights_abbrev), "-");
 
     kbo_window_text_appendf(buffer, "<tr>");
     kbo_window_text_appendf(buffer, "<td class='roPo'>");
@@ -88,15 +154,21 @@ static void kbo_webview_append_fa_market_row_html(
         buffer,
         kbo_webview_position_label_from_values(row->position_group, row->position_role));
     kbo_window_text_appendf(buffer, "</td>");
-    kbo_webview_append_player_name_cell(buffer, row->player_name, row->player_id);
+    kbo_webview_append_fa_market_player_name_cell(buffer, row->player_name, row->player_id);
     kbo_window_text_appendf(buffer, "<td class='roCase'>");
     kbo_html_append_escaped(buffer, kbo_fa_market_display_case_label(row->case_label));
     kbo_window_text_appendf(buffer, "</td>");
-    kbo_webview_append_fa_market_grade_cell(buffer, row, grade_display, grade_sort_rank);
+    kbo_webview_append_fa_market_grade_cell(
+        buffer,
+        row,
+        grade_display,
+        grade_sort_rank,
+        team_abbrev_cache,
+        team_abbrev_cache_count);
     kbo_window_text_appendf(buffer, "<td class='roAge'>%u</td>", (uint32_t)row->age);
     kbo_webview_append_fa_market_compact_nation_cell(buffer, row->nation_id);
     kbo_window_text_appendf(buffer, "<td class='roRights'>");
-    kbo_html_append_escaped(buffer, rights_abbrev);
+    kbo_html_append_escaped(buffer, rights_abbrev != NULL && rights_abbrev[0] != '\0' ? rights_abbrev : "-");
     kbo_window_text_appendf(buffer, "</td></tr>");
 }
 
@@ -198,6 +270,9 @@ static void kbo_webview_append_fa_market_virtual_rows(
     kbo_window_text_appendf(buffer, "<script>(function(){");
     kbo_webview_append_fa_market_flag_map(buffer, nation_ids, nation_count);
     kbo_window_text_appendf(buffer, "var rows=[");
+    KboFaMarketTeamAbbrevCacheEntry team_abbrev_cache[KBO_FA_MARKET_TEAM_ABBREV_CACHE_MAX];
+    memset(team_abbrev_cache, 0, sizeof(team_abbrev_cache));
+    int team_abbrev_cache_count = 0;
     int appended = 0;
     for (int i = 0; i < count; i++) {
         const KboFaMarketClassification* row = &rows[i];
@@ -205,15 +280,26 @@ static void kbo_webview_append_fa_market_virtual_rows(
             continue;
         }
 
+        char rights_abbrev[16] = "-";
+        kbo_fa_market_copy_team_abbrev_cached(
+            team_abbrev_cache,
+            &team_abbrev_cache_count,
+            row->rights_team_id,
+            rights_abbrev,
+            sizeof(rights_abbrev),
+            "-");
+
         char row_html[4096] = {0};
         KboWindowTextBuffer row_buffer;
         row_buffer.data = row_html;
         row_buffer.capacity = sizeof(row_html);
         row_buffer.length = 0;
-        kbo_webview_append_fa_market_row_html(&row_buffer, row);
-
-        char rights_abbrev[16] = "-";
-        kbo_hub_copy_team_abbrev_by_id(row->rights_team_id, rights_abbrev, sizeof(rights_abbrev), "-");
+        kbo_webview_append_fa_market_row_html(
+            &row_buffer,
+            row,
+            rights_abbrev,
+            team_abbrev_cache,
+            &team_abbrev_cache_count);
 
         if (appended > 0) {
             kbo_window_text_appendf(buffer, ",");
