@@ -16,6 +16,7 @@
 #include "../../../foreign/common/dates/foreign_waiver_date.h"
 #include "../../../foreign/common/policy/foreign_player_policy.h"
 #include "../../../foreign/common/policy/foreign_waiver_policy.h"
+#include "../../../foreign/injury/api/foreign_injury.h"
 #include "../../../foreign/waiver_window/state/foreign_waiver_window_state.h"
 #include "../../../runtime_memory/runtime_memory.h"
 #include "../../runtime/catalog/custom_event_catalog.h"
@@ -318,6 +319,19 @@ int kbo_schedule_foreign_priority_custom_events_at_anchor(
     if (!(open_exists && close_exists && fa_declaration_exists && intl_established_fa_exists && military_exists)) {
         kbo_audit_foreign_priority_schedule("fail", "events_not_ready", source, &audit);
         KBO_FOREIGN_PRIORITY_SCHEDULE_RETURN(-1);
+    }
+    if (today == offseason_starts_yyyymmdd) {
+        int closed_foreign_injury_replacements =
+            kbo_foreign_injury_reset_open_replacements_for_offseason(
+                offseason_starts_yyyymmdd,
+                source != NULL ? source : "foreign_priority_schedule");
+        if (closed_foreign_injury_replacements > 0) {
+            kbo_log_runtimef(
+                "KBO custom event schedule closed foreign injury replacements at offseason start source=%s date=%u closed=%d",
+                source != NULL ? source : "",
+                offseason_starts_yyyymmdd,
+                closed_foreign_injury_replacements);
+        }
     }
     g_kbo_foreign_priority_last_scheduled_date = offseason_starts_yyyymmdd;
     kbo_foreign_priority_ready_cache_store(offseason_starts_yyyymmdd, league_id);
