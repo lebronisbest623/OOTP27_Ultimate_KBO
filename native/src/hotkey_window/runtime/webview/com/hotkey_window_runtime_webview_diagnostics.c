@@ -59,14 +59,16 @@ static HRESULT STDMETHODCALLTYPE kbo_webview_nav_completed_invoke(
     HRESULT id_hr = args != NULL
         ? ICoreWebView2NavigationCompletedEventArgs_get_NavigationId(args, &navigation_id)
         : E_POINTER;
-    kbo_log_runtimef(
-        "WebView2 navigation completed success=%d web_error=%d navigation_id=%llu hr_success=0x%08lx hr_error=0x%08lx hr_id=0x%08lx",
-        is_success ? 1 : 0,
-        (int)web_error,
-        (unsigned long long)navigation_id,
-        (unsigned long)success_hr,
-        (unsigned long)error_hr,
-        (unsigned long)id_hr);
+    if (!is_success || kbo_hub_current_mode_is_developer()) {
+        kbo_log_runtimef(
+            "WebView2 navigation completed success=%d web_error=%d navigation_id=%llu hr_success=0x%08lx hr_error=0x%08lx hr_id=0x%08lx",
+            is_success ? 1 : 0,
+            (int)web_error,
+            (unsigned long long)navigation_id,
+            (unsigned long)success_hr,
+            (unsigned long)error_hr,
+            (unsigned long)id_hr);
+    }
     return S_OK;
 }
 

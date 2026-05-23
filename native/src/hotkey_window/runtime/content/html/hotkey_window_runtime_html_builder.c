@@ -1,15 +1,15 @@
 #include "../hotkey_window_runtime_content.h"
 #include "../../hotkey_window_domain_contract.h"
-#include "../../../../captain/api/captain_selection.h"
 #include "../../../../core/dates/tick/current_date_tick_capture.h"
 
 WCHAR* kbo_build_webview_hub_html(void)
 {
     const size_t html_cap = 8388608;
-    char* html = (char*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, html_cap);
+    char* html = (char*)HeapAlloc(GetProcessHeap(), 0, html_cap);
     if (html == NULL) {
         return NULL;
     }
+    html[0] = '\0';
     KBO_PROFILE_BEGIN(profile_webview_build_html);
     KboWindowTextBuffer buffer;
     buffer.data = html;
@@ -38,9 +38,6 @@ WCHAR* kbo_build_webview_hub_html(void)
     char team_bar_primary[8] = "#f04a22";
     char team_bar_secondary[8] = "#2c2c2c";
     char current_date_text[64] = {0};
-    char captain_name[128] = {0};
-    char captain_source[24] = {0};
-    uint32_t captain_player_id = 0u;
     char window_status[256] = {0};
     char scrollbar_css[65536] = {0};
     const int is_mod_dashboard =
@@ -89,17 +86,6 @@ WCHAR* kbo_build_webview_hub_html(void)
     } else {
         snprintf(current_date_text, sizeof(current_date_text), "DATE UNKNOWN");
     }
-    if (current_year != 0u && g_kbo_hub_selected_team_id != 0u) {
-        kbo_get_captain_for_team(
-            current_year,
-            g_kbo_hub_selected_league_id,
-            g_kbo_hub_selected_team_id,
-            captain_name,
-            sizeof(captain_name),
-            &captain_player_id,
-            captain_source,
-            sizeof(captain_source));
-    }
     kbo_hub_get_league_logo_path(g_kbo_hub_selected_league_id, current_year, league_logo_path, sizeof(league_logo_path));
     kbo_hub_get_team_logo_path(g_kbo_hub_selected_team_id, current_year, team_logo_path, sizeof(team_logo_path));
     kbo_hub_font_asset_path("JejuGothic-Regular.ttf", jeju_font_path, sizeof(jeju_font_path));
@@ -111,26 +97,28 @@ WCHAR* kbo_build_webview_hub_html(void)
         team_bar_secondary,
         sizeof(team_bar_secondary));
     kbo_webview_build_scrollbar_skin_css(scrollbar_css, sizeof(scrollbar_css), kbo_hub_skin_scrollbar_width());
-    kbo_log_runtimef(
-        "KBO F2 hub html build start view=%d mod=%d foreign=%d military=%d fa=%d fa_comp=%d cbt=%d futures=%d league=%u team=%u year=%u has_sub_tabs=%d dashboard_panel=%d roster_dashboard=%d mod_dashboard=%d language=%d league_logo=%d team_logo=%d",
-        g_kbo_hub_selected_view,
-        g_kbo_hub_selected_mod_subview,
-        g_kbo_hub_selected_foreign_subview,
-        g_kbo_hub_selected_military_subview,
-        g_kbo_hub_selected_fa_subview,
-        g_kbo_hub_selected_fa_compensation_subview,
-        g_kbo_hub_selected_cbt_subview,
-        g_kbo_hub_selected_futures_subview,
-        g_kbo_hub_selected_league_id,
-        g_kbo_hub_selected_team_id,
-        current_year,
-        has_sub_tabs,
-        is_dashboard_panel,
-        is_roster_dashboard,
-        is_mod_dashboard,
-        kbo_hub_language(),
-        league_logo_path[0] != '\0',
-        team_logo_path[0] != '\0');
+    if (kbo_hub_current_mode_is_developer()) {
+        kbo_log_runtimef(
+            "KBO F2 hub html build start view=%d mod=%d foreign=%d military=%d fa=%d fa_comp=%d cbt=%d futures=%d league=%u team=%u year=%u has_sub_tabs=%d dashboard_panel=%d roster_dashboard=%d mod_dashboard=%d language=%d league_logo=%d team_logo=%d",
+            g_kbo_hub_selected_view,
+            g_kbo_hub_selected_mod_subview,
+            g_kbo_hub_selected_foreign_subview,
+            g_kbo_hub_selected_military_subview,
+            g_kbo_hub_selected_fa_subview,
+            g_kbo_hub_selected_fa_compensation_subview,
+            g_kbo_hub_selected_cbt_subview,
+            g_kbo_hub_selected_futures_subview,
+            g_kbo_hub_selected_league_id,
+            g_kbo_hub_selected_team_id,
+            current_year,
+            has_sub_tabs,
+            is_dashboard_panel,
+            is_roster_dashboard,
+            is_mod_dashboard,
+            kbo_hub_language(),
+            league_logo_path[0] != '\0',
+            team_logo_path[0] != '\0');
+    }
     KboWindowTextBuffer extra_css;
     extra_css.data = scrollbar_css;
     extra_css.capacity = sizeof(scrollbar_css);
@@ -275,20 +263,6 @@ WCHAR* kbo_build_webview_hub_html(void)
     kbo_window_text_appendf(&buffer, "</a> / ");
     kbo_html_append_escaped(&buffer, current_date_text);
     kbo_window_text_appendf(&buffer, "</div></div></div>");
-    if (captain_name[0] != '\0') {
-        kbo_window_text_appendf(&buffer, "<div class='captainPlate' title='");
-        kbo_html_append_escaped(&buffer, kbo_hub_text("\xec\xa3\xbc\xec\x9e\xa5", "Captain"));
-        if (captain_source[0] != '\0') {
-            kbo_window_text_appendf(&buffer, " / ");
-            kbo_html_append_escaped(&buffer, captain_source);
-        }
-        if (captain_player_id != 0u) {
-            kbo_window_text_appendf(&buffer, " / ID %u", captain_player_id);
-        }
-        kbo_window_text_appendf(&buffer, "'><span class='captainMark'>C</span><span class='captainName'>");
-        kbo_html_append_escaped(&buffer, captain_name);
-        kbo_window_text_appendf(&buffer, "</span></div>");
-    }
     kbo_window_text_appendf(&buffer, "</header>");
     if (g_kbo_hub_open_dropdown == 1) {
         kbo_webview_append_league_dropdown(&buffer, current_year);
@@ -319,47 +293,53 @@ WCHAR* kbo_build_webview_hub_html(void)
     size_t selected_view_bytes = buffer.length >= selected_view_start
         ? buffer.length - selected_view_start
         : 0u;
-    kbo_log_runtimef(
-        "KBO F2 hub selected view html appended view=%d mod=%d bytes=%llu total_bytes=%llu capacity=%llu truncated=%d",
-        g_kbo_hub_selected_view,
-        g_kbo_hub_selected_mod_subview,
-        (unsigned long long)selected_view_bytes,
-        (unsigned long long)buffer.length,
-        (unsigned long long)buffer.capacity,
-        buffer.length >= buffer.capacity - 1u ? 1 : 0);
+    if (kbo_hub_current_mode_is_developer()) {
+        kbo_log_runtimef(
+            "KBO F2 hub selected view html appended view=%d mod=%d bytes=%llu total_bytes=%llu capacity=%llu truncated=%d",
+            g_kbo_hub_selected_view,
+            g_kbo_hub_selected_mod_subview,
+            (unsigned long long)selected_view_bytes,
+            (unsigned long long)buffer.length,
+            (unsigned long long)buffer.capacity,
+            buffer.length >= buffer.capacity - 1u ? 1 : 0);
+    }
     KBO_PROFILE_END(profile_webview_selected_view, "webview.build_html.selected_view");
     kbo_window_text_appendf(&buffer, "</section></main></div>");
     kbo_webview_append_roster_sort_script(&buffer);
-    kbo_window_text_appendf(
-        &buffer,
-        "<script>(function(){"
-        "function q(s){return document.querySelector(s)}"
-        "function sz(n){if(!n)return 'missing';var r=n.getBoundingClientRect();return Math.round(r.width)+'x'+Math.round(r.height)}"
-        "function bg(n){return n?getComputedStyle(n).backgroundColor:'missing'}"
-        "function send(k,m){try{location.href='kbo://render/'+k+'/'+encodeURIComponent(String(m)).slice(0,900)}catch(_){}}"
-        "window.addEventListener('error',function(e){send('error',e&&e.message?e.message:'unknown')});"
-        "setTimeout(function(){var app=q('.app'),panel=q('.panel'),content=q('.content'),rights=q('.rights');"
-        "send('ready','view=%d mod=%d body='+sz(document.body)+' app='+sz(app)+' panel='+sz(panel)+' content='+sz(content)+' rights='+sz(rights)+' bg='+bg(document.body)+'/'+bg(app)+'/'+bg(panel)+' cards='+document.querySelectorAll('.card').length+' text='+document.body.innerText.length);"
-        "},0);"
-        "})();</script>",
-        g_kbo_hub_selected_view,
-        g_kbo_hub_selected_mod_subview);
+    if (kbo_hub_current_mode_is_developer()) {
+        kbo_window_text_appendf(
+            &buffer,
+            "<script>(function(){"
+            "function q(s){return document.querySelector(s)}"
+            "function sz(n){if(!n)return 'missing';var r=n.getBoundingClientRect();return Math.round(r.width)+'x'+Math.round(r.height)}"
+            "function bg(n){return n?getComputedStyle(n).backgroundColor:'missing'}"
+            "function send(k,m){try{location.href='kbo://render/'+k+'/'+encodeURIComponent(String(m)).slice(0,900)}catch(_){}}"
+            "window.addEventListener('error',function(e){send('error',e&&e.message?e.message:'unknown')});"
+            "setTimeout(function(){var app=q('.app'),panel=q('.panel'),content=q('.content'),rights=q('.rights');"
+            "send('ready','view=%d mod=%d body='+sz(document.body)+' app='+sz(app)+' panel='+sz(panel)+' content='+sz(content)+' rights='+sz(rights)+' bg='+bg(document.body)+'/'+bg(app)+'/'+bg(panel)+' cards='+document.querySelectorAll('.card').length+' text='+document.body.innerText.length);"
+            "},0);"
+            "})();</script>",
+            g_kbo_hub_selected_view,
+            g_kbo_hub_selected_mod_subview);
+    }
     kbo_window_text_appendf(&buffer, "</body></html>");
 
     KBO_PROFILE_BEGIN(profile_webview_wide);
     int wide_len = MultiByteToWideChar(CP_UTF8, 0, html, -1, NULL, 0);
     WCHAR* wide = NULL;
     if (wide_len > 0) {
-        wide = (WCHAR*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, (SIZE_T)wide_len * sizeof(WCHAR));
+        wide = (WCHAR*)HeapAlloc(GetProcessHeap(), 0, (SIZE_T)wide_len * sizeof(WCHAR));
         if (wide != NULL) {
             MultiByteToWideChar(CP_UTF8, 0, html, -1, wide, wide_len);
         }
     }
-    kbo_log_runtimef(
-        "KBO F2 hub html build finish utf8_bytes=%llu wide_chars=%d wide_allocated=%d",
-        (unsigned long long)buffer.length,
-        wide_len,
-        wide != NULL ? 1 : 0);
+    if (kbo_hub_current_mode_is_developer()) {
+        kbo_log_runtimef(
+            "KBO F2 hub html build finish utf8_bytes=%llu wide_chars=%d wide_allocated=%d",
+            (unsigned long long)buffer.length,
+            wide_len,
+            wide != NULL ? 1 : 0);
+    }
     KBO_PROFILE_END(profile_webview_wide, "webview.build_html.utf8_to_wide");
     HeapFree(GetProcessHeap(), 0, html);
     KBO_PROFILE_END(profile_webview_build_html, "webview.build_html.total");

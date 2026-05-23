@@ -38,11 +38,13 @@ void kbo_webview_navigate_current_immediate(void)
                 && g_kbo_webview_last_html_chars == wide_chars
                 && g_kbo_webview_last_html_hash == html_hash) {
             kbo_profiler_record_us("webview.navigate_current.unchanged", 0);
-            kbo_log_runtimef(
-                "WebView2 NavigateToString current skipped reason=unchanged view=%d mod=%d wide_chars=%d",
-                g_kbo_hub_selected_view,
-                g_kbo_hub_selected_mod_subview,
-                wide_chars);
+            if (kbo_hub_current_mode_is_developer()) {
+                kbo_log_runtimef(
+                    "WebView2 NavigateToString current skipped reason=unchanged view=%d mod=%d wide_chars=%d",
+                    g_kbo_hub_selected_view,
+                    g_kbo_hub_selected_mod_subview,
+                    wide_chars);
+            }
             HeapFree(GetProcessHeap(), 0, html);
             KBO_PROFILE_END(profile_webview_navigate, "webview.navigate_current");
             return;
@@ -54,12 +56,14 @@ void kbo_webview_navigate_current_immediate(void)
             g_kbo_webview_last_html_hash = html_hash;
             g_kbo_webview_last_html_chars = wide_chars;
         }
-        kbo_log_runtimef(
-            "WebView2 NavigateToString current view=%d mod=%d wide_chars=%d hr=0x%08lx",
-            g_kbo_hub_selected_view,
-            g_kbo_hub_selected_mod_subview,
-            wide_chars,
-            (unsigned long)hr);
+        if (FAILED(hr) || kbo_hub_current_mode_is_developer()) {
+            kbo_log_runtimef(
+                "WebView2 NavigateToString current view=%d mod=%d wide_chars=%d hr=0x%08lx",
+                g_kbo_hub_selected_view,
+                g_kbo_hub_selected_mod_subview,
+                wide_chars,
+                (unsigned long)hr);
+        }
         HeapFree(GetProcessHeap(), 0, html);
     } else {
         kbo_log_runtimef(
@@ -80,17 +84,21 @@ void kbo_webview_navigate_current(void)
 
     if (InterlockedCompareExchange(&g_kbo_webview_navigate_current_pending, 1, 0) != 0) {
         kbo_profiler_record_us("webview.navigate_current.coalesced", 0);
-        kbo_log_runtimef(
-            "WebView2 navigate_current coalesced view=%d mod=%d",
-            g_kbo_hub_selected_view,
-            g_kbo_hub_selected_mod_subview);
+        if (kbo_hub_current_mode_is_developer()) {
+            kbo_log_runtimef(
+                "WebView2 navigate_current coalesced view=%d mod=%d",
+                g_kbo_hub_selected_view,
+                g_kbo_hub_selected_mod_subview);
+        }
         return;
     }
-    kbo_log_runtimef(
-        "WebView2 navigate_current scheduled hwnd=%p view=%d mod=%d",
-        (void*)hwnd,
-        g_kbo_hub_selected_view,
-        g_kbo_hub_selected_mod_subview);
+    if (kbo_hub_current_mode_is_developer()) {
+        kbo_log_runtimef(
+            "WebView2 navigate_current scheduled hwnd=%p view=%d mod=%d",
+            (void*)hwnd,
+            g_kbo_hub_selected_view,
+            g_kbo_hub_selected_mod_subview);
+    }
     PostMessageA(hwnd, KBO_WM_SHOW_HUB_CONTENT, 0, 0);
 }
 

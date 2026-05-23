@@ -38,7 +38,6 @@ LRESULT CALLBACK kbo_hotkey_window_proc(HWND hwnd, UINT message, WPARAM wparam, 
         return 1;
 
     case WM_PAINT: {
-        kbo_layout_hotkey_window(hwnd);
         PAINTSTRUCT ps;
         HDC hdc = BeginPaint(hwnd, &ps);
         if (hdc != NULL) {
@@ -188,6 +187,7 @@ LRESULT CALLBACK kbo_hotkey_window_proc(HWND hwnd, UINT message, WPARAM wparam, 
         }
         if (wparam == 1u && g_kbo_hotkey_window != NULL && IsWindowVisible(g_kbo_hotkey_window)) {
             static uintptr_t s_last_db_ptr = 0;
+            static ULONGLONG s_last_scrollbar_invalidate_ms = 0ull;
             uintptr_t cur_db = get_ootp_cached_global_database();
             if (cur_db != s_last_db_ptr) {
                 s_last_db_ptr = cur_db;
@@ -195,7 +195,11 @@ LRESULT CALLBACK kbo_hotkey_window_proc(HWND hwnd, UINT message, WPARAM wparam, 
                 kbo_refresh_hotkey_window();
                 InvalidateRect(hwnd, NULL, TRUE);
             } else {
-                InvalidateRect(hwnd, &g_kbo_hub_scrollbar_rect, FALSE);
+                ULONGLONG now_ms = GetTickCount64();
+                if (now_ms - s_last_scrollbar_invalidate_ms >= 250ull) {
+                    s_last_scrollbar_invalidate_ms = now_ms;
+                    InvalidateRect(hwnd, &g_kbo_hub_scrollbar_rect, FALSE);
+                }
             }
         }
         break;

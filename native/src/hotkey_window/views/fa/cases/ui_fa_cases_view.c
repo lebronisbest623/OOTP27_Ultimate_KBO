@@ -289,7 +289,8 @@ static void kbo_webview_append_fa_market_virtual_rows(
             sizeof(rights_abbrev),
             "-");
 
-        char row_html[4096] = {0};
+        char row_html[4096];
+        row_html[0] = '\0';
         KboWindowTextBuffer row_buffer;
         row_buffer.data = row_html;
         row_buffer.capacity = sizeof(row_html);

@@ -5,7 +5,22 @@
 #include <string.h>
 
 #include "../../../../core/dates/core_text_date.h"
+#include "../../../../core/sync/lock.h"
 #include "ui_image_sources.h"
+
+enum {
+    KBO_WEBVIEW_IMAGE_SRC_CACHE_MAX = 256,
+    KBO_WEBVIEW_IMAGE_SRC_CACHE_MAX_BYTES = 128 * 1024
+};
+
+typedef struct KboWebviewImageSrcCacheEntry {
+    char path[MAX_PATH];
+    char* src;
+    size_t src_len;
+} KboWebviewImageSrcCacheEntry;
+
+static KboLock g_kbo_webview_image_src_cache_lock = KBO_LOCK_INIT;
+static KboWebviewImageSrcCacheEntry g_kbo_webview_image_src_cache[KBO_WEBVIEW_IMAGE_SRC_CACHE_MAX];
 
 static void kbo_webview_append_file_url(KboWindowTextBuffer* buffer, const char* path)
 {
@@ -28,6 +43,32 @@ static void kbo_webview_append_file_url(KboWindowTextBuffer* buffer, const char*
             kbo_window_text_append_char(buffer, (char)ch);
         }
     }
+}
+
+static char* kbo_webview_make_file_url_alloc(const char* path, size_t* out_len)
+{
+    if (out_len != NULL) {
+        *out_len = 0u;
+    }
+    if (path == NULL || path[0] == '\0') {
+        return NULL;
+    }
+
+    size_t cap = strlen(path) * 3u + 16u;
+    char* out = (char*)HeapAlloc(GetProcessHeap(), 0, cap);
+    if (out == NULL) {
+        return NULL;
+    }
+    out[0] = '\0';
+    KboWindowTextBuffer buffer;
+    buffer.data = out;
+    buffer.capacity = cap;
+    buffer.length = 0;
+    kbo_webview_append_file_url(&buffer, path);
+    if (out_len != NULL) {
+        *out_len = buffer.length;
+    }
+    return out;
 }
 
 void kbo_webview_copy_file_url(const char* path, char* out, size_t out_size)
@@ -68,57 +109,120 @@ static const char* kbo_webview_image_mime_for_path(const char* path)
     return NULL;
 }
 
-void kbo_webview_append_image_src(KboWindowTextBuffer* buffer, const char* path)
+static int kbo_webview_try_append_cached_image_src(KboWindowTextBuffer* buffer, const char* path)
 {
-    if (buffer == NULL || path == NULL || path[0] == '\0') {
-        return;
+    if (buffer == NULL || path == NULL || path[0] == '\0' || strlen(path) >= MAX_PATH) {
+        return 0;
+    }
+
+    char* src = NULL;
+    size_t src_len = 0u;
+    kbo_lock_enter(&g_kbo_webview_image_src_cache_lock);
+    for (int i = 0; i < KBO_WEBVIEW_IMAGE_SRC_CACHE_MAX; i++) {
+        KboWebviewImageSrcCacheEntry* entry = &g_kbo_webview_image_src_cache[i];
+        if (entry->src != NULL && strcmp(entry->path, path) == 0) {
+            src = entry->src;
+            src_len = entry->src_len;
+            break;
+        }
+    }
+    kbo_lock_leave(&g_kbo_webview_image_src_cache_lock);
+
+    if (src == NULL || src_len == 0u) {
+        return 0;
+    }
+    kbo_window_text_append_raw(buffer, src, src_len);
+    return 1;
+}
+
+static int kbo_webview_cache_image_src_take(const char* path, char* src, size_t src_len)
+{
+    if (path == NULL || path[0] == '\0' || src == NULL || src_len == 0u
+            || src_len > KBO_WEBVIEW_IMAGE_SRC_CACHE_MAX_BYTES || strlen(path) >= MAX_PATH) {
+        return 0;
+    }
+
+    int stored = 0;
+    kbo_lock_enter(&g_kbo_webview_image_src_cache_lock);
+    for (int i = 0; i < KBO_WEBVIEW_IMAGE_SRC_CACHE_MAX; i++) {
+        KboWebviewImageSrcCacheEntry* entry = &g_kbo_webview_image_src_cache[i];
+        if (entry->src != NULL && strcmp(entry->path, path) == 0) {
+            stored = 0;
+            goto done;
+        }
+    }
+    for (int i = 0; i < KBO_WEBVIEW_IMAGE_SRC_CACHE_MAX; i++) {
+        KboWebviewImageSrcCacheEntry* entry = &g_kbo_webview_image_src_cache[i];
+        if (entry->src == NULL) {
+            snprintf(entry->path, sizeof(entry->path), "%s", path);
+            entry->src = src;
+            entry->src_len = src_len;
+            stored = 1;
+            goto done;
+        }
+    }
+
+done:
+    kbo_lock_leave(&g_kbo_webview_image_src_cache_lock);
+    return stored;
+}
+
+static char* kbo_webview_make_image_src_alloc(const char* path, size_t* out_len)
+{
+    if (out_len != NULL) {
+        *out_len = 0u;
+    }
+    if (path == NULL || path[0] == '\0') {
+        return NULL;
     }
 
     const char* mime = kbo_webview_image_mime_for_path(path);
     if (mime == NULL) {
-        kbo_webview_append_file_url(buffer, path);
-        return;
+        return kbo_webview_make_file_url_alloc(path, out_len);
     }
 
     FILE* file = fopen(path, "rb");
     if (file == NULL) {
-        return;
+        return NULL;
     }
     if (fseek(file, 0, SEEK_END) != 0) {
         fclose(file);
-        return;
+        return NULL;
     }
     long file_size = ftell(file);
     if (file_size <= 0 || file_size > 1024 * 1024) {
         fclose(file);
-        return;
+        return NULL;
     }
 
     size_t encoded_size = (((size_t)file_size + 2u) / 3u) * 4u;
     size_t prefix_size = strlen("data:") + strlen(mime) + strlen(";base64,");
-    size_t available = buffer->capacity > buffer->length ? buffer->capacity - buffer->length : 0u;
-    if (prefix_size + encoded_size >= available) {
+    size_t cap = prefix_size + encoded_size + 1u;
+    char* src = (char*)HeapAlloc(GetProcessHeap(), 0, cap);
+    unsigned char* data = (unsigned char*)HeapAlloc(GetProcessHeap(), 0, (SIZE_T)file_size);
+    if (src == NULL || data == NULL) {
+        if (src != NULL) { HeapFree(GetProcessHeap(), 0, src); }
+        if (data != NULL) { HeapFree(GetProcessHeap(), 0, data); }
         fclose(file);
-        return;
+        return NULL;
     }
 
     rewind(file);
-
-    unsigned char* data = (unsigned char*)HeapAlloc(GetProcessHeap(), 0, (SIZE_T)file_size);
-    if (data == NULL) {
-        fclose(file);
-        return;
-    }
     size_t read = fread(data, 1, (size_t)file_size, file);
     fclose(file);
     if (read != (size_t)file_size) {
         HeapFree(GetProcessHeap(), 0, data);
-        return;
+        HeapFree(GetProcessHeap(), 0, src);
+        return NULL;
     }
 
     static const char alphabet[] =
         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    kbo_window_text_appendf(buffer, "data:%s;base64,", mime);
+    KboWindowTextBuffer buffer;
+    buffer.data = src;
+    buffer.capacity = cap;
+    buffer.length = 0;
+    kbo_window_text_appendf(&buffer, "data:%s;base64,", mime);
     for (size_t i = 0; i < read; i += 3) {
         unsigned int value = ((unsigned int)data[i]) << 16;
         int remaining = (int)(read - i);
@@ -130,9 +234,36 @@ void kbo_webview_append_image_src(KboWindowTextBuffer* buffer, const char* path)
             remaining > 1 ? alphabet[(value >> 6) & 0x3f] : '=',
             remaining > 2 ? alphabet[value & 0x3f] : '='
         };
-        kbo_window_text_append_raw(buffer, encoded, sizeof(encoded));
+        kbo_window_text_append_raw(&buffer, encoded, sizeof(encoded));
     }
     HeapFree(GetProcessHeap(), 0, data);
+    if (out_len != NULL) {
+        *out_len = buffer.length;
+    }
+    return src;
+}
+
+void kbo_webview_append_image_src(KboWindowTextBuffer* buffer, const char* path)
+{
+    if (buffer == NULL || path == NULL || path[0] == '\0') {
+        return;
+    }
+
+    if (kbo_webview_try_append_cached_image_src(buffer, path)) {
+        return;
+    }
+
+    size_t src_len = 0u;
+    char* src = kbo_webview_make_image_src_alloc(path, &src_len);
+    if (src == NULL || src_len == 0u) {
+        if (src != NULL) { HeapFree(GetProcessHeap(), 0, src); }
+        return;
+    }
+
+    kbo_window_text_append_raw(buffer, src, src_len);
+    if (!kbo_webview_cache_image_src_take(path, src, src_len)) {
+        HeapFree(GetProcessHeap(), 0, src);
+    }
 }
 
 void kbo_webview_copy_image_src(const char* path, char* out, size_t out_size)
