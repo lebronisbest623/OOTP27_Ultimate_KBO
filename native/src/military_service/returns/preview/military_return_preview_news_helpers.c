@@ -127,6 +127,15 @@ int kbo_military_return_preview_collect(
     if (!find_kbo_global_player_vector(&player_vector, &player_count, NULL)) {
         return 0;
     }
+    if (player_vector == 0u
+            || player_count <= 0
+            || player_count > KBO_RUNTIME_MAX_PLAYER_VECTOR_COUNT) {
+        return 0;
+    }
+    SIZE_T player_vector_bytes = (SIZE_T)player_count * sizeof(uintptr_t);
+    if (!memory_range_readable((void*)player_vector, player_vector_bytes)) {
+        return 0;
+    }
 
     uint8_t* sang = find_kbo_team_by_csv_id_any_league("SANG", 0);
     uint8_t* kpb = find_kbo_team_by_csv_id_any_league("KPB", 0);
