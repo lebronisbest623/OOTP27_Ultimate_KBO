@@ -23,7 +23,8 @@ int kbo_fa_declaration_case_candidate(const char* case_label)
     return strcmp(case_label, "KBO_FA_APPROVED") == 0
         || strcmp(case_label, "KBO_FA_ELIGIBLE_NOT_APPROVED") == 0
         || strcmp(case_label, "KBO_FA_DEFERRED") == 0
-        || strcmp(case_label, "KBO_FA_BY_HISTORY_UNGRADED") == 0;
+        || strcmp(case_label, "KBO_FA_BY_HISTORY_UNGRADED") == 0
+        || strcmp(case_label, "KBO_FA_ELIGIBLE_CURRENT") == 0;
 }
 
 int kbo_fa_declaration_find_candidate(

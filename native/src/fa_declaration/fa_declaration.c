@@ -140,6 +140,17 @@ int kbo_handle_fa_declaration_event(uint32_t event_yyyymmdd, const char* source)
             &candidate_count);
     }
 
+    int roster_scanned = 0;
+    int roster_added = kbo_fa_declaration_collect_roster_candidates(
+        event_yyyymmdd,
+        season,
+        league_id,
+        salary_grades,
+        grade_count,
+        candidates,
+        &candidate_count,
+        &roster_scanned);
+
     int declared = 0;
     int deferred = 0;
     int deferred_retry = 0;
@@ -228,13 +239,15 @@ int kbo_handle_fa_declaration_event(uint32_t event_yyyymmdd, const char* source)
     }
 
     kbo_log_runtimef(
-        "KBO FA declaration event source=%s date=%u season=%u league=%u market_rows=%d market_candidates=%d candidates=%d declared=%d deferred=%d retry=%d no_market=%d grades=%d deferred_arbitration_repaired=%d csv=%s",
+        "KBO FA declaration event source=%s date=%u season=%u league=%u market_rows=%d market_candidates=%d roster_scanned=%d roster_candidates=%d candidates=%d declared=%d deferred=%d retry=%d no_market=%d grades=%d deferred_arbitration_repaired=%d csv=%s",
         source != NULL ? source : "",
         event_yyyymmdd,
         season,
         league_id,
         market_count,
         market_added,
+        roster_scanned,
+        roster_added,
         candidate_count,
         declared,
         deferred,
@@ -251,6 +264,8 @@ int kbo_handle_fa_declaration_event(uint32_t event_yyyymmdd, const char* source)
         kbo_log_field_u32(&audit_fields, "league_id", league_id);
         kbo_log_field_i32(&audit_fields, "market_rows", market_count);
         kbo_log_field_i32(&audit_fields, "market_candidates", market_added);
+        kbo_log_field_i32(&audit_fields, "roster_scanned", roster_scanned);
+        kbo_log_field_i32(&audit_fields, "roster_candidates", roster_added);
         kbo_log_field_i32(&audit_fields, "candidates", candidate_count);
         kbo_log_field_i32(&audit_fields, "declared", declared);
         kbo_log_field_i32(&audit_fields, "deferred", deferred);

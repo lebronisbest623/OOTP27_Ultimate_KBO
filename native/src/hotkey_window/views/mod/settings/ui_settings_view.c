@@ -3,6 +3,7 @@
 #include "../../../support/text/language/ui_language.h"
 #include "../../../../core/core_flags/api/flags_api.h"
 #include "../../../../custom_events/asian_games/policy/asian_games_roster_policy.h"
+#include "../../../../fa_market_classification/policy/fa_market_policy.h"
 
 #include <stdio.h>
 
@@ -65,6 +66,33 @@ static void kbo_webview_append_asian_games_max_wildcards_setting(KboWindowTextBu
         KBO_ASIAN_GAMES_MAX_WILDCARDS_MIN,
         KBO_ASIAN_GAMES_MAX_WILDCARDS_MAX,
         max_wildcards);
+}
+
+static void kbo_webview_append_fa_declaration_service_settings(KboWindowTextBuffer* buffer)
+{
+    int days_per_season = kbo_fa_market_policy_service_time_days_per_season();
+    int min_seasons = kbo_fa_market_policy_fa_declaration_service_seasons_min();
+    kbo_window_text_appendf(
+        buffer,
+        "<div class='settingRow'><label class='settingLabel' for='faServiceDaysPerSeason'>");
+    kbo_html_append_escaped(buffer, kbo_hub_text("FA 1시즌 인정일", "FA service days per season"));
+    kbo_window_text_appendf(
+        buffer,
+        "</label><input id='faServiceDaysPerSeason' class='ootpSelect salaryInput' type='text' inputmode='numeric' pattern='[0-9]*' data-min='1' data-max='366' data-step='1' value='%d' "
+        "onchange=\"location.href='kbo://settings/fa-service-days-per-season/'+this.value\" "
+        "onkeydown=\"if(event.key==='Enter'){this.blur();}\"></div>",
+        days_per_season);
+
+    kbo_window_text_appendf(
+        buffer,
+        "<div class='settingRow'><label class='settingLabel' for='faDeclarationServiceSeasonsMin'>");
+    kbo_html_append_escaped(buffer, kbo_hub_text("FA 선언 최소 시즌", "FA declaration service seasons"));
+    kbo_window_text_appendf(
+        buffer,
+        "</label><input id='faDeclarationServiceSeasonsMin' class='ootpSelect salaryInput' type='text' inputmode='numeric' pattern='[0-9]*' data-min='1' data-max='40' data-step='1' value='%d' "
+        "onchange=\"location.href='kbo://settings/fa-declaration-service-seasons-min/'+this.value\" "
+        "onkeydown=\"if(event.key==='Enter'){this.blur();}\"></div>",
+        min_seasons);
 }
 
 void kbo_webview_append_settings_view(KboWindowTextBuffer* buffer, int selected_settings_subview)
@@ -135,6 +163,9 @@ void kbo_webview_append_settings_view(KboWindowTextBuffer* buffer, int selected_
         kbo_webview_append_asian_games_max_wildcards_setting(buffer);
         kbo_webview_append_asian_games_wildcard_age_min_setting(buffer);
         kbo_webview_append_settings_section_end(buffer);
+        kbo_webview_append_settings_section_start(buffer, "FA 선언", "FA declaration");
+        kbo_webview_append_fa_declaration_service_settings(buffer);
+        kbo_webview_append_settings_section_end(buffer);
         kbo_window_text_appendf(buffer, "</section></div>");
         return;
     }
@@ -180,6 +211,9 @@ void kbo_webview_append_settings_view(KboWindowTextBuffer* buffer, int selected_
 
     kbo_webview_append_asian_quota_salary_limit_setting(buffer);
 
+    kbo_webview_append_settings_section_end(buffer);
+    kbo_webview_append_settings_section_start(buffer, "FA 선언", "FA declaration");
+    kbo_webview_append_fa_declaration_service_settings(buffer);
     kbo_webview_append_settings_section_end(buffer);
     kbo_webview_append_settings_section_start(buffer, "아시안게임 대표팀", "Asian Games roster");
     kbo_webview_append_asian_games_max_wildcards_setting(buffer);

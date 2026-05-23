@@ -1,7 +1,7 @@
 # OOTP27 KBO Launcher Architecture
 
 This document describes the current structure of the repository. The governing
-principles live in `docs/CONSTITUTION.md`; when this file and the constitution
+principles live in `CONSTITUTION.md` at the repository root; when this file and the constitution
 disagree, the constitution wins.
 
 ## Runtime Layers

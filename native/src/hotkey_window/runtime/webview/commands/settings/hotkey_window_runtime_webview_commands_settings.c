@@ -1,5 +1,6 @@
 #include "../../hotkey_window_webview.h"
 #include "../../../../../custom_events/asian_games/policy/asian_games_roster_policy.h"
+#include "../../../../../fa_market_classification/policy/fa_market_policy.h"
 
 static int kbo_webview_settings_command_has_prefix(const char* cmd, const char* prefix)
 {
@@ -12,6 +13,8 @@ static int kbo_webview_settings_command_allowed_for_current_mode(const char* cmd
         return 1;
     }
     return strncmp(cmd, "settings/asian-quota-salary-limit/", 35) == 0
+        || kbo_webview_settings_command_has_prefix(cmd, "settings/fa-service-days-per-season/")
+        || kbo_webview_settings_command_has_prefix(cmd, "settings/fa-declaration-service-seasons-min/")
         || kbo_webview_settings_command_has_prefix(cmd, "settings/asian-games-max-wildcards/")
         || kbo_webview_settings_command_has_prefix(cmd, "settings/asian-games-wildcard-age-min/");
 }
@@ -80,6 +83,50 @@ int kbo_webview_handle_settings_command(const char* cmd)
             kbo_log_runtimef("settings webview: Asian quota salary limit=%d", clamped);
         } else {
             kbo_log_runtimef("settings webview: failed to write Asian quota salary limit=%d", value);
+        }
+        g_kbo_hub_selected_view = KBO_HUB_VIEW_SETTINGS;
+        g_kbo_hub_open_dropdown = 0;
+        kbo_webview_navigate_current();
+        return 1;
+    }
+    const char* fa_service_days_prefix = "settings/fa-service-days-per-season/";
+    size_t fa_service_days_prefix_len = strlen(fa_service_days_prefix);
+    if (strncmp(cmd, fa_service_days_prefix, fa_service_days_prefix_len) == 0) {
+        if (!kbo_hub_selected_league_is_kbo()) {
+            g_kbo_hub_selected_view = KBO_HUB_VIEW_MOD_INFO;
+            g_kbo_hub_open_dropdown = 0;
+            kbo_webview_navigate_current();
+            return 1;
+        }
+        int value = atoi(cmd + fa_service_days_prefix_len);
+        if (kbo_set_fa_market_policy_service_time_days_per_season(value)) {
+            kbo_log_runtimef(
+                "settings webview: FA service days per season=%d",
+                kbo_fa_market_policy_service_time_days_per_season());
+        } else {
+            kbo_log_runtimef("settings webview: failed to write FA service days per season=%d", value);
+        }
+        g_kbo_hub_selected_view = KBO_HUB_VIEW_SETTINGS;
+        g_kbo_hub_open_dropdown = 0;
+        kbo_webview_navigate_current();
+        return 1;
+    }
+    const char* fa_service_seasons_prefix = "settings/fa-declaration-service-seasons-min/";
+    size_t fa_service_seasons_prefix_len = strlen(fa_service_seasons_prefix);
+    if (strncmp(cmd, fa_service_seasons_prefix, fa_service_seasons_prefix_len) == 0) {
+        if (!kbo_hub_selected_league_is_kbo()) {
+            g_kbo_hub_selected_view = KBO_HUB_VIEW_MOD_INFO;
+            g_kbo_hub_open_dropdown = 0;
+            kbo_webview_navigate_current();
+            return 1;
+        }
+        int value = atoi(cmd + fa_service_seasons_prefix_len);
+        if (kbo_set_fa_market_policy_fa_declaration_service_seasons_min(value)) {
+            kbo_log_runtimef(
+                "settings webview: FA declaration service seasons min=%d",
+                kbo_fa_market_policy_fa_declaration_service_seasons_min());
+        } else {
+            kbo_log_runtimef("settings webview: failed to write FA declaration service seasons min=%d", value);
         }
         g_kbo_hub_selected_view = KBO_HUB_VIEW_SETTINGS;
         g_kbo_hub_open_dropdown = 0;

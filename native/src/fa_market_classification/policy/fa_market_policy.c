@@ -3,10 +3,13 @@
 
 #include "fa_market_policy.h"
 
+#include "../../core/core_flags/localappdata/localappdata_reader.h"
 #include "../../core/league_roles/kbo_league_roles.h"
 #include "../../core/policy/core_policy.h"
 
 #define KBO_FA_MARKET_POLICY_FILE "fa_market_policy.json"
+#define KBO_FA_MARKET_SERVICE_TIME_DAYS_PER_SEASON_KEY "service_time_days_per_season"
+#define KBO_FA_MARKET_FA_DECLARATION_SERVICE_SEASONS_MIN_KEY "fa_declaration_service_seasons_min"
 
 static INIT_ONCE g_kbo_fa_market_policy_once = INIT_ONCE_STATIC_INIT;
 static KboFaMarketPolicy g_kbo_fa_market_policy;
@@ -43,6 +46,8 @@ static BOOL CALLBACK kbo_fa_market_policy_init_once(PINIT_ONCE init_once, PVOID 
         1000000);
     p->player_age_min = kbo_fa_market_policy_int("player_age_min", 16, 0, 80);
     p->player_age_max = kbo_fa_market_policy_int("player_age_max", 60, 0, 100);
+    p->service_time_days_per_season = kbo_fa_market_policy_int(KBO_FA_MARKET_SERVICE_TIME_DAYS_PER_SEASON_KEY, 145, 1, 366);
+    p->fa_declaration_service_seasons_min = kbo_fa_market_policy_int(KBO_FA_MARKET_FA_DECLARATION_SERVICE_SEASONS_MIN_KEY, 8, 1, 40);
     p->salary_grade_a_overall_rank_max = kbo_fa_market_policy_int("salary_grade_a_overall_rank_max", 30, 0, 10000);
     p->salary_grade_a_team_rank_max = kbo_fa_market_policy_int("salary_grade_a_team_rank_max", 3, 0, 10000);
     p->salary_grade_b_overall_rank_max = kbo_fa_market_policy_int("salary_grade_b_overall_rank_max", 60, 0, 10000);
@@ -82,4 +87,42 @@ const KboFaMarketPolicy* kbo_fa_market_policy(void)
         NULL,
         NULL);
     return &g_kbo_fa_market_policy;
+}
+
+int kbo_fa_market_policy_service_time_days_per_season(void)
+{
+    return kbo_fa_market_policy()->service_time_days_per_season;
+}
+
+int kbo_fa_market_policy_fa_declaration_service_seasons_min(void)
+{
+    return kbo_fa_market_policy()->fa_declaration_service_seasons_min;
+}
+
+int kbo_set_fa_market_policy_service_time_days_per_season(int value)
+{
+    int clamped = value < 1 ? 1 : (value > 366 ? 366 : value);
+    if (!kbo_write_localappdata_named_json_int_value(
+            KBO_FA_MARKET_POLICY_FILE,
+            KBO_FA_MARKET_SERVICE_TIME_DAYS_PER_SEASON_KEY,
+            clamped)) {
+        return 0;
+    }
+    (void)kbo_fa_market_policy();
+    g_kbo_fa_market_policy.service_time_days_per_season = clamped;
+    return 1;
+}
+
+int kbo_set_fa_market_policy_fa_declaration_service_seasons_min(int value)
+{
+    int clamped = value < 1 ? 1 : (value > 40 ? 40 : value);
+    if (!kbo_write_localappdata_named_json_int_value(
+            KBO_FA_MARKET_POLICY_FILE,
+            KBO_FA_MARKET_FA_DECLARATION_SERVICE_SEASONS_MIN_KEY,
+            clamped)) {
+        return 0;
+    }
+    (void)kbo_fa_market_policy();
+    g_kbo_fa_market_policy.fa_declaration_service_seasons_min = clamped;
+    return 1;
 }

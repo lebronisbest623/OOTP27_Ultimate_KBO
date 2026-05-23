@@ -2,7 +2,7 @@
 
 > 이 문서는 코드 품질과 구조 개선을 위한 로드맵입니다.
 > 실제 작업은 한 번에 한 단계씩, 사용자가 명시적으로 시작 지시할 때 진행합니다.
-> 기준 문서: [`CONSTITUTION.md`](./CONSTITUTION.md), [`ARCHITECTURE.md`](./ARCHITECTURE.md)
+> 기준 문서: [`CONSTITUTION.md`](../CONSTITUTION.md), [`ARCHITECTURE.md`](./ARCHITECTURE.md)
 
 기준 시점: 2026-05-19 KST. 줄 수는 빈 줄 포함 물리 줄 기준이며, 이후 변경으로 달라질 수 있습니다.
 
@@ -281,7 +281,7 @@ dotnet build .\OOTP27-KBO-Launcher.sln
 - `src/KBOLauncher/Infrastructure/KboSeedFiles.cs`
 - `src/KBOLauncher/Infrastructure/KboFlags.cs`
 - `src/KBOLauncher/Application/LauncherLaunchFlow.cs`
-- `docs/CONSTITUTION.md`
+- `CONSTITUTION.md`
 - `docs/ARCHITECTURE.md`
 - `KBOLauncher.Tests/`
 

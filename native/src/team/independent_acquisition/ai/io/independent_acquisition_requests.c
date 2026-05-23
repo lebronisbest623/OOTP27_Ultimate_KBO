@@ -4,8 +4,27 @@
 #include "../independent_acquisition_ai_internal.h"
 
 #include "../../../../core/logging/core_log.h"
+#include "../../../../foreign/common/player_eval/foreign_waiver_player_eval.h"
 #include "../../../../foreign/injury/api/foreign_injury_labels.h"
 #include "sql/independent_acquisition_sql_store.h"
+
+static const char* kbo_independent_acquisition_candidate_slot_label(
+    const KboIndependentAcquisitionCandidate* candidate)
+{
+    if (candidate == NULL || candidate->player_ptr == 0u) {
+        return "-";
+    }
+    uint8_t* player = (uint8_t*)candidate->player_ptr;
+    if (!kbo_player_is_foreign_for_kbo_rights(player)) {
+        return "Domestic";
+    }
+    if (candidate->slot_type != 0u) {
+        return kbo_foreign_injury_slot_label(candidate->slot_type);
+    }
+    return candidate->asian_quota || kbo_player_is_asian_quota_slot_candidate(player)
+        ? kbo_foreign_injury_slot_label(2u)
+        : kbo_foreign_injury_slot_label(1u);
+}
 
 int kbo_independent_acquisition_request_exists(
     uint32_t season,
@@ -79,7 +98,7 @@ int kbo_independent_acquisition_append_request(
         buyer,
         seller,
         cash_cost,
-        candidate->slot_type != 0u ? kbo_foreign_injury_slot_label(candidate->slot_type) : "none",
+        kbo_independent_acquisition_candidate_slot_label(candidate),
         source);
 }
 

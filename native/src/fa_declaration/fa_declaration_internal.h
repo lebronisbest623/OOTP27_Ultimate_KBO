@@ -71,6 +71,15 @@ int kbo_fa_declaration_add_market_candidate(
     int grade_count,
     KboFaDeclarationCandidate* candidates,
     int* candidate_count);
+int kbo_fa_declaration_collect_roster_candidates(
+    uint32_t event_yyyymmdd,
+    uint32_t season,
+    uint32_t league_id,
+    const KboFaSalarySnapshotGrade* grades,
+    int grade_count,
+    KboFaDeclarationCandidate* candidates,
+    int* candidate_count,
+    int* out_scanned);
 int kbo_fa_declaration_append_csv(
     const KboFaDeclarationCandidate* candidates,
     int candidate_count,

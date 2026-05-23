@@ -12,6 +12,8 @@ typedef struct KboFaMarketPolicy {
     int32_t independent_league_id;
     int32_t player_age_min;
     int32_t player_age_max;
+    int32_t service_time_days_per_season;
+    int32_t fa_declaration_service_seasons_min;
     int32_t salary_grade_a_overall_rank_max;
     int32_t salary_grade_a_team_rank_max;
     int32_t salary_grade_b_overall_rank_max;
@@ -31,5 +33,9 @@ typedef struct KboFaMarketPolicy {
 } KboFaMarketPolicy;
 
 const KboFaMarketPolicy* kbo_fa_market_policy(void);
+int kbo_fa_market_policy_service_time_days_per_season(void);
+int kbo_fa_market_policy_fa_declaration_service_seasons_min(void);
+int kbo_set_fa_market_policy_service_time_days_per_season(int value);
+int kbo_set_fa_market_policy_fa_declaration_service_seasons_min(int value);
 
 #endif
