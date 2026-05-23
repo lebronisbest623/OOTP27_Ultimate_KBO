@@ -11,7 +11,6 @@
 #include "../../../../common/dates/foreign_waiver_date.h"
 #include "../../../../common/player_eval/foreign_waiver_player_eval.h"
 #include "../../../../common/policy/foreign_player_policy.h"
-#include "../../../../controller/foreign_ai_fast_fill_candidate_priority.h"
 #include "../../../../controller/foreign_ai_controller.h"
 #include "../../../../quota/candidates/foreign_quota_retention_opportunity_probe.h"
 #include "../../../../quota/candidates/retention_score/foreign_quota_retention_score_gate.h"
@@ -171,14 +170,6 @@ __declspec(noinline) uintptr_t ootp_kbo_foreign_ai_offer_candidate_priority_wrap
         KBO_HOOK_PROFILE_RETURN(profile_hook, "foreign.ai_offer_candidate_priority", candidate_player_ptr);
     }
     int candidate_retained_by_team = kbo_has_active_foreign_waiver_right(team_id, candidate_id, today);
-
-    uintptr_t fast_fill_candidate = kbo_foreign_ai_fast_fill_select_offer_candidate(
-        candidate,
-        team_id,
-        today);
-    if (fast_fill_candidate != 0) {
-        KBO_HOOK_PROFILE_RETURN(profile_hook, "foreign.ai_offer_candidate_priority", fast_fill_candidate);
-    }
 
     KboForeignRetentionOpportunitySummary opportunity = {0};
     if (!kbo_retention_opportunity_get_summary(team_id, today, &opportunity)

@@ -5,7 +5,6 @@
 #include "../roster_audit/api/foreign_roster_audit.h"
 #include "../../team/add_player_guard/team_add_player_guard_ai_roster.h"
 #include "../../team/independent_acquisition/independent_acquisition_ai.h"
-#include "../controller/foreign_ai_fast_fill_controller.h"
 #include "../retention_guard/foreign_retention_guard.h"
 #include "../rights/query/foreign_waiver_rights_query.h"
 #include "../../fa_declaration/fa_declaration.h"
@@ -139,12 +138,6 @@ static int kbo_foreign_roster_daily_process_background_date(
     kbo_consume_foreign_ai_roster_daily_callup_dirty(
         source != NULL ? source : "foreign_roster_daily_background");
     KBO_PROFILE_END(profile_foreign_roster_daily_ai_callup, "foreign_roster.daily.background.dirty_ai_roster_callup");
-
-    KBO_PROFILE_BEGIN(profile_foreign_roster_daily_fast_fill);
-    kbo_foreign_ai_fast_fill_controller_tick(
-        today,
-        source != NULL ? source : "foreign_roster_daily_background");
-    KBO_PROFILE_END(profile_foreign_roster_daily_fast_fill, "foreign_roster.daily.background.fast_fill_controller");
 
     if (state->last_audit_date != 0u && today <= state->last_audit_date) {
         KBO_PROFILE_END(profile_foreign_roster_daily_tick, "foreign_roster.daily.background.cached");
