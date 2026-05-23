@@ -51,13 +51,20 @@ uint32_t kbo_get_latest_offseason_starts_event(uint32_t today_yyyymmdd)
     }
 
     KboLatestOffseasonStartsCache cached = g_kbo_latest_offseason_starts_cache;
+    /*
+     * A missing next Offseason starts event is not stable: OOTP can materialize
+     * the next offseason marker later without changing the event vector shape.
+     */
+    int cache_covers_today = cached.next_offseason_start != 0u
+        ? today_yyyymmdd < cached.next_offseason_start
+        : today_yyyymmdd == cached.cached_at_yyyymmdd;
     if (cached.valid
             && cached.event_manager == event_manager
             && cached.event_vector == event_vector
             && cached.event_count == event_count
             && cached.league_id == league_id
             && today_yyyymmdd >= cached.cached_at_yyyymmdd
-            && (cached.next_offseason_start == 0u || today_yyyymmdd < cached.next_offseason_start)) {
+            && cache_covers_today) {
         return cached.latest_offseason_start;
     }
 
@@ -132,11 +139,11 @@ uint32_t kbo_detect_offseason_anchor_by_league_year(uint32_t league_id, uint32_t
     }
 
     uint32_t previous_observed = g_kbo_custom_event_last_observed_league_year;
-    if (previous_observed == 0u || league_year > previous_observed) {
-        g_kbo_custom_event_last_observed_league_year = league_year;
-    }
 
     if (league_year > current_year) {
+        if (previous_observed == 0u || league_year > previous_observed) {
+            g_kbo_custom_event_last_observed_league_year = league_year;
+        }
         kbo_log_runtimef(
             "KBO custom event schedule fallback source=%s reason=league_year_ahead today=%u current_year=%u league_year=%u previous_league_year=%u",
             source != NULL ? source : "",
@@ -148,6 +155,7 @@ uint32_t kbo_detect_offseason_anchor_by_league_year(uint32_t league_id, uint32_t
     }
 
     if (previous_observed != 0u && league_year > previous_observed && (today_yyyymmdd % 10000u) >= 1001u) {
+        g_kbo_custom_event_last_observed_league_year = league_year;
         kbo_log_runtimef(
             "KBO custom event schedule fallback source=%s reason=league_year_advanced today=%u current_year=%u league_year=%u previous_league_year=%u",
             source != NULL ? source : "",
@@ -156,6 +164,10 @@ uint32_t kbo_detect_offseason_anchor_by_league_year(uint32_t league_id, uint32_t
             league_year,
             previous_observed);
         return today_yyyymmdd;
+    }
+
+    if (previous_observed == 0u || league_year > previous_observed) {
+        g_kbo_custom_event_last_observed_league_year = league_year;
     }
 
     return 0u;

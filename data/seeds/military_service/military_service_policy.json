@@ -17,7 +17,6 @@
   "draft_score_old_base_bonus": 120,
   "draft_score_old_step_penalty": 15,
   "draft_score_player_id_mod": 97,
-  "fa_recent_block_ttl_ms": 120000,
   "fa_fast_block_log_max": 120,
   "fa_offer_eligibility_log_max": 120,
   "fa_signability_log_max": 200,
