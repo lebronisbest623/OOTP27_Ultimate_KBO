@@ -5,5 +5,6 @@
 
 int kbo_run_independent_team_acquisition_ai(const char* source);
 int kbo_run_independent_team_acquisition_ai_for_date(uint32_t today, const char* source);
+int kbo_run_independent_team_acquisition_ai_fast_fill_for_date(uint32_t today, const char* source);
 
 #endif

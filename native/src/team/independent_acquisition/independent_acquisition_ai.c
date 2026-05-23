@@ -18,7 +18,10 @@
 
 volatile LONG g_kbo_independent_acquisition_ai_running = 0;
 
-int kbo_run_independent_team_acquisition_ai_for_date(uint32_t today, const char* source)
+static int kbo_run_independent_team_acquisition_ai_for_date_core(
+    uint32_t today,
+    const char* source,
+    int allow_repeat_for_fast_fill)
 {
     if (!kbo_fix_enabled()
             || !kbo_custom_foreign_policy_enabled()
@@ -57,12 +60,14 @@ int kbo_run_independent_team_acquisition_ai_for_date(uint32_t today, const char*
     }
 
     uint32_t previous_processed_date = kbo_independent_acquisition_processed_date();
-    if (previous_processed_date >= today) {
+    if (!allow_repeat_for_fast_fill && previous_processed_date >= today) {
         goto cleanup;
     }
     if (!kbo_independent_acquisition_window_active_silent(today)) {
         kbo_independent_acquisition_window_active(today);
-        kbo_independent_acquisition_mark_processed_date(today, source);
+        if (!allow_repeat_for_fast_fill) {
+            kbo_independent_acquisition_mark_processed_date(today, source);
+        }
         goto cleanup;
     }
     KboIndependentAcquisitionSellerAvailability availability =
@@ -94,7 +99,9 @@ int kbo_run_independent_team_acquisition_ai_for_date(uint32_t today, const char*
                 availability.capped_sellers,
                 availability.seller_transfer_limit);
         }
-        kbo_independent_acquisition_mark_processed_date(today, source);
+        if (!allow_repeat_for_fast_fill) {
+            kbo_independent_acquisition_mark_processed_date(today, source);
+        }
         goto cleanup;
     }
 
@@ -140,7 +147,7 @@ int kbo_run_independent_team_acquisition_ai_for_date(uint32_t today, const char*
         player_count,
         source,
         &abort_for_save);
-    if (!abort_for_save) {
+    if (!abort_for_save && !allow_repeat_for_fast_fill) {
         kbo_independent_acquisition_mark_processed_date(today, source);
     }
 
@@ -150,6 +157,16 @@ cleanup:
     }
     InterlockedExchange(&g_kbo_independent_acquisition_ai_running, 0);
     return result;
+}
+
+int kbo_run_independent_team_acquisition_ai_for_date(uint32_t today, const char* source)
+{
+    return kbo_run_independent_team_acquisition_ai_for_date_core(today, source, 0);
+}
+
+int kbo_run_independent_team_acquisition_ai_fast_fill_for_date(uint32_t today, const char* source)
+{
+    return kbo_run_independent_team_acquisition_ai_for_date_core(today, source, 1);
 }
 
 int kbo_run_independent_team_acquisition_ai(const char* source)
