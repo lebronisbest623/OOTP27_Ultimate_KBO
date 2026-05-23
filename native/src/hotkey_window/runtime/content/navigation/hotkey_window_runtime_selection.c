@@ -29,6 +29,7 @@ const char* kbo_hub_current_view_title(void)
     case KBO_HUB_VIEW_REPUTATION: return kbo_hub_text("\xed\x8f\x89\xed\x8c\x90", "평판");
     case KBO_HUB_VIEW_CBT:        return kbo_hub_text("\xea\xb2\xbd\xec\x9f\x81\xea\xb7\xa0\xed\x98\x95\xec\x84\xb8", "경쟁균형세");
     case KBO_HUB_VIEW_FUTURES_LEAGUE: return kbo_hub_text("\xea\xb5\xac\xeb\xa7\xa4", "구매");
+    case KBO_HUB_VIEW_SECONDARY_DRAFT: return kbo_hub_text("\x32\xec\xb0\xa8 \xeb\x93\x9c\xeb\x9e\x98\xed\x94\x84\xed\x8a\xb8", "Secondary Draft");
     default:                    return kbo_hub_text("\xeb\xaa\xa8\xeb\x93\x9c \xec\xa0\x95\xeb\xb3\xb4", "모드 정보");
     }
 }
@@ -62,6 +63,8 @@ const char* kbo_hub_current_view_subtitle(void)
     case KBO_HUB_VIEW_CBT:        return kbo_hub_text("\xed\x8c\x80\xeb\xb3\x84 \xea\xb2\xbd\xec\x9f\x81\xea\xb7\xa0\xed\x98\x95\xec\x84\xb8 \xed\x98\x84\xed\x99\xa9", "구단별 경쟁균형세 현황");
     case KBO_HUB_VIEW_FUTURES_LEAGUE:
         return kbo_hub_futures_subnav_label(g_kbo_hub_selected_futures_subview);
+    case KBO_HUB_VIEW_SECONDARY_DRAFT:
+        return kbo_hub_secondary_draft_subnav_label(g_kbo_hub_selected_secondary_draft_subview);
     default:                    return kbo_hub_text("\xeb\x9f\xb0\xec\xb2\x98\xec\x99\x80 \xeb\x9f\xb0\xed\x83\x80\xec\x9e\x84 \xed\x8c\xa8\xec\xb9\x98 \xec\x83\x81\xed\x83\x9c\xeb\xa5\xbc \xed\x91\x9c\xec\x8b\x9c\xed\x95\xa9\xeb\x8b\x88\xeb\x8b\xa4",       "런처와 런타임 패치 상태");
     }
 }

@@ -29,6 +29,18 @@ void kbo_webview_append_roster_table_css(KboWindowTextBuffer* css)
         ".rosterTopBar .rosterYearSelect{width:86px;height:24px;border:1px solid #9d9d9d;border-radius:3px;background:#fff;color:#111;font-family:var(--ui-font);font-size:13px;font-weight:900;line-height:22px;padding:0 4px}");
     kbo_window_text_appendf(
         css,
+        ".secondaryDraftRights{overflow:hidden}.secondaryDraftProtectionBoard{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 364px;gap:8px;overflow:hidden}"
+        ".secondaryDraftCandidatesPane{min-width:0;min-height:0;display:flex;flex-direction:column;overflow:hidden}.secondaryDraftCandidatesWrap,.secondaryDraftProtectedWrap{min-height:0;margin-top:0!important}"
+        ".secondaryDraftProtectedPane{min-width:0;min-height:0;display:grid;grid-template-rows:45px minmax(0,1fr);border:1px solid #171717;border-radius:2px;background:#181818;box-shadow:inset 0 1px 0 rgba(255,255,255,.04);overflow:hidden}"
+        ".secondaryDraftProtectedHead{min-width:0;display:grid;align-content:center;gap:2px;padding:5px 9px;border-bottom:1px solid #282828;background:#202020}"
+        ".secondaryDraftProtectedTitle{min-width:0;color:#f2f2f2;font-family:var(--ui-font);font-size:14px;font-weight:900;line-height:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}"
+        ".secondaryDraftProtectedMeta{min-width:0;color:#bdbdbd;font-family:var(--ui-font);font-size:12px;font-weight:800;line-height:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}"
+        ".secondaryDraftListTable .roAction{width:48px;text-align:center}.secondaryDraftListTable .roStatus{width:118px}.secondaryDraftListTable .roName{width:240px}.secondaryDraftListTable .roAge{width:46px}.secondaryDraftListTable .roClub{width:170px}"
+        ".secondaryDraftProtectedTable .roAction{width:42px;text-align:center}.secondaryDraftProtectedTable .roName{width:176px}.secondaryDraftProtectedTable .roAge{width:44px}.secondaryDraftProtectedTable .roStatus{width:104px}"
+        ".secondaryDraftProtectedTable td{height:26px}.secondaryDraftProtectedTable .roStatus{color:#d8d8d8}"
+        "@media(max-width:1180px){.secondaryDraftProtectionBoard{grid-template-columns:minmax(0,1fr) 308px}.secondaryDraftProtectedTable .roName{width:150px}.secondaryDraftProtectedTable .roStatus{width:82px}}");
+    kbo_window_text_appendf(
+        css,
         ".faCompensation{display:grid!important;grid-template-rows:32px minmax(0,1fr);gap:6px;height:100%%;min-height:0;overflow:hidden}"
         ".faCompTabs{height:32px;display:flex;align-items:center;justify-content:flex-start;gap:8px;padding:0 8px;background:#181818;border:1px solid #171717;border-radius:2px;overflow:hidden}"
         ".faCompTab{display:inline-flex;align-items:center;justify-content:center;min-width:86px;height:23px;padding:0 14px;border:1px solid transparent;border-radius:3px;color:#e6e6e6;font-family:var(--ui-font);font-size:13px;font-weight:900;text-decoration:none;white-space:nowrap}.faCompTab:hover{border-color:#686868;background:#2b2b2b}.faCompTab.active{border-color:#d8d8d8;background:#333;color:#fff}"

@@ -8,5 +8,8 @@
   "custom_event.cbt.exception_deadline.title": "경쟁균형세 예외 선수 지정 마감",
   "custom_event.cbt.announcement.title": "경쟁균형세 집계 발표",
   "custom_event.fa.declaration.title": "FA 선언 마감",
-  "custom_event.intl_established_fa.title": "국제 FA 명단 공개"
+  "custom_event.intl_established_fa.title": "국제 FA 명단 공개",
+  "custom_event.secondary_draft.title": "KBO 2차 드래프트",
+  "custom_event.secondary_draft.results.title": "{season}년 KBO 2차 드래프트 결과",
+  "custom_event.secondary_draft.results.body": "{season}년 KBO 2차 드래프트가 {pick_count}명 지명으로 마무리됐습니다. 전체 후보 {candidate_count}명 중 {protected_count}명이 자동 보호 또는 보호 명단에 묶였고, 공시된 이적료 총액은 ${total_cash}입니다.\n\n{summary_lines}"
 }

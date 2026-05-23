@@ -63,6 +63,7 @@ WCHAR* kbo_build_webview_hub_html(void)
         g_kbo_hub_selected_view == KBO_HUB_VIEW_FUTURES_LEAGUE ||
         g_kbo_hub_selected_view == KBO_HUB_VIEW_UPCOMING_FA ||
         g_kbo_hub_selected_view == KBO_HUB_VIEW_FA_CASES ||
+        g_kbo_hub_selected_view == KBO_HUB_VIEW_SECONDARY_DRAFT ||
         g_kbo_hub_selected_view == KBO_HUB_VIEW_REPUTATION ||
         g_kbo_hub_selected_view == KBO_HUB_VIEW_CBT;
     const int is_dashboard_panel =

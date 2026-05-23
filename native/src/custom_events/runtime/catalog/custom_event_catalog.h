@@ -11,6 +11,9 @@ typedef struct KboCustomEventSchedulePolicy {
     int32_t foreign_priority_intl_established_fa_offset_days;
     int32_t foreign_priority_military_selection_offset_months;
     int32_t independent_team_acquisition_open_offset_months;
+    int32_t secondary_draft_protection_open_offset_days;
+    int32_t secondary_draft_submission_deadline_days_before;
+    int32_t secondary_draft_offset_days;
 } KboCustomEventSchedulePolicy;
 
 int kbo_custom_event_catalog_title_key(

@@ -39,6 +39,8 @@ const char* kbo_custom_event_kind_key(KboCustomEventKind kind)
         return "intl_established_fa";
     case KBO_CUSTOM_EVENT_KIND_INDEPENDENT_TEAM_ACQUISITION_OPEN:
         return "independent_team_acquisition_open";
+    case KBO_CUSTOM_EVENT_KIND_SECONDARY_DRAFT:
+        return "secondary_draft";
     default:
         return "unknown";
     }
@@ -343,4 +345,9 @@ int kbo_custom_event_name_is_intl_established_fa(const char* name)
 int kbo_custom_event_name_is_independent_team_acquisition_open(const char* name)
 {
     return kbo_custom_event_name_is_kind(name, KBO_CUSTOM_EVENT_KIND_INDEPENDENT_TEAM_ACQUISITION_OPEN);
+}
+
+int kbo_custom_event_name_is_secondary_draft(const char* name)
+{
+    return kbo_custom_event_name_is_kind(name, KBO_CUSTOM_EVENT_KIND_SECONDARY_DRAFT);
 }

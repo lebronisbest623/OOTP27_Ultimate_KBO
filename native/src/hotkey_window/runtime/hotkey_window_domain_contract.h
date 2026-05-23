@@ -24,6 +24,7 @@
 #include "../../custom_events/runtime/names/custom_event_names.h"
 #include "../../custom_events/runtime/state/custom_event_state.h"
 #include "../../custom_events/runtime/common/custom_events_common.h"
+#include "../../custom_events/secondary_draft/secondary_draft.h"
 #include "../../custom_events/schedules/priority/foreign_priority_event_schedule.h"
 #include "../../custom_events/schedules/offseason/offseason_transition_schedule.h"
 #include "../../fa_compensation/decisions/fa_compensation_decisions.h"

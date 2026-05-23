@@ -39,6 +39,8 @@ static const char* kbo_custom_event_catalog_key_for_kind(KboCustomEventKind kind
         return "event.intl_established_fa.title_key";
     case KBO_CUSTOM_EVENT_KIND_INDEPENDENT_TEAM_ACQUISITION_OPEN:
         return "event.independent_team_acquisition_open.title_key";
+    case KBO_CUSTOM_EVENT_KIND_SECONDARY_DRAFT:
+        return "event.secondary_draft.title_key";
     default:
         return NULL;
     }
@@ -69,6 +71,8 @@ static const char* kbo_custom_event_default_title_key(KboCustomEventKind kind)
         return "custom_event.intl_established_fa.title";
     case KBO_CUSTOM_EVENT_KIND_INDEPENDENT_TEAM_ACQUISITION_OPEN:
         return "independent_acquisition.open.title";
+    case KBO_CUSTOM_EVENT_KIND_SECONDARY_DRAFT:
+        return "custom_event.secondary_draft.title";
     default:
         return NULL;
     }
@@ -139,6 +143,24 @@ static BOOL CALLBACK kbo_custom_event_schedule_policy_init_once(
         2,
         0,
         24);
+    p->secondary_draft_protection_open_offset_days = kbo_read_clamped_policy_int(
+        KBO_CUSTOM_EVENT_CATALOG_FILE,
+        "schedule.secondary_draft.protection_open_offset_days",
+        7,
+        0,
+        120);
+    p->secondary_draft_submission_deadline_days_before = kbo_read_clamped_policy_int(
+        KBO_CUSTOM_EVENT_CATALOG_FILE,
+        "schedule.secondary_draft.submission_deadline_days_before",
+        10,
+        1,
+        30);
+    p->secondary_draft_offset_days = kbo_read_clamped_policy_int(
+        KBO_CUSTOM_EVENT_CATALOG_FILE,
+        "schedule.secondary_draft.offset_days",
+        24,
+        0,
+        120);
     return TRUE;
 }
 

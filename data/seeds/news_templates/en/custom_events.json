@@ -8,5 +8,8 @@
   "custom_event.cbt.exception_deadline.title": "Exception Player Deadline",
   "custom_event.cbt.announcement.title": "Competitive Balance Tax Announcement",
   "custom_event.fa.declaration.title": "FA Declaration Deadline",
-  "custom_event.intl_established_fa.title": "International FA Class Published"
+  "custom_event.intl_established_fa.title": "International FA Class Published",
+  "custom_event.secondary_draft.title": "KBO Secondary Draft",
+  "custom_event.secondary_draft.results.title": "{season} KBO Secondary Draft Results",
+  "custom_event.secondary_draft.results.body": "The {season} KBO secondary draft has been completed with {pick_count} selections. Clubs protected {protected_count} players from {candidate_count} eligible domestic players, and the posted transfer-fee total was ${total_cash}.\n\n{summary_lines}"
 }

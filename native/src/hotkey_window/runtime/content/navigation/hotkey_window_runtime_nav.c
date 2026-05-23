@@ -14,6 +14,7 @@ const char* kbo_hub_nav_label(int index)
     case KBO_HUB_VIEW_REPUTATION:     return kbo_hub_text("\xed\x8f\x89\xed\x8c\x90", "평판");
     case KBO_HUB_VIEW_CBT:            return kbo_hub_text("\xea\xb2\xbd\xec\x9f\x81\xea\xb7\xa0\xed\x98\x95\xec\x84\xb8", "경쟁균형세");
     case KBO_HUB_VIEW_FUTURES_LEAGUE: return kbo_hub_text("\xea\xb5\xac\xeb\xa7\xa4", "구매");
+    case KBO_HUB_VIEW_SECONDARY_DRAFT: return kbo_hub_text("\x32\xec\xb0\xa8 \xeb\x93\x9c\xeb\x9e\x98\xed\x94\x84\xed\x8a\xb8", "Secondary Draft");
     default:                          return "";
     }
 }
@@ -81,6 +82,20 @@ const char* kbo_hub_futures_subnav_label(int index)
         return "대기";
     case KBO_HUB_FUTURES_SUBVIEW_RESULT:
         return "결과";
+    default:
+        return "";
+    }
+}
+
+const char* kbo_hub_secondary_draft_subnav_label(int index)
+{
+    switch (index) {
+    case KBO_HUB_SECONDARY_DRAFT_SUBVIEW_SCHEDULE:
+        return kbo_hub_text("\xec\x9d\xbc\xec\xa0\x95", "Schedule");
+    case KBO_HUB_SECONDARY_DRAFT_SUBVIEW_LIST:
+        return kbo_hub_text("\xeb\xb3\xb4\xed\x98\xb8 \xeb\xaa\x85\xeb\x8b\xa8", "Protected List");
+    case KBO_HUB_SECONDARY_DRAFT_SUBVIEW_DRAFT:
+        return kbo_hub_text("\xeb\x93\x9c\xeb\x9e\x98\xed\x94\x84\xed\x8a\xb8", "Draft");
     default:
         return "";
     }
