@@ -169,6 +169,7 @@ static HRESULT STDMETHODCALLTYPE kbo_webview_process_failed_invoke(
         (unsigned long)exit_hr,
         (unsigned long)description_hr,
         (unsigned long)module_hr);
+    kbo_webview_mark_failed("webview_process_failed", HRESULT_FROM_WIN32((DWORD)exit_code));
     return S_OK;
 }
 

@@ -87,9 +87,29 @@ ULONG STDMETHODCALLTYPE kbo_webview_controller_release(ICoreWebView2CreateCoreWe
     return (ULONG)((KboWebViewControllerHandler*)This)->ref;
 }
 
+int kbo_webview_is_failed(void)
+{
+    return InterlockedCompareExchange(&g_kbo_webview_failed, 0, 0) != 0;
+}
+
+void kbo_webview_mark_failed(const char* reason, HRESULT hr)
+{
+    if (InterlockedExchange(&g_kbo_webview_failed, 1) == 0) {
+        kbo_log_runtimef(
+            "WebView2 F2 hub disabled reason=%s hr=0x%08lx",
+            reason != NULL ? reason : "unknown",
+            (unsigned long)hr);
+    }
+    InterlockedExchange(&g_kbo_webview_ready, 0);
+    HWND hwnd = g_kbo_hotkey_window;
+    if (hwnd != NULL && IsWindow(hwnd)) {
+        InvalidateRect(hwnd, NULL, TRUE);
+    }
+}
+
 void kbo_webview_set_bounds(HWND hwnd)
 {
-    if (hwnd == NULL || g_kbo_webview_controller == NULL) {
+    if (hwnd == NULL || g_kbo_webview_controller == NULL || kbo_webview_is_failed()) {
         return;
     }
     RECT client;
@@ -147,7 +167,7 @@ HRESULT STDMETHODCALLTYPE kbo_webview_controller_invoke(
     KboWebViewControllerHandler* handler = (KboWebViewControllerHandler*)This;
     if (FAILED(errorCode) || result == NULL) {
         kbo_log_runtimef("WebView2 controller create failed hr=0x%08lx", (unsigned long)errorCode);
-        InterlockedExchange(&g_kbo_webview_failed, 1);
+        kbo_webview_mark_failed("controller_create_failed", errorCode);
         return S_OK;
     }
 
@@ -172,6 +192,11 @@ HRESULT STDMETHODCALLTYPE kbo_webview_controller_invoke(
         kbo_webview_navigate_current();
     } else {
         kbo_log_runtimef("WebView2 core object unavailable hr=0x%08lx", (unsigned long)core_hr);
+        kbo_webview_mark_failed("core_unavailable", core_hr);
+        return S_OK;
+    }
+    if (kbo_webview_is_failed()) {
+        return S_OK;
     }
     InterlockedExchange(&g_kbo_webview_ready, 1);
     kbo_webview_set_bounds(handler->hwnd);
@@ -200,7 +225,7 @@ HRESULT STDMETHODCALLTYPE kbo_webview_env_invoke(
     KboWebViewEnvHandler* handler = (KboWebViewEnvHandler*)This;
     if (FAILED(errorCode) || result == NULL) {
         kbo_log_runtimef("WebView2 environment create failed hr=0x%08lx", (unsigned long)errorCode);
-        InterlockedExchange(&g_kbo_webview_failed, 1);
+        kbo_webview_mark_failed("environment_create_failed", errorCode);
         return S_OK;
     }
 
@@ -230,7 +255,7 @@ HRESULT STDMETHODCALLTYPE kbo_webview_env_invoke(
         &g_kbo_webview_controller_handler.iface);
     if (FAILED(hr)) {
         kbo_log_runtimef("WebView2 CreateCoreWebView2Controller failed hr=0x%08lx", (unsigned long)hr);
-        InterlockedExchange(&g_kbo_webview_failed, 1);
+        kbo_webview_mark_failed("controller_request_failed", hr);
     } else {
         kbo_log_runtimef("WebView2 controller creation requested hwnd=%p hr=0x%08lx", (void*)handler->hwnd, (unsigned long)hr);
     }
@@ -252,6 +277,10 @@ static KboWebViewEnvHandler g_kbo_webview_env_handler = {
 
 void kbo_start_webview_rights_ui(HWND hwnd)
 {
+    if (kbo_webview_is_failed()) {
+        return;
+    }
+
     if (hwnd == NULL || InterlockedCompareExchange(&g_kbo_webview_starting, 1, 0) != 0) {
         kbo_webview_set_bounds(hwnd);
         return;
@@ -274,8 +303,9 @@ void kbo_start_webview_rights_ui(HWND hwnd)
         loader = LoadLibraryA("WebView2Loader.dll");
     }
     if (loader == NULL) {
-        kbo_log_runtimef("WebView2Loader.dll load failed error=%lu", GetLastError());
-        InterlockedExchange(&g_kbo_webview_failed, 1);
+        DWORD error = GetLastError();
+        kbo_log_runtimef("WebView2Loader.dll load failed error=%lu", error);
+        kbo_webview_mark_failed("loader_load_failed", HRESULT_FROM_WIN32(error));
         return;
     }
     char actual_loader_path[MAX_PATH] = {0};
@@ -293,7 +323,7 @@ void kbo_start_webview_rights_ui(HWND hwnd)
     KboCreateCoreWebView2EnvironmentWithOptionsFn create_env = create_env_lookup.fn;
     if (create_env == NULL) {
         kbo_log_runtime_line("WebView2 CreateCoreWebView2EnvironmentWithOptions missing");
-        InterlockedExchange(&g_kbo_webview_failed, 1);
+        kbo_webview_mark_failed("create_environment_proc_missing", E_POINTER);
         return;
     }
 
@@ -337,7 +367,7 @@ void kbo_start_webview_rights_ui(HWND hwnd)
     }
     if (FAILED(hr)) {
         kbo_log_runtimef("WebView2 environment start failed after fallback hr=0x%08lx", (unsigned long)hr);
-        InterlockedExchange(&g_kbo_webview_failed, 1);
+        kbo_webview_mark_failed("environment_start_failed", hr);
     } else {
         kbo_log_runtime_line("WebView2 F2 rights UI starting");
     }

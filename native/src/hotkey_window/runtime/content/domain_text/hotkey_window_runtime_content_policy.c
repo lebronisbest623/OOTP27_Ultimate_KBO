@@ -1,6 +1,17 @@
 #include "../hotkey_window_runtime_content.h"
 #include "../../hotkey_window_domain_contract.h"
 #include "../../../../core/product/ootp_product.h"
+#include "../../../../core/dates/tick/current_date_tick_capture.h"
+
+static void kbo_refresh_foreign_injury_slots_for_hub(const char* source)
+{
+    uint32_t today = 0u;
+    if (kbo_current_date_tick_latest_published_date(&today) && today != 0u) {
+        kbo_foreign_injury_replacement_scan_captured_date(source, today);
+    } else {
+        kbo_ensure_foreign_injury_replacements_loaded();
+    }
+}
 
 void kbo_build_foreign_injury_replacement_hub_text(char* out, size_t out_size)
 {
@@ -17,7 +28,7 @@ void kbo_build_foreign_injury_replacement_hub_text(char* out, size_t out_size)
     uint32_t selected_team_id = g_kbo_hub_selected_team_id;
     char selected_team_name[96] = {0};
     kbo_hub_copy_team_display_name_by_id(selected_team_id, selected_team_name, sizeof(selected_team_name), NULL);
-    kbo_ensure_foreign_injury_replacements_loaded();
+    kbo_refresh_foreign_injury_slots_for_hub("foreign_injury_hub_render");
 
     int open_count = 0;
     int pending_count = 0;
@@ -146,6 +157,8 @@ void kbo_build_foreign_policy_hub_text(char* out, size_t out_size)
     buffer.data     = out;
     buffer.capacity = out_size;
     buffer.length   = 0;
+
+    kbo_refresh_foreign_injury_slots_for_hub("foreign_policy_hub_render");
 
     int configured_nations = kbo_load_asian_quota_nation_ids_once();
     uint32_t team_foreign = 0u;

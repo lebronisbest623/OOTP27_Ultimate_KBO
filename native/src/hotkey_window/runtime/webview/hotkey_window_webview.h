@@ -49,6 +49,8 @@ ULONG STDMETHODCALLTYPE kbo_webview_env_release(ICoreWebView2CreateCoreWebView2E
 HRESULT STDMETHODCALLTYPE kbo_webview_controller_qi(ICoreWebView2CreateCoreWebView2ControllerCompletedHandler* This, REFIID riid, void** ppv);
 ULONG STDMETHODCALLTYPE kbo_webview_controller_addref(ICoreWebView2CreateCoreWebView2ControllerCompletedHandler* This);
 ULONG STDMETHODCALLTYPE kbo_webview_controller_release(ICoreWebView2CreateCoreWebView2ControllerCompletedHandler* This);
+int kbo_webview_is_failed(void);
+void kbo_webview_mark_failed(const char* reason, HRESULT hr);
 void kbo_webview_set_bounds(HWND hwnd);
 void kbo_webview_apply_ootp_like_settings(void);
 HRESULT STDMETHODCALLTYPE kbo_webview_controller_invoke(

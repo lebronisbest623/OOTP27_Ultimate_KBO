@@ -5,6 +5,9 @@ void kbo_layout_hotkey_window(HWND hwnd)
     if (hwnd == NULL) {
         return;
     }
+    if (kbo_webview_is_failed()) {
+        return;
+    }
     kbo_start_webview_rights_ui(hwnd);
     kbo_webview_set_bounds(hwnd);
 }
@@ -16,7 +19,7 @@ void kbo_refresh_hotkey_window_layout(HWND hwnd)
     }
     kbo_layout_hotkey_window(hwnd);
     kbo_refresh_hotkey_window();
-    if (InterlockedCompareExchange(&g_kbo_webview_ready, 0, 0) != 0) {
+    if (!kbo_webview_is_failed() && InterlockedCompareExchange(&g_kbo_webview_ready, 0, 0) != 0) {
         kbo_webview_navigate_current_immediate();
     }
     InvalidateRect(hwnd, NULL, TRUE);
@@ -253,7 +256,11 @@ LRESULT CALLBACK kbo_hotkey_window_proc(HWND hwnd, UINT message, WPARAM wparam, 
 DWORD WINAPI kbo_hotkey_window_thread(LPVOID parameter)
 {
     g_kbo_hotkey_instance = (HINSTANCE)parameter;
-    CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
+    HRESULT co_hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
+    if (FAILED(co_hr)) {
+        kbo_log_runtimef("KBO F2 hub COM init failed hr=0x%08lx", (unsigned long)co_hr);
+        kbo_webview_mark_failed("hotkey_thread_com_init_failed", co_hr);
+    }
     kbo_hub_init_gdi_objects();
 
     WNDCLASSEXA wc;
@@ -269,6 +276,12 @@ DWORD WINAPI kbo_hotkey_window_thread(LPVOID parameter)
     ATOM klass = RegisterClassExA(&wc);
     if (klass == 0 && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) {
         kbo_log_runtimef("KBO F2 hub class registration failed error=%lu", GetLastError());
+        kbo_hub_delete_gdi_objects();
+        InterlockedExchange(&g_kbo_hotkey_window_started, 0);
+        g_kbo_hotkey_thread_id = 0;
+        if (SUCCEEDED(co_hr)) {
+            CoUninitialize();
+        }
         return 0;
     }
 
@@ -297,6 +310,12 @@ DWORD WINAPI kbo_hotkey_window_thread(LPVOID parameter)
 
     if (hwnd == NULL) {
         kbo_log_runtimef("KBO F2 hub window creation failed error=%lu", GetLastError());
+        kbo_hub_delete_gdi_objects();
+        InterlockedExchange(&g_kbo_hotkey_window_started, 0);
+        g_kbo_hotkey_thread_id = 0;
+        if (SUCCEEDED(co_hr)) {
+            CoUninitialize();
+        }
         return 0;
     }
 
@@ -316,7 +335,9 @@ DWORD WINAPI kbo_hotkey_window_thread(LPVOID parameter)
         DispatchMessageA(&message);
     }
 
-    CoUninitialize();
+    if (SUCCEEDED(co_hr)) {
+        CoUninitialize();
+    }
     return 0;
 }
 

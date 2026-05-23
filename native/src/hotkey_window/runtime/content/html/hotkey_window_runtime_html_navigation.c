@@ -25,6 +25,10 @@ static uint64_t kbo_webview_hash_html(const WCHAR* html, int chars)
 void kbo_webview_navigate_current_immediate(void)
 {
     InterlockedExchange(&g_kbo_webview_navigate_current_pending, 0);
+    if (kbo_webview_is_failed()) {
+        kbo_profiler_record_us("webview.navigate_current.skipped_failed", 0);
+        return;
+    }
     if (g_kbo_webview == NULL) {
         kbo_log_runtime_line("WebView2 navigate_current_immediate skipped reason=core_unavailable");
         return;
@@ -55,6 +59,8 @@ void kbo_webview_navigate_current_immediate(void)
             g_kbo_webview_last_html_target = g_kbo_webview;
             g_kbo_webview_last_html_hash = html_hash;
             g_kbo_webview_last_html_chars = wide_chars;
+        } else {
+            kbo_webview_mark_failed("navigate_to_string_failed", hr);
         }
         if (FAILED(hr) || kbo_hub_current_mode_is_developer()) {
             kbo_log_runtimef(
@@ -76,6 +82,11 @@ void kbo_webview_navigate_current_immediate(void)
 
 void kbo_webview_navigate_current(void)
 {
+    if (kbo_webview_is_failed()) {
+        kbo_profiler_record_us("webview.navigate_current.skipped_failed", 0);
+        return;
+    }
+
     HWND hwnd = g_kbo_hotkey_window;
     if (g_kbo_webview == NULL || hwnd == NULL || !IsWindow(hwnd) || !IsWindowVisible(hwnd)) {
         kbo_webview_navigate_current_immediate();
@@ -104,7 +115,7 @@ void kbo_webview_navigate_current(void)
 
 void kbo_webview_navigate_loading(void)
 {
-    if (g_kbo_webview == NULL) {
+    if (g_kbo_webview == NULL || kbo_webview_is_failed()) {
         return;
     }
 
@@ -127,5 +138,6 @@ void kbo_webview_navigate_loading(void)
     HRESULT hr = ICoreWebView2_NavigateToString(g_kbo_webview, loading_html);
     if (FAILED(hr)) {
         kbo_log_runtimef("WebView2 NavigateToString loading failed hr=0x%08lx", (unsigned long)hr);
+        kbo_webview_mark_failed("navigate_loading_failed", hr);
     }
 }
