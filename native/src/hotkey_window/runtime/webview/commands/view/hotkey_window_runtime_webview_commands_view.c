@@ -177,11 +177,7 @@ static int kbo_webview_handle_futures_offer_command(const char* cmd)
     if (cancel) {
         g_kbo_hub_selected_futures_subview = KBO_HUB_FUTURES_SUBVIEW_PENDING;
     } else {
-        g_kbo_hub_selected_futures_subview =
-            submit_result == KBO_INDEPENDENT_ACQUISITION_UI_SUBMIT_OK
-            || submit_result == KBO_INDEPENDENT_ACQUISITION_UI_SUBMIT_DUPLICATE
-                ? KBO_HUB_FUTURES_SUBVIEW_PENDING
-                : KBO_HUB_FUTURES_SUBVIEW_OFFER;
+        g_kbo_hub_selected_futures_subview = KBO_HUB_FUTURES_SUBVIEW_OFFER;
     }
     g_kbo_hub_open_dropdown = 0;
     kbo_webview_navigate_current();
