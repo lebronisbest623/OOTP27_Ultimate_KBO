@@ -27,7 +27,7 @@ int kbo_foreign_injury_reset_open_replacements_for_offseason_locked(
         rec->status = KBO_FOREIGN_INJURY_STATUS_CLOSED;
         rec->closed_on_yyyymmdd = close_date_yyyymmdd;
         rec->converted = 0u;
-        rec->close_choice = KBO_FOREIGN_INJURY_CLOSE_KEEP_INJURED;
+        rec->close_choice = KBO_FOREIGN_INJURY_CLOSE_OFFSEASON_RESET;
         closed++;
 
         do {
