@@ -72,6 +72,10 @@ int kbo_secondary_draft_register_window(
     uint32_t protection_deadline_yyyymmdd,
     uint32_t draft_yyyymmdd,
     const char* source);
+int kbo_secondary_draft_emit_window_news(
+    uint32_t announcement_yyyymmdd,
+    const KboSecondaryDraftWindow* window,
+    const char* source);
 int kbo_secondary_draft_load_window(uint32_t season, KboSecondaryDraftWindow* out);
 int kbo_secondary_draft_protection_window_open(uint32_t season);
 int kbo_secondary_draft_draft_window_open(uint32_t season);

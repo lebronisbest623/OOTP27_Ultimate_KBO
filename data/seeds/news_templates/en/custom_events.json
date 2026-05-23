@@ -10,6 +10,8 @@
   "custom_event.fa.declaration.title": "FA Declaration Deadline",
   "custom_event.intl_established_fa.title": "International FA Class Published",
   "custom_event.secondary_draft.title": "KBO Secondary Draft",
-  "custom_event.secondary_draft.results.title": "{season} KBO Secondary Draft Results",
-  "custom_event.secondary_draft.results.body": "The {season} KBO secondary draft has been completed with {pick_count} selections. Clubs protected {protected_count} players from {candidate_count} eligible domestic players, and the posted transfer-fee total was ${total_cash}.\n\n{summary_lines}"
+  "custom_event.secondary_draft.window.title": "{season} KBO Secondary Draft Window Opens",
+  "custom_event.secondary_draft.window.body": "The {season} KBO secondary draft schedule has been set. Front offices can manage protection lists from {protection_open_date} through {protection_deadline_date}, with selections scheduled for {draft_date}.\n\nEach club may protect {protected_limit} players. The draft runs for {round_count} rounds, and the final {extra_rounds} rounds are reserved for the lower {extra_teams} clubs to support competitive balance. Once protection lists close, attention shifts to the exposed-player pool and draft order.",
+  "custom_event.secondary_draft.results.title": "{season} KBO Secondary Draft Moves {pick_count} Players",
+  "custom_event.secondary_draft.results.body": "The {season} KBO secondary draft has been completed with {pick_count} selections. Clubs protected {protected_count} players from {candidate_count} eligible domestic players, and the posted transfer-fee total was ${total_cash}.\n\nFirst selection\n{lead_pick_line}\n\nSelections by round\n{round_summary_lines}\n\nMost active acquiring clubs\n{incoming_team_lines}\n\nSource clubs\n{source_team_lines}\n\nNotable selections\n{summary_lines}"
 }

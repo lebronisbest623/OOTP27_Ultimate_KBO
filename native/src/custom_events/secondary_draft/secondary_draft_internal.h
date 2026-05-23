@@ -13,6 +13,7 @@
 #define KBO_SECONDARY_DRAFT_EXTRA_TEAMS 3
 #define KBO_SECONDARY_DRAFT_SOURCE_LOSS_LIMIT 4
 #define KBO_SECONDARY_DRAFT_CANDIDATE_MAX 8192
+#define KBO_SECONDARY_DRAFT_TEAM_OWNER_MAP_MAX 512
 #define KBO_SECONDARY_DRAFT_NEWS_PICK_LINES 12
 #define KBO_SECONDARY_DRAFT_SERVICE_DAYS_PER_SEASON 145u
 #define KBO_SECONDARY_DRAFT_FINANCIALS_BLOCK_OFFSET 0x2510u
@@ -24,6 +25,7 @@
 typedef struct KboSecondaryDraftTeam {
     uint8_t* team;
     uint32_t team_id;
+    uint32_t org_team_id;
     uint32_t league_id;
     uint32_t wins;
     uint32_t losses;
@@ -32,6 +34,11 @@ typedef struct KboSecondaryDraftTeam {
     int loss_count;
     char name[96];
 } KboSecondaryDraftTeam;
+
+typedef struct KboSecondaryDraftTeamOwnerMapEntry {
+    uint32_t team_id;
+    int owner_index;
+} KboSecondaryDraftTeamOwnerMapEntry;
 
 typedef struct KboSecondaryDraftCandidate {
     uintptr_t player_ptr;
@@ -64,9 +71,18 @@ typedef struct KboSecondaryDraftPick {
     char to_team_name[96];
 } KboSecondaryDraftPick;
 
+typedef struct KboSecondaryDraftNewsContext {
+    char lead_pick_line[384];
+    char round_summary_lines[512];
+    char incoming_team_lines[768];
+    char source_team_lines[768];
+} KboSecondaryDraftNewsContext;
+
 int kbo_secondary_draft_is_odd_season(uint32_t event_yyyymmdd);
 int kbo_secondary_draft_sql_result_count(uint32_t season);
 int kbo_secondary_draft_sql_run_exists(uint32_t season);
+int kbo_secondary_draft_sql_news_mark_exists(uint32_t season, const char* news_key);
+int kbo_secondary_draft_sql_mark_news(uint32_t season, const char* news_key, const char* source);
 int kbo_secondary_draft_sql_mark_run(
     uint32_t season,
     uint32_t event_yyyymmdd,
@@ -87,6 +103,13 @@ int kbo_secondary_draft_sql_protected_count(uint32_t season, uint32_t team_id);
 int kbo_secondary_draft_sql_player_protected(uint32_t season, uint32_t team_id, uint32_t player_id);
 int kbo_secondary_draft_sql_team_submitted(uint32_t season, uint32_t team_id, int* out_count);
 int kbo_secondary_draft_sql_result_player_exists(uint32_t season, uint32_t player_id);
+int kbo_secondary_draft_sql_load_protected_player_ids(
+    uint32_t season,
+    uint32_t team_id,
+    uint32_t* ids,
+    int max_ids);
+int kbo_secondary_draft_sql_load_result_player_ids(uint32_t season, uint32_t* ids, int max_ids);
+int kbo_secondary_draft_id_list_contains(const uint32_t* ids, int count, uint32_t player_id);
 int kbo_secondary_draft_sql_clear_protected_team(uint32_t season, uint32_t team_id);
 int kbo_secondary_draft_sql_write_protected_player(
     uint32_t season,
@@ -113,10 +136,19 @@ int kbo_secondary_draft_team_index_by_id(
     const KboSecondaryDraftTeam* teams,
     int team_count,
     uint32_t team_id);
+int kbo_secondary_draft_build_team_owner_map(
+    const KboSecondaryDraftTeam* teams,
+    int team_count,
+    KboSecondaryDraftTeamOwnerMapEntry* entries,
+    int max_entries);
 int kbo_secondary_draft_owner_index_for_player(
     uint8_t* player,
     const KboSecondaryDraftTeam* teams,
     int team_count);
+int kbo_secondary_draft_owner_index_for_player_from_map(
+    uint8_t* player,
+    const KboSecondaryDraftTeamOwnerMapEntry* entries,
+    int entry_count);
 int kbo_secondary_draft_player_status_ok(uint8_t* player);
 int kbo_secondary_draft_collect_candidates(
     const KboSecondaryDraftTeam* teams,
@@ -151,5 +183,17 @@ int kbo_secondary_draft_emit_news(
     int protected_count,
     int64_t cash_total,
     const char* source);
+int kbo_secondary_draft_emit_stored_results_news(
+    uint32_t season,
+    uint32_t event_yyyymmdd,
+    uint32_t league_id,
+    int candidate_count,
+    int protected_count,
+    int64_t cash_total,
+    const char* source);
+void kbo_secondary_draft_build_news_context(
+    const KboSecondaryDraftPick* picks,
+    int pick_count,
+    KboSecondaryDraftNewsContext* out);
 
 #endif

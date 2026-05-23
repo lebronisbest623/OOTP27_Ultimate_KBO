@@ -11,6 +11,14 @@ void kbo_secondary_draft_fill_ui_candidate_row(
     uint32_t season,
     int submitted,
     KboSecondaryDraftCandidateRow* out);
+void kbo_secondary_draft_fill_ui_candidate_row_with_status(
+    const KboSecondaryDraftCandidate* candidate,
+    const char* team_name,
+    uint32_t season,
+    int submitted,
+    int saved_protected,
+    int already_drafted,
+    KboSecondaryDraftCandidateRow* out);
 int kbo_secondary_draft_collect_team_candidates(
     uint32_t team_id,
     KboSecondaryDraftTeam* out_team,

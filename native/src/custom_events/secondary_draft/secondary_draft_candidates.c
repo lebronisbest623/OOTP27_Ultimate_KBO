@@ -13,49 +13,8 @@
 #include "../../foreign/common/player_eval/foreign_waiver_player_eval.h"
 #include "../../player_team_history/player_team_seasons.h"
 #include "../../runtime_memory/runtime_memory.h"
-#include "../../team/assignment/org_query/team_org_assignment_query.h"
 #include "../../team/lookup/team_lookup.h"
 #include "../../team/names/team_name_cache.h"
-
-static int kbo_secondary_draft_team_index_by_org(
-    const KboSecondaryDraftTeam* teams,
-    int team_count,
-    uint32_t team_id)
-{
-    if (team_id == 0u) {
-        return -1;
-    }
-    int direct = kbo_secondary_draft_team_index_by_id(teams, team_count, team_id);
-    if (direct >= 0) {
-        return direct;
-    }
-    uint32_t org_team_id = kbo_org_team_id_for_team_id(team_id);
-    return kbo_secondary_draft_team_index_by_id(teams, team_count, org_team_id);
-}
-
-int kbo_secondary_draft_owner_index_for_player(
-    uint8_t* player,
-    const KboSecondaryDraftTeam* teams,
-    int team_count)
-{
-    if (player == NULL || !memory_range_readable(player, OOTP27_PLAYER_SCAN_BYTES)) {
-        return -1;
-    }
-    uint32_t active_team_id = *(uint32_t*)(player + OOTP27_PLAYER_ACTIVE_TEAM_ID_OFFSET);
-    int index = kbo_secondary_draft_team_index_by_org(teams, team_count, active_team_id);
-    if (index >= 0) {
-        return index;
-    }
-
-    uint32_t current_team_id = *(uint32_t*)(player + OOTP27_PLAYER_CURRENT_TEAM_ID_OFFSET);
-    index = kbo_secondary_draft_team_index_by_org(teams, team_count, current_team_id);
-    if (index >= 0) {
-        return index;
-    }
-
-    uint32_t default_team_id = *(uint32_t*)(player + OOTP27_PLAYER_DEFAULT_TEAM_ID_OFFSET);
-    return kbo_secondary_draft_team_index_by_org(teams, team_count, default_team_id);
-}
 
 static uintptr_t* kbo_secondary_draft_copy_player_vector_snapshot(int32_t* out_count, const char** out_failure)
 {
@@ -227,6 +186,12 @@ int kbo_secondary_draft_collect_candidates(
         return 0;
     }
 
+    KboSecondaryDraftTeamOwnerMapEntry owner_map[KBO_SECONDARY_DRAFT_TEAM_OWNER_MAP_MAX];
+    int owner_map_count = kbo_secondary_draft_build_team_owner_map(
+        teams,
+        team_count,
+        owner_map,
+        KBO_SECONDARY_DRAFT_TEAM_OWNER_MAP_MAX);
     int count = 0;
     for (int32_t i = 0; i < player_count && count < max_candidates; i++) {
         uintptr_t player_ptr = snapshot[i];
@@ -238,7 +203,10 @@ int kbo_secondary_draft_collect_candidates(
             continue;
         }
 
-        int owner_index = kbo_secondary_draft_owner_index_for_player(player, teams, team_count);
+        int owner_index = kbo_secondary_draft_owner_index_for_player_from_map(
+            player,
+            owner_map,
+            owner_map_count);
         if (owner_index < 0) {
             continue;
         }
@@ -298,12 +266,18 @@ int kbo_secondary_draft_mark_protected_players(
             && team_id != 0u
             && kbo_secondary_draft_sql_team_submitted(season, team_id, &submitted_count);
         if (submitted) {
+            uint32_t protected_ids[KBO_SECONDARY_DRAFT_PROTECTED_COUNT] = {0};
+            int protected_ids_count = kbo_secondary_draft_sql_load_protected_player_ids(
+                season,
+                team_id,
+                protected_ids,
+                KBO_SECONDARY_DRAFT_PROTECTED_COUNT);
             for (int i = 0; i < candidate_count; i++) {
                 KboSecondaryDraftCandidate* c = &candidates[i];
                 if (c->owner_index != team_index || c->protected_player || c->selected) {
                     continue;
                 }
-                if (kbo_secondary_draft_sql_player_protected(season, team_id, c->player_id)) {
+                if (kbo_secondary_draft_id_list_contains(protected_ids, protected_ids_count, c->player_id)) {
                     c->protected_player = 1u;
                     protected_count++;
                 }

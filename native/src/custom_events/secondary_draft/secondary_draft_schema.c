@@ -94,10 +94,17 @@ int kbo_secondary_draft_ensure_schema(const char* source)
         "source TEXT NOT NULL,"
         "updated_at TEXT NOT NULL DEFAULT (datetime('now'))"
         ");"
+        "CREATE TABLE IF NOT EXISTS secondary_draft_news_marks ("
+        "season INTEGER NOT NULL,"
+        "news_key TEXT NOT NULL,"
+        "source TEXT NOT NULL,"
+        "created_at TEXT NOT NULL DEFAULT (datetime('now')),"
+        "PRIMARY KEY(season, news_key)"
+        ");"
         "CREATE INDEX IF NOT EXISTS idx_secondary_draft_protected_team "
         "ON secondary_draft_protected_players(season, team_id);"
         "INSERT OR REPLACE INTO kbo_schema(schema_key, schema_version, updated_at) "
-        "VALUES('secondary_draft', 3, datetime('now'));";
+        "VALUES('secondary_draft', 4, datetime('now'));";
     return kbo_save_state_exec(sql, source != NULL ? source : "secondary_draft_schema");
 }
 

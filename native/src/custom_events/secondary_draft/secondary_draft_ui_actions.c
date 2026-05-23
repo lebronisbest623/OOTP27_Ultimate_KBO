@@ -30,6 +30,17 @@ int kbo_secondary_draft_collect_team_list_rows(
     (void)submitted_count;
     if (out_submitted != NULL) { *out_submitted = submitted; }
     if (out_saved_count != NULL) { *out_saved_count = saved_count; }
+    uint32_t protected_ids[KBO_SECONDARY_DRAFT_PROTECTED_LIST_LIMIT] = {0};
+    int protected_id_count = kbo_secondary_draft_sql_load_protected_player_ids(
+        season,
+        team_id,
+        protected_ids,
+        KBO_SECONDARY_DRAFT_PROTECTED_LIST_LIMIT);
+    uint32_t drafted_ids[KBO_SECONDARY_DRAFT_UI_MAX_ROWS] = {0};
+    int drafted_id_count = kbo_secondary_draft_sql_load_result_player_ids(
+        season,
+        drafted_ids,
+        KBO_SECONDARY_DRAFT_UI_MAX_ROWS);
 
     KboSecondaryDraftCandidate* candidates = (KboSecondaryDraftCandidate*)HeapAlloc(
         GetProcessHeap(),
@@ -48,11 +59,21 @@ int kbo_secondary_draft_collect_team_list_rows(
 
     int count = 0;
     for (int i = 0; i < candidate_count && count < max_rows; i++) {
-        kbo_secondary_draft_fill_ui_candidate_row(
+        int saved = kbo_secondary_draft_id_list_contains(
+            protected_ids,
+            protected_id_count,
+            candidates[i].player_id);
+        int drafted = kbo_secondary_draft_id_list_contains(
+            drafted_ids,
+            drafted_id_count,
+            candidates[i].player_id);
+        kbo_secondary_draft_fill_ui_candidate_row_with_status(
             &candidates[i],
             team.name,
             season,
             submitted,
+            saved,
+            drafted,
             &rows[count]);
         count++;
     }

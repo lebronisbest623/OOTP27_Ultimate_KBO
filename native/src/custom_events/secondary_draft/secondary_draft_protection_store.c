@@ -12,6 +12,12 @@ typedef struct KboSecondaryDraftSqlCount {
     int count;
 } KboSecondaryDraftSqlCount;
 
+typedef struct KboSecondaryDraftSqlIds {
+    uint32_t* ids;
+    int max_ids;
+    int count;
+} KboSecondaryDraftSqlIds;
+
 static int kbo_secondary_draft_store_count_cb(void* user_data, int ncols, char** vals, char** names)
 {
     (void)names;
@@ -31,6 +37,31 @@ static int kbo_secondary_draft_store_scalar_count(const char* sql, const char* s
         return 0;
     }
     return count.found ? count.count : 0;
+}
+
+static int kbo_secondary_draft_store_id_cb(void* user_data, int ncols, char** vals, char** names)
+{
+    (void)names;
+    KboSecondaryDraftSqlIds* ids = (KboSecondaryDraftSqlIds*)user_data;
+    if (ids == NULL || ids->ids == NULL || ids->count >= ids->max_ids
+            || ncols <= 0 || vals == NULL || vals[0] == NULL) {
+        return 0;
+    }
+    ids->ids[ids->count++] = (uint32_t)strtoul(vals[0], NULL, 10);
+    return 0;
+}
+
+int kbo_secondary_draft_id_list_contains(const uint32_t* ids, int count, uint32_t player_id)
+{
+    if (ids == NULL || count <= 0 || player_id == 0u) {
+        return 0;
+    }
+    for (int i = 0; i < count; i++) {
+        if (ids[i] == player_id) {
+            return 1;
+        }
+    }
+    return 0;
 }
 
 int kbo_secondary_draft_sql_protected_count(uint32_t season, uint32_t team_id)
@@ -107,6 +138,63 @@ int kbo_secondary_draft_sql_result_player_exists(uint32_t season, uint32_t playe
         season,
         player_id);
     return kbo_secondary_draft_store_scalar_count(sql, "secondary_draft_result_player_exists") > 0;
+}
+
+int kbo_secondary_draft_sql_load_protected_player_ids(
+    uint32_t season,
+    uint32_t team_id,
+    uint32_t* ids,
+    int max_ids)
+{
+    if (ids == NULL || max_ids <= 0) {
+        return 0;
+    }
+    for (int i = 0; i < max_ids; i++) {
+        ids[i] = 0u;
+    }
+    if (season == 0u || team_id == 0u
+            || !kbo_secondary_draft_ensure_schema("secondary_draft_load_protected_ids_schema")) {
+        return 0;
+    }
+    char sql[320] = {0};
+    snprintf(
+        sql,
+        sizeof(sql),
+        "SELECT player_id FROM secondary_draft_protected_players "
+        "WHERE season=%u AND team_id=%u LIMIT %d;",
+        season,
+        team_id,
+        max_ids);
+    KboSecondaryDraftSqlIds loaded = {ids, max_ids, 0};
+    if (!kbo_save_state_query(sql, kbo_secondary_draft_store_id_cb, &loaded, "secondary_draft_load_protected_ids")) {
+        return 0;
+    }
+    return loaded.count;
+}
+
+int kbo_secondary_draft_sql_load_result_player_ids(uint32_t season, uint32_t* ids, int max_ids)
+{
+    if (ids == NULL || max_ids <= 0) {
+        return 0;
+    }
+    for (int i = 0; i < max_ids; i++) {
+        ids[i] = 0u;
+    }
+    if (season == 0u || !kbo_secondary_draft_ensure_schema("secondary_draft_load_result_ids_schema")) {
+        return 0;
+    }
+    char sql[256] = {0};
+    snprintf(
+        sql,
+        sizeof(sql),
+        "SELECT player_id FROM secondary_draft_results WHERE season=%u LIMIT %d;",
+        season,
+        max_ids);
+    KboSecondaryDraftSqlIds loaded = {ids, max_ids, 0};
+    if (!kbo_save_state_query(sql, kbo_secondary_draft_store_id_cb, &loaded, "secondary_draft_load_result_ids")) {
+        return 0;
+    }
+    return loaded.count;
 }
 
 int kbo_secondary_draft_sql_clear_protected_team(uint32_t season, uint32_t team_id)

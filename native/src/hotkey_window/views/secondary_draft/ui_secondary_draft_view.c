@@ -35,9 +35,10 @@ void kbo_webview_append_secondary_draft_view(
     int has_summary = season != 0u && kbo_secondary_draft_load_run_summary(season, &summary);
 
     KboSecondaryDraftResultRow rows[KBO_SECONDARY_DRAFT_UI_MAX_ROWS];
-    int row_count = season != 0u
-        ? kbo_secondary_draft_load_result_rows(season, rows, KBO_SECONDARY_DRAFT_UI_MAX_ROWS)
-        : 0;
+    int row_count = has_summary ? summary.pick_count : 0;
+    if (selected_subview == KBO_HUB_SECONDARY_DRAFT_SUBVIEW_DRAFT && season != 0u) {
+        row_count = kbo_secondary_draft_load_result_rows(season, rows, KBO_SECONDARY_DRAFT_UI_MAX_ROWS);
+    }
 
     kbo_window_text_appendf(buffer, "<div class='rights rosterRights secondaryDraftRights'>");
     kbo_secondary_draft_ui_append_top_bar(

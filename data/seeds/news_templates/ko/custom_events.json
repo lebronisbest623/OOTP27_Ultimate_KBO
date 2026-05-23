@@ -10,6 +10,8 @@
   "custom_event.fa.declaration.title": "FA 선언 마감",
   "custom_event.intl_established_fa.title": "국제 FA 명단 공개",
   "custom_event.secondary_draft.title": "KBO 2차 드래프트",
-  "custom_event.secondary_draft.results.title": "{season}년 KBO 2차 드래프트 결과",
-  "custom_event.secondary_draft.results.body": "{season}년 KBO 2차 드래프트가 {pick_count}명 지명으로 마무리됐습니다. 전체 후보 {candidate_count}명 중 {protected_count}명이 자동 보호 또는 보호 명단에 묶였고, 공시된 이적료 총액은 ${total_cash}입니다.\n\n{summary_lines}"
+  "custom_event.secondary_draft.window.title": "{season}년 KBO 2차 드래프트 일정 확정",
+  "custom_event.secondary_draft.window.body": "{season}년 KBO 2차 드래프트 일정이 확정됐습니다. 각 구단 프런트는 {protection_open_date}부터 {protection_deadline_date}까지 보호 명단을 정리하고, 지명은 {draft_date}에 진행됩니다.\n\n보호 한도는 구단당 {protected_limit}명입니다. 총 {round_count}라운드 중 마지막 {extra_rounds}라운드는 하위 {extra_teams}개 구단만 행사해 전력 균형을 보완합니다. 보호 명단 제출 이후에는 즉시 지명 후보와 순번 싸움이 본격화됩니다.",
+  "custom_event.secondary_draft.results.title": "{season}년 KBO 2차 드래프트, {pick_count}명 이동",
+  "custom_event.secondary_draft.results.body": "{season}년 KBO 2차 드래프트가 {pick_count}명 지명으로 마무리됐습니다. 전체 후보 {candidate_count}명 중 {protected_count}명이 자동 보호 또는 보호 명단에 묶였고, 공시된 이적료 총액은 ${total_cash}입니다.\n\n첫 지명\n{lead_pick_line}\n\n라운드별 지명 수\n{round_summary_lines}\n\n영입이 많았던 구단\n{incoming_team_lines}\n\n선수를 내준 구단\n{source_team_lines}\n\n주요 지명\n{summary_lines}"
 }

@@ -10,6 +10,18 @@
 
 #include "../../core/core_league_context_parts/api/league_context_lookup.h"
 
+static int kbo_secondary_draft_expected_pick_count(int team_count)
+{
+    if (team_count <= 0) {
+        return 0;
+    }
+    int extra_teams = team_count < KBO_SECONDARY_DRAFT_EXTRA_TEAMS
+        ? team_count
+        : KBO_SECONDARY_DRAFT_EXTRA_TEAMS;
+    return (team_count * KBO_SECONDARY_DRAFT_BASE_ROUNDS)
+        + (extra_teams * (KBO_SECONDARY_DRAFT_ROUNDS - KBO_SECONDARY_DRAFT_BASE_ROUNDS));
+}
+
 int kbo_secondary_draft_collect_draft_pool_rows(
     uint32_t season,
     uint32_t drafting_team_id,
@@ -48,6 +60,11 @@ int kbo_secondary_draft_collect_draft_pool_rows(
         KBO_SECONDARY_DRAFT_CANDIDATE_MAX);
     (void)kbo_secondary_draft_mark_protected_players(candidates, candidate_count, team_count, season);
     qsort(candidates, (size_t)candidate_count, sizeof(candidates[0]), kbo_secondary_draft_candidate_cmp_desc);
+    uint32_t drafted_ids[KBO_SECONDARY_DRAFT_UI_MAX_ROWS] = {0};
+    int drafted_id_count = kbo_secondary_draft_sql_load_result_player_ids(
+        season,
+        drafted_ids,
+        KBO_SECONDARY_DRAFT_UI_MAX_ROWS);
 
     int drafting_index = kbo_secondary_draft_team_index_by_id(teams, team_count, drafting_team_id);
     int count = 0;
@@ -57,13 +74,15 @@ int kbo_secondary_draft_collect_draft_pool_rows(
                 || c->selected
                 || c->owner_index < 0
                 || c->owner_index == drafting_index
-                || kbo_secondary_draft_sql_result_player_exists(season, c->player_id)) {
+                || kbo_secondary_draft_id_list_contains(drafted_ids, drafted_id_count, c->player_id)) {
             continue;
         }
-        kbo_secondary_draft_fill_ui_candidate_row(
+        kbo_secondary_draft_fill_ui_candidate_row_with_status(
             c,
             teams[c->owner_index].name,
             season,
+            0,
+            0,
             0,
             &rows[count]);
         rows[count].eligible = 1;
@@ -164,6 +183,16 @@ int kbo_secondary_draft_manual_pick_player(
             protected_count,
             cash_total,
             source);
+        if (result_count + 1 >= kbo_secondary_draft_expected_pick_count(team_count)) {
+            kbo_secondary_draft_emit_stored_results_news(
+                season,
+                event_yyyymmdd,
+                league_id,
+                candidate_count,
+                protected_count,
+                cash_total,
+                source != NULL ? source : "hub_secondary_draft_pick");
+        }
     }
     HeapFree(GetProcessHeap(), 0, candidates);
     return saved;

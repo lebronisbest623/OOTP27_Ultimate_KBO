@@ -150,6 +150,7 @@ int kbo_secondary_draft_collect_main_teams(
         KboSecondaryDraftTeam* out = &teams[count++];
         out->team = team;
         out->team_id = team_id;
+        out->org_team_id = team_id;
         out->league_id = team_league_id;
         out->wins = *(uint32_t*)(team + OOTP27_KBO_TEAM_REGULAR_WINS_OFFSET);
         out->losses = *(uint32_t*)(team + OOTP27_KBO_TEAM_REGULAR_LOSSES_OFFSET);
