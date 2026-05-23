@@ -8,6 +8,7 @@
 #include "../../../api/foreign_signability_salary_floor.h"
 #include "../../../../../core/core_league_context_parts/api/league_context_lookup.h"
 #include "../../../../../core/core_flags/keys/runtime_flag_keys.generated.h"
+#include "../../../../controller/foreign_ai_fast_fill_controller.h"
 
 typedef void (__fastcall *KboOotpForeignAiOfferAttachFn)(uintptr_t player_ptr, uintptr_t offer_slot_ptr);
 typedef uintptr_t (__fastcall *KboOotpForeignAiOfferBuildFn)(
@@ -114,6 +115,30 @@ static uint8_t kbo_foreign_ai_fast_fill_offer_final_gate(
         return original_result;
     }
 
+    int candidate_asian = kbo_player_is_asian_quota_slot_candidate(player) ? 1 : 0;
+    KboForeignFastFillContext fast_fill = {0};
+    if (!kbo_foreign_ai_fast_fill_get_context(team_id, &fast_fill)
+            || !kbo_foreign_ai_fast_fill_candidate_solves_context(&fast_fill, candidate_asian)) {
+        static volatile LONG skip_log_count = 0;
+        LONG skip_slot = InterlockedIncrement(&skip_log_count);
+        if (skip_slot <= 200) {
+            kbo_log_runtimef(
+                "foreign ai fast-fill offer final gate kept original player=%u team=%u original=%u reason=%s candidate_asian=%u vacant=%u effective_vacant=%u asian_quota_vacant=%u effective_with_pending=%u limit=%u today=%u",
+                player_id,
+                team_id,
+                (uint32_t)original_result,
+                fast_fill.team_id != 0u ? "candidate_does_not_solve_slot" : "no_fast_fill_context",
+                (uint32_t)candidate_asian,
+                (uint32_t)fast_fill.vacant,
+                (uint32_t)fast_fill.effective_vacant,
+                (uint32_t)fast_fill.asian_quota_vacant,
+                fast_fill.effective_with_pending,
+                fast_fill.limit,
+                today);
+        }
+        return original_result;
+    }
+
     kbo_record_custom_foreign_pending_offer(team_id, player, today);
     kbo_record_recent_custom_foreign_policy_allow(player_id, team_id, today);
 
@@ -121,17 +146,20 @@ static uint8_t kbo_foreign_ai_fast_fill_offer_final_gate(
     LONG slot = InterlockedIncrement(&fast_fill_log_count);
     if (slot <= 300) {
         kbo_log_runtimef(
-            "foreign ai fast-fill offer final gate adjusted player=%u team=%u original=%u adjusted=1 effective_before=%u effective_after=%u limit=%u base_limit=%u pending_asian=%u pending_non_asian=%u asian=%u injury_slot=%s injured=%u salary_arg=%d demand=%d score=%d offer=%p offer_salary=%d offer_years=%u today=%u",
+            "foreign ai fast-fill offer final gate adjusted player=%u team=%u original=%u adjusted=1 reason=%s effective_before=%u effective_after=%u limit=%u base_limit=%u pending_asian=%u pending_non_asian=%u asian=%u fast_fill_effective_vacant=%u fast_fill_asian_quota_vacant=%u injury_slot=%s injured=%u salary_arg=%d demand=%d score=%d offer=%p offer_salary=%d offer_years=%u today=%u",
             player_id,
             team_id,
             (uint32_t)original_result,
+            fast_fill.asian_quota_vacant && candidate_asian ? "asian_quota_vacant" : "effective_vacant",
             effective_before,
             effective_after,
             effective_limit,
             base_limit,
             pending_asian,
             pending_non_asian,
-            kbo_player_is_asian_quota_slot_candidate(player) ? 1u : 0u,
+            (uint32_t)candidate_asian,
+            (uint32_t)fast_fill.effective_vacant,
+            (uint32_t)fast_fill.asian_quota_vacant,
             slot_type != 0u ? kbo_foreign_injury_slot_label(slot_type) : "none",
             injured_player_id,
             salary,

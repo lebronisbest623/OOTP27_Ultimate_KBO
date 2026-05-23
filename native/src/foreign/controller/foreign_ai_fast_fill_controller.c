@@ -13,7 +13,6 @@
 #include "../../core/sync/lock.h"
 #include "../../core/teams/core_team_collect.h"
 #include "../../team/add_player_guard/team_add_player_guard_ai_roster.h"
-#include "../../team/independent_acquisition/independent_acquisition_ai.h"
 
 enum {
     KBO_FOREIGN_FAST_FILL_TEAM_MAX = 64,
@@ -132,6 +131,60 @@ static void kbo_fast_fill_update_team_locked(
     }
 }
 
+int kbo_foreign_ai_fast_fill_get_context(
+    uint32_t team_id,
+    KboForeignFastFillContext* out_context)
+{
+    if (out_context != NULL) {
+        memset(out_context, 0, sizeof(*out_context));
+    }
+    if (team_id == 0u || out_context == NULL) {
+        return 0;
+    }
+
+    int found = 0;
+    kbo_lock_enter(&g_kbo_foreign_fast_fill_lock);
+    for (int i = 0; i < KBO_FOREIGN_FAST_FILL_TEAM_MAX; i++) {
+        KboForeignFastFillTeamState* rec = &g_kbo_foreign_fast_fill_teams[i];
+        if (rec->team_id != team_id) {
+            continue;
+        }
+        out_context->team_id = rec->team_id;
+        out_context->vacancy_started_on = rec->vacancy_started_on;
+        out_context->last_seen_on = rec->last_seen_on;
+        out_context->asian_count = rec->asian_count;
+        out_context->non_asian_count = rec->non_asian_count;
+        out_context->pending_asian_count = rec->pending_asian_count;
+        out_context->pending_non_asian_count = rec->pending_non_asian_count;
+        out_context->effective_count = rec->effective_count;
+        out_context->effective_with_pending = rec->effective_with_pending;
+        out_context->limit = rec->limit;
+        out_context->effective_vacant = rec->effective_vacant;
+        out_context->asian_quota_vacant = rec->asian_quota_vacant;
+        out_context->vacant = rec->vacant;
+        found = rec->vacant ? 1 : 0;
+        break;
+    }
+    kbo_lock_leave(&g_kbo_foreign_fast_fill_lock);
+    return found;
+}
+
+int kbo_foreign_ai_fast_fill_candidate_solves_context(
+    const KboForeignFastFillContext* context,
+    int candidate_asian_quota)
+{
+    if (context == NULL || !context->vacant) {
+        return 0;
+    }
+    if (context->asian_quota_vacant && candidate_asian_quota) {
+        return 1;
+    }
+    if (context->effective_vacant) {
+        return 1;
+    }
+    return 0;
+}
+
 int kbo_foreign_ai_fast_fill_controller_tick(uint32_t today, const char* source)
 {
     if (today == 0u
@@ -220,11 +273,8 @@ int kbo_foreign_ai_fast_fill_controller_tick(uint32_t today, const char* source)
     kbo_mark_foreign_ai_roster_daily_callup_dirty("foreign_fast_fill_controller");
     int callup_result = kbo_consume_foreign_ai_roster_daily_callup_dirty(
         source != NULL ? source : "foreign_fast_fill_controller");
-    int acquisition_result = kbo_run_independent_team_acquisition_ai_for_date(
-        today,
-        source != NULL ? source : "foreign_fast_fill_controller");
     kbo_log_runtimef(
-        "foreign ai fast fill controller tick source=%s today=%u teams=%d vacancies=%d asian_quota_vacancies=%d longest_days=%u callup=%d acquisition=%d scanned=%d unreadable=%d",
+        "foreign ai fast fill controller tick source=%s today=%u teams=%d vacancies=%d asian_quota_vacancies=%d longest_days=%u callup=%d scanned=%d unreadable=%d",
         source != NULL ? source : "",
         today,
         team_count,
@@ -232,8 +282,7 @@ int kbo_foreign_ai_fast_fill_controller_tick(uint32_t today, const char* source)
         asian_quota_vacancy_count,
         longest_vacancy_days,
         callup_result,
-        acquisition_result,
         scanned,
         unreadable);
-    return callup_result + acquisition_result;
+    return callup_result;
 }
