@@ -15,36 +15,11 @@
 #include "../../../product/ootp_product.h"
 
 #define KBO_DATA_BUNDLE_MAX_BYTES (8u * 1024u * 1024u)
-#define KBO_DATA_BUNDLE_MAX_TOKENS 512
 
 static int kbo_global_file_exists(const char* path)
 {
     DWORD attributes = kbo_get_file_attributes_utf8(path);
     return attributes != INVALID_FILE_ATTRIBUTES && (attributes & FILE_ATTRIBUTE_DIRECTORY) == 0;
-}
-
-static int kbo_data_bundle_key_equals(const char* json, const jsmntok_t* token, const char* file_name)
-{
-    if (json == NULL || token == NULL || file_name == NULL || token->type != JSMN_STRING
-            || token->start < 0 || token->end < token->start) {
-        return 0;
-    }
-    const char* key = json + token->start;
-    size_t key_len = (size_t)(token->end - token->start);
-    size_t name_len = strlen(file_name);
-    if (key_len != name_len) {
-        return 0;
-    }
-    for (size_t i = 0; i < key_len; i++) {
-        char a = key[i] == '/' ? '\\' : key[i];
-        char b = file_name[i] == '/' ? '\\' : file_name[i];
-        if (a >= 'A' && a <= 'Z') { a = (char)(a + ('a' - 'A')); }
-        if (b >= 'A' && b <= 'Z') { b = (char)(b + ('a' - 'A')); }
-        if (a != b) {
-            return 0;
-        }
-    }
-    return 1;
 }
 
 static int kbo_data_bundle_read_file(const char* path, char** out_data, DWORD* out_size)
@@ -82,6 +57,22 @@ static int kbo_data_bundle_read_file(const char* path, char** out_data, DWORD* o
     return 1;
 }
 
+static int kbo_data_bundle_normalize_key(const char* file_name, char* out, size_t out_size)
+{
+    if (file_name == NULL || file_name[0] == '\0' || out == NULL || out_size == 0u) {
+        return 0;
+    }
+    size_t len = strlen(file_name);
+    if (len + 1u > out_size) {
+        return 0;
+    }
+    for (size_t i = 0; i < len; i++) {
+        out[i] = file_name[i] == '\\' ? '/' : file_name[i];
+    }
+    out[len] = '\0';
+    return 1;
+}
+
 static int kbo_data_bundle_token_subtree_end(const jsmntok_t* tokens, int parsed, int index)
 {
     int cursor = index + 1;
@@ -91,6 +82,48 @@ static int kbo_data_bundle_token_subtree_end(const jsmntok_t* tokens, int parsed
         cursor++;
     }
     return cursor;
+}
+
+static int kbo_data_bundle_token_key_equals(const char* json, const jsmntok_t* token, const char* file_name)
+{
+    char key[KBO_UTF8_PATH_BYTES] = {0};
+    if (json == NULL || token == NULL || token->type != JSMN_STRING
+            || token->start < 0 || token->end < token->start
+            || !kbo_data_bundle_normalize_key(file_name, key, sizeof(key))) {
+        return 0;
+    }
+    size_t token_len = (size_t)(token->end - token->start);
+    size_t key_len = strlen(key);
+    return token_len == key_len && memcmp(json + token->start, key, key_len) == 0;
+}
+
+static jsmntok_t* kbo_data_bundle_parse_json(const char* json, DWORD json_size, int* out_parsed)
+{
+    if (json == NULL || json_size == 0u || out_parsed == NULL) {
+        return NULL;
+    }
+    *out_parsed = 0;
+
+    jsmn_parser parser;
+    jsmn_init(&parser);
+    int needed = jsmn_parse(&parser, json, (size_t)json_size, NULL, 0);
+    if (needed <= 0 || needed > 65536) {
+        return NULL;
+    }
+
+    jsmntok_t* tokens = (jsmntok_t*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(jsmntok_t) * (SIZE_T)needed);
+    if (tokens == NULL) {
+        return NULL;
+    }
+
+    jsmn_init(&parser);
+    int parsed = jsmn_parse(&parser, json, (size_t)json_size, tokens, (unsigned int)needed);
+    if (parsed <= 0 || tokens[0].type != JSMN_OBJECT) {
+        HeapFree(GetProcessHeap(), 0, tokens);
+        return NULL;
+    }
+    *out_parsed = parsed;
+    return tokens;
 }
 
 static int kbo_data_bundle_hex_value(char c)
@@ -209,11 +242,9 @@ static int kbo_data_bundle_extract_file(const char* dir, const char* file_name, 
         return 0;
     }
 
-    jsmntok_t tokens[KBO_DATA_BUNDLE_MAX_TOKENS];
-    jsmn_parser parser;
-    jsmn_init(&parser);
-    int parsed = jsmn_parse(&parser, json, (size_t)json_size, tokens, KBO_DATA_BUNDLE_MAX_TOKENS);
-    if (parsed <= 0 || tokens[0].type != JSMN_OBJECT) {
+    int parsed = 0;
+    jsmntok_t* tokens = kbo_data_bundle_parse_json(json, json_size, &parsed);
+    if (tokens == NULL) {
         HeapFree(GetProcessHeap(), 0, json);
         return 0;
     }
@@ -225,13 +256,13 @@ static int kbo_data_bundle_extract_file(const char* dir, const char* file_name, 
         int next = kbo_data_bundle_token_subtree_end(tokens, parsed, i + 1);
         if (key->type == JSMN_STRING
                 && (int)(key->end - key->start) == 5
-                && memcmp(json + key->start, "files", 5) == 0
+                && memcmp(json + key->start, "Files", 5) == 0
                 && candidate->type == JSMN_OBJECT) {
             for (int f = i + 2; f + 1 < next; ) {
                 jsmntok_t* file_key = &tokens[f];
                 jsmntok_t* file_value = &tokens[f + 1];
                 int file_next = kbo_data_bundle_token_subtree_end(tokens, parsed, f + 1);
-                if (kbo_data_bundle_key_equals(json, file_key, file_name)
+                if (kbo_data_bundle_token_key_equals(json, file_key, file_name)
                         && file_value->type == JSMN_STRING) {
                     value = file_value;
                     break;
@@ -243,12 +274,14 @@ static int kbo_data_bundle_extract_file(const char* dir, const char* file_name, 
         i = next;
     }
     if (value == NULL) {
+        HeapFree(GetProcessHeap(), 0, tokens);
         HeapFree(GetProcessHeap(), 0, json);
         return 0;
     }
 
     DWORD content_size = 0;
     char* content = kbo_data_bundle_unescape_json_string(json + value->start, json + value->end, &content_size);
+    HeapFree(GetProcessHeap(), 0, tokens);
     HeapFree(GetProcessHeap(), 0, json);
     if (content == NULL) {
         return 0;
