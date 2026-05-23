@@ -237,10 +237,6 @@ void kbo_fa_declaration_decide(KboFaDeclarationCandidate* candidate)
         threshold -= 3000;
     }
 
-    if (strcmp(candidate->case_label, "KBO_FA_ELIGIBLE_PROXY") == 0) {
-        threshold += 8000;
-    }
-
     candidate->threshold = threshold;
 
     int32_t market_score = kbo_fa_declaration_market_score(

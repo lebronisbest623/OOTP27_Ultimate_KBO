@@ -140,44 +140,6 @@ int kbo_handle_fa_declaration_event(uint32_t event_yyyymmdd, const char* source)
             &candidate_count);
     }
 
-    int active_scanned = 0;
-    int active_added = kbo_fa_declaration_collect_active_fallback(
-        event_yyyymmdd,
-        season,
-        league_id,
-        salary_grades,
-        grade_count,
-        candidates,
-        &candidate_count,
-        &active_scanned);
-    if (active_added < 0 && market_summary.scanned == 0 && market_count == 0) {
-        HeapFree(GetProcessHeap(), 0, candidates);
-        HeapFree(GetProcessHeap(), 0, market_rows);
-        HeapFree(GetProcessHeap(), 0, salary_grades);
-        kbo_log_runtimef(
-            "KBO FA declaration event deferred source=%s date=%u reason=no_player_vector",
-            source != NULL ? source : "",
-            event_yyyymmdd);
-                do {
-            KboLogFields audit_fields;
-            kbo_log_fields_init(&audit_fields);
-            kbo_log_field_u32(&audit_fields, "date", event_yyyymmdd);
-            kbo_log_field_u32(&audit_fields, "season", season);
-            kbo_log_field_u32(&audit_fields, "league_id", league_id);
-            kbo_log_field_i32(&audit_fields, "market_rows", market_count);
-            kbo_rule_audit_emit_fields(
-                "fa.declaration.event",
-                "defer",
-                "player_vector_unavailable",
-                source != NULL ? source : "fa_declaration_event",
-                &audit_fields);
-        } while (0);
-        return -1;
-    }
-    if (active_added < 0) {
-        active_added = 0;
-    }
-
     int declared = 0;
     int deferred = 0;
     int deferred_retry = 0;
@@ -266,15 +228,13 @@ int kbo_handle_fa_declaration_event(uint32_t event_yyyymmdd, const char* source)
     }
 
     kbo_log_runtimef(
-        "KBO FA declaration event source=%s date=%u season=%u league=%u market_rows=%d market_candidates=%d active_scanned=%d active_candidates=%d candidates=%d declared=%d deferred=%d retry=%d no_market=%d grades=%d deferred_arbitration_repaired=%d csv=%s",
+        "KBO FA declaration event source=%s date=%u season=%u league=%u market_rows=%d market_candidates=%d candidates=%d declared=%d deferred=%d retry=%d no_market=%d grades=%d deferred_arbitration_repaired=%d csv=%s",
         source != NULL ? source : "",
         event_yyyymmdd,
         season,
         league_id,
         market_count,
         market_added,
-        active_scanned,
-        active_added,
         candidate_count,
         declared,
         deferred,
@@ -291,8 +251,6 @@ int kbo_handle_fa_declaration_event(uint32_t event_yyyymmdd, const char* source)
         kbo_log_field_u32(&audit_fields, "league_id", league_id);
         kbo_log_field_i32(&audit_fields, "market_rows", market_count);
         kbo_log_field_i32(&audit_fields, "market_candidates", market_added);
-        kbo_log_field_i32(&audit_fields, "active_scanned", active_scanned);
-        kbo_log_field_i32(&audit_fields, "active_candidates", active_added);
         kbo_log_field_i32(&audit_fields, "candidates", candidate_count);
         kbo_log_field_i32(&audit_fields, "declared", declared);
         kbo_log_field_i32(&audit_fields, "deferred", deferred);
