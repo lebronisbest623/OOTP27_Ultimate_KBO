@@ -178,6 +178,9 @@ static int kbo_foreign_org_player_index_rebuild(
         }
 
         uint8_t* player = (uint8_t*)player_ptr;
+        if (!kbo_player_is_active_for_roster_scan(player)) {
+            continue;
+        }
         uint32_t player_id = *(uint32_t*)(player + OOTP27_PLAYER_ID_OFFSET);
         uint32_t nation_id = *(uint32_t*)(player + OOTP27_PLAYER_NATION_ID_OFFSET);
         scanned++;

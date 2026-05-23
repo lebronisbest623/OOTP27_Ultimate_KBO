@@ -11,6 +11,7 @@
 #include "../../../core/logging/core_log.h"
 #include "../../../core/sql/escape/core_sql_escape.h"
 #include "../../../core/sql/save_state/save_state_sqlite.h"
+#include "../../../foreign/common/dates/foreign_waiver_date.h"
 
 typedef struct KboFaCompensationRecordsSqlLoadContext {
     KboFaCompensationRecord* records;
@@ -18,6 +19,12 @@ typedef struct KboFaCompensationRecordsSqlLoadContext {
     int count;
     int overflowed;
 } KboFaCompensationRecordsSqlLoadContext;
+
+typedef struct KboFaCompensationDueSummaryContext {
+    uint32_t today;
+    uint32_t protected_list_due_days;
+    KboFaCompensationDueSummary* out;
+} KboFaCompensationDueSummaryContext;
 
 static int kbo_fa_compensation_records_sql_ensure_schema(const char* source)
 {
@@ -149,6 +156,81 @@ int kbo_fa_compensation_records_sql_load(KboFaCompensationRecord* records, int m
     }
     *out_count = ctx.count;
     return 1;
+}
+
+static int kbo_fa_compensation_records_sql_due_summary_cb(void* user_data, int ncols, char** vals, char** names)
+{
+    (void)names;
+    KboFaCompensationDueSummaryContext* ctx = (KboFaCompensationDueSummaryContext*)user_data;
+    if (ctx == NULL || ctx->out == NULL || vals == NULL || ncols < 5) {
+        return 0;
+    }
+
+    uint32_t signed_on = kbo_fa_compensation_records_sql_u32(vals, 0);
+    uint32_t cash_only = kbo_fa_compensation_records_sql_u32(vals, 1);
+    uint32_t protect_count = kbo_fa_compensation_records_sql_u32(vals, 2);
+    int requires_player = kbo_fa_compensation_records_sql_u32(vals, 3) != 0u;
+    uint32_t status = kbo_fa_compensation_records_sql_u32(vals, 4);
+
+    ctx->out->candidate_rows++;
+    if (status == KBO_FA_COMPENSATION_STATUS_CASH_ONLY_SELECTED
+            || status == KBO_FA_COMPENSATION_STATUS_PLAYER_SELECTED
+            || (status == KBO_FA_COMPENSATION_STATUS_PENDING && !requires_player && cash_only > 0u)) {
+        ctx->out->actionable_rows++;
+        return 0;
+    }
+
+    if (status != KBO_FA_COMPENSATION_STATUS_PENDING
+            || !requires_player
+            || protect_count == 0u
+            || signed_on == 0u) {
+        return 0;
+    }
+
+    uint32_t due = kbo_add_days_yyyymmdd(signed_on, ctx->protected_list_due_days);
+    if (due == 0u) {
+        return 0;
+    }
+    if (ctx->today >= due) {
+        ctx->out->actionable_rows++;
+        return 0;
+    }
+
+    ctx->out->future_protected_rows++;
+    if (ctx->out->next_protected_due_yyyymmdd == 0u
+            || due < ctx->out->next_protected_due_yyyymmdd) {
+        ctx->out->next_protected_due_yyyymmdd = due;
+    }
+    return 0;
+}
+
+int kbo_fa_compensation_records_sql_due_summary(
+    uint32_t today,
+    uint32_t protected_list_due_days,
+    KboFaCompensationDueSummary* out)
+{
+    if (out == NULL) {
+        return 0;
+    }
+    memset(out, 0, sizeof(*out));
+    if (today == 0u || !kbo_fa_compensation_records_sql_ensure_schema("fa_compensation_records_due_summary_schema")) {
+        return 0;
+    }
+
+    char sql[768] = {0};
+    snprintf(
+        sql,
+        sizeof(sql),
+        "SELECT signed_on_yyyymmdd, cash_only, protect_count, requires_player_compensation, status "
+        "FROM fa_compensation_records "
+        "WHERE player_id != 0 AND season != 0 "
+        "AND status IN (%u, %u, %u);",
+        (uint32_t)KBO_FA_COMPENSATION_STATUS_PENDING,
+        (uint32_t)KBO_FA_COMPENSATION_STATUS_PLAYER_SELECTED,
+        (uint32_t)KBO_FA_COMPENSATION_STATUS_CASH_ONLY_SELECTED);
+
+    KboFaCompensationDueSummaryContext ctx = {today, protected_list_due_days, out};
+    return kbo_save_state_query(sql, kbo_fa_compensation_records_sql_due_summary_cb, &ctx, "fa_compensation_records_due_summary");
 }
 
 static int kbo_fa_compensation_records_sql_append_text(

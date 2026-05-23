@@ -17,6 +17,7 @@
 #include "../protection/fa_compensation_protected_lists.h"
 #include "../protection/fa_compensation_protection_score.h"
 #include "../records/fa_compensation_records.h"
+#include "../records/sql/fa_compensation_records_sql_store.h"
 #include "../selection/fa_compensation_selection.h"
 #include "../state/fa_compensation_state.h"
 #include "../../core/core_flags/keys/runtime_flag_keys.generated.h"
@@ -209,6 +210,13 @@ int kbo_process_due_fa_compensation_protected_lists_for_date(uint32_t today, con
 
     KboFaRules rules;
     kbo_fa_rules_load(&rules);
+
+    KboFaCompensationDueSummary due_summary;
+    if (kbo_fa_compensation_records_sql_due_summary(today, rules.protected_list_due_days, &due_summary)
+            && due_summary.actionable_rows <= 0) {
+        InterlockedExchange(&g_kbo_fa_compensation_due_processing, 0);
+        return 0;
+    }
 
     KboFaCompensationRecord* records = (KboFaCompensationRecord*)HeapAlloc(
         GetProcessHeap(), HEAP_ZERO_MEMORY, (SIZE_T)KBO_FA_COMPENSATION_MAX * sizeof(KboFaCompensationRecord));

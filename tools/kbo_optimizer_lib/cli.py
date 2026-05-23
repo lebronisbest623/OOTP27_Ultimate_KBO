@@ -2,19 +2,18 @@
 
 import sys
 
-from .amateur_assignment import optimize as optimize_amateur_assignment
-from .asian_games_roster import optimize_asian_games_roster
-from .fa_compensation import optimize_fa_compensation
-from .military_selection import optimize_military_selection
-
 def optimize_mode(mode, request_path, result_path):
     if mode == "amateur_assignment":
+        from .amateur_assignment import optimize as optimize_amateur_assignment
         return optimize_amateur_assignment(request_path, result_path)
     if mode == "asian_games_roster":
+        from .asian_games_roster import optimize_asian_games_roster
         return optimize_asian_games_roster(request_path, result_path)
     if mode == "military_selection":
+        from .military_selection import optimize_military_selection
         return optimize_military_selection(request_path, result_path)
     if mode == "fa_compensation":
+        from .fa_compensation import optimize_fa_compensation
         return optimize_fa_compensation(request_path, result_path)
     raise ValueError(f"unknown optimizer mode: {mode}")
 
@@ -49,4 +48,5 @@ def main(argv=None):
         return optimize_mode(args[1], args[2], args[3])
     if len(args) != 2:
         raise SystemExit("usage: kbo_optimizer.py [--mode MODE] REQUEST_CSV RESULT_CSV")
+    from .amateur_assignment import optimize as optimize_amateur_assignment
     return optimize_amateur_assignment(args[0], args[1])

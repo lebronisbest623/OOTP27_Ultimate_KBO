@@ -2,8 +2,6 @@
 
 import csv
 
-from ortools.sat.python import cp_model
-
 from .amateur_batch import optimize_batch_rows
 from .amateur_common import _candidate_weight, _team_max_players
 from .csv_io import to_int as _to_int
@@ -57,6 +55,8 @@ def optimize(request_path, result_path):
             writer.writerow(["target_team_id", "weight", "status"])
             writer.writerow([0, 0, "no_candidate"])
         return 0
+
+    from ortools.sat.python import cp_model
 
     model = cp_model.CpModel()
     variables = [model.NewBoolVar(f"team_{_to_int(row, 'team_id')}") for row, _ in candidates]

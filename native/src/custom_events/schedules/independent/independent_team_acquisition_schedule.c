@@ -23,6 +23,7 @@
 static uint32_t g_kbo_independent_acquisition_schedule_ready_year = 0u;
 static uint32_t g_kbo_independent_acquisition_schedule_ready_event_league_id = 0u;
 static uint32_t g_kbo_independent_acquisition_schedule_ready_first_open_date = 0u;
+static uint32_t g_kbo_independent_acquisition_schedule_ready_checked_open_or_after_date = 0u;
 
 int kbo_schedule_independent_team_acquisition_custom_events_for_date(
     uint32_t today,
@@ -87,6 +88,13 @@ int kbo_schedule_independent_team_acquisition_custom_events_for_date(
             && g_kbo_independent_acquisition_schedule_ready_event_league_id == event_league_id
             && g_kbo_independent_acquisition_schedule_ready_first_open_date != 0u
             && today < g_kbo_independent_acquisition_schedule_ready_first_open_date) {
+        return 0;
+    }
+    if (g_kbo_independent_acquisition_schedule_ready_year == schedule_year
+            && g_kbo_independent_acquisition_schedule_ready_event_league_id == event_league_id
+            && g_kbo_independent_acquisition_schedule_ready_first_open_date != 0u
+            && g_kbo_independent_acquisition_schedule_ready_checked_open_or_after_date != 0u
+            && today >= g_kbo_independent_acquisition_schedule_ready_checked_open_or_after_date) {
         return 0;
     }
 
@@ -163,6 +171,10 @@ int kbo_schedule_independent_team_acquisition_custom_events_for_date(
                         today,
                         existing_open_date);
                 }
+                g_kbo_independent_acquisition_schedule_ready_year = schedule_year;
+                g_kbo_independent_acquisition_schedule_ready_event_league_id = event_league_id;
+                g_kbo_independent_acquisition_schedule_ready_first_open_date = open_date;
+                g_kbo_independent_acquisition_schedule_ready_checked_open_or_after_date = today;
                 return 0;
             }
             kbo_log_runtimef(
@@ -239,6 +251,8 @@ int kbo_schedule_independent_team_acquisition_custom_events_for_date(
         g_kbo_independent_acquisition_schedule_ready_year = schedule_year;
         g_kbo_independent_acquisition_schedule_ready_event_league_id = event_league_id;
         g_kbo_independent_acquisition_schedule_ready_first_open_date = first_open_date;
+        g_kbo_independent_acquisition_schedule_ready_checked_open_or_after_date =
+            today >= first_open_date ? today : 0u;
     }
     return created;
 }

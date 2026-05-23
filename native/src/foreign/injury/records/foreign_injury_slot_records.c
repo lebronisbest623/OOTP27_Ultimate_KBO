@@ -9,14 +9,46 @@ static uint64_t kbo_foreign_injury_replacement_fingerprint_mix(uint64_t hash, ui
     return hash;
 }
 
+static volatile LONG g_kbo_foreign_injury_replacement_fingerprint_generation = 1;
+static volatile LONG g_kbo_foreign_injury_replacement_cached_fingerprint_generation = 0;
+static volatile LONG64 g_kbo_foreign_injury_replacement_cached_fingerprint = 0;
+
+static void kbo_foreign_injury_replacement_fingerprint_note_changed(void)
+{
+    LONG generation = InterlockedIncrement(&g_kbo_foreign_injury_replacement_fingerprint_generation);
+    if (generation <= 0) {
+        InterlockedExchange(&g_kbo_foreign_injury_replacement_fingerprint_generation, 1);
+    }
+}
+
 uint64_t kbo_foreign_injury_replacement_fingerprint(void)
 {
     if (g_kbo_foreign_injury_replacement_loaded_path[0] == '\0') {
         kbo_ensure_foreign_injury_replacements_loaded();
     }
 
+    LONG generation = InterlockedCompareExchange(
+        &g_kbo_foreign_injury_replacement_fingerprint_generation,
+        0,
+        0);
+    LONG cached_generation = InterlockedCompareExchange(
+        &g_kbo_foreign_injury_replacement_cached_fingerprint_generation,
+        0,
+        0);
+    uint64_t cached_fingerprint = (uint64_t)InterlockedCompareExchange64(
+        &g_kbo_foreign_injury_replacement_cached_fingerprint,
+        0,
+        0);
+    if (cached_fingerprint != 0ull && cached_generation == generation) {
+        return cached_fingerprint;
+    }
+
     uint64_t hash = 1469598103934665603ull;
     kbo_lock_foreign_injury_replacements();
+    generation = InterlockedCompareExchange(
+        &g_kbo_foreign_injury_replacement_fingerprint_generation,
+        0,
+        0);
     hash = kbo_foreign_injury_replacement_fingerprint_mix(
         hash,
         (uint64_t)(uint32_t)g_kbo_foreign_injury_replacement_count);
@@ -36,11 +68,18 @@ uint64_t kbo_foreign_injury_replacement_fingerprint(void)
         hash = kbo_foreign_injury_replacement_fingerprint_mix(hash, rec->close_choice);
     }
     kbo_unlock_foreign_injury_replacements();
-    return hash == 0ull ? 1ull : hash;
+    if (hash == 0ull) {
+        hash = 1ull;
+    }
+    InterlockedExchange64(&g_kbo_foreign_injury_replacement_cached_fingerprint, (LONG64)hash);
+    InterlockedExchange(&g_kbo_foreign_injury_replacement_cached_fingerprint_generation, generation);
+    return hash;
 }
 
 int kbo_persist_foreign_injury_replacements_locked(void)
 {
+    kbo_foreign_injury_replacement_fingerprint_note_changed();
+
     char path[MAX_PATH] = {0};
     if (!kbo_get_foreign_injury_replacement_path(path, sizeof(path))) {
         return 0;
@@ -72,6 +111,7 @@ void kbo_ensure_foreign_injury_replacements_loaded(void)
     if (path_changed) {
         last_empty_import_attempt_tick = 0u;
         kbo_load_foreign_injury_replacements_locked(path);
+        kbo_foreign_injury_replacement_fingerprint_note_changed();
     }
     int should_import_seed = path_changed;
     if (!should_import_seed

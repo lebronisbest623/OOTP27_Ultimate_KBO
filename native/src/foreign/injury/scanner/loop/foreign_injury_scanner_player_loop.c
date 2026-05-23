@@ -64,6 +64,21 @@ KboForeignInjuryScannerPlayerLoopResult kbo_foreign_injury_scan_player_loop(
             continue;
         }
         result.scanned++;
+        int has_baseball_position = kbo_foreign_injury_player_has_baseball_position(player);
+        if (!has_baseball_position) {
+            continue;
+        }
+        uint32_t team_id = 0u;
+        uint32_t league_id = 0u;
+        int has_assignment = kbo_foreign_injury_resolve_player_team_assignment(
+            player,
+            player_id,
+            configured_league_id,
+            &team_id,
+            &league_id);
+        if (!has_assignment) {
+            continue;
+        }
         KboForeignInjuryLiveMemory live_injury;
         memset(&live_injury, 0, sizeof(live_injury));
         int live_memory_read = live_injury_fields_available
@@ -75,19 +90,10 @@ KboForeignInjuryScannerPlayerLoopResult kbo_foreign_injury_scan_player_loop(
         int direct_injury_eligible = live_injury_fields_available
             && live_memory_read
             && kbo_foreign_injury_live_memory_has_long_term_basis(&live_injury, min_days);
-        uint32_t team_id = 0u;
-        uint32_t league_id = 0u;
-        int has_assignment = kbo_foreign_injury_resolve_player_team_assignment(
-            player,
-            player_id,
-            configured_league_id,
-            &team_id,
-            &league_id);
-        int has_baseball_position = kbo_foreign_injury_player_has_baseball_position(player);
-        int inactive_roster_present = live_injury_fields_available && has_assignment
+        int inactive_roster_present = live_injury_fields_available
             ? kbo_foreign_injury_player_on_inactive_replacement_roster(player, player_id, team_id, today)
             : 0;
-        if (live_injury_fields_available && has_baseball_position) {
+        if (live_injury_fields_available) {
             kbo_foreign_injury_memory_probe_observe(
                 player,
                 player_id,

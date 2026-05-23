@@ -34,6 +34,7 @@ static uint32_t g_kbo_cbt_schedule_ready_league_id = 0u;
 static uint32_t g_kbo_cbt_schedule_ready_opening_day = 0u;
 static uint32_t g_kbo_cbt_schedule_ready_deadline = 0u;
 static uint32_t g_kbo_cbt_schedule_ready_announcement = 0u;
+static uint32_t g_kbo_cbt_schedule_ready_checked_after_date = 0u;
 
 int kbo_schedule_cbt_custom_events_for_date(uint32_t today, const char* source)
 {
@@ -82,6 +83,7 @@ int kbo_schedule_cbt_custom_events_for_date(uint32_t today, const char* source)
     }
 
     uint32_t first_due = deadline < announcement ? deadline : announcement;
+    uint32_t last_due = deadline > announcement ? deadline : announcement;
     if (g_kbo_cbt_schedule_ready_season == year
             && g_kbo_cbt_schedule_ready_league_id == league_id
             && g_kbo_cbt_schedule_ready_opening_day == opening_day
@@ -89,6 +91,15 @@ int kbo_schedule_cbt_custom_events_for_date(uint32_t today, const char* source)
             && g_kbo_cbt_schedule_ready_announcement == announcement
             && first_due != 0u
             && today < first_due) {
+        return 0;
+    }
+    if (g_kbo_cbt_schedule_ready_season == year
+            && g_kbo_cbt_schedule_ready_league_id == league_id
+            && g_kbo_cbt_schedule_ready_opening_day == opening_day
+            && g_kbo_cbt_schedule_ready_deadline == deadline
+            && g_kbo_cbt_schedule_ready_announcement == announcement
+            && g_kbo_cbt_schedule_ready_checked_after_date != 0u
+            && today >= g_kbo_cbt_schedule_ready_checked_after_date) {
         return 0;
     }
 
@@ -245,6 +256,7 @@ int kbo_schedule_cbt_custom_events_for_date(uint32_t today, const char* source)
         g_kbo_cbt_schedule_ready_opening_day = opening_day;
         g_kbo_cbt_schedule_ready_deadline = deadline;
         g_kbo_cbt_schedule_ready_announcement = announcement;
+        g_kbo_cbt_schedule_ready_checked_after_date = today >= last_due ? today : 0u;
     }
     if (direct_deferred) {
         return -1;
