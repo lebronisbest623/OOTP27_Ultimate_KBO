@@ -403,6 +403,60 @@ void kbo_fa_market_apply_salary_snapshot_grade(
 
 }
 
+void kbo_fa_market_apply_carryover_salary_snapshot_grade(
+    KboFaMarketClassification* row,
+    const KboFaSalarySnapshotGrade* salary_grades,
+    int salary_grade_count,
+    const KboFaRules* rules,
+    uint32_t current_year)
+{
+    if (row == NULL
+            || salary_grades == NULL
+            || salary_grade_count <= 0
+            || row->fa_filing_season == 0u
+            || row->fa_filing_season >= current_year) {
+        return;
+    }
+
+    KboFaRules local_rules;
+    if (rules == NULL) {
+        kbo_fa_rules_load(&local_rules);
+        rules = &local_rules;
+    }
+    if (!kbo_fa_rules_case_is_compensable(rules, row->case_label)) {
+        return;
+    }
+
+    const KboFaSalarySnapshotGrade* grade =
+        kbo_find_fa_salary_snapshot_grade(salary_grades, salary_grade_count, row->player_id);
+    if (grade == NULL || grade->salary <= 0 || kbo_fa_market_grade_is_unknown(grade->grade)) {
+        return;
+    }
+
+    row->fa_grade_salary = grade->salary;
+    row->fa_grade_overall_rank = grade->overall_rank;
+    row->fa_grade_team_rank = grade->team_rank;
+    row->fa_grade_snapshot_team_id = grade->ranking_team_id;
+    row->fa_grade_snapshot_date = grade->snapshot_date;
+    row->fa_grade_opening_day = grade->opening_day;
+    snprintf(row->grade, sizeof(row->grade), "%s", grade->grade);
+    row->fa_grade_auto = 1u;
+    snprintf(row->fa_grade_flag, sizeof(row->fa_grade_flag), "CARRYOVER_SNAPSHOT");
+    if (row->original_team_id != 0u
+            && grade->ranking_team_id != 0u
+            && row->original_team_id != grade->ranking_team_id) {
+        row->fa_grade_team_changed_review = 1u;
+    } else {
+        row->fa_grade_team_changed_review = 0u;
+    }
+    kbo_fa_market_reason_append(
+        row->reason,
+        sizeof(row->reason),
+        "; carryover FA grade restored from filing-season salary snapshot");
+    kbo_fa_market_reason_append(row->reason, sizeof(row->reason), " salary=");
+    kbo_fa_market_reason_append_i32(row->reason, sizeof(row->reason), row->fa_grade_salary);
+}
+
 void kbo_fa_market_mark_history_case(KboFaMarketHistoryCase* history)
 {
     if (history == NULL || history->history_text[0] == '\0') {

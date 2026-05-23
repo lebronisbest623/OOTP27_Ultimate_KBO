@@ -1,4 +1,5 @@
 #include "../internal/fa_market_policy_internal.h"
+#include "../../core/dates/constants/kbo_date_constants.h"
 #include "../../core/dates/tick/current_date_tick_capture.h"
 #include "../../core/logging/rule_audit.h"
 
@@ -116,12 +117,19 @@ static int kbo_collect_fa_market_classifications_internal(
         GetProcessHeap(),
         HEAP_ZERO_MEMORY,
         (SIZE_T)KBO_FA_SALARY_SNAPSHOT_GRADE_MAX * sizeof(KboFaSalarySnapshotGrade));
-    if (seeds == NULL || salary_grades == NULL) {
+    KboFaSalarySnapshotGrade* carryover_salary_grades = (KboFaSalarySnapshotGrade*)HeapAlloc(
+        GetProcessHeap(),
+        HEAP_ZERO_MEMORY,
+        (SIZE_T)KBO_FA_SALARY_SNAPSHOT_GRADE_MAX * sizeof(KboFaSalarySnapshotGrade));
+    if (seeds == NULL || salary_grades == NULL || carryover_salary_grades == NULL) {
         if (seeds != NULL) {
             HeapFree(GetProcessHeap(), 0, seeds);
         }
         if (salary_grades != NULL) {
             HeapFree(GetProcessHeap(), 0, salary_grades);
+        }
+        if (carryover_salary_grades != NULL) {
+            HeapFree(GetProcessHeap(), 0, carryover_salary_grades);
         }
                 do {
             KboLogFields audit_fields;
@@ -151,6 +159,15 @@ static int kbo_collect_fa_market_classifications_internal(
         salary_snapshot_path,
         sizeof(salary_snapshot_path),
         &salary_grade_season);
+    int carryover_salary_grade_count = 0;
+    if (current_year > KBO_SEASON_YEAR_MIN && salary_grade_season == current_year) {
+        carryover_salary_grade_count = kbo_fa_salary_snapshot_load_grade_rows(
+            current_year - 1u,
+            carryover_salary_grades,
+            KBO_FA_SALARY_SNAPSHOT_GRADE_MAX,
+            NULL,
+            0);
+    }
     KboFaRules fa_rules;
     kbo_fa_rules_load(&fa_rules);
     if (summary != NULL) {
@@ -256,6 +273,12 @@ static int kbo_collect_fa_market_classifications_internal(
             salary_grades,
             salary_grade_count,
             &fa_rules);
+        kbo_fa_market_apply_carryover_salary_snapshot_grade(
+            &rows[i],
+            carryover_salary_grades,
+            carryover_salary_grade_count,
+            &fa_rules,
+            current_year);
     }
     ULONGLONG classify_ms = GetTickCount64() - classify_started_ms;
 
@@ -322,6 +345,7 @@ static int kbo_collect_fa_market_classifications_internal(
 
     HeapFree(GetProcessHeap(), 0, seeds);
     HeapFree(GetProcessHeap(), 0, salary_grades);
+    HeapFree(GetProcessHeap(), 0, carryover_salary_grades);
     if (histories != NULL) {
         HeapFree(GetProcessHeap(), 0, histories);
     }

@@ -30,6 +30,12 @@ void kbo_fa_market_apply_salary_snapshot_grade(
     const KboFaSalarySnapshotGrade* salary_grades,
     int salary_grade_count,
     const KboFaRules* rules);
+void kbo_fa_market_apply_carryover_salary_snapshot_grade(
+    KboFaMarketClassification* row,
+    const KboFaSalarySnapshotGrade* salary_grades,
+    int salary_grade_count,
+    const KboFaRules* rules,
+    uint32_t current_year);
 void kbo_fa_market_mark_history_case(KboFaMarketHistoryCase* history);
 int kbo_load_fa_market_history_cases(
     KboFaMarketClassification* rows,

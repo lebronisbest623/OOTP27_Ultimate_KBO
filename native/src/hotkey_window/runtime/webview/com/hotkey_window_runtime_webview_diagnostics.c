@@ -10,8 +10,14 @@ typedef struct KboWebViewProcessFailedHandler {
     LONG ref;
 } KboWebViewProcessFailedHandler;
 
+typedef struct KboWebViewMessageReceivedHandler {
+    ICoreWebView2WebMessageReceivedEventHandler iface;
+    LONG ref;
+} KboWebViewMessageReceivedHandler;
+
 static EventRegistrationToken g_kbo_webview_nav_completed_token = {0};
 static EventRegistrationToken g_kbo_webview_process_failed_token = {0};
+static EventRegistrationToken g_kbo_webview_message_received_token = {0};
 
 static HRESULT STDMETHODCALLTYPE kbo_webview_nav_completed_qi(
     ICoreWebView2NavigationCompletedEventHandler* This,
@@ -186,6 +192,78 @@ static KboWebViewProcessFailedHandler g_kbo_webview_process_failed_handler = {
     1
 };
 
+static HRESULT STDMETHODCALLTYPE kbo_webview_message_received_qi(
+    ICoreWebView2WebMessageReceivedEventHandler* This,
+    REFIID riid,
+    void** ppv)
+{
+    if (ppv == NULL) { return E_POINTER; }
+    *ppv = NULL;
+    if (IsEqualIID(riid, &IID_IUnknown) || IsEqualIID(riid, &IID_ICoreWebView2WebMessageReceivedEventHandler)) {
+        *ppv = This;
+        ICoreWebView2WebMessageReceivedEventHandler_AddRef(This);
+        return S_OK;
+    }
+    return E_NOINTERFACE;
+}
+
+static ULONG STDMETHODCALLTYPE kbo_webview_message_received_addref(ICoreWebView2WebMessageReceivedEventHandler* This)
+{
+    return (ULONG)InterlockedIncrement(&((KboWebViewMessageReceivedHandler*)This)->ref);
+}
+
+static ULONG STDMETHODCALLTYPE kbo_webview_message_received_release(ICoreWebView2WebMessageReceivedEventHandler* This)
+{
+    LONG value = InterlockedDecrement(&((KboWebViewMessageReceivedHandler*)This)->ref);
+    if (value < 1) { ((KboWebViewMessageReceivedHandler*)This)->ref = 1; }
+    return (ULONG)((KboWebViewMessageReceivedHandler*)This)->ref;
+}
+
+static HRESULT STDMETHODCALLTYPE kbo_webview_message_received_invoke(
+    ICoreWebView2WebMessageReceivedEventHandler* This,
+    ICoreWebView2* sender,
+    ICoreWebView2WebMessageReceivedEventArgs* args)
+{
+    (void)This;
+    (void)sender;
+    LPWSTR message_w = NULL;
+    HRESULT message_hr = args != NULL
+        ? ICoreWebView2WebMessageReceivedEventArgs_TryGetWebMessageAsString(args, &message_w)
+        : E_POINTER;
+    if (FAILED(message_hr) || message_w == NULL) {
+        if (kbo_hub_current_mode_is_developer()) {
+            kbo_log_runtimef(
+                "WebView2 message received skipped reason=string_unavailable hr=0x%08lx",
+                (unsigned long)message_hr);
+        }
+        return S_OK;
+    }
+
+    char message[1024] = {0};
+    kbo_webview_copy_wide_utf8(message_w, message, sizeof(message));
+    CoTaskMemFree(message_w);
+
+    if (strncmp(message, "kbo://", 6) == 0) {
+        int handled = kbo_webview_handle_command_uri(message, g_kbo_hotkey_window);
+        if (!handled && kbo_hub_current_mode_is_developer()) {
+            kbo_log_runtimef("WebView2 message command unhandled uri=%s", message);
+        }
+    }
+    return S_OK;
+}
+
+static ICoreWebView2WebMessageReceivedEventHandlerVtbl g_kbo_webview_message_received_vtbl = {
+    kbo_webview_message_received_qi,
+    kbo_webview_message_received_addref,
+    kbo_webview_message_received_release,
+    kbo_webview_message_received_invoke
+};
+
+static KboWebViewMessageReceivedHandler g_kbo_webview_message_received_handler = {
+    { &g_kbo_webview_message_received_vtbl },
+    1
+};
+
 void kbo_webview_register_diagnostic_handlers(void)
 {
     if (g_kbo_webview == NULL) {
@@ -199,10 +277,16 @@ void kbo_webview_register_diagnostic_handlers(void)
         g_kbo_webview,
         &g_kbo_webview_process_failed_handler.iface,
         &g_kbo_webview_process_failed_token);
+    HRESULT message_received_hr = ICoreWebView2_add_WebMessageReceived(
+        g_kbo_webview,
+        &g_kbo_webview_message_received_handler.iface,
+        &g_kbo_webview_message_received_token);
     kbo_log_runtimef(
-        "WebView2 diagnostic handlers registered hr_navigation_completed=0x%08lx token_navigation_completed=%lld hr_process_failed=0x%08lx token_process_failed=%lld",
+        "WebView2 diagnostic handlers registered hr_navigation_completed=0x%08lx token_navigation_completed=%lld hr_process_failed=0x%08lx token_process_failed=%lld hr_message_received=0x%08lx token_message_received=%lld",
         (unsigned long)nav_completed_hr,
         (long long)g_kbo_webview_nav_completed_token.value,
         (unsigned long)process_failed_hr,
-        (long long)g_kbo_webview_process_failed_token.value);
+        (long long)g_kbo_webview_process_failed_token.value,
+        (unsigned long)message_received_hr,
+        (long long)g_kbo_webview_message_received_token.value);
 }
