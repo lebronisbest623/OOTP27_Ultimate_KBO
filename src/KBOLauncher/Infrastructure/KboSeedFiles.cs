@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Encodings.Web;
 using Spectre.Console;
 using static LauncherPaths;
 
@@ -11,6 +12,12 @@ internal static partial class KboSeedFiles
         PropertyNameCaseInsensitive = true,
         ReadCommentHandling = JsonCommentHandling.Skip,
         AllowTrailingCommas = true,
+    };
+
+    private static readonly JsonSerializerOptions BundleJsonOptions = new()
+    {
+        WriteIndented = false,
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
     };
 
     public static void EnsureKboLeagueIdConfig()
@@ -26,10 +33,6 @@ internal static partial class KboSeedFiles
 
     internal static void EnsureKboLeagueIdConfig(string localDir, IReadOnlyList<string> candidates)
     {
-        var localPath = Path.Combine(localDir, OotpProduct.LeagueIdFileName);
-
-        Directory.CreateDirectory(localDir);
-
         foreach (var candidate in candidates)
         {
             if (!File.Exists(candidate))
@@ -39,13 +42,9 @@ internal static partial class KboSeedFiles
     
             try
             {
-                var shouldCopy = !File.Exists(localPath)
-                    || !File.ReadAllText(localPath).Trim().Equals(File.ReadAllText(candidate).Trim(), StringComparison.OrdinalIgnoreCase);
-                if (shouldCopy)
-                {
-                    File.Copy(candidate, localPath, overwrite: true);
-                    AnsiConsole.MarkupLineInterpolated($"[green]KBO league id: seeded[/] {localPath}");
-                }
+                UpsertBundledKboData(localDir, OotpProduct.LeagueIdFileName, File.ReadAllText(candidate));
+                RemoveLegacyBundledKboDataFileIfUnchanged(localDir, OotpProduct.LeagueIdFileName, candidate);
+                AnsiConsole.MarkupLineInterpolated($"[green]KBO league id: bundled[/] {GetBundlePath(localDir)}");
                 return;
             }
             catch (Exception ex)
@@ -56,7 +55,7 @@ internal static partial class KboSeedFiles
         }
 
         AnsiConsole.MarkupLineInterpolated($"[yellow]{OotpProduct.LeagueIdFileName} not found in launcher directory. Set it manually at:[/]");
-        AnsiConsole.WriteLine(localPath);
+        AnsiConsole.WriteLine(GetBundlePath(localDir));
     }
     
     public static void EnsureBundledKboDataManifest()
@@ -96,6 +95,7 @@ internal static partial class KboSeedFiles
         }
 
         var seeded = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var bundle = ReadBundle(localDir);
         foreach (var file in manifest.Groups.SelectMany(group => group.Files ?? []))
         {
             if (string.IsNullOrWhiteSpace(file.Path))
@@ -139,8 +139,25 @@ internal static partial class KboSeedFiles
                 candidates.AddRange(ResolveBundledKboDataFileCandidates(targetRelativePath));
             }
 
-            EnsureBundledKboDataFile(localDir, targetRelativePath, ManifestLabel(file), candidates);
+            var candidate = candidates.FirstOrDefault(File.Exists);
+            if (candidate is null)
+            {
+                AnsiConsole.MarkupLineInterpolated($"[yellow]{ManifestLabel(file)}: bundled seed not found for {targetRelativePath}[/]");
+                continue;
+            }
+
+            try
+            {
+                bundle.Files[BundleKey(targetRelativePath)] = File.ReadAllText(candidate);
+            }
+            catch (Exception ex)
+            {
+                AnsiConsole.MarkupLineInterpolated($"[yellow]Failed to bundle {targetRelativePath} from {candidate}: {ex.Message}[/]");
+            }
         }
+
+        WriteBundle(localDir, bundle);
+        AnsiConsole.MarkupLineInterpolated($"[green]KBO data bundle: updated[/] {GetBundlePath(localDir)}");
 
         foreach (var retiredFile in manifest.RetiredFiles ?? [])
         {
@@ -160,7 +177,10 @@ internal static partial class KboSeedFiles
             }
 
             RemoveRetiredBundledKboDataFileIfUnchanged(localDir, relativePath, ManifestLabel(retiredFile), retiredFile);
+            RemoveRetiredLegacyBundledKboDataFileIfUnchanged(localDir, relativePath, ManifestLabel(retiredFile), retiredFile);
         }
+
+        RemoveLegacyBundledDataDirectoryIfSafe(localDir, bundle);
     }
 
     public static void EnsureBundledKboDataFile(string fileName, string label)
@@ -187,7 +207,26 @@ internal static partial class KboSeedFiles
         string label,
         KboSeedManifestFile? retiredFile)
     {
+        var localPath = GetBundledKboDataPath(localDir, fileName);
+        RemoveRetiredBundledKboDataFileAtPathIfUnchanged(localPath, fileName, label, retiredFile);
+    }
+
+    private static void RemoveRetiredLegacyBundledKboDataFileIfUnchanged(
+        string localDir,
+        string fileName,
+        string label,
+        KboSeedManifestFile? retiredFile)
+    {
         var localPath = Path.Combine(localDir, fileName);
+        RemoveRetiredBundledKboDataFileAtPathIfUnchanged(localPath, fileName, label, retiredFile);
+    }
+
+    private static void RemoveRetiredBundledKboDataFileAtPathIfUnchanged(
+        string localPath,
+        string fileName,
+        string label,
+        KboSeedManifestFile? retiredFile)
+    {
         if (!File.Exists(localPath))
         {
             return;
@@ -242,7 +281,7 @@ internal static partial class KboSeedFiles
         string label,
         IReadOnlyList<string> candidates)
     {
-        var localPath = Path.Combine(localDir, fileName);
+        var localPath = GetBundledKboDataPath(localDir, fileName);
 
         Directory.CreateDirectory(Path.GetDirectoryName(localPath)!);
 
@@ -261,6 +300,7 @@ internal static partial class KboSeedFiles
                     File.Copy(candidate, localPath, overwrite: true);
                     AnsiConsole.MarkupLineInterpolated($"[green]{label}: seeded[/] {localPath}");
                 }
+                RemoveLegacyBundledKboDataFileIfUnchanged(localDir, fileName, localPath);
                 return;
             }
             catch (Exception ex)
@@ -288,6 +328,88 @@ internal static partial class KboSeedFiles
         }
 
         return !File.ReadAllBytes(candidate).AsSpan().SequenceEqual(File.ReadAllBytes(localPath));
+    }
+
+    private static string GetBundledKboDataDirectory(string localDir)
+    {
+        return Path.Combine(localDir, OotpProduct.BundledDataDirectoryName);
+    }
+
+    private static string GetBundledKboDataPath(string localDir, string relativePath)
+    {
+        return Path.Combine(GetBundledKboDataDirectory(localDir), relativePath);
+    }
+
+    private static string GetBundlePath(string localDir)
+    {
+        return Path.Combine(localDir, OotpProduct.BundledDataFileName);
+    }
+
+    private static string BundleKey(string relativePath)
+    {
+        return NormalizeSeedManifestRelativePath(relativePath).Replace(Path.DirectorySeparatorChar, '/');
+    }
+
+    private static void UpsertBundledKboData(string localDir, string relativePath, string content)
+    {
+        var bundle = ReadBundle(localDir);
+        bundle.Files[BundleKey(relativePath)] = content;
+        WriteBundle(localDir, bundle);
+    }
+
+    private static KboDataBundle ReadBundle(string localDir)
+    {
+        var path = GetBundlePath(localDir);
+        if (!File.Exists(path))
+        {
+            return new KboDataBundle();
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<KboDataBundle>(
+                File.ReadAllText(path),
+                SeedManifestJsonOptions) ?? new KboDataBundle();
+        }
+        catch
+        {
+            return new KboDataBundle();
+        }
+    }
+
+    private static void WriteBundle(string localDir, KboDataBundle bundle)
+    {
+        Directory.CreateDirectory(localDir);
+        bundle.Version = 1;
+        bundle.Files = bundle.Files
+            .OrderBy(pair => pair.Key, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.OrdinalIgnoreCase);
+        File.WriteAllText(GetBundlePath(localDir), JsonSerializer.Serialize(bundle, BundleJsonOptions));
+    }
+
+    private static void RemoveLegacyBundledKboDataFileIfUnchanged(string localDir, string fileName, string canonicalPath)
+    {
+        var legacyPath = Path.Combine(localDir, fileName);
+        if (!File.Exists(legacyPath)
+                || !File.Exists(canonicalPath)
+                || string.Equals(
+                    Path.GetFullPath(legacyPath),
+                    Path.GetFullPath(canonicalPath),
+                    StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        try
+        {
+            if (File.ReadAllBytes(legacyPath).AsSpan().SequenceEqual(File.ReadAllBytes(canonicalPath)))
+            {
+                File.Delete(legacyPath);
+            }
+        }
+        catch
+        {
+        }
     }
 
     private static IReadOnlyList<string> ResolveBundledKboDataFileCandidates(string relativePath)
@@ -358,7 +480,7 @@ internal static partial class KboSeedFiles
         string label,
         IReadOnlyList<string> candidates)
     {
-        var localPath = Path.Combine(localDir, directoryName);
+        var localPath = GetBundledKboDataPath(localDir, directoryName);
 
         Directory.CreateDirectory(localDir);
 
@@ -394,6 +516,7 @@ internal static partial class KboSeedFiles
                 {
                     AnsiConsole.MarkupLineInterpolated($"[green]{label}: seeded {copied} file(s) under[/] {localPath}");
                 }
+                RemoveLegacyBundledKboDataDirectoryIfUnchanged(localDir, directoryName, localPath);
                 return;
             }
             catch (Exception ex)
@@ -404,6 +527,74 @@ internal static partial class KboSeedFiles
         }
 
         AnsiConsole.MarkupLineInterpolated($"[yellow]{label}: bundled seed directory not found for {directoryName}[/]");
+    }
+
+    private static void RemoveLegacyBundledKboDataDirectoryIfUnchanged(string localDir, string directoryName, string canonicalPath)
+    {
+        var legacyPath = Path.Combine(localDir, directoryName);
+        if (!Directory.Exists(legacyPath)
+                || !Directory.Exists(canonicalPath)
+                || string.Equals(
+                    Path.GetFullPath(legacyPath),
+                    Path.GetFullPath(canonicalPath),
+                    StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        try
+        {
+            var legacyFiles = Directory.EnumerateFiles(legacyPath, "*", SearchOption.AllDirectories).ToArray();
+            foreach (var legacyFile in legacyFiles)
+            {
+                var relative = Path.GetRelativePath(legacyPath, legacyFile);
+                var canonicalFile = Path.Combine(canonicalPath, relative);
+                if (!File.Exists(canonicalFile)
+                        || !File.ReadAllBytes(legacyFile).AsSpan().SequenceEqual(File.ReadAllBytes(canonicalFile)))
+                {
+                    return;
+                }
+            }
+
+            Directory.Delete(legacyPath, recursive: true);
+        }
+        catch
+        {
+        }
+    }
+
+    private static void RemoveLegacyBundledDataDirectoryIfSafe(string localDir, KboDataBundle bundle)
+    {
+        var legacyRoot = GetBundledKboDataDirectory(localDir);
+        if (!Directory.Exists(legacyRoot))
+        {
+            return;
+        }
+
+        try
+        {
+            foreach (var legacyFile in Directory.EnumerateFiles(legacyRoot, "*", SearchOption.AllDirectories))
+            {
+                var relative = Path.GetRelativePath(legacyRoot, legacyFile).Replace(Path.DirectorySeparatorChar, '/');
+                if (!bundle.Files.TryGetValue(relative, out var bundledContent)
+                        || File.ReadAllText(legacyFile) != bundledContent)
+                {
+                    return;
+                }
+            }
+
+            Directory.Delete(legacyRoot, recursive: true);
+        }
+        catch
+        {
+        }
+    }
+
+    private sealed class KboDataBundle
+    {
+        public int Version { get; set; } = 1;
+
+        public Dictionary<string, string> Files { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     }
 
 }

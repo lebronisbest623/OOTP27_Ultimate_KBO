@@ -41,9 +41,18 @@ static int kbo_amateur_batch_players_have_current_assignments(uint32_t league_id
     int checked = 0;
     for (int32_t i = 0; i < player_count; i++) {
         uint32_t expected_player_id = g_kbo_amateur_league_batch_player_ids[i];
-        uint8_t* player = expected_player_id != 0u
-            ? kbo_find_player_by_id(expected_player_id, NULL, NULL)
-            : (uint8_t*)g_kbo_amateur_league_batch_players[i];
+        uint8_t* player = (uint8_t*)g_kbo_amateur_league_batch_players[i];
+        if (player != NULL && memory_range_readable(player, OOTP27_PLAYER_SCAN_BYTES)) {
+            uint32_t player_id = *(uint32_t*)(player + OOTP27_PLAYER_ID_OFFSET);
+            if (expected_player_id != 0u && player_id != expected_player_id) {
+                player = NULL;
+            }
+        } else {
+            player = NULL;
+        }
+        if (player == NULL && expected_player_id != 0u) {
+            player = kbo_find_player_by_id(expected_player_id, NULL, NULL);
+        }
         if (player == NULL || !memory_range_readable(player, OOTP27_PLAYER_SCAN_BYTES)) {
             return 0;
         }

@@ -47,6 +47,18 @@ uintptr_t kbo_amateur_candidate_team_ptr_by_id(
     return 0;
 }
 
+static uint8_t* kbo_amateur_batch_resolve_player_ptr(uintptr_t player_ptr, uint32_t expected_player_id)
+{
+    uint8_t* player = (uint8_t*)player_ptr;
+    if (player != NULL && memory_range_readable(player, OOTP27_PLAYER_SCAN_BYTES)) {
+        uint32_t player_id = *(uint32_t*)(player + OOTP27_PLAYER_ID_OFFSET);
+        if (expected_player_id == 0u || player_id == expected_player_id) {
+            return player;
+        }
+    }
+    return expected_player_id != 0u ? kbo_find_player_by_id(expected_player_id, NULL, NULL) : NULL;
+}
+
 int kbo_amateur_ortools_write_batch_request(
     const char* path,
     uintptr_t* players,
@@ -79,10 +91,9 @@ int kbo_amateur_ortools_write_batch_request(
 
     for (int32_t p = 0; p < player_count; p++) {
         uint32_t expected_player_id = player_ids != NULL ? player_ids[p] : 0u;
-        uint8_t* player = expected_player_id != 0u ? kbo_find_player_by_id(expected_player_id, NULL, NULL) : NULL;
-        if (player == NULL) {
-            player = (uint8_t*)players[p];
-        }
+        uint8_t* player = kbo_amateur_batch_resolve_player_ptr(
+            players != NULL ? players[p] : 0,
+            expected_player_id);
         if (player == NULL || !memory_range_readable(player, OOTP27_PLAYER_SCAN_BYTES)) {
             continue;
         }
@@ -128,10 +139,9 @@ int kbo_amateur_ortools_write_batch_request(
     int written_players = 0;
     for (int32_t p = 0; p < player_count; p++) {
         uint32_t expected_player_id = player_ids != NULL ? player_ids[p] : 0u;
-        uint8_t* player = expected_player_id != 0u ? kbo_find_player_by_id(expected_player_id, NULL, NULL) : NULL;
-        if (player == NULL) {
-            player = (uint8_t*)players[p];
-        }
+        uint8_t* player = kbo_amateur_batch_resolve_player_ptr(
+            players != NULL ? players[p] : 0,
+            expected_player_id);
         if (player == NULL || !memory_range_readable(player, OOTP27_PLAYER_SCAN_BYTES)) {
             continue;
         }

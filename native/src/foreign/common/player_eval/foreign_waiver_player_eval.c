@@ -102,6 +102,54 @@ static void kbo_player_id_lookup_cache_store(
     entry->valid = 1u;
 }
 
+static uintptr_t* kbo_player_id_lookup_copy_vector_snapshot(
+    uintptr_t player_vector,
+    int32_t player_count,
+    const char** out_failure_reason)
+{
+    if (out_failure_reason != NULL) {
+        *out_failure_reason = "unknown";
+    }
+    if (player_vector == 0u || player_count <= 0 || player_count > KBO_RUNTIME_MAX_PLAYER_VECTOR_COUNT) {
+        if (out_failure_reason != NULL) { *out_failure_reason = "invalid_vector"; }
+        return NULL;
+    }
+    if ((SIZE_T)player_count > ((SIZE_T)-1 / sizeof(uintptr_t))) {
+        if (out_failure_reason != NULL) { *out_failure_reason = "count_overflow"; }
+        return NULL;
+    }
+
+    SIZE_T bytes = (SIZE_T)player_count * sizeof(uintptr_t);
+    if (!memory_range_readable((void*)player_vector, bytes)) {
+        if (out_failure_reason != NULL) { *out_failure_reason = "unreadable_vector"; }
+        return NULL;
+    }
+
+    uintptr_t* snapshot = (uintptr_t*)HeapAlloc(GetProcessHeap(), 0, bytes);
+    if (snapshot == NULL) {
+        if (out_failure_reason != NULL) { *out_failure_reason = "alloc_failed"; }
+        return NULL;
+    }
+
+    SIZE_T bytes_read = 0;
+    if (!ReadProcessMemory(
+            GetCurrentProcess(),
+            (LPCVOID)player_vector,
+            snapshot,
+            bytes,
+            &bytes_read)
+            || bytes_read != bytes) {
+        HeapFree(GetProcessHeap(), 0, snapshot);
+        if (out_failure_reason != NULL) { *out_failure_reason = "copy_failed"; }
+        return NULL;
+    }
+
+    if (out_failure_reason != NULL) {
+        *out_failure_reason = NULL;
+    }
+    return snapshot;
+}
+
 int16_t kbo_read_player_i16(uint8_t* player, uint32_t offset)
 {
     if (player == NULL || offset + sizeof(int16_t) > OOTP27_PLAYER_SCAN_BYTES
@@ -183,8 +231,26 @@ uint8_t* kbo_find_player_by_id(uint32_t player_id, uint32_t* out_current_team_id
         return cached_player;
     }
 
+    const char* snapshot_failure = NULL;
+    uintptr_t* player_snapshot = kbo_player_id_lookup_copy_vector_snapshot(
+        player_vector,
+        player_count,
+        &snapshot_failure);
+    if (player_snapshot == NULL) {
+        static volatile LONG snapshot_failure_log_count = 0;
+        LONG slot = InterlockedIncrement(&snapshot_failure_log_count);
+        if (slot <= 20 || (slot % 500) == 0) {
+            kbo_log_runtimef(
+                "KBO player lookup skipped source=kbo_find_player_by_id reason=player_vector_snapshot_failed detail=%s vector=%p count=%d",
+                snapshot_failure != NULL ? snapshot_failure : "unknown",
+                (void*)player_vector,
+                player_count);
+        }
+        return NULL;
+    }
+
     for (int32_t i = 0; i < player_count; i++) {
-        uintptr_t player_ptr = *(uintptr_t*)(player_vector + ((uintptr_t)i * sizeof(uintptr_t)));
+        uintptr_t player_ptr = player_snapshot[i];
         if (!kbo_player_pointer_plausible(player_ptr)) {
             continue;
         }
@@ -202,8 +268,10 @@ uint8_t* kbo_find_player_by_id(uint32_t player_id, uint32_t* out_current_team_id
             *out_current_league_id = *(uint32_t*)(player + OOTP27_PLAYER_CURRENT_LEAGUE_ID_OFFSET);
         }
         kbo_player_id_lookup_cache_store(player_id, player_vector, player_count, player);
+        HeapFree(GetProcessHeap(), 0, player_snapshot);
         return player;
     }
+    HeapFree(GetProcessHeap(), 0, player_snapshot);
     return NULL;
 }
 

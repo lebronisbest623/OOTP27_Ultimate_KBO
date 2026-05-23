@@ -1,6 +1,7 @@
 namespace KBOLauncher.Tests;
 
 using FluentAssertions;
+using System.Text.Json;
 using Xunit;
 
 public sealed class KboSeedFilesTests : IDisposable
@@ -18,7 +19,7 @@ public sealed class KboSeedFilesTests : IDisposable
 
         global::KboSeedFiles.EnsureKboLeagueIdConfig(localDir, [missing, candidate]);
 
-        File.ReadAllText(Path.Combine(localDir, "kbo_league_id.txt")).Should().Be("100");
+        ReadBundleFile(localDir, "kbo_league_id.txt").Should().Be("100");
     }
 
     [Fact]
@@ -26,9 +27,9 @@ public sealed class KboSeedFilesTests : IDisposable
     {
         var localDir = Path.Combine(tempDir, "local");
         var candidate = Path.Combine(tempDir, "candidate", "kbo_league_id.txt");
-        var localPath = Path.Combine(localDir, "kbo_league_id.txt");
+        var localPath = Path.Combine(localDir, "config", "kbo_league_id.txt");
         Directory.CreateDirectory(Path.GetDirectoryName(candidate)!);
-        Directory.CreateDirectory(localDir);
+        Directory.CreateDirectory(Path.GetDirectoryName(localPath)!);
         File.WriteAllText(candidate, "100\r\n");
         File.WriteAllText(localPath, "100");
         var before = File.GetLastWriteTimeUtc(localPath);
@@ -46,9 +47,9 @@ public sealed class KboSeedFilesTests : IDisposable
     {
         var localDir = Path.Combine(tempDir, "local");
         var candidate = Path.Combine(tempDir, "candidate", "allstar_teams.csv");
-        var localPath = Path.Combine(localDir, "allstar_teams.csv");
+        var localPath = Path.Combine(localDir, "config", "allstar_teams.csv");
         Directory.CreateDirectory(Path.GetDirectoryName(candidate)!);
-        Directory.CreateDirectory(localDir);
+        Directory.CreateDirectory(Path.GetDirectoryName(localPath)!);
         File.WriteAllText(candidate, "team_id,name\n1,A");
 
         global::KboSeedFiles.EnsureBundledKboDataFile(localDir, "allstar_teams.csv", "All-Star seed", [candidate]);
@@ -68,9 +69,9 @@ public sealed class KboSeedFilesTests : IDisposable
     {
         var localDir = Path.Combine(tempDir, "local");
         var candidate = Path.Combine(tempDir, "candidate", "fa_rules.json");
-        var localPath = Path.Combine(localDir, "fa_rules.json");
+        var localPath = Path.Combine(localDir, "config", "fa_rules.json");
         Directory.CreateDirectory(Path.GetDirectoryName(candidate)!);
-        Directory.CreateDirectory(localDir);
+        Directory.CreateDirectory(Path.GetDirectoryName(localPath)!);
         File.WriteAllText(candidate, "{}");
         File.WriteAllText(localPath, "{}");
         var stamp = new DateTime(2026, 5, 1, 0, 0, 0, DateTimeKind.Utc);
@@ -89,9 +90,9 @@ public sealed class KboSeedFilesTests : IDisposable
     {
         var localDir = Path.Combine(tempDir, "local");
         var candidate = Path.Combine(tempDir, "candidate", "kbo_nations.json");
-        var localPath = Path.Combine(localDir, "kbo_nations.json");
+        var localPath = Path.Combine(localDir, "config", "kbo_nations.json");
         Directory.CreateDirectory(Path.GetDirectoryName(candidate)!);
-        Directory.CreateDirectory(localDir);
+        Directory.CreateDirectory(Path.GetDirectoryName(localPath)!);
         File.WriteAllText(candidate, """{"nations":[{"id":177}]}""");
         File.WriteAllText(localPath, """{"nations":[{"id":176}]}""");
         File.SetLastWriteTimeUtc(candidate, new DateTime(2026, 5, 1, 0, 0, 0, DateTimeKind.Utc));
@@ -107,7 +108,7 @@ public sealed class KboSeedFilesTests : IDisposable
     {
         var localDir = Path.Combine(tempDir, "local");
         var candidate = Path.Combine(tempDir, "candidate", "news_templates", "ko", "captain.json");
-        var localPath = Path.Combine(localDir, "news_templates", "ko", "captain.json");
+        var localPath = Path.Combine(localDir, "config", "news_templates", "ko", "captain.json");
         Directory.CreateDirectory(Path.GetDirectoryName(candidate)!);
         File.WriteAllText(candidate, "{\"captain.summary.title\":\"A\"}");
 
@@ -163,9 +164,9 @@ public sealed class KboSeedFilesTests : IDisposable
 
         global::KboSeedFiles.EnsureBundledKboDataManifest(localDir, manifestPath, dataRoot);
 
-        File.ReadAllText(Path.Combine(localDir, "captain_seed.csv")).Should().Be("team_code,player_name\nLG,Park");
-        File.ReadAllText(Path.Combine(localDir, "ui_text", "en", "hotkey_window.json")).Should().Be("{}");
-        File.Exists(Path.Combine(localDir, "foreign_replacement_players_seed.csv")).Should().BeFalse();
+        ReadBundleFile(localDir, "captain_seed.csv").Should().Be("team_code,player_name\nLG,Park");
+        ReadBundleFile(localDir, "ui_text/en/hotkey_window.json").Should().Be("{}");
+        File.Exists(Path.Combine(localDir, "config", "foreign_replacement_players_seed.csv")).Should().BeFalse();
     }
 
     [Fact]
@@ -174,7 +175,7 @@ public sealed class KboSeedFilesTests : IDisposable
         var localDir = Path.Combine(tempDir, "local");
         var candidate = Path.Combine(tempDir, "candidate", "news_templates");
         var sourcePath = Path.Combine(candidate, "ko", "captain.json");
-        var localPath = Path.Combine(localDir, "news_templates", "ko", "captain.json");
+        var localPath = Path.Combine(localDir, "config", "news_templates", "ko", "captain.json");
         Directory.CreateDirectory(Path.GetDirectoryName(sourcePath)!);
         File.WriteAllText(sourcePath, "{\"captain.summary.title\":\"A\"}");
 
@@ -282,5 +283,14 @@ public sealed class KboSeedFilesTests : IDisposable
         catch (IOException)
         {
         }
+    }
+
+    private static string ReadBundleFile(string localDir, string relativePath)
+    {
+        using var document = JsonDocument.Parse(File.ReadAllText(Path.Combine(localDir, "kbo_data_bundle.json")));
+        return document.RootElement
+            .GetProperty("Files")
+            .GetProperty(relativePath)
+            .GetString()!;
     }
 }

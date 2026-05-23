@@ -3,6 +3,7 @@
 
 #define KBO_PRODUCT_LOCAL_DATA_DIR "OOTP-KBO"
 #define KBO_PRODUCT_LOCAL_DATA_DIR_W L"OOTP-KBO"
+#define KBO_PRODUCT_DATA_BUNDLE_FILE "kbo_data_bundle.json"
 #define KBO_PRODUCT_SAVE_SCOPED_DATA_DIR "saves"
 #define KBO_PRODUCT_PERF_DIR "perf"
 

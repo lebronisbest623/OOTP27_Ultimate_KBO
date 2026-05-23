@@ -25,6 +25,12 @@ static uint64_t kbo_webview_hash_html(const WCHAR* html, int chars)
     return hash;
 }
 
+static int kbo_webview_is_expected_navigation_cancel(COREWEBVIEW2_WEB_ERROR_STATUS web_error)
+{
+    return web_error == COREWEBVIEW2_WEB_ERROR_STATUS_OPERATION_CANCELED
+        || web_error == COREWEBVIEW2_WEB_ERROR_STATUS_CONNECTION_ABORTED;
+}
+
 void kbo_webview_note_navigation_completed(BOOL is_success, COREWEBVIEW2_WEB_ERROR_STATUS web_error)
 {
     InterlockedExchange(&g_kbo_webview_navigation_inflight, 0);
@@ -32,15 +38,15 @@ void kbo_webview_note_navigation_completed(BOOL is_success, COREWEBVIEW2_WEB_ERR
         InterlockedExchange(&g_kbo_webview_navigation_failure_streak, 0);
         InterlockedExchange(&g_kbo_webview_navigation_cancel_streak, 0);
     } else {
-        LONG failures = InterlockedIncrement(&g_kbo_webview_navigation_failure_streak);
-        LONG cancels = (int)web_error == 14
-            ? InterlockedIncrement(&g_kbo_webview_navigation_cancel_streak)
-            : InterlockedExchange(&g_kbo_webview_navigation_cancel_streak, 0);
-        if (cancels >= 16) {
-            kbo_webview_mark_failed("navigation_cancel_loop", E_ABORT);
+        if (kbo_webview_is_expected_navigation_cancel(web_error)) {
+            InterlockedExchange(&g_kbo_webview_navigation_failure_streak, 0);
+            InterlockedIncrement(&g_kbo_webview_navigation_cancel_streak);
             return;
         }
-        if ((int)web_error != 14 && failures >= 4) {
+
+        InterlockedExchange(&g_kbo_webview_navigation_cancel_streak, 0);
+        LONG failures = InterlockedIncrement(&g_kbo_webview_navigation_failure_streak);
+        if (failures >= 4) {
             kbo_webview_mark_failed("navigation_failure_loop", E_FAIL);
             return;
         }

@@ -2,6 +2,8 @@ internal static class OotpProduct
 {
     public const string ExecutableFileName = "ootp27.exe";
     public const string LocalDataDirectoryName = "OOTP-KBO";
+    public const string BundledDataDirectoryName = "config";
+    public const string BundledDataFileName = "kbo_data_bundle.json";
     public const string VendorFolderName = "Out of the Park Developments";
     public const string ProductFolderName = "OOTP Baseball 27";
     public const string ProductLongFolderName = "Out of the Park Baseball 27";

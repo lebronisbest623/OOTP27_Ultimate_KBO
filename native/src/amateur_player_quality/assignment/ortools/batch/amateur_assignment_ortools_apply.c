@@ -3,6 +3,18 @@
 #include "../../../../team/assignment/assignment/team_assignment.h"
 #include "../../../../foreign/common/player_eval/foreign_waiver_player_eval.h"
 
+static uint8_t* kbo_amateur_post_original_resolve_player_ptr(uintptr_t player_ptr, uint32_t expected_player_id)
+{
+    uint8_t* player = (uint8_t*)player_ptr;
+    if (player != NULL && memory_range_readable(player, OOTP27_PLAYER_SCAN_BYTES)) {
+        uint32_t player_id = *(uint32_t*)(player + OOTP27_PLAYER_ID_OFFSET);
+        if (expected_player_id == 0u || player_id == expected_player_id) {
+            return player;
+        }
+    }
+    return expected_player_id != 0u ? kbo_find_player_by_id(expected_player_id, NULL, NULL) : NULL;
+}
+
 int kbo_amateur_apply_post_original_batch_assignments(
     uintptr_t* league_players,
     uint32_t* league_player_ids,
@@ -20,10 +32,9 @@ int kbo_amateur_apply_post_original_batch_assignments(
 
     for (int32_t i = 0; i < player_count; i++) {
         uint32_t expected_player_id = league_player_ids != NULL ? league_player_ids[i] : 0u;
-        uint8_t* player = expected_player_id != 0u ? kbo_find_player_by_id(expected_player_id, NULL, NULL) : NULL;
-        if (player == NULL) {
-            player = (uint8_t*)league_players[i];
-        }
+        uint8_t* player = kbo_amateur_post_original_resolve_player_ptr(
+            league_players != NULL ? league_players[i] : 0,
+            expected_player_id);
         if (player == NULL || !memory_range_readable(player, OOTP27_PLAYER_SCAN_BYTES)) {
             stale_or_invalid++;
             continue;
