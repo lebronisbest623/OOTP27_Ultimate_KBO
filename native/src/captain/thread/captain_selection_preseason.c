@@ -112,27 +112,7 @@ static int kbo_captain_row_is_resolved_empty_exhibition_team(const KboCaptainSel
             || strcmp(row->reason, "no_eligible_candidate") != 0) {
         return 0;
     }
-
-    uint8_t* team = find_kbo_team_by_numeric_id_any_league(row->team_id, 0);
-    if (team == NULL) {
-        return 0;
-    }
-
-    static const char* const exhibition_markers[] = {
-        "All-Star", "All Star", "Allstars", "All-Stars", "All Stars",
-        "Future Star", "Future Stars", "Futures Star", "Futures Stars",
-        "AS1", "AS2", "FS1", "FS2",
-        "\xec\x98\xac\xec\x8a\xa4\xed\x83\x80",
-        "\xec\x98\xac\x20\xec\x8a\xa4\xed\x83\x80",
-        "\xed\x93\xa8\xec\xb2\x98\xec\x8a\xa4",
-        "\xed\x93\xa8\xec\xb2\x98"
-    };
-    for (size_t i = 0u; i < sizeof(exhibition_markers) / sizeof(exhibition_markers[0]); i++) {
-        if (team_contains_ootp_string_text(team, exhibition_markers[i])) {
-            return 1;
-        }
-    }
-    return 0;
+    return kbo_captain_team_is_exhibition(row->team_id);
 }
 
 int kbo_captain_current_rows_need_inseason_repair(
@@ -159,6 +139,15 @@ int kbo_captain_current_rows_need_inseason_repair(
         KBO_CAPTAIN_MAX_TEAMS,
         &scanned_teams,
         &unreadable_teams);
+    if (team_count <= 0) {
+        return 0;
+    }
+    int exhibition_count = 0;
+    team_count = kbo_captain_filter_regular_team_ids(
+        out_team_ids,
+        team_count,
+        KBO_CAPTAIN_MAX_TEAMS,
+        &exhibition_count);
     if (team_count <= 0) {
         return 0;
     }

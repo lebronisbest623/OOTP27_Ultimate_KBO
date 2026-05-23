@@ -287,6 +287,7 @@ void install_kbo_full_runtime_after_roster_marker(HINSTANCE instance)
         kbo_log_runtime_line("KBO season phase read-only monitor disabled: kbo_flags.json enable_kbo_season_phase_monitor is false");
     }
     start_kbo_award_schedule_probe_thread();
+    start_kbo_amateur_reputation_update_thread();
     start_kbo_military_seed_bootstrap_thread();
     start_kbo_military_days_tick_thread();
     start_kbo_cbt_event_scheduler_thread();

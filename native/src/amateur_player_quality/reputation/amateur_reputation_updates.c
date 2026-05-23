@@ -237,11 +237,9 @@ int kbo_update_amateur_reputation_for_league(uint32_t league_id, const char* sou
     return row_count;
 }
 
-void kbo_update_amateur_reputation_from_team_records(const char* source)
+void kbo_update_amateur_reputation_from_team_records_for_date(uint32_t today, const char* source)
 {
-    uint32_t today = 0u;
-    if (!kbo_current_date_tick_latest_published_date(&today)
-            || (today % 10000u) != 101u) {
+    if (today == 0u || (today % 10000u) != 101u) {
         return;
     }
     uint32_t year = today / 10000u;
@@ -258,6 +256,15 @@ void kbo_update_amateur_reputation_from_team_records(const char* source)
             g_kbo_amateur_reputation_last_update_college_year = year;
         }
     }
+}
+
+void kbo_update_amateur_reputation_from_team_records(const char* source)
+{
+    uint32_t today = 0u;
+    if (!kbo_current_date_tick_latest_published_date(&today)) {
+        return;
+    }
+    kbo_update_amateur_reputation_from_team_records_for_date(today, source);
 }
 
 uint32_t kbo_amateur_assignment_processed_hash_key(uint32_t player_id, uint32_t team_id)

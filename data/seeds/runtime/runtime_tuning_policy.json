@@ -26,6 +26,7 @@
   "season_phase_monitor_sleep_ms": 2000,
   "captain_selection_thread_sleep_ms": 5000,
   "custom_event_monitor_sleep_ms": 5000,
+  "amateur_reputation_update_thread_sleep_ms": 5000,
   "amateur_assignment_ortools_batch_sleep_ms": 250,
   "fa_salary_snapshot_thread_sleep_ms": 1000,
   "fa_salary_snapshot_phase_event_sleep_ms": 250,

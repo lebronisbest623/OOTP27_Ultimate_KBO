@@ -25,6 +25,7 @@ typedef struct KboRuntimeTuningPolicy {
     int32_t season_phase_monitor_sleep_ms;
     int32_t captain_selection_thread_sleep_ms;
     int32_t custom_event_monitor_sleep_ms;
+    int32_t amateur_reputation_update_thread_sleep_ms;
     int32_t amateur_assignment_ortools_batch_sleep_ms;
     int32_t fa_salary_snapshot_thread_sleep_ms;
     int32_t fa_salary_snapshot_phase_event_sleep_ms;

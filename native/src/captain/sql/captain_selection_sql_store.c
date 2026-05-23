@@ -268,6 +268,9 @@ int kbo_captain_selection_sql_replace_season(
         if (row->season == 0u || row->team_id == 0u) {
             continue;
         }
+        if (kbo_captain_team_is_exhibition(row->team_id)) {
+            continue;
+        }
         char team_name[280] = {0};
         char player_name[280] = {0};
         char reason[224] = {0};

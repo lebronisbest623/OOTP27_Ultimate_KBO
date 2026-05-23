@@ -228,6 +228,7 @@ static DWORD WINAPI kbo_hot_reinject_ai_roster_management_thread(LPVOID paramete
         start_kbo_season_phase_monitor();
     }
     start_kbo_award_schedule_probe_thread();
+    start_kbo_amateur_reputation_update_thread();
     start_kbo_military_seed_bootstrap_thread();
     start_kbo_military_days_tick_thread();
     start_kbo_cbt_event_scheduler_thread();

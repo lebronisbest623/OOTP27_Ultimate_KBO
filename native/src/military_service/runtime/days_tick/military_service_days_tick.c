@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "../../../amateur_player_quality/api/amateur_player_quality.h"
 #include "../../../bootstrap/abi/ootp_offsets.h"
 #include "../../../core/dates/core_current_date.h"
 #include "../../../core/dates/core_text_date.h"
@@ -117,8 +116,6 @@ static int kbo_tick_military_service_days_for_serial(
         HeapFree(GetProcessHeap(), 0, player_snapshot);
         return 0;
     }
-
-    kbo_update_amateur_reputation_from_team_records(source);
 
     uint8_t* sang = find_kbo_team_by_csv_id_any_league("SANG", 0);
     uint8_t* kpb  = find_kbo_team_by_csv_id_any_league("KPB",  0);

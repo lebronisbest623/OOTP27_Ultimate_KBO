@@ -219,8 +219,18 @@ int kbo_captain_select_for_preseason(
         return 0;
     }
 
-    if (team_count > max_rows) {
-        team_count = max_rows;
+    int raw_team_count = team_count;
+    int exhibition_count = 0;
+    team_count = kbo_captain_filter_regular_team_ids(team_ids, team_count, max_rows, &exhibition_count);
+    if (team_count <= 0) {
+        kbo_log_runtimef(
+            "KBO captain selection skipped reason=no_regular_teams league_id=%u scanned=%d unreadable=%d raw_teams=%d exhibition_skipped=%d",
+            league_id,
+            scanned_teams,
+            unreadable_teams,
+            raw_team_count,
+            exhibition_count);
+        return 0;
     }
 
     kbo_ensure_captain_seeds_loaded();
@@ -336,12 +346,14 @@ int kbo_captain_select_for_preseason(
         *out_selected_count = selected_count;
     }
     kbo_log_runtimef(
-        "KBO captain selection candidates date=%u season=%u league_id=%u teams=%d players=%d selected=%d",
+        "KBO captain selection candidates date=%u season=%u league_id=%u teams=%d players=%d selected=%d raw_teams=%d exhibition_skipped=%d",
         date,
         season,
         league_id,
         team_count,
         scanned_players,
-        selected_count);
+        selected_count,
+        raw_team_count,
+        exhibition_count);
     return team_count;
 }

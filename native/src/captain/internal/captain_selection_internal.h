@@ -142,6 +142,12 @@ int kbo_captain_find_row_index_by_team(
     const KboCaptainSelectionRow* rows,
     int row_count,
     uint32_t team_id);
+int kbo_captain_team_is_exhibition(uint32_t team_id);
+int kbo_captain_filter_regular_team_ids(
+    uint32_t* team_ids,
+    int team_count,
+    int max_count,
+    int* out_exhibition_count);
 int kbo_captain_existing_row_still_with_team(const KboCaptainSelectionRow* row);
 int kbo_captain_current_rows_need_inseason_repair(
     uint32_t league_id,

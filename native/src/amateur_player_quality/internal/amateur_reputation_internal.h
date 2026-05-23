@@ -67,6 +67,7 @@ int kbo_append_amateur_reputation_history(
     const char* source,
     uint32_t year);
 int kbo_update_amateur_reputation_for_league(uint32_t league_id, const char* source, uint32_t year);
+void kbo_update_amateur_reputation_from_team_records_for_date(uint32_t today, const char* source);
 void kbo_update_amateur_reputation_from_team_records(const char* source);
 
 #endif

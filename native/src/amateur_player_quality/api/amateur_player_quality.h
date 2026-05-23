@@ -81,6 +81,7 @@ void kbo_ensure_amateur_reputation_seeds_loaded(void);
 int kbo_get_amateur_reputation_history_path(char* out, size_t out_size);
 
 void kbo_update_amateur_reputation_from_team_records(const char* source);
+void start_kbo_amateur_reputation_update_thread(void);
 uint32_t kbo_resolve_amateur_assignment_league_id_for_team_ptr(uint8_t* team);
 uint32_t kbo_resolve_amateur_assignment_league_id_for_team_and_player(uint8_t* team, uint8_t* player);
 int kbo_amateur_player_age_eligible(uint32_t league_id, int16_t age);

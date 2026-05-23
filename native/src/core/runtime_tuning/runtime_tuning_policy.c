@@ -63,6 +63,7 @@ static BOOL CALLBACK kbo_runtime_tuning_policy_init_once(PINIT_ONCE init_once, P
     p->season_phase_monitor_sleep_ms = kbo_runtime_tuning_policy_int("season_phase_monitor_sleep_ms", 2000, 100, 600000);
     p->captain_selection_thread_sleep_ms = kbo_runtime_tuning_policy_int("captain_selection_thread_sleep_ms", 5000, 100, 600000);
     p->custom_event_monitor_sleep_ms = kbo_runtime_tuning_policy_int("custom_event_monitor_sleep_ms", 1000, 100, 600000);
+    p->amateur_reputation_update_thread_sleep_ms = kbo_runtime_tuning_policy_int("amateur_reputation_update_thread_sleep_ms", 5000, 100, 600000);
     p->amateur_assignment_ortools_batch_sleep_ms = kbo_runtime_tuning_policy_int("amateur_assignment_ortools_batch_sleep_ms", 250, 10, 600000);
     p->fa_salary_snapshot_thread_sleep_ms = kbo_runtime_tuning_policy_int("fa_salary_snapshot_thread_sleep_ms", 1000, 100, 600000);
     p->fa_salary_snapshot_phase_event_sleep_ms = kbo_runtime_tuning_policy_int("fa_salary_snapshot_phase_event_sleep_ms", 250, 10, 600000);

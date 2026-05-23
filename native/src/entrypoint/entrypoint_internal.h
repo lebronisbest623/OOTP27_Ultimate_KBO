@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include "entrypoint.h"
+#include "../amateur_player_quality/api/amateur_player_quality.h"
 #include "../allstar/flags/allstar_flags.h"
 #include "../allstar/allstar_league_context/allstar_league_context.h"
 #include "../allstar/team_patch/allstar_team_patch.h"
