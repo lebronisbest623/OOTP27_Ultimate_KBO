@@ -94,7 +94,7 @@ static BOOL CALLBACK kbo_foreign_player_policy_init_once(PINIT_ONCE init_once, P
         p->retention_margin_max = p->retention_margin_min;
     }
 
-    static const uint32_t default_nations[] = { 98u, 12u, 43u };
+    static const uint32_t default_nations[] = { 98u, 12u, 43u, 44u };
     for (int i = 0; i < (int)(sizeof(default_nations) / sizeof(default_nations[0])); i++) {
         char key[64] = {0};
         snprintf(key, sizeof(key), "asian_quota_nation_id_%d", i + 1);
