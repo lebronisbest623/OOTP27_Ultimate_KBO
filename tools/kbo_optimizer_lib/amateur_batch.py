@@ -21,11 +21,16 @@ from .amateur_roles import (
     _player_position_bucket,
 )
 from .amateur_role_capacities import _prepare_role_capacities
-from .amateur_targets import _allocate_batch_team_targets, _collect_batch_team_info
+from .amateur_targets import (
+    _allocate_batch_team_targets,
+    _collect_batch_team_info,
+    _make_min_fills_feasible,
+)
 from .constants import (
     AMATEUR_ROLE_BALANCE_TOLERANCES,
     ASSORTATIVE_RANK_WEIGHT,
     INCOMING_MAX_AVERAGE_MULTIPLIER,
+    MIN_TEAM_FILL_BONUS,
 )
 from .csv_io import to_int as _to_int
 
@@ -38,6 +43,17 @@ def _tier_allowed(row, max_tier_gap):
 def _incoming_team_cap(total_players, total_teams):
     average = total_players / max(1, total_teams)
     return max(1, int(math.ceil(average * INCOMING_MAX_AVERAGE_MULTIPLIER)))
+
+def _incoming_role_deficit_bonus(row, info, incoming_batch):
+    if not incoming_batch:
+        return 0
+    bucket = _player_position_bucket(row)
+    is_pitcher = bucket == "P" or (not bucket and _to_int(row, "is_hitter") == 0)
+    if is_pitcher:
+        deficit = max(0, int(info.get("min_pitchers", 0)) - int(info.get("pitcher_count", 0)))
+    else:
+        deficit = max(0, int(info.get("min_hitters", 0)) - int(info.get("hitter_count", 0)))
+    return MIN_TEAM_FILL_BONUS * deficit
 
 def _tier_capacity_feasible(grouped, team_info, max_tier_gap, use_incoming_capacity, incoming_cap):
     if max_tier_gap is None:
@@ -127,6 +143,7 @@ def _prepare_flexible_assignment_context(grouped, force_incoming=None):
     incoming_batch = _batch_is_incoming(grouped) if force_incoming is None else force_incoming
     detailed_roles = _batch_has_detailed_position_buckets(grouped)
     team_info = _collect_batch_team_info(grouped, team_percentiles, incoming_batch, detailed_roles)
+    _make_min_fills_feasible(team_info, total_players)
 
     normal_capacity = sum(max(0, info["capacity"]) for info in team_info.values())
     use_incoming_capacity = incoming_batch or normal_capacity < total_players
@@ -225,6 +242,7 @@ def _solve_batch_flexible_assignment(grouped, max_tier_gap=1, status_label="ok",
 
             info = team_info[team_id]
             weight = _candidate_weight(row, -1, info["player_count"], not use_incoming_capacity)
+            weight += _incoming_role_deficit_bonus(row, info, incoming_batch)
             penalty_stages = draft_penalties.get(team_id, 0)
             adjusted_team_percentile = max(
                 0.0, team_percentiles.get(team_id, 0.5) - penalty_stages / total_teams
@@ -417,6 +435,7 @@ def _solve_batch_final_assignment_with_tolerance(
             if role_node is None:
                 continue
             weight = _candidate_weight(row, -1, info["player_count"], not incoming_batch)
+            weight += _incoming_role_deficit_bonus(row, info, incoming_batch)
             penalty_stages = draft_penalties.get(team_id, 0)
             adjusted_team_percentile = max(
                 0.0, team_percentiles.get(team_id, 0.5) - penalty_stages / total_teams
@@ -455,6 +474,17 @@ def _solve_batch_final_assignment(grouped):
         (2, "ok_relaxed_tier2"),
         (None, "ok_relaxed"),
     )
+    if _batch_is_incoming(grouped) and _batch_has_detailed_position_buckets(grouped):
+        for max_tier_gap, status_label in attempts:
+            for role_tolerance in AMATEUR_ROLE_BALANCE_TOLERANCES:
+                assignments = _solve_batch_final_assignment_with_tolerance(
+                    grouped,
+                    role_tolerance,
+                    max_tier_gap=max_tier_gap,
+                    status_label=status_label)
+                if assignments is not None:
+                    return assignments
+
     force_incoming_attempts = (None,) if _batch_is_incoming(grouped) else (None, True)
     contexts = {}
     for max_tier_gap, status_label in attempts:

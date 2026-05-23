@@ -90,8 +90,31 @@ try {
     $attachedRows = Import-Csv -LiteralPath $attachedActual
     $protectedCount = @($attachedRows | Where-Object { $_.target_team_id -eq "10" }).Count
     $openCount = @($attachedRows | Where-Object { $_.target_team_id -eq "20" }).Count
-    if ($protectedCount -ne 18 -or $openCount -ne 2) {
-        throw "incoming_attached feeder minimum regression: expected team 10=18 and team 20=2, actual team 10=$protectedCount team 20=$openCount"
+    if ($protectedCount -ne 20 -or $openCount -ne 0) {
+        throw "incoming_attached feeder minimum regression: expected team 10=20 and team 20=0, actual team 10=$protectedCount team 20=$openCount"
+    }
+
+    $floorRequest = Join-Path $WorkDir "amateur_assignment_high_school_floor.csv"
+    $floorActual = Join-Path $WorkDir "amateur_assignment_high_school_floor_result.csv"
+    $floorLines = [System.Collections.Generic.List[string]]::new()
+    $floorLines.Add("player_id,current_team_id,player_tier,team_id,team_tier,reputation,target_reputation,player_count,hitter_count,league_id,target_max_players,rejected,quality_score,is_hitter,role_bucket,batch_mode,pitcher_count,catcher_count,first_base_count,second_base_count,third_base_count,shortstop_count,left_field_count,center_field_count,right_field_count,designated_hitter_count")
+    for ($i = 1; $i -le 8; $i++) {
+        $playerId = 7000 + $i
+        $floorLines.Add("$playerId,0,3,10,3,50,50,18,18,203,34,0,1000,0,P,incoming,0,2,2,2,2,2,3,3,2,0")
+        $floorLines.Add("$playerId,0,3,20,3,50,50,18,0,203,34,0,1000,0,P,incoming,18,0,0,0,0,0,0,0,0,0")
+    }
+    for ($i = 1; $i -le 11; $i++) {
+        $playerId = 7100 + $i
+        $floorLines.Add("$playerId,0,3,10,3,50,50,18,18,203,34,0,1000,1,C,incoming,0,2,2,2,2,2,3,3,2,0")
+        $floorLines.Add("$playerId,0,3,20,3,50,50,18,0,203,34,0,1000,1,C,incoming,18,0,0,0,0,0,0,0,0,0")
+    }
+    [System.IO.File]::WriteAllLines($floorRequest, $floorLines, [System.Text.UTF8Encoding]::new($false))
+    Invoke-OptimizerMode -Mode "amateur_assignment" -RequestPath $floorRequest -ResultPath $floorActual
+    $floorRows = Import-Csv -LiteralPath $floorActual
+    $floorTeam10Pitchers = @($floorRows | Where-Object { $_.target_team_id -eq "10" -and [int]$_.player_id -lt 7100 }).Count
+    $floorTeam20Hitters = @($floorRows | Where-Object { $_.target_team_id -eq "20" -and [int]$_.player_id -ge 7100 }).Count
+    if ($floorTeam10Pitchers -ne 8 -or $floorTeam20Hitters -ne 11) {
+        throw "high-school floor regression: expected team 10 to receive 8 pitchers and team 20 to receive 11 hitters, actual team 10 pitchers=$floorTeam10Pitchers team 20 hitters=$floorTeam20Hitters"
     }
 
     $serverAmateur = Join-Path $WorkDir "server_amateur_assignment.csv"

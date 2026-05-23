@@ -37,6 +37,79 @@ def _position_role_need_priority(info, role, role_share):
     assigned_role_count = info.get("role_capacities", {}).get(role, 0)
     return role_share - ((current_role_count + assigned_role_count) / final_total)
 
+def _assigned_hitter_capacity(info):
+    return sum(
+        count
+        for role, count in info.get("role_capacities", {}).items()
+        if role != "P"
+    )
+
+def _role_floor_deficit(info, role_group):
+    if role_group == "P":
+        return max(
+            0,
+            int(info.get("min_pitchers", 0))
+            - info.get("role_counts", {}).get("P", 0)
+            - info.get("role_capacities", {}).get("P", 0),
+        )
+    return max(
+        0,
+        int(info.get("min_hitters", 0))
+        - info.get("hitter_count", 0)
+        - _assigned_hitter_capacity(info),
+    )
+
+def _seed_role_floor_capacities(team_info, remaining_slots, remaining_role_counts, role_group):
+    if role_group == "P":
+        roles = ["P"] if remaining_role_counts.get("P", 0) > 0 else []
+    else:
+        roles = [
+            role
+            for role in AMATEUR_POSITION_BUCKETS
+            if role != "P" and remaining_role_counts.get(role, 0) > 0
+        ]
+        roles.extend(
+            sorted(
+                role
+                for role, count in remaining_role_counts.items()
+                if role != "P" and count > 0 and role not in roles
+            )
+        )
+
+    while roles:
+        candidates = [
+            (team_id, info, _role_floor_deficit(info, role_group))
+            for team_id, info in team_info.items()
+            if remaining_slots.get(team_id, 0) > 0
+            and _role_floor_deficit(info, role_group) > 0
+        ]
+        if not candidates:
+            return
+
+        team_id, info, _ = max(
+            candidates,
+            key=lambda item: (
+                item[2],
+                -item[1]["player_count"],
+                item[1]["percentile"],
+                item[1]["reputation"],
+                item[0],
+            ),
+        )
+        final_total = info["player_count"] + info["target_count"]
+        selected_role = max(
+            roles,
+            key=lambda role: _position_role_need_priority(
+                info,
+                role,
+                remaining_role_counts.get(role, 0) / max(1, final_total),
+            ),
+        )
+        info["role_capacities"][selected_role] = info["role_capacities"].get(selected_role, 0) + 1
+        remaining_role_counts[selected_role] -= 1
+        remaining_slots[team_id] -= 1
+        roles = [role for role in roles if remaining_role_counts.get(role, 0) > 0]
+
 def _prepare_position_bucket_capacities(team_info, role_counts):
     total_players = sum(max(0, count) for count in role_counts.values())
     if total_players <= 0:
@@ -58,16 +131,23 @@ def _prepare_position_bucket_capacities(team_info, role_counts):
         team_id: max(0, info["target_count"])
         for team_id, info in team_info.items()
     }
+    remaining_role_counts = {
+        role: max(0, count)
+        for role, count in role_counts.items()
+    }
+    _seed_role_floor_capacities(team_info, remaining_slots, remaining_role_counts, "P")
+    _seed_role_floor_capacities(team_info, remaining_slots, remaining_role_counts, "H")
+
     role_order = sorted(
         roles,
         key=lambda role: (
-            total_players + role_counts.get(role, 0) if role == "P" else role_counts.get(role, 0),
+            total_players + remaining_role_counts.get(role, 0) if role == "P" else remaining_role_counts.get(role, 0),
             AMATEUR_POSITION_BUCKETS.index(role) if role in AMATEUR_POSITION_BUCKETS else len(AMATEUR_POSITION_BUCKETS),
         ),
     )
 
     for role in role_order:
-        role_total = max(0, role_counts.get(role, 0))
+        role_total = max(0, remaining_role_counts.get(role, 0))
         role_share = role_total / total_players
         for _ in range(role_total):
             candidates = [
