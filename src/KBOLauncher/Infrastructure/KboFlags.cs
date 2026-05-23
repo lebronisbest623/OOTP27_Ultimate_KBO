@@ -8,6 +8,7 @@ internal static partial class KboFlags
     private static readonly string[] PinnedEnabledRuntimeFlags =
     [
         "enable_experimental_runtime_hooks",
+        "enable_foreign_ai_controller",
         "enable_kbo_current_date_tick_watchpoint",
     ];
 

@@ -229,12 +229,12 @@
     },
     {
       "key": "enable_foreign_ai_controller",
-      "defaultValue": false,
+      "defaultValue": true,
       "lifecycle": "User",
       "ui": {
         "label": "Foreign AI Controller (Experimental)",
         "enabledValue": 1,
-        "defaultEnabled": false
+        "defaultEnabled": true
       }
     },
     {

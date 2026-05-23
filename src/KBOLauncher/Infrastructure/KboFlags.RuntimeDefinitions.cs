@@ -42,7 +42,7 @@ internal static partial class KboFlags
         new("enable_foreign_waiver_ai", true, RuntimeFlagLifecycle.User),
         new("enable_foreign_waiver_background_scanner", true, RuntimeFlagLifecycle.Recovery),
         new("enable_foreign_ai_roster_management", true, RuntimeFlagLifecycle.User),
-        new("enable_foreign_ai_controller", false, RuntimeFlagLifecycle.User),
+        new("enable_foreign_ai_controller", true, RuntimeFlagLifecycle.User),
         new("disable_foreign_ai_controller", null, RuntimeFlagLifecycle.Recovery),
         new("enable_foreign_waiver_event_probe", null, RuntimeFlagLifecycle.Diagnostic),
         new("enable_kbo_domestic_fa_market_investigation", false, RuntimeFlagLifecycle.Diagnostic),

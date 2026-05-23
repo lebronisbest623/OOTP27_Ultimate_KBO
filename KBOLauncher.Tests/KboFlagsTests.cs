@@ -229,6 +229,7 @@ public sealed class KboFlagsTests : IDisposable
         {
           "enable_kbo_foreign_trade_check_patch": false,
           "enable_experimental_runtime_hooks": false,
+          "enable_foreign_ai_controller": false,
           "enable_kbo_current_date_tick_watchpoint": false
         }
         """);
@@ -237,6 +238,7 @@ public sealed class KboFlagsTests : IDisposable
 
         global::KboFlags.ReadKboFlag(ConfigPath, "enable_kbo_foreign_trade_check_patch.txt").Should().BeFalse();
         global::KboFlags.ReadKboFlag(ConfigPath, "enable_experimental_runtime_hooks.txt").Should().BeTrue();
+        global::KboFlags.ReadKboFlag(ConfigPath, "enable_foreign_ai_controller.txt").Should().BeTrue();
         global::KboFlags.ReadKboFlag(ConfigPath, "enable_kbo_current_date_tick_watchpoint.txt").Should().BeTrue();
     }
 
