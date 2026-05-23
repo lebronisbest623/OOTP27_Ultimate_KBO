@@ -255,7 +255,7 @@ int kbo_amateur_ortools_write_batch_request(
                 candidates[i].right_field_count,
                 candidates[i].designated_hitter_count,
                 rejected,
-                incoming_batch ? "incoming" : "roster",
+                incoming_batch ? "incoming_attached" : "roster",
                 draft_penalty);
         }
     }

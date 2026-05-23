@@ -84,6 +84,16 @@ try {
         }
     }
 
+    $attachedRequest = Join-Path $FixtureDir "amateur_assignment_attached_batch.csv"
+    $attachedActual = Join-Path $WorkDir "amateur_assignment_attached_batch.csv"
+    Invoke-OptimizerMode -Mode "amateur_assignment" -RequestPath $attachedRequest -ResultPath $attachedActual
+    $attachedRows = Import-Csv -LiteralPath $attachedActual
+    $protectedCount = @($attachedRows | Where-Object { $_.target_team_id -eq "10" }).Count
+    $openCount = @($attachedRows | Where-Object { $_.target_team_id -eq "20" }).Count
+    if ($protectedCount -ne 18 -or $openCount -ne 2) {
+        throw "incoming_attached feeder minimum regression: expected team 10=18 and team 20=2, actual team 10=$protectedCount team 20=$openCount"
+    }
+
     $serverAmateur = Join-Path $WorkDir "server_amateur_assignment.csv"
     $serverMilitary = Join-Path $WorkDir "server_military_selection.csv"
     $serverInput = @(
