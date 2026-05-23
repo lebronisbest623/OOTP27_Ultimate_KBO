@@ -122,37 +122,8 @@ static int kbo_find_player_portrait_src(uint32_t player_id, char* out, size_t ou
         return 0;
     }
 
-    kbo_webview_copy_image_src(portrait_path, out, out_size);
+    kbo_webview_copy_file_url(portrait_path, out, out_size);
     return out[0] != '\0';
-}
-
-static void kbo_show_webview_player_tooltip_shell(const char* player_name, int client_x, int client_y, uint32_t hover_seq)
-{
-    char script[8192] = {0};
-    size_t pos = 0u;
-    kbo_append_rawf(
-        script,
-        sizeof(script),
-        &pos,
-        "(function(){if(window.__kboPlayerHoverSeq!==%u){return;}var tip=document.getElementById('kboPlayerTooltip');"
-        "if(!tip){tip=document.createElement('div');tip.id='kboPlayerTooltip';document.body.appendChild(tip);}"
-        "tip.setAttribute('data-kbo-hover-seq','%u');tip.textContent=",
-        hover_seq,
-        hover_seq);
-    kbo_append_js_literal(script, sizeof(script), &pos, player_name != NULL && player_name[0] != '\0' ? player_name : "Player");
-    kbo_append_rawf(
-        script,
-        sizeof(script),
-        &pos,
-        ";tip.style.cssText='position:fixed;z-index:2147483647;left:%dpx;top:%dpx;"
-        "min-width:220px;min-height:42px;padding:10px 12px;background:#2c2d30;color:#fff;"
-        "border:1px solid #f05024;box-shadow:0 8px 22px rgba(0,0,0,.75);"
-        "font-family:var(--ui-font),\\'Malgun Gothic\\',sans-serif;font-size:14px;font-weight:800;pointer-events:none;display:block';})();",
-        client_x + 14,
-        client_y + 14);
-    if (!kbo_webview_execute_utf8_script(script)) {
-        kbo_log_runtime_line("webview player tooltip shell execute failed");
-    }
 }
 
 static void kbo_show_webview_player_tooltip(
@@ -170,8 +141,6 @@ static void kbo_show_webview_player_tooltip(
     (void)league_id;
 
     (void)hwnd;
-
-    kbo_show_webview_player_tooltip_shell(player_name, client_x, client_y, hover_seq);
 
     char payload[16000] = {0};
     if (!kbo_capture_ootp_player_tooltip_payload(player_id, payload, sizeof(payload))) {
