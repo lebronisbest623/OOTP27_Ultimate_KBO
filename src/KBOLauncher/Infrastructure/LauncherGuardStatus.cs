@@ -86,8 +86,6 @@ internal static class LauncherGuardStatus
         bool allowIncompleteMarkedSave = false)
     {
         RosterMarkerInfo info;
-        RosterMarkerInfo? probedCurrentSaveInfo = null;
-        var usedFallback = false;
         try
         {
             info = KboRosterMarkerGuard.CheckCurrentSave(
@@ -95,56 +93,26 @@ internal static class LauncherGuardStatus
                 minSaveCompletedAt,
                 allowIncompleteMarkedSave,
                 message => Log(logPath, message));
-            probedCurrentSaveInfo = info;
-            if (!info.Ok && CurrentSaveProbeCanUseLatestMarkedSaveFallback(info))
-            {
-                var fallback = allowIncompleteMarkedSave
-                    ? KboRosterMarkerGuard.FindLatestMarkedSaveForInjection(fallbackMinSaveCompletedAt)
-                    : KboRosterMarkerGuard.FindLatestMarkedCompletedSave(fallbackMinSaveCompletedAt);
-                if (fallback is not null)
-                {
-                    Log(logPath, $"roster_marker_fallback_latest_marked_save pid={pid} original_status={info.Status} allow_incomplete={(allowIncompleteMarkedSave ? "1" : "0")} {KboRosterMarkerGuard.FormatLogStatus(fallback)}");
-                    usedFallback = true;
-                    info = fallback;
-                }
-            }
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
         {
             info = RosterMarkerInfo.Fail("process_unavailable", null, null, $"{ex.GetType().Name}: {ex.Message}");
         }
 
-        WriteCurrentSavePathCache(pid, SelectCurrentSavePathCacheValue(probedCurrentSaveInfo, usedFallback), logPath);
-        if (usedFallback && !string.IsNullOrWhiteSpace(info.SavePath))
-        {
-            Log(logPath, $"current_save_cache_suppressed_for_fallback pid={pid} fallback_save=\"{info.SavePath}\"");
-        }
+        WriteCurrentSavePathCache(pid, SelectCurrentSavePathCacheValue(info), logPath);
         Log(logPath, KboRosterMarkerGuard.FormatLogStatus(info));
         WriteRosterMarkerGuardStatus(info);
         return info;
     }
 
-    internal static string? SelectCurrentSavePathCacheValue(RosterMarkerInfo? probedCurrentSaveInfo, bool usedFallback)
+    internal static string? SelectCurrentSavePathCacheValue(RosterMarkerInfo? info)
     {
-        if (usedFallback || probedCurrentSaveInfo is null || !probedCurrentSaveInfo.Ok)
+        if (info is null || !info.Ok)
         {
             return null;
         }
 
-        return probedCurrentSaveInfo.SavePath;
-    }
-
-    private static bool CurrentSaveProbeCanUseLatestMarkedSaveFallback(RosterMarkerInfo info)
-    {
-        return info.Status is
-            "current_save_unavailable" or
-            "process_module_unreadable" or
-            "process_module_missing" or
-            "open_process_failed" or
-            "current_save_probe_failed" or
-            "description_missing" or
-            "save_not_completed" or
-            "save_completion_unreadable";
+        return info.SavePath;
     }
     
     public static void WriteCurrentSavePathCache(int pid, string? savePath, string logPath)

@@ -41,6 +41,7 @@ public sealed class LauncherOptionsTests
             "--disable-single-division-allstar-events",
             "--dry-run",
             "--allow-second-instance",
+            "--diagnostics",
             "--help"
         ]);
 
@@ -49,6 +50,7 @@ public sealed class LauncherOptionsTests
         options.EnableSingleDivisionAllstarEvents.Should().BeFalse();
         options.DryRun.Should().BeTrue();
         options.AllowSecondInstance.Should().BeTrue();
+        options.Diagnostics.Should().BeTrue();
         options.ShowHelp.Should().BeTrue();
     }
 

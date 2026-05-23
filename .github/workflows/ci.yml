@@ -83,21 +83,15 @@ jobs:
         shell: pwsh
         run: .\native\tests\run_tests.ps1
 
-      - name: Publish launcher
-        run: dotnet publish .\src\KBOLauncher\KBOLauncher.csproj --configuration Release --no-build --output .\artifacts\KBOLauncher
-
-      - name: Collect native artifacts
+      - name: Build release payload
         shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force -Path .\artifacts\native | Out-Null
-          Copy-Item .\native\bin\KBOFix.dll .\artifacts\native\KBOFix.dll -Force
-          Copy-Item .\native\bin\WebView2Loader.dll .\artifacts\native\WebView2Loader.dll -Force
+        run: .\scripts\release.ps1
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: KBOLauncher-windows
-          path: artifacts
+          path: dist
 
   release:
     name: Publish GitHub Release

@@ -35,7 +35,20 @@ internal static partial class LauncherApp
             return 0;
         }
 
-        return RunParsed(options, isDefaultRun: args.Length == 0);
+        if (options.Diagnostics)
+        {
+            var bundlePath = DiagnosticBundle.Create(options);
+            Console.WriteLine($"Diagnostics bundle written to: {bundlePath}");
+            Console.WriteLine("Open ACTION_REQUIRED.txt inside the ZIP first. If it still fails, send the whole ZIP with your bug report.");
+            return 0;
+        }
+
+        var exitCode = RunParsed(options, isDefaultRun: args.Length == 0);
+        if (exitCode != 0)
+        {
+            WriteFailureDiagnostics(options, exitCode);
+        }
+        return exitCode;
     }
 
     private static int RunParsed(LauncherOptions options, bool isDefaultRun)
@@ -102,5 +115,20 @@ internal static partial class LauncherApp
         Log(
             logPath,
             $"launcher_build exe=\"{exePath}\" base_dir=\"{AppContext.BaseDirectory}\" write_time=\"{assemblyWriteTime}\"");
+    }
+
+    private static void WriteFailureDiagnostics(LauncherOptions options, int exitCode)
+    {
+        try
+        {
+            var bundlePath = DiagnosticBundle.Create(options, $"launcher_exit_code={exitCode}");
+            Console.Error.WriteLine();
+            Console.Error.WriteLine($"Diagnostics bundle written to: {bundlePath}");
+            Console.Error.WriteLine("Open ACTION_REQUIRED.txt inside the ZIP first. If it still fails, send the whole ZIP with your bug report.");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            Console.Error.WriteLine($"Could not create diagnostics bundle: {ex.Message}");
+        }
     }
 }

@@ -9,6 +9,7 @@ try
 }
 catch (Exception ex)
 {
+    string? diagnosticsPath = null;
     try
     {
         var logDir = OotpProduct.LocalDataDirectory;
@@ -16,6 +17,7 @@ catch (Exception ex)
         File.AppendAllText(
             Path.Combine(logDir, OotpProduct.LauncherLogFileName),
             $"{DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss.fff zzz} fatal {ex.GetType().Name}: {ex.Message}{Environment.NewLine}{ex}{Environment.NewLine}");
+        diagnosticsPath = DiagnosticBundle.CreateForFatal(ex);
     }
     catch
     {
@@ -23,6 +25,12 @@ catch (Exception ex)
 
     Console.Error.WriteLine("Launcher failed:");
     Console.Error.WriteLine(ex);
+    if (!string.IsNullOrWhiteSpace(diagnosticsPath))
+    {
+        Console.Error.WriteLine();
+        Console.Error.WriteLine($"Diagnostics bundle written to: {diagnosticsPath}");
+        Console.Error.WriteLine("Open ACTION_REQUIRED.txt inside the ZIP first. If it still fails, send the whole ZIP with your bug report.");
+    }
     PauseBeforeExit();
     return 99;
 }

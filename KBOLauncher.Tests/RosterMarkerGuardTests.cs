@@ -196,7 +196,7 @@ public sealed class RosterMarkerGuardTests : IDisposable
     }
 
     [Fact]
-    public void SelectCurrentSavePathCacheValue_DoesNotCacheFallbackSave()
+    public void SelectCurrentSavePathCacheValue_OnlyCachesSuccessfulCurrentSave()
     {
         var savePath = Path.Combine(tempDir, "KBO.lg");
         var directOk = new global::RosterMarkerInfo(
@@ -213,10 +213,9 @@ public sealed class RosterMarkerGuardTests : IDisposable
             null,
             "current save path unavailable");
 
-        global::LauncherGuardStatus.SelectCurrentSavePathCacheValue(directOk, usedFallback: false).Should().Be(savePath);
-        global::LauncherGuardStatus.SelectCurrentSavePathCacheValue(directOk, usedFallback: true).Should().BeNull();
-        global::LauncherGuardStatus.SelectCurrentSavePathCacheValue(directFailed, usedFallback: false).Should().BeNull();
-        global::LauncherGuardStatus.SelectCurrentSavePathCacheValue(null, usedFallback: false).Should().BeNull();
+        global::LauncherGuardStatus.SelectCurrentSavePathCacheValue(directOk).Should().Be(savePath);
+        global::LauncherGuardStatus.SelectCurrentSavePathCacheValue(directFailed).Should().BeNull();
+        global::LauncherGuardStatus.SelectCurrentSavePathCacheValue(null).Should().BeNull();
     }
 
     [Fact]

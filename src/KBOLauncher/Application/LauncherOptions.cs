@@ -9,6 +9,7 @@ record LauncherOptions(
     bool? EnableSingleDivisionAllstarEvents,
     bool DryRun,
     bool AllowSecondInstance,
+    bool Diagnostics,
     bool ShowHelp,
     IReadOnlyList<string> OotpArgs)
 {
@@ -32,6 +33,8 @@ record LauncherOptions(
         new("--dry-run", "Resolve paths and detect existing process without launching.");
     private static readonly Option<bool> AllowSecondInstanceOpt =
         new("--allow-second-instance", "Launch even if an OOTP process is already running.");
+    private static readonly Option<bool> DiagnosticsOpt =
+        new("--diagnostics", "Create a self-diagnosis ZIP with launcher/runtime logs and environment checks.");
 
     private static readonly RootCommand Command = BuildCommand();
 
@@ -48,6 +51,7 @@ record LauncherOptions(
         cmd.AddOption(DisableAllstarEventsOpt);
         cmd.AddOption(DryRunOpt);
         cmd.AddOption(AllowSecondInstanceOpt);
+        cmd.AddOption(DiagnosticsOpt);
         return cmd;
     }
 
@@ -96,6 +100,7 @@ record LauncherOptions(
             enableSingleDivisionAllstarEvents,
             parseResult.GetValueForOption(DryRunOpt),
             parseResult.GetValueForOption(AllowSecondInstanceOpt),
+            parseResult.GetValueForOption(DiagnosticsOpt),
             showHelp,
             ootpArgs);
     }
@@ -124,6 +129,7 @@ record LauncherOptions(
                                        Disable single-division all-star event creation.
           --dry-run                    Resolve paths and detect existing process without launching.
           --allow-second-instance      Launch even if an OOTP process is already running.
+          --diagnostics                Create a self-diagnosis ZIP without launching OOTP.
           --                           Pass remaining arguments to OOTP.
 
         Safety:

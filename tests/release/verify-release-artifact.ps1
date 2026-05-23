@@ -101,6 +101,18 @@ if ((Get-Item -LiteralPath $nativeDll).LastWriteTimeUtc -gt (Get-Item -LiteralPa
     throw "Native build appears newer than managed publish; run native build before publishing launcher."
 }
 
+$frameworkDependentFiles = @(
+    "KBOLauncher.dll",
+    "KBOLauncher.runtimeconfig.json",
+    "KBOLauncher.deps.json"
+)
+foreach ($frameworkDependentFile in $frameworkDependentFiles) {
+    $path = Join-Path $Dist $frameworkDependentFile
+    if (Test-Path -LiteralPath $path -PathType Leaf) {
+        throw "Release payload looks framework-dependent; unexpected file present: $frameworkDependentFile"
+    }
+}
+
 $leagueId = (Get-Content -LiteralPath (Join-Path $Dist "kbo_league_id.txt") -Raw).Trim()
 if ($leagueId -ne "100") {
     throw "Release payload has unexpected kbo_league_id.txt value: '$leagueId'"
