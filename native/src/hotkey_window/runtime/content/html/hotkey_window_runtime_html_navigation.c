@@ -1,9 +1,6 @@
 #include "../hotkey_window_runtime_content.h"
 
 static volatile LONG g_kbo_webview_navigate_current_pending = 0;
-static volatile LONG g_kbo_webview_navigation_inflight = 0;
-static volatile LONG g_kbo_webview_navigation_failure_streak = 0;
-static volatile LONG g_kbo_webview_navigation_cancel_streak = 0;
 static ICoreWebView2* g_kbo_webview_last_html_target = NULL;
 static uint64_t g_kbo_webview_last_html_hash = 0u;
 static int g_kbo_webview_last_html_chars = 0;
@@ -27,42 +24,13 @@ static uint64_t kbo_webview_hash_html(const WCHAR* html, int chars)
 
 void kbo_webview_note_navigation_completed(BOOL is_success, COREWEBVIEW2_WEB_ERROR_STATUS web_error)
 {
-    InterlockedExchange(&g_kbo_webview_navigation_inflight, 0);
-    if (is_success) {
-        InterlockedExchange(&g_kbo_webview_navigation_failure_streak, 0);
-        InterlockedExchange(&g_kbo_webview_navigation_cancel_streak, 0);
-    } else {
-        LONG failure_streak = InterlockedIncrement(&g_kbo_webview_navigation_failure_streak);
-        if (web_error == COREWEBVIEW2_WEB_ERROR_STATUS_OPERATION_CANCELED) {
-            LONG cancel_streak = InterlockedIncrement(&g_kbo_webview_navigation_cancel_streak);
-            if (cancel_streak >= 16) {
-                kbo_webview_mark_failed("navigation_cancel_loop", E_ABORT);
-                return;
-            }
-        } else {
-            InterlockedExchange(&g_kbo_webview_navigation_cancel_streak, 0);
-            if (failure_streak >= 3
-                    || web_error == COREWEBVIEW2_WEB_ERROR_STATUS_CONNECTION_ABORTED
-                    || web_error == COREWEBVIEW2_WEB_ERROR_STATUS_DISCONNECTED
-                    || web_error == COREWEBVIEW2_WEB_ERROR_STATUS_UNEXPECTED_ERROR) {
-                kbo_webview_mark_failed("navigation_failed", E_FAIL);
-                return;
-            }
-        }
-    }
-
-    HWND hwnd = g_kbo_hotkey_window;
-    if (!kbo_webview_is_failed()
-            && InterlockedExchange(&g_kbo_webview_navigate_current_pending, 0) != 0
-            && hwnd != NULL
-            && IsWindow(hwnd)
-            && IsWindowVisible(hwnd)) {
-        PostMessageA(hwnd, KBO_WM_SHOW_HUB_CONTENT, 0, 0);
-    }
+    (void)is_success;
+    (void)web_error;
 }
 
 void kbo_webview_navigate_current_immediate(void)
 {
+    InterlockedExchange(&g_kbo_webview_navigate_current_pending, 0);
     if (kbo_webview_is_failed()) {
         kbo_profiler_record_us("webview.navigate_current.skipped_failed", 0);
         return;
@@ -71,12 +39,6 @@ void kbo_webview_navigate_current_immediate(void)
         kbo_log_runtime_line("WebView2 navigate_current_immediate skipped reason=core_unavailable");
         return;
     }
-    if (InterlockedCompareExchange(&g_kbo_webview_navigation_inflight, 0, 0) != 0) {
-        InterlockedExchange(&g_kbo_webview_navigate_current_pending, 1);
-        kbo_profiler_record_us("webview.navigate_current.coalesced_inflight", 0);
-        return;
-    }
-    InterlockedExchange(&g_kbo_webview_navigate_current_pending, 0);
     KBO_PROFILE_BEGIN(profile_webview_navigate);
     WCHAR* html = kbo_build_webview_hub_html();
     if (html != NULL) {
@@ -100,7 +62,6 @@ void kbo_webview_navigate_current_immediate(void)
 
         HRESULT hr = ICoreWebView2_NavigateToString(g_kbo_webview, html);
         if (SUCCEEDED(hr)) {
-            InterlockedExchange(&g_kbo_webview_navigation_inflight, 1);
             g_kbo_webview_last_html_target = g_kbo_webview;
             g_kbo_webview_last_html_hash = html_hash;
             g_kbo_webview_last_html_chars = wide_chars;
@@ -184,7 +145,5 @@ void kbo_webview_navigate_loading(void)
     if (FAILED(hr)) {
         kbo_log_runtimef("WebView2 NavigateToString loading failed hr=0x%08lx", (unsigned long)hr);
         kbo_webview_mark_failed("navigate_loading_failed", hr);
-    } else {
-        InterlockedExchange(&g_kbo_webview_navigation_inflight, 1);
     }
 }
