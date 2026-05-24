@@ -40,6 +40,8 @@ WCHAR* kbo_build_webview_hub_html(void)
     char team_bar_secondary[8] = "#2c2c2c";
     char current_date_text[64] = {0};
     char captain_name[128] = {0};
+    uint32_t captain_player_id = 0u;
+    int captain_lookup_performed = 0;
     char window_status[256] = {0};
     char scrollbar_css[65536] = {0};
     const int is_mod_dashboard =
@@ -90,13 +92,14 @@ WCHAR* kbo_build_webview_hub_html(void)
         snprintf(current_date_text, sizeof(current_date_text), "DATE UNKNOWN");
     }
     if (current_year != 0u && g_kbo_hub_selected_team_id != 0u) {
+        captain_lookup_performed = 1;
         kbo_get_captain_for_team(
             current_year,
             g_kbo_hub_selected_league_id,
             g_kbo_hub_selected_team_id,
             captain_name,
             sizeof(captain_name),
-            NULL,
+            &captain_player_id,
             NULL,
             0u);
     }
@@ -335,7 +338,14 @@ WCHAR* kbo_build_webview_hub_html(void)
     KBO_PROFILE_BEGIN(profile_webview_selected_view);
     KBO_PROFILE_BEGIN(profile_webview_selected_view_specific);
     size_t selected_view_start = buffer.length;
+    kbo_webview_set_player_name_cell_captain_context(
+        current_year,
+        g_kbo_hub_selected_league_id,
+        g_kbo_hub_selected_team_id,
+        captain_player_id,
+        captain_lookup_performed);
     kbo_webview_append_selected_view(&buffer, current_year, window_status);
+    kbo_webview_clear_player_name_cell_captain_context();
     size_t selected_view_bytes = buffer.length >= selected_view_start
         ? buffer.length - selected_view_start
         : 0u;

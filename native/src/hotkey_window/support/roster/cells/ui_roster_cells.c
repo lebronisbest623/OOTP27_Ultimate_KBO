@@ -6,6 +6,35 @@
 #include "../../text/language/ui_language.h"
 #include "ui_roster_cells.h"
 
+typedef struct KboPlayerNameCellCaptainContext {
+    uint32_t season;
+    uint32_t league_id;
+    uint32_t team_id;
+    uint32_t captain_player_id;
+    int lookup_performed;
+} KboPlayerNameCellCaptainContext;
+
+static KboPlayerNameCellCaptainContext g_kbo_player_name_cell_captain_context;
+
+void kbo_webview_set_player_name_cell_captain_context(
+    uint32_t season,
+    uint32_t league_id,
+    uint32_t team_id,
+    uint32_t captain_player_id,
+    int lookup_performed)
+{
+    g_kbo_player_name_cell_captain_context.season = season;
+    g_kbo_player_name_cell_captain_context.league_id = league_id;
+    g_kbo_player_name_cell_captain_context.team_id = team_id;
+    g_kbo_player_name_cell_captain_context.captain_player_id = captain_player_id;
+    g_kbo_player_name_cell_captain_context.lookup_performed = lookup_performed ? 1 : 0;
+}
+
+void kbo_webview_clear_player_name_cell_captain_context(void)
+{
+    memset(&g_kbo_player_name_cell_captain_context, 0, sizeof(g_kbo_player_name_cell_captain_context));
+}
+
 static void kbo_webview_append_player_id_attrs(KboWindowTextBuffer* buffer, uint32_t player_id)
 {
     if (buffer == NULL || player_id == 0u) {
@@ -18,6 +47,13 @@ static int kbo_webview_player_is_selected_team_captain(uint32_t player_id)
 {
     if (player_id == 0u || g_kbo_hub_selected_team_id == 0u || g_kbo_hub_selected_league_id == 0u) {
         return 0;
+    }
+
+    if (g_kbo_player_name_cell_captain_context.lookup_performed
+            && g_kbo_player_name_cell_captain_context.league_id == g_kbo_hub_selected_league_id
+            && g_kbo_player_name_cell_captain_context.team_id == g_kbo_hub_selected_team_id) {
+        return g_kbo_player_name_cell_captain_context.captain_player_id != 0u
+            && g_kbo_player_name_cell_captain_context.captain_player_id == player_id;
     }
 
     uint32_t current_year = 0u;
