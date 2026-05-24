@@ -2,6 +2,8 @@
 
 #include <string.h>
 
+#include "../../../bootstrap/profiling/profiler.h"
+
 void kbo_webview_append_secondary_draft_view(
     KboWindowTextBuffer* buffer,
     int selected_subview,
@@ -11,7 +13,9 @@ void kbo_webview_append_secondary_draft_view(
         return;
     }
 
+    KBO_PROFILE_BEGIN(profile_secondary_draft_view);
     uint32_t seasons[KBO_SECONDARY_DRAFT_UI_MAX_SEASONS] = {0};
+    KBO_PROFILE_BEGIN(profile_secondary_draft_load_meta);
     int season_count = kbo_secondary_draft_load_seasons(
         seasons,
         KBO_SECONDARY_DRAFT_UI_MAX_SEASONS);
@@ -33,26 +37,38 @@ void kbo_webview_append_secondary_draft_view(
     KboSecondaryDraftRunSummary summary;
     memset(&summary, 0, sizeof(summary));
     int has_summary = season != 0u && kbo_secondary_draft_load_run_summary(season, &summary);
+    KBO_PROFILE_END(profile_secondary_draft_load_meta, "webview.secondary_draft.load_meta");
 
     KboSecondaryDraftResultRow rows[KBO_SECONDARY_DRAFT_UI_MAX_ROWS];
     int row_count = has_summary ? summary.pick_count : 0;
     if (selected_subview == KBO_HUB_SECONDARY_DRAFT_SUBVIEW_DRAFT && season != 0u) {
+        KBO_PROFILE_BEGIN(profile_secondary_draft_load_results);
         row_count = kbo_secondary_draft_load_result_rows(season, rows, KBO_SECONDARY_DRAFT_UI_MAX_ROWS);
+        KBO_PROFILE_END(profile_secondary_draft_load_results, "webview.secondary_draft.load_results");
     }
+    kbo_profiler_record_us("webview.secondary_draft.rows", (unsigned long long)row_count);
 
+    KBO_PROFILE_BEGIN(profile_secondary_draft_render);
     kbo_window_text_appendf(buffer, "<div class='rights rosterRights secondaryDraftRights'>");
-    kbo_secondary_draft_ui_append_top_bar(
-        buffer,
-        has_summary ? &summary : NULL,
-        seasons,
-        season_count,
-        season,
-        row_count);
     if (selected_subview == KBO_HUB_SECONDARY_DRAFT_SUBVIEW_SCHEDULE) {
         kbo_secondary_draft_ui_append_schedule_view(buffer, seasons, season_count, season);
     } else if (selected_subview == KBO_HUB_SECONDARY_DRAFT_SUBVIEW_LIST) {
+        kbo_secondary_draft_ui_append_top_bar(
+            buffer,
+            has_summary ? &summary : NULL,
+            seasons,
+            season_count,
+            season,
+            row_count);
         kbo_secondary_draft_ui_append_list_view(buffer, season, g_kbo_hub_selected_team_id);
     } else {
+        kbo_secondary_draft_ui_append_top_bar(
+            buffer,
+            has_summary ? &summary : NULL,
+            seasons,
+            season_count,
+            season,
+            row_count);
         kbo_secondary_draft_ui_append_draft_view(
             buffer,
             season,
@@ -61,4 +77,6 @@ void kbo_webview_append_secondary_draft_view(
             row_count);
     }
     kbo_window_text_appendf(buffer, "</div>");
+    KBO_PROFILE_END(profile_secondary_draft_render, "webview.secondary_draft.render");
+    KBO_PROFILE_END(profile_secondary_draft_view, "webview.secondary_draft.total");
 }

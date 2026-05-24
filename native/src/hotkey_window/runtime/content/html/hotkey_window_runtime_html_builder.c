@@ -310,12 +310,36 @@ WCHAR* kbo_build_webview_hub_html(void)
     kbo_html_append_escaped(&buffer, kbo_hub_current_view_subtitle());
     kbo_window_text_appendf(&buffer, "</p></div><section class='content'>");
 
+    const char* selected_view_zone = "webview.build_html.selected_view.other";
+    if (g_kbo_hub_selected_view == KBO_HUB_VIEW_FOREIGN_RIGHTS) {
+        selected_view_zone = "webview.build_html.selected_view.foreign_rights";
+    } else if (g_kbo_hub_selected_view == KBO_HUB_VIEW_ASIAN_QUOTA
+            && g_kbo_hub_selected_foreign_subview == KBO_HUB_FOREIGN_SUBVIEW_RIGHTS) {
+        selected_view_zone = "webview.build_html.selected_view.asian_quota_rights";
+    } else if (g_kbo_hub_selected_view == KBO_HUB_VIEW_FUTURES_LEAGUE) {
+        selected_view_zone = g_kbo_hub_selected_futures_subview == KBO_HUB_FUTURES_SUBVIEW_PENDING
+            ? "webview.build_html.selected_view.futures.pending"
+            : (g_kbo_hub_selected_futures_subview == KBO_HUB_FUTURES_SUBVIEW_RESULT
+                ? "webview.build_html.selected_view.futures.result"
+                : "webview.build_html.selected_view.futures.offer");
+    } else if (g_kbo_hub_selected_view == KBO_HUB_VIEW_SECONDARY_DRAFT) {
+        selected_view_zone = g_kbo_hub_selected_secondary_draft_subview == KBO_HUB_SECONDARY_DRAFT_SUBVIEW_LIST
+            ? "webview.build_html.selected_view.secondary_draft.list"
+            : (g_kbo_hub_selected_secondary_draft_subview == KBO_HUB_SECONDARY_DRAFT_SUBVIEW_DRAFT
+                ? "webview.build_html.selected_view.secondary_draft.draft"
+                : "webview.build_html.selected_view.secondary_draft.schedule");
+    } else if (g_kbo_hub_selected_view == KBO_HUB_VIEW_FA_CASES) {
+        selected_view_zone = "webview.build_html.selected_view.fa_cases";
+    }
+
     KBO_PROFILE_BEGIN(profile_webview_selected_view);
+    KBO_PROFILE_BEGIN(profile_webview_selected_view_specific);
     size_t selected_view_start = buffer.length;
     kbo_webview_append_selected_view(&buffer, current_year, window_status);
     size_t selected_view_bytes = buffer.length >= selected_view_start
         ? buffer.length - selected_view_start
         : 0u;
+    kbo_profiler_record_us("webview.build_html.selected_view.bytes", (unsigned long long)selected_view_bytes);
     if (kbo_hub_current_mode_is_developer()) {
         kbo_log_runtimef(
             "KBO F2 hub selected view html appended view=%d mod=%d bytes=%llu total_bytes=%llu capacity=%llu truncated=%d",
@@ -326,6 +350,7 @@ WCHAR* kbo_build_webview_hub_html(void)
             (unsigned long long)buffer.capacity,
             buffer.length >= buffer.capacity - 1u ? 1 : 0);
     }
+    KBO_PROFILE_END(profile_webview_selected_view_specific, selected_view_zone);
     KBO_PROFILE_END(profile_webview_selected_view, "webview.build_html.selected_view");
     kbo_window_text_appendf(&buffer, "</section></main></div>");
     kbo_webview_append_roster_sort_script(&buffer);
@@ -363,6 +388,7 @@ WCHAR* kbo_build_webview_hub_html(void)
             wide_len,
             wide != NULL ? 1 : 0);
     }
+    kbo_profiler_record_us("webview.build_html.total.bytes", (unsigned long long)buffer.length);
     KBO_PROFILE_END(profile_webview_wide, "webview.build_html.utf8_to_wide");
     HeapFree(GetProcessHeap(), 0, html);
     KBO_PROFILE_END(profile_webview_build_html, "webview.build_html.total");

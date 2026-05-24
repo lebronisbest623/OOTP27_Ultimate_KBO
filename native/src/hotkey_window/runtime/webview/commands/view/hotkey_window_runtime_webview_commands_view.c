@@ -3,6 +3,8 @@
 #include "../../../../../competitive_balance_tax/exceptions/cbt_exceptions.h"
 #include "../../../../../fa_salary_snapshot/grading/salary_snapshot_grade_rows.h"
 #include "../../../../../core/dates/constants/kbo_date_constants.h"
+#include "../../../../../hotkey_window/views/secondary_draft/ui_secondary_draft_list_snapshot.h"
+#include "../../../../../hotkey_window/views/secondary_draft/ui_secondary_draft_draft_snapshot.h"
 
 static int kbo_webview_cbt_exception_window_open(uint32_t season)
 {
@@ -241,6 +243,7 @@ static int kbo_webview_handle_secondary_draft_command(const char* cmd)
             ok);
         if (ok) {
             kbo_secondary_draft_ui_list_snapshot_invalidate();
+            kbo_secondary_draft_ui_draft_snapshot_invalidate();
         }
         g_kbo_hub_selected_view = KBO_HUB_VIEW_SECONDARY_DRAFT;
         g_kbo_hub_selected_secondary_draft_subview = KBO_HUB_SECONDARY_DRAFT_SUBVIEW_LIST;
@@ -276,6 +279,7 @@ static int kbo_webview_handle_secondary_draft_command(const char* cmd)
             ok);
         if (ok) {
             kbo_secondary_draft_ui_list_snapshot_invalidate();
+            kbo_secondary_draft_ui_draft_snapshot_invalidate();
         }
         g_kbo_hub_selected_view = KBO_HUB_VIEW_SECONDARY_DRAFT;
         g_kbo_hub_selected_secondary_draft_subview = KBO_HUB_SECONDARY_DRAFT_SUBVIEW_LIST;
@@ -306,6 +310,7 @@ static int kbo_webview_handle_secondary_draft_command(const char* cmd)
             ok);
         if (ok) {
             kbo_secondary_draft_ui_list_snapshot_invalidate();
+            kbo_secondary_draft_ui_draft_snapshot_invalidate();
         }
         g_kbo_hub_selected_view = KBO_HUB_VIEW_SECONDARY_DRAFT;
         g_kbo_hub_selected_secondary_draft_subview = KBO_HUB_SECONDARY_DRAFT_SUBVIEW_DRAFT;

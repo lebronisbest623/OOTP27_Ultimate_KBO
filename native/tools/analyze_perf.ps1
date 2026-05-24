@@ -1,6 +1,7 @@
 param(
     [string]$Path,
-    [int]$Top = 25
+    [int]$Top = 25,
+    [string]$Focus = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -52,15 +53,38 @@ $summary = $rows |
         }
     }
 
+if (-not [string]::IsNullOrWhiteSpace($Focus)) {
+    $summary = $summary | Where-Object { $_.Zone -like "*$Focus*" }
+}
+
+$measurements = $summary | Where-Object {
+    $_.Zone -like "*.rows" -or $_.Zone -like "*.bytes"
+}
+$timings = $summary | Where-Object {
+    $_.Zone -notlike "*.rows" -and $_.Zone -notlike "*.bytes"
+}
+
 Write-Host "Profiler CSV: $Path"
+if (-not [string]::IsNullOrWhiteSpace($Focus)) {
+    Write-Host "Focus: *$Focus*"
+}
 Write-Host ""
 Write-Host "Top by total time"
-$summary | Sort-Object TotalMs -Descending | Select-Object -First $Top | Format-Table -AutoSize
+$timings | Sort-Object TotalMs -Descending | Select-Object -First $Top | Format-Table -AutoSize
 
 Write-Host ""
 Write-Host "Top by call count"
-$summary | Sort-Object Calls -Descending | Select-Object -First $Top | Format-Table -AutoSize
+$timings | Sort-Object Calls -Descending | Select-Object -First $Top | Format-Table -AutoSize
 
 Write-Host ""
 Write-Host "Top by max latency"
-$summary | Sort-Object MaxUs -Descending | Select-Object -First $Top | Format-Table -AutoSize
+$timings | Sort-Object MaxUs -Descending | Select-Object -First $Top | Format-Table -AutoSize
+
+if ($measurements) {
+    Write-Host ""
+    Write-Host "Counters"
+    $measurements |
+        Sort-Object Zone |
+        Select-Object Zone, Calls, @{Name="TotalValue"; Expression={ [int64]($_.TotalMs * 1000) }}, @{Name="MaxValue"; Expression={ $_.MaxUs }} |
+        Format-Table -AutoSize
+}

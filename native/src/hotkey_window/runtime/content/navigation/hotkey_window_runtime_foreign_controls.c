@@ -1,5 +1,6 @@
 #include "../hotkey_window_runtime_content.h"
 #include "../../hotkey_window_domain_contract.h"
+#include "../../../views/foreign/ui_foreign_rights_snapshot.h"
 
 int kbo_hub_foreign_rights_ui_selected(void)
 {
@@ -207,6 +208,7 @@ void kbo_apply_foreign_rights_button(int retain)
     if (player_id != 0u && kbo_append_foreign_waiver_user_decision(g_kbo_hub_selected_team_id, player_id, retain)) {
         kbo_log_runtimef("foreign rights ui: queued %s team=%u player=%u", retain ? "RETAIN" : "SKIP", g_kbo_hub_selected_team_id, player_id);
         process_foreign_waiver_commands();
+        kbo_foreign_rights_ui_snapshot_invalidate();
         kbo_refresh_foreign_rights_controls();
         kbo_refresh_hotkey_window();
         if (g_kbo_hotkey_window != NULL) {
