@@ -241,6 +241,8 @@ LRESULT CALLBACK kbo_hotkey_window_proc(HWND hwnd, UINT message, WPARAM wparam, 
                 && IsWindowVisible(g_kbo_hotkey_window)
                 && kbo_foreground_is_this_process()) {
             kbo_independent_acquisition_ui_invalidate_offer_cache();
+            kbo_futures_offer_ui_snapshot_invalidate();
+            kbo_secondary_draft_ui_list_snapshot_invalidate();
             kbo_refresh_hotkey_window();
             InvalidateRect(hwnd, NULL, TRUE);
             return 0;
@@ -252,6 +254,8 @@ LRESULT CALLBACK kbo_hotkey_window_proc(HWND hwnd, UINT message, WPARAM wparam, 
             if (cur_db != s_last_db_ptr) {
                 s_last_db_ptr = cur_db;
                 kbo_independent_acquisition_ui_invalidate_offer_cache();
+                kbo_futures_offer_ui_snapshot_invalidate();
+                kbo_secondary_draft_ui_list_snapshot_invalidate();
                 kbo_refresh_hotkey_window();
                 InvalidateRect(hwnd, NULL, TRUE);
             } else {
@@ -270,6 +274,8 @@ LRESULT CALLBACK kbo_hotkey_window_proc(HWND hwnd, UINT message, WPARAM wparam, 
 
     case KBO_WM_REFRESH_HUB:
         kbo_independent_acquisition_ui_invalidate_offer_cache();
+        kbo_futures_offer_ui_snapshot_invalidate();
+        kbo_secondary_draft_ui_list_snapshot_invalidate();
         kbo_refresh_hotkey_window_layout(hwnd);
         kbo_log_runtimef("KBO F2 hub refreshed by request hwnd=%p", (void*)hwnd);
         return 0;

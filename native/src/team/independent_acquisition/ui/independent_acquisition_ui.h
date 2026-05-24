@@ -103,6 +103,7 @@ int kbo_independent_acquisition_ui_collect_offer_rows(
     int max_rows,
     KboIndependentAcquisitionUiContext* out_context);
 void kbo_independent_acquisition_ui_invalidate_offer_cache(void);
+long kbo_independent_acquisition_ui_offer_cache_generation(void);
 int kbo_independent_acquisition_ui_load_pending_rows(
     uint32_t buyer_team_id,
     KboIndependentAcquisitionUiRequestRow* out_rows,

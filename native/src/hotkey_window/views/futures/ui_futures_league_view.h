@@ -14,5 +14,6 @@ void kbo_webview_append_futures_league_view(
     KboWindowTextBuffer* buffer,
     int selected_futures_subview,
     uint32_t selected_team_id);
+void kbo_futures_offer_ui_snapshot_invalidate(void);
 
 #endif

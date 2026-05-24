@@ -1,4 +1,5 @@
 #include "ui_secondary_draft_view_internal.h"
+#include "ui_secondary_draft_list_snapshot.h"
 
 #include <string.h>
 
@@ -127,20 +128,6 @@ static void kbo_secondary_draft_ui_append_list_metrics(
             : (submitted ? "\xec\xa0\x9c\xec\xb6\x9c\xeb\x90\xa8" : "\xed\x8e\xb8\xec\xa7\x91 \xea\xb0\x80\xeb\x8a\xa5"));
 }
 
-static uint32_t kbo_secondary_draft_ui_today_yyyymmdd(void)
-{
-    uint32_t year = 0u;
-    uint32_t month = 0u;
-    uint32_t day = 0u;
-    if (!kbo_current_date_tick_latest_components(&year, &month, &day)
-            || year == 0u
-            || month == 0u
-            || day == 0u) {
-        return 0u;
-    }
-    return year * 10000u + month * 100u + day;
-}
-
 static const char* kbo_secondary_draft_ui_list_window_status(
     int has_window,
     int submitted,
@@ -235,33 +222,35 @@ void kbo_secondary_draft_ui_append_list_view(
     uint32_t season,
     uint32_t team_id)
 {
-    KboSecondaryDraftCandidateRow rows[KBO_SECONDARY_DRAFT_UI_MAX_CANDIDATES];
-    int submitted = 0;
-    int saved_count = 0;
-    int count = kbo_secondary_draft_collect_team_list_rows(
+    KboSecondaryDraftListUiSnapshot snapshot;
+    memset(&snapshot, 0, sizeof(snapshot));
+    int updating = 0;
+    int has_snapshot = kbo_secondary_draft_ui_list_snapshot_get(
         season,
         team_id,
-        rows,
-        KBO_SECONDARY_DRAFT_UI_MAX_CANDIDATES,
-        &submitted,
-        &saved_count);
-    KboSecondaryDraftWindow window;
-    memset(&window, 0, sizeof(window));
-    int has_window = kbo_secondary_draft_load_window(season, &window);
-    uint32_t today = kbo_secondary_draft_ui_today_yyyymmdd();
+        &snapshot,
+        &updating);
+    KboSecondaryDraftCandidateRow* rows = snapshot.rows;
+    int submitted = snapshot.submitted;
+    int saved_count = snapshot.saved_count;
+    int count = has_snapshot ? snapshot.count : 0;
+    int has_window = snapshot.has_window;
+    uint32_t today = snapshot.today;
     const char* window_status = kbo_secondary_draft_ui_list_window_status(
         has_window,
         submitted,
         today,
-        &window);
-    int window_open = kbo_secondary_draft_protection_window_open(season);
+        &snapshot.window);
+    int window_open = snapshot.window_open;
     int team_action_available = team_id != 0u
         && kbo_hub_ui_team_action_available(team_id, "hub_secondary_draft_list_render");
     const char* action_status = team_id == 0u
         ? "\xea\xb5\xac\xeb\x8b\xa8 \xec\x84\xa0\xed\x83\x9d \xed\x95\x84\xec\x9a\x94"
-        : (team_action_available
+        : (updating
+            ? "\xec\x97\x85\xeb\x8d\xb0\xec\x9d\xb4\xed\x8a\xb8 \xec\xa4\x91"
+            : (team_action_available
             ? window_status
-            : "\xea\xb5\xac\xeb\x8b\xa8 \xea\xb6\x8c\xed\x95\x9c \xec\x97\x86\xec\x9d\x8c");
+            : "\xea\xb5\xac\xeb\x8b\xa8 \xea\xb6\x8c\xed\x95\x9c \xec\x97\x86\xec\x9d\x8c"));
     int action_available = team_action_available && window_open;
     kbo_secondary_draft_ui_append_action_bar(
         buffer,
@@ -278,7 +267,7 @@ void kbo_secondary_draft_ui_append_list_view(
         &metrics,
         saved_count,
         submitted,
-        has_window ? &window : NULL,
+        has_window ? &snapshot.window : NULL,
         window_status);
 
     kbo_window_text_appendf(
@@ -295,6 +284,8 @@ void kbo_secondary_draft_ui_append_list_view(
         "</tr></thead><tbody>");
     if (team_id == 0u) {
         kbo_secondary_draft_ui_append_empty_row(buffer, 5, "\xeb\xa8\xbc\xec\xa0\x80 KBO \xea\xb5\xac\xeb\x8b\xa8\xec\x9d\x84 \xec\x84\xa0\xed\x83\x9d\xed\x95\x98\xec\x84\xb8\xec\x9a\x94.");
+    } else if (!has_snapshot && updating) {
+        kbo_secondary_draft_ui_append_empty_row(buffer, 5, "\xeb\xb3\xb4\xed\x98\xb8\xea\xb6\x8c \xed\x9b\x84\xeb\xb3\xb4 \xeb\xaa\xa9\xeb\xa1\x9d\xec\x9d\x84 \xec\xa4\x80\xeb\xb9\x84 \xec\xa4\x91\xec\x9e\x85\xeb\x8b\x88\xeb\x8b\xa4.");
     } else if (count <= 0) {
         kbo_secondary_draft_ui_append_empty_row(buffer, 5, "\xec\x9d\xb4 \xea\xb5\xac\xeb\x8b\xa8\xec\x9d\x98 \xed\x9b\x84\xeb\xb3\xb4 \xec\x84\xa0\xec\x88\x98\xea\xb0\x80 \xec\x97\x86\xec\x8a\xb5\xeb\x8b\x88\xeb\x8b\xa4.");
     }

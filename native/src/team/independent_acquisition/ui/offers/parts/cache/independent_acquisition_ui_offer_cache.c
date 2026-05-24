@@ -5,8 +5,6 @@
 
 #include <string.h>
 
-#define KBO_INDEPENDENT_ACQUISITION_UI_OFFER_CACHE_TTL_MS 30000ULL
-
 typedef struct KboIndependentAcquisitionUiOfferCache {
     LONG generation;
     ULONGLONG built_tick;
@@ -22,6 +20,14 @@ typedef struct KboIndependentAcquisitionUiOfferCache {
 
 static volatile LONG g_kbo_independent_acquisition_ui_offer_cache_generation = 1;
 static KboIndependentAcquisitionUiOfferCache g_kbo_independent_acquisition_ui_offer_cache;
+
+long kbo_independent_acquisition_ui_offer_cache_generation(void)
+{
+    return (long)InterlockedCompareExchange(
+        &g_kbo_independent_acquisition_ui_offer_cache_generation,
+        0,
+        0);
+}
 
 void kbo_independent_acquisition_ui_invalidate_offer_cache(void)
 {
@@ -75,10 +81,8 @@ int kbo_independent_acquisition_ui_offer_cache_try_copy(
         0);
     const KboIndependentAcquisitionUiOfferCache* cache =
         &g_kbo_independent_acquisition_ui_offer_cache;
-    ULONGLONG now = GetTickCount64();
     if (cache->generation != generation
             || cache->built_tick == 0u
-            || now - cache->built_tick > KBO_INDEPENDENT_ACQUISITION_UI_OFFER_CACHE_TTL_MS
             || cache->buyer_team_id != buyer_team_id
             || cache->foreign_cash_cost != foreign_cash_cost
             || cache->domestic_cash_cost != domestic_cash_cost

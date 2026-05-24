@@ -239,6 +239,9 @@ static int kbo_webview_handle_secondary_draft_command(const char* cmd)
             player_id,
             action_allowed,
             ok);
+        if (ok) {
+            kbo_secondary_draft_ui_list_snapshot_invalidate();
+        }
         g_kbo_hub_selected_view = KBO_HUB_VIEW_SECONDARY_DRAFT;
         g_kbo_hub_selected_secondary_draft_subview = KBO_HUB_SECONDARY_DRAFT_SUBVIEW_LIST;
         g_kbo_hub_selected_secondary_draft_year = season;
@@ -271,6 +274,9 @@ static int kbo_webview_handle_secondary_draft_command(const char* cmd)
             team_id,
             action_allowed,
             ok);
+        if (ok) {
+            kbo_secondary_draft_ui_list_snapshot_invalidate();
+        }
         g_kbo_hub_selected_view = KBO_HUB_VIEW_SECONDARY_DRAFT;
         g_kbo_hub_selected_secondary_draft_subview = KBO_HUB_SECONDARY_DRAFT_SUBVIEW_LIST;
         g_kbo_hub_selected_secondary_draft_year = season;
@@ -298,6 +304,9 @@ static int kbo_webview_handle_secondary_draft_command(const char* cmd)
             player_id,
             action_allowed,
             ok);
+        if (ok) {
+            kbo_secondary_draft_ui_list_snapshot_invalidate();
+        }
         g_kbo_hub_selected_view = KBO_HUB_VIEW_SECONDARY_DRAFT;
         g_kbo_hub_selected_secondary_draft_subview = KBO_HUB_SECONDARY_DRAFT_SUBVIEW_DRAFT;
         g_kbo_hub_selected_secondary_draft_year = season;

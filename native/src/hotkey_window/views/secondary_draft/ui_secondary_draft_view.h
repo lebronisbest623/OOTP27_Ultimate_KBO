@@ -14,5 +14,6 @@ void kbo_webview_append_secondary_draft_view(
     KboWindowTextBuffer* buffer,
     int selected_subview,
     uint32_t* selected_season);
+void kbo_secondary_draft_ui_list_snapshot_invalidate(void);
 
 #endif
