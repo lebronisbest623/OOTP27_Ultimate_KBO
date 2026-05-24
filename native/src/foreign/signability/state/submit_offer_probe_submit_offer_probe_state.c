@@ -21,14 +21,9 @@
 #include "../../../military_service/military_service.h"
 #include "foreign_fa_block_state.h"
 #include "submit_offer_probe_state.h"
+#include "../submit_offer_probe/submit_offer_probe.h"
 
 /* Submit-offer probe hook. Included from native/KBOFix.c. */
-
-typedef void (__fastcall *OotpFaSubmitOfferProbeFn)(void* screen);
-typedef int (__fastcall *OotpFaOfferScreenCallbackProbeFn)(void* screen, void* sender, uintptr_t callback_id, uintptr_t value);
-typedef int (__fastcall *OotpFaContractOfferCallbackProbeFn)(void* offer, void* sender, uintptr_t callback_id, uintptr_t value);
-typedef uint8_t (__fastcall *OotpPlayerActionEligibilityFn)(void* action_context, int32_t action_id, uint8_t strict_check);
-typedef uint8_t* (__fastcall *OotpLeagueFinancialsLookupFn)(void* global_db, int32_t league_id);
 
 LONG g_kbo_no_minor_contract_demand_floor_enabled = 0;
 
@@ -37,19 +32,8 @@ void kbo_enable_no_minor_contract_demand_floor(void)
     InterlockedExchange(&g_kbo_no_minor_contract_demand_floor_enabled, 1);
 }
 
-typedef struct KboFinancialSalaryLadderSnapshot {
-    uint8_t* financials;
-    int32_t values[9];
-    LONG active;
-} KboFinancialSalaryLadderSnapshot;
-
-typedef struct KboForeignFaDemandRemapRecord {
-    uint32_t player_id;
-    int32_t original_demand;
-    int32_t mapped_demand;
-} KboForeignFaDemandRemapRecord;
-
 KboFinancialSalaryLadderSnapshot g_kbo_foreign_fa_demand_ladder_snapshot = {0};
+KboLock g_kbo_foreign_fa_demand_ladder_snapshot_lock = KBO_LOCK_INIT;
 KboForeignFaDemandRemapRecord g_kbo_foreign_fa_demand_remap_records[512] = {0};
 volatile LONG g_kbo_foreign_fa_demand_remap_record_cursor = 0;
 volatile LONG g_kbo_foreign_fa_demand_restore_timer_pending = 0;

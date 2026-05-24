@@ -114,8 +114,7 @@ int kbo_no_minor_clamp_player_demand_salary(uintptr_t player_ptr, uintptr_t scre
     uint8_t old_contract_level = *(uint8_t*)(player + OOTP27_PLAYER_CONTRACT_LEVEL_FLAG_OFFSET);
     int changed = 0;
     if (old_demand < salary_floor) {
-        *(int32_t*)(player + OOTP27_PLAYER_FA_DEMAND_SALARY_OFFSET) = salary_floor;
-        changed = 1;
+        changed = kbo_write_i32(player + OOTP27_PLAYER_FA_DEMAND_SALARY_OFFSET, salary_floor);
     }
 
     if (changed) {

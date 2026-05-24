@@ -69,23 +69,7 @@ int kbo_no_minor_write_player_i32(uintptr_t player_ptr, uint32_t offset, int32_t
     if (player_ptr == 0 || offset + sizeof(int32_t) > OOTP27_PLAYER_SCAN_BYTES) {
         return 0;
     }
-
-    void* address = (void*)(player_ptr + offset);
-    DWORD old_protect = 0;
-    if (!VirtualProtect(address, sizeof(value), PAGE_READWRITE, &old_protect)) {
-        return 0;
-    }
-
-    SIZE_T bytes_written = 0;
-    BOOL ok = WriteProcessMemory(
-        GetCurrentProcess(),
-        address,
-        &value,
-        sizeof(value),
-        &bytes_written);
-    DWORD ignored = 0;
-    VirtualProtect(address, sizeof(value), old_protect, &ignored);
-    return ok && bytes_written == sizeof(value);
+    return kbo_write_i32((uint8_t*)(player_ptr + offset), value);
 }
 
 static int kbo_no_minor_scan_has_nonzero_evaluation(const uint8_t* scan)
@@ -227,6 +211,26 @@ __declspec(noinline) int32_t ootp_kbo_no_minor_demand_write_floor_probe(
         KBO_PROFILE_END(profile_no_minor_write_probe, "no_minor.write_probe.save_in_progress");
         KBO_HOOK_PROFILE_RETURN(profile_hook, "foreign.no_minor_demand_write_floor", proposed_demand);
     }
+    KboFinancialSalaryLadderSnapshot baseline_snapshot = {0};
+    int baseline_active_on_entry = 0;
+    kbo_lock_enter(&g_kbo_foreign_fa_demand_ladder_snapshot_lock);
+    baseline_active_on_entry =
+        InterlockedCompareExchange(&g_kbo_foreign_fa_demand_ladder_snapshot.active, 0, 0) != 0;
+    if (baseline_active_on_entry) {
+        baseline_snapshot = g_kbo_foreign_fa_demand_ladder_snapshot;
+    }
+    kbo_lock_leave(&g_kbo_foreign_fa_demand_ladder_snapshot_lock);
+    uint32_t baseline_player_id = baseline_active_on_entry ? baseline_snapshot.player_id : 0u;
+    uint32_t baseline_source_rva = baseline_active_on_entry ? baseline_snapshot.source_rva : 0u;
+    uint32_t baseline_asian_quota = baseline_active_on_entry ? baseline_snapshot.asian_quota : 0u;
+    uint32_t baseline_reserve_right = baseline_active_on_entry ? baseline_snapshot.reserve_right : 0u;
+    int32_t baseline_original_min = baseline_active_on_entry ? baseline_snapshot.values[0] : 0;
+    int32_t baseline_original_superstar = baseline_active_on_entry ? baseline_snapshot.values[8] : 0;
+    int32_t baseline_original_ceiling = baseline_active_on_entry ? baseline_snapshot.demand_ceiling_value : 0;
+    int32_t baseline_patched_min = baseline_active_on_entry ? baseline_snapshot.patched_values[0] : 0;
+    int32_t baseline_patched_superstar = baseline_active_on_entry ? baseline_snapshot.patched_values[8] : 0;
+    int32_t baseline_patched_ceiling = baseline_active_on_entry ? baseline_snapshot.patched_demand_ceiling_value : 0;
+    uintptr_t baseline_financials = baseline_active_on_entry ? (uintptr_t)baseline_snapshot.financials : 0u;
     kbo_restore_foreign_fa_demand_salary_ladder("demand_write");
     if (InterlockedCompareExchange(&g_kbo_no_minor_contract_demand_floor_enabled, 0, 0) == 0) {
         KBO_PROFILE_END(profile_no_minor_write_probe, "no_minor.write_probe.disabled");
@@ -274,6 +278,55 @@ __declspec(noinline) int32_t ootp_kbo_no_minor_demand_write_floor_probe(
     int16_t career = scan_available ? *(int16_t*)(scan + OOTP27_PLAYER_CAREER_VALUE_OFFSET) : 0;
 
     int32_t adjusted_demand = proposed_demand < salary_floor ? salary_floor : proposed_demand;
+    if (scan_available && kbo_player_is_foreign_for_kbo_rights(player)) {
+        static LONG foreign_actual_log_count = 0;
+        LONG foreign_slot = InterlockedIncrement(&foreign_actual_log_count);
+        if (foreign_slot <= 240) {
+            int asian_quota = kbo_player_is_asian_quota_slot_candidate(player) ? 1 : 0;
+            uint32_t today = 0u;
+            if (!kbo_get_foreign_waiver_current_yyyymmdd(&today)) {
+                today = 0u;
+            }
+            int32_t current_demand = memory_range_readable(
+                    player + OOTP27_PLAYER_FA_DEMAND_SALARY_OFFSET,
+                    sizeof(int32_t))
+                ? *(int32_t*)(player + OOTP27_PLAYER_FA_DEMAND_SALARY_OFFSET)
+                : 0;
+            uint32_t baseline_match = baseline_active_on_entry
+                && baseline_player_id != 0u
+                && baseline_player_id == player_id;
+            kbo_log_runtimef(
+                "KBO foreign FA actual demand write observed: source=0x%x player=%u nation=%u asian_quota=%d proposed=%d adjusted=%d current=%d minimum=%d baseline_min=%d baseline_superstar=%d level=%u today=%u ovr=%d rat=%d car=%d baseline_active=%d baseline_player=%u baseline_match=%u baseline_source=0x%x baseline_asian=%u baseline_reserve=%u baseline_original_min=%d baseline_original_superstar=%d baseline_original_ceiling=%d baseline_patched_min=%d baseline_patched_superstar=%d baseline_patched_ceiling=%d baseline_financials=%p",
+                source_rva,
+                player_id,
+                nation_id,
+                asian_quota,
+                proposed_demand,
+                adjusted_demand,
+                current_demand,
+                salary_floor,
+                kbo_get_foreign_fa_demand_baseline_value_for_player(0, asian_quota),
+                kbo_get_foreign_fa_demand_baseline_value_for_player(8, asian_quota),
+                (unsigned)observed_contract_level,
+                today,
+                (int)overall,
+                (int)ratings,
+                (int)career,
+                baseline_active_on_entry,
+                baseline_player_id,
+                baseline_match,
+                baseline_source_rva,
+                baseline_asian_quota,
+                baseline_reserve_right,
+                baseline_original_min,
+                baseline_original_superstar,
+                baseline_original_ceiling,
+                baseline_patched_min,
+                baseline_patched_superstar,
+                baseline_patched_ceiling,
+                (void*)baseline_financials);
+        }
+    }
     if (scan_available
             && nation_id == OOTP27_KBO_KOREA_NATION_ID
             && current_team_id == 0u

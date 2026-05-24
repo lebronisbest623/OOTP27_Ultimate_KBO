@@ -21,19 +21,22 @@ static int kbo_no_minor_force_contract_offer_major_terms(
     uint8_t major_flag = *(uint8_t*)(offer_ptr + OOTP27_FA_CONTRACT_OFFER_MAJOR_FLAG_OFFSET);
 
     if (major_flag != 1u) {
-        *(uint8_t*)(offer_ptr + OOTP27_FA_CONTRACT_OFFER_MAJOR_FLAG_OFFSET) = 1u;
-        major_flag = 1u;
-        changed = 1;
+        if (kbo_write_u8((uint8_t*)(offer_ptr + OOTP27_FA_CONTRACT_OFFER_MAJOR_FLAG_OFFSET), 1u)) {
+            major_flag = 1u;
+            changed = 1;
+        }
     }
     if (salary_floor > 0 && salary < salary_floor) {
-        *(int32_t*)(offer_ptr + OOTP27_FA_CONTRACT_OFFER_SALARY_OFFSET) = salary_floor;
-        salary = salary_floor;
-        changed = 1;
+        if (kbo_write_i32((uint8_t*)(offer_ptr + OOTP27_FA_CONTRACT_OFFER_SALARY_OFFSET), salary_floor)) {
+            salary = salary_floor;
+            changed = 1;
+        }
     }
     if (salary_floor > 0 && option_salary > 0 && option_salary < salary_floor) {
-        *(int32_t*)(offer_ptr + OOTP27_FA_CONTRACT_OFFER_OPTION_SALARY_OFFSET) = salary_floor;
-        option_salary = salary_floor;
-        changed = 1;
+        if (kbo_write_i32((uint8_t*)(offer_ptr + OOTP27_FA_CONTRACT_OFFER_OPTION_SALARY_OFFSET), salary_floor)) {
+            option_salary = salary_floor;
+            changed = 1;
+        }
     }
 
     if (out_salary != NULL) {
@@ -221,4 +224,3 @@ __declspec(noinline) int ootp_kbo_fa_contract_offer_callback_probe_wrapper(
     KBO_PROFILE_END(profile_no_minor_contract_callback, "no_minor.contract_callback.total");
     KBO_HOOK_PROFILE_RETURN(profile_hook, "foreign.fa_contract_offer_callback", result);
 }
-
