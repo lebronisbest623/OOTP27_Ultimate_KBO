@@ -5,8 +5,6 @@
 
 #include "../../../team/independent_acquisition/ui/independent_acquisition_ui.h"
 
-#define KBO_FUTURES_OFFER_UI_FLAG_SRC_MAX 1024
-
 typedef struct KboFuturesOfferUiSnapshotRow {
     uint32_t player_id;
     uint32_t seller_team_id;
@@ -21,7 +19,6 @@ typedef struct KboFuturesOfferUiSnapshotRow {
     char position_label[24];
     char nation_label[64];
     char nation_abbrev[16];
-    char nation_flag_src[KBO_FUTURES_OFFER_UI_FLAG_SRC_MAX];
     char slot_label[32];
     char status_label[32];
     char cash_text[32];

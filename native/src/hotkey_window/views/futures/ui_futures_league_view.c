@@ -61,17 +61,7 @@ static void kbo_futures_ui_append_snapshot_nation_cell(
     if (buffer == NULL || row == NULL) {
         return;
     }
-    kbo_window_text_appendf(buffer, "<td class='roNat' title='");
-    kbo_html_append_escaped(buffer, row->nation_label);
-    kbo_window_text_appendf(buffer, " nation#%u'><span class='roNatWrap'><img class='roNatFlag' alt='", row->nation_id);
-    kbo_html_append_escaped(buffer, row->nation_abbrev);
-    kbo_window_text_appendf(buffer, "' title='");
-    kbo_html_append_escaped(buffer, row->nation_label);
-    kbo_window_text_appendf(buffer, " nation#%u' src='", row->nation_id);
-    kbo_html_append_escaped(buffer, row->nation_flag_src);
-    kbo_window_text_appendf(buffer, "'><span class='roNatText'>");
-    kbo_html_append_escaped(buffer, row->nation_abbrev);
-    kbo_window_text_appendf(buffer, "</span></span></td>");
+    kbo_webview_append_roster_nation_cell(buffer, row->nation_id, kbo_hub_nation_flag_asset_path);
 }
 
 static void kbo_futures_ui_append_offer_view(KboWindowTextBuffer* buffer, uint32_t selected_team_id)

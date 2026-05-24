@@ -11,8 +11,6 @@
 #include "../../../runtime_memory/runtime_memory.h"
 #include "../../runtime/hotkey_window_runtime_shared.h"
 #include "../../support/assets/nations/ui_nation_helpers.h"
-#include "../../support/assets/paths/ui_asset_paths.h"
-#include "../../support/assets/paths/ui_image_sources.h"
 #include "ui_futures_league_view_helpers.h"
 
 typedef struct KboFuturesOfferUiSnapshotCache {
@@ -68,9 +66,7 @@ static void kbo_futures_offer_ui_snapshot_copy_nation(
     char* out_label,
     size_t label_size,
     char* out_abbrev,
-    size_t abbrev_size,
-    char* out_flag_src,
-    size_t flag_src_size)
+    size_t abbrev_size)
 {
     kbo_futures_offer_ui_snapshot_copy_text(
         out_label,
@@ -80,17 +76,6 @@ static void kbo_futures_offer_ui_snapshot_copy_nation(
         out_abbrev,
         abbrev_size,
         kbo_hub_nation_abbrev_for_id(nation_id));
-    if (out_flag_src == NULL || flag_src_size == 0u) {
-        return;
-    }
-    out_flag_src[0] = '\0';
-
-    char flag_path[MAX_PATH] = {0};
-    kbo_hub_nation_flag_asset_path(kbo_hub_nation_flag_file_for_id(nation_id), flag_path, sizeof(flag_path));
-    if (flag_path[0] == '\0' || GetFileAttributesA(flag_path) == INVALID_FILE_ATTRIBUTES) {
-        kbo_hub_nation_flag_asset_path("unknown.png", flag_path, sizeof(flag_path));
-    }
-    kbo_webview_copy_file_url(flag_path, out_flag_src, flag_src_size);
 }
 
 static void kbo_futures_offer_ui_snapshot_fill_row(
@@ -127,9 +112,7 @@ static void kbo_futures_offer_ui_snapshot_fill_row(
         dest->nation_label,
         sizeof(dest->nation_label),
         dest->nation_abbrev,
-        sizeof(dest->nation_abbrev),
-        dest->nation_flag_src,
-        sizeof(dest->nation_flag_src));
+        sizeof(dest->nation_abbrev));
     kbo_futures_offer_ui_snapshot_copy_text(
         dest->slot_label,
         sizeof(dest->slot_label),
