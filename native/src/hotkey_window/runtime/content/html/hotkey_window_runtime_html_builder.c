@@ -1,5 +1,6 @@
 #include "../hotkey_window_runtime_content.h"
 #include "../../hotkey_window_domain_contract.h"
+#include "../../../../captain/api/captain_selection.h"
 #include "../../../../core/dates/tick/current_date_tick_capture.h"
 
 WCHAR* kbo_build_webview_hub_html(void)
@@ -38,6 +39,7 @@ WCHAR* kbo_build_webview_hub_html(void)
     char team_bar_primary[8] = "#f04a22";
     char team_bar_secondary[8] = "#2c2c2c";
     char current_date_text[64] = {0};
+    char captain_name[128] = {0};
     char window_status[256] = {0};
     char scrollbar_css[65536] = {0};
     const int is_mod_dashboard =
@@ -86,6 +88,17 @@ WCHAR* kbo_build_webview_hub_html(void)
         kbo_hub_format_ootp_date(current_year, current_month, current_day, current_date_text, sizeof(current_date_text));
     } else {
         snprintf(current_date_text, sizeof(current_date_text), "DATE UNKNOWN");
+    }
+    if (current_year != 0u && g_kbo_hub_selected_team_id != 0u) {
+        kbo_get_captain_for_team(
+            current_year,
+            g_kbo_hub_selected_league_id,
+            g_kbo_hub_selected_team_id,
+            captain_name,
+            sizeof(captain_name),
+            NULL,
+            NULL,
+            0u);
     }
     kbo_hub_get_league_logo_path(g_kbo_hub_selected_league_id, current_year, league_logo_path, sizeof(league_logo_path));
     kbo_hub_get_team_logo_path(g_kbo_hub_selected_team_id, current_year, team_logo_path, sizeof(team_logo_path));
@@ -139,11 +152,13 @@ WCHAR* kbo_build_webview_hub_html(void)
         ".identity{display:flex;align-items:center;gap:10px;min-width:0}.logo{width:46px;height:46px;object-fit:contain;filter:drop-shadow(0 1px 1px rgba(0,0,0,.65))}"
         ".brand{font-family:var(--ui-font);font-weight:800;font-size:%dpx;color:#f5f1e7;line-height:1}"
         ".date{font-family:var(--ui-font);font-size:%dpx;font-weight:800;color:#cfd5d6;margin-top:4px;text-transform:uppercase;letter-spacing:0}.brandBlock{min-width:0}"
-        ".captainPlate{height:22px;display:flex;align-items:center;justify-content:flex-end;gap:7px;margin-left:auto;min-width:0;max-width:220px;padding:0;border:0;border-radius:0;background:transparent;"
-        "box-shadow:none;overflow:hidden;opacity:.88}"
-        ".captainName{display:block;min-width:0;color:#d8d8d8;font-size:12px;font-weight:800;line-height:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}"
-        ".captainMark{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border:1px solid rgba(214,164,75,.62);border-radius:2px;background:rgba(214,164,75,.10);color:#d6a44b;"
-        "font-family:var(--ui-font);font-size:11px;font-weight:900;line-height:18px;flex:none}"
+        ".captainPlate{height:34px;display:grid;grid-template-columns:24px minmax(0,1fr);grid-template-rows:12px 16px;grid-template-areas:'mark role' 'mark name';align-items:center;column-gap:9px;"
+        "margin-left:auto;min-width:150px;max-width:260px;padding:4px 12px 4px 7px;border:1px solid rgba(214,164,75,.44);border-left:3px solid rgba(214,164,75,.86);border-radius:4px;"
+        "background:linear-gradient(90deg,rgba(214,164,75,.18),rgba(0,0,0,.24));box-shadow:inset 0 1px 0 rgba(255,255,255,.10),0 1px 0 rgba(0,0,0,.34);overflow:hidden}"
+        ".captainRole{grid-area:role;display:block;min-width:0;color:rgba(214,164,75,.92);font-size:10px;font-weight:900;line-height:12px;text-transform:uppercase;letter-spacing:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}"
+        ".captainName{grid-area:name;display:block;min-width:0;color:#f0eee7;font-size:13px;font-weight:900;line-height:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-shadow:0 1px 0 rgba(0,0,0,.55)}"
+        ".captainMark{grid-area:mark;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border:1px solid rgba(214,164,75,.72);border-radius:3px;background:rgba(214,164,75,.16);color:#f1c66a;"
+        "font-family:var(--ui-font);font-size:13px;font-weight:900;line-height:24px;box-shadow:inset 0 1px 0 rgba(255,255,255,.10);flex:none}"
         ".captainBadge{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;margin-left:0;padding:0;border:1px solid rgba(214,164,75,.56);border-radius:2px;"
         "background:rgba(214,164,75,.10);color:#d6a44b;font-family:var(--ui-font);font-size:10px;font-weight:900;line-height:16px;vertical-align:middle;box-shadow:none}"
         ".selects{display:flex;gap:10px}"
@@ -264,6 +279,13 @@ WCHAR* kbo_build_webview_hub_html(void)
     kbo_window_text_appendf(&buffer, "</a> / ");
     kbo_html_append_escaped(&buffer, current_date_text);
     kbo_window_text_appendf(&buffer, "</div></div></div>");
+    if (captain_name[0] != '\0') {
+        kbo_window_text_appendf(&buffer, "<div class='captainPlate'><span class='captainMark'>C</span><span class='captainRole'>");
+        kbo_html_append_escaped(&buffer, kbo_hub_text("\xec\xa3\xbc\xec\x9e\xa5", "Captain"));
+        kbo_window_text_appendf(&buffer, "</span><span class='captainName'>");
+        kbo_html_append_escaped(&buffer, captain_name);
+        kbo_window_text_appendf(&buffer, "</span></div>");
+    }
     kbo_window_text_appendf(&buffer, "</header>");
     if (g_kbo_hub_open_dropdown == 1) {
         kbo_webview_append_league_dropdown(&buffer, current_year);
