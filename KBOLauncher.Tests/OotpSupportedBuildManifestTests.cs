@@ -92,6 +92,57 @@ public sealed class OotpSupportedBuildManifestTests
         }
     }
 
+    [Fact]
+    public void BuildAbiManifest_MatchesGeneratedNativeAbiTable()
+    {
+        var nativePatchBuilds = ReadManifestBuilds()
+            .Where(build => build.NativePatchesSupported)
+            .ToArray();
+        var manifestValues = ReadAbiManifestRows();
+        var expectedNativeRows = nativePatchBuilds
+            .SelectMany(build => manifestValues.Select(value => new NativeAbiRow(
+                build.Timestamp,
+                build.SizeOfImage,
+                value.Name,
+                value.CanonicalValue,
+                value.BuildValues[build.Id])))
+            .ToArray();
+
+        ReadNativeGeneratedAbiRows().Should().Equal(expectedNativeRows);
+    }
+
+    [Fact]
+    public void NativePatchSupportedBuilds_HaveCriticalAbiValuesMapped()
+    {
+        var nativePatchBuilds = ReadManifestBuilds()
+            .Where(build => build.NativePatchesSupported)
+            .ToArray();
+        var manifestValues = ReadAbiManifestRows().ToDictionary(row => row.Name);
+        var criticalValues = new[]
+        {
+            "OOTP27_FA_OFFER_SCREEN_PLAYER_ID_OFFSET",
+            "OOTP27_FA_CONTRACT_OFFER_SALARY_OFFSET",
+            "OOTP27_FINANCIALS_AVERAGE_SALARY_OFFSET",
+            "OOTP27_PLAYER_SCAN_BYTES",
+            "OOTP27_PLAYER_ID_OFFSET",
+            "OOTP27_PLAYER_FA_DEMAND_SALARY_OFFSET",
+            "OOTP27_KBO_TEAM_ID_OFFSET",
+            "OOTP27_GLOBAL_CURRENT_DATE_OFFSET",
+            "OOTP27_GLOBAL_SQL_DATABASE_OFFSET",
+            "OOTP27_KBO_LEAGUE_ID_OFFSET",
+            "OOTP27_KBO_LEAGUE_YEAR_OFFSET",
+        };
+
+        foreach (var value in criticalValues)
+        {
+            manifestValues.Should().ContainKey(value);
+            foreach (var build in nativePatchBuilds)
+            {
+                manifestValues[value].BuildValues.Should().ContainKey(build.Id);
+            }
+        }
+    }
+
     private static SupportedBuildManifestRow[] ReadManifestBuilds()
     {
         using var doc = JsonDocument.Parse(File.ReadAllText(RepoPath("config", "ootp-supported-builds.json")));
@@ -116,6 +167,21 @@ public sealed class OotpSupportedBuildManifestTests
             .Select(row => new RvaManifestRow(
                 row.GetProperty("name").GetString()!,
                 ParseHexUInt32(row.GetProperty("canonicalRva").GetString()!),
+                row.GetProperty("builds")
+                    .EnumerateObject()
+                    .ToDictionary(build => build.Name, build => ParseHexUInt32(build.Value.GetString()!))))
+            .ToArray();
+    }
+
+    private static AbiManifestRow[] ReadAbiManifestRows()
+    {
+        using var doc = JsonDocument.Parse(File.ReadAllText(RepoPath("config", "ootp-build-abi.json")));
+        doc.RootElement.GetProperty("canonicalBuildId").GetString().Should().NotBeNullOrWhiteSpace();
+        return doc.RootElement.GetProperty("values")
+            .EnumerateArray()
+            .Select(row => new AbiManifestRow(
+                row.GetProperty("name").GetString()!,
+                ParseHexUInt32(row.GetProperty("canonicalValue").GetString()!),
                 row.GetProperty("builds")
                     .EnumerateObject()
                     .ToDictionary(build => build.Name, build => ParseHexUInt32(build.Value.GetString()!))))
@@ -148,6 +214,21 @@ public sealed class OotpSupportedBuildManifestTests
                 Convert.ToUInt32(match.Groups["canonical"].Value, 16),
                 Convert.ToUInt32(match.Groups["build"].Value, 16),
                 match.Groups["name"].Value))
+            .ToArray();
+    }
+
+    private static NativeAbiRow[] ReadNativeGeneratedAbiRows()
+    {
+        var text = File.ReadAllText(RepoPath("native", "src", "build_verify", "build_abi.generated.c"));
+        return Regex.Matches(
+                text,
+                "\\{0x(?<timestamp>[0-9A-Fa-f]{8})u, 0x(?<size>[0-9A-Fa-f]{8})u, \"(?<name>[^\"]+)\", 0x(?<canonical>[0-9A-Fa-f]{8})u, 0x(?<build>[0-9A-Fa-f]{8})u\\},")
+            .Select(match => new NativeAbiRow(
+                Convert.ToUInt32(match.Groups["timestamp"].Value, 16),
+                Convert.ToUInt32(match.Groups["size"].Value, 16),
+                match.Groups["name"].Value,
+                Convert.ToUInt32(match.Groups["canonical"].Value, 16),
+                Convert.ToUInt32(match.Groups["build"].Value, 16)))
             .ToArray();
     }
 
@@ -208,5 +289,9 @@ public sealed class OotpSupportedBuildManifestTests
 
     private sealed record RvaManifestRow(string Name, uint CanonicalRva, Dictionary<string, uint> BuildRvas);
 
+    private sealed record AbiManifestRow(string Name, uint CanonicalValue, Dictionary<string, uint> BuildValues);
+
     private sealed record NativeRvaRow(uint Timestamp, uint SizeOfImage, uint CanonicalRva, uint BuildRva, string Name);
+
+    private sealed record NativeAbiRow(uint Timestamp, uint SizeOfImage, string Name, uint CanonicalValue, uint BuildValue);
 }

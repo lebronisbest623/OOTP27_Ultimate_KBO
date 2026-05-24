@@ -1,9 +1,12 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
+#include <string.h>
+
 #include "build_verify.h"
 #include "../core/logging/core_log.h"
 
+#include "build_abi.generated.h"
 #include "build_rvas.generated.h"
 #include "supported_builds.generated.h"
 
@@ -94,6 +97,40 @@ static const OotpBuildRva* kbo_find_build_rva(OotpBuildInfo info, uint32_t canon
     return NULL;
 }
 
+static int kbo_build_has_abi_profile(OotpBuildInfo info)
+{
+    if (!info.ok) {
+        return 0;
+    }
+
+    for (size_t i = 0; i < KBO_BUILD_ABI_VALUE_COUNT; ++i) {
+        const OotpBuildAbiValue* value = &KBO_BUILD_ABI_VALUES[i];
+        if (value->timestamp == info.timestamp && value->size_of_image == info.size_of_image) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+static const OotpBuildAbiValue* kbo_find_build_abi_value(OotpBuildInfo info, const char* name)
+{
+    if (!info.ok || name == NULL) {
+        return NULL;
+    }
+
+    for (size_t i = 0; i < KBO_BUILD_ABI_VALUE_COUNT; ++i) {
+        const OotpBuildAbiValue* value = &KBO_BUILD_ABI_VALUES[i];
+        if (value->timestamp == info.timestamp
+                && value->size_of_image == info.size_of_image
+                && strcmp(value->name, name) == 0) {
+            return value;
+        }
+    }
+
+    return NULL;
+}
+
 int kbo_resolve_build_specific_rva(uint32_t canonical_rva, uint32_t* out_rva)
 {
     if (out_rva == NULL) {
@@ -123,6 +160,28 @@ void* kbo_resolve_build_specific_rva_ptr(HMODULE exe, uint32_t canonical_rva)
     }
 
     return (void*)((uint8_t*)exe + rva);
+}
+
+int kbo_resolve_build_specific_abi_value(const char* name, uint32_t* out_value)
+{
+    if (out_value == NULL) {
+        return 0;
+    }
+    *out_value = 0u;
+
+    OotpBuildInfo info = kbo_cached_ootp_build_info();
+    const OotpBuildAbiValue* value = kbo_find_build_abi_value(info, name);
+    if (value == NULL) {
+        return 0;
+    }
+
+    *out_value = value->build_value;
+    return 1;
+}
+
+int kbo_current_build_has_abi_profile(void)
+{
+    return kbo_build_has_abi_profile(kbo_cached_ootp_build_info());
 }
 
 int kbo_resolve_build_specific_rva_delta(
@@ -198,6 +257,14 @@ int verify_ootp_build(void)
                 kbo_log_runtimef(
                     "build verify: metadata-only label=%s timestamp=0x%08X size_of_image=0x%08X. "
                     "Native patches DISABLED because this build does not have a complete verified RVA table.",
+                    build->label, info.timestamp, info.size_of_image);
+                return 0;
+            }
+
+            if (!kbo_build_has_abi_profile(info)) {
+                kbo_log_runtimef(
+                    "build verify: metadata-only label=%s timestamp=0x%08X size_of_image=0x%08X. "
+                    "Native patches DISABLED because this build does not have a complete verified ABI profile.",
                     build->label, info.timestamp, info.size_of_image);
                 return 0;
             }

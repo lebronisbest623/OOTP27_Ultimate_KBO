@@ -1,0 +1,320 @@
+{
+  "canonicalBuildId": "steam_2026_05_04",
+  "values": [
+    {
+      "name": "OOTP27_FA_OFFER_SCREEN_PLAYER_ID_OFFSET",
+      "canonicalValue": "0x000000B8",
+      "builds": {
+        "steam_2026_05_04": "0x000000B8"
+      }
+    },
+    {
+      "name": "OOTP27_FA_OFFER_SCREEN_OWNER_OFFSET",
+      "canonicalValue": "0x000000C8",
+      "builds": {
+        "steam_2026_05_04": "0x000000C8"
+      }
+    },
+    {
+      "name": "OOTP27_FA_OFFER_SCREEN_SUBMIT_CONTROL_OFFSET",
+      "canonicalValue": "0x000002E0",
+      "builds": {
+        "steam_2026_05_04": "0x000002E0"
+      }
+    },
+    {
+      "name": "OOTP27_FA_OFFER_SCREEN_MAJOR_OPTION_CONTROL_OFFSET",
+      "canonicalValue": "0x000002F0",
+      "builds": {
+        "steam_2026_05_04": "0x000002F0"
+      }
+    },
+    {
+      "name": "OOTP27_FA_OFFER_SCREEN_CONTRACT_TYPE_CONTROL_OFFSET",
+      "canonicalValue": "0x000002F8",
+      "builds": {
+        "steam_2026_05_04": "0x000002F8"
+      }
+    },
+    {
+      "name": "OOTP27_FA_OFFER_SCREEN_OWNER_MODE_OFFSET",
+      "canonicalValue": "0x00000104",
+      "builds": {
+        "steam_2026_05_04": "0x00000104"
+      }
+    },
+    {
+      "name": "OOTP27_FA_CONTRACT_OFFER_PLAYER_ID_OFFSET",
+      "canonicalValue": "0x000000BC",
+      "builds": {
+        "steam_2026_05_04": "0x000000BC"
+      }
+    },
+    {
+      "name": "OOTP27_FA_CONTRACT_OFFER_SALARY_OFFSET",
+      "canonicalValue": "0x000000C0",
+      "builds": {
+        "steam_2026_05_04": "0x000000C0"
+      }
+    },
+    {
+      "name": "OOTP27_FA_CONTRACT_OFFER_OPTION_SALARY_OFFSET",
+      "canonicalValue": "0x000000C8",
+      "builds": {
+        "steam_2026_05_04": "0x000000C8"
+      }
+    },
+    {
+      "name": "OOTP27_FA_CONTRACT_OFFER_MAJOR_FLAG_OFFSET",
+      "canonicalValue": "0x000000CC",
+      "builds": {
+        "steam_2026_05_04": "0x000000CC"
+      }
+    },
+    {
+      "name": "OOTP27_FINANCIALS_AVERAGE_SALARY_OFFSET",
+      "canonicalValue": "0x0000029C",
+      "builds": {
+        "steam_2026_05_04": "0x0000029C"
+      }
+    },
+    {
+      "name": "OOTP27_FINANCIALS_PROBE_FIRST_OFFSET",
+      "canonicalValue": "0x00000278",
+      "builds": {
+        "steam_2026_05_04": "0x00000278"
+      }
+    },
+    {
+      "name": "OOTP27_FINANCIALS_PROBE_LAST_OFFSET",
+      "canonicalValue": "0x00000390",
+      "builds": {
+        "steam_2026_05_04": "0x00000390"
+      }
+    },
+    {
+      "name": "OOTP27_FINANCIALS_FA_DEMAND_CEILING_OFFSET",
+      "canonicalValue": "0x00000374",
+      "builds": {
+        "steam_2026_05_04": "0x00000374"
+      }
+    },
+    {
+      "name": "OOTP27_PLAYER_SCAN_BYTES",
+      "canonicalValue": "0x00001800",
+      "builds": {
+        "steam_2026_05_04": "0x00001800"
+      }
+    },
+    {
+      "name": "OOTP27_PLAYER_ID_OFFSET",
+      "canonicalValue": "0x000000B4",
+      "builds": {
+        "steam_2026_05_04": "0x000000B4"
+      }
+    },
+    {
+      "name": "OOTP27_PLAYER_AGE_OFFSET",
+      "canonicalValue": "0x0000007C",
+      "builds": {
+        "steam_2026_05_04": "0x0000007C"
+      }
+    },
+    {
+      "name": "OOTP27_PLAYER_NATION_ID_OFFSET",
+      "canonicalValue": "0x0000006C",
+      "builds": {
+        "steam_2026_05_04": "0x0000006C"
+      }
+    },
+    {
+      "name": "OOTP27_PLAYER_CURRENT_LEAGUE_ID_OFFSET",
+      "canonicalValue": "0x00000048",
+      "builds": {
+        "steam_2026_05_04": "0x00000048"
+      }
+    },
+    {
+      "name": "OOTP27_PLAYER_CURRENT_TEAM_ID_OFFSET",
+      "canonicalValue": "0x00000058",
+      "builds": {
+        "steam_2026_05_04": "0x00000058"
+      }
+    },
+    {
+      "name": "OOTP27_PLAYER_ACTIVE_TEAM_ID_OFFSET",
+      "canonicalValue": "0x00000060",
+      "builds": {
+        "steam_2026_05_04": "0x00000060"
+      }
+    },
+    {
+      "name": "OOTP27_PLAYER_CONTRACT_LEVEL_FLAG_OFFSET",
+      "canonicalValue": "0x000008A8",
+      "builds": {
+        "steam_2026_05_04": "0x000008A8"
+      }
+    },
+    {
+      "name": "OOTP27_PLAYER_CONTRACT_STATUS_OFFSET",
+      "canonicalValue": "0x000008D0",
+      "builds": {
+        "steam_2026_05_04": "0x000008D0"
+      }
+    },
+    {
+      "name": "OOTP27_PLAYER_CONTRACT_SALARY_Y1_OFFSET",
+      "canonicalValue": "0x000008D8",
+      "builds": {
+        "steam_2026_05_04": "0x000008D8"
+      }
+    },
+    {
+      "name": "OOTP27_PLAYER_FA_DEMAND_SALARY_OFFSET",
+      "canonicalValue": "0x00000D84",
+      "builds": {
+        "steam_2026_05_04": "0x00000D84"
+      }
+    },
+    {
+      "name": "OOTP27_PLAYER_DEFAULT_TEAM_ID_OFFSET",
+      "canonicalValue": "0x00000EC4",
+      "builds": {
+        "steam_2026_05_04": "0x00000EC4"
+      }
+    },
+    {
+      "name": "OOTP27_PLAYER_LOAN_ACTIVE_FLAG_OFFSET",
+      "canonicalValue": "0x00000842",
+      "builds": {
+        "steam_2026_05_04": "0x00000842"
+      }
+    },
+    {
+      "name": "OOTP27_PLAYER_RESTRICTED_FLAG_OFFSET",
+      "canonicalValue": "0x0000083B",
+      "builds": {
+        "steam_2026_05_04": "0x0000083B"
+      }
+    },
+    {
+      "name": "OOTP27_PLAYER_SECONDARY_RESTRICTED_FLAG_OFFSET",
+      "canonicalValue": "0x0000083C",
+      "builds": {
+        "steam_2026_05_04": "0x0000083C"
+      }
+    },
+    {
+      "name": "OOTP27_PLAYER_INJURY_ACTIVE_OFFSET",
+      "canonicalValue": "0x00000874",
+      "builds": {
+        "steam_2026_05_04": "0x00000874"
+      }
+    },
+    {
+      "name": "OOTP27_PLAYER_MILITARY_ACTIVE_OFFSET",
+      "canonicalValue": "0x00000896",
+      "builds": {
+        "steam_2026_05_04": "0x00000896"
+      }
+    },
+    {
+      "name": "OOTP27_PLAYER_POSITION_GROUP_OFFSET",
+      "canonicalValue": "0x00000C78",
+      "builds": {
+        "steam_2026_05_04": "0x00000C78"
+      }
+    },
+    {
+      "name": "OOTP27_PLAYER_OVERALL_VALUE_OFFSET",
+      "canonicalValue": "0x00000CD2",
+      "builds": {
+        "steam_2026_05_04": "0x00000CD2"
+      }
+    },
+    {
+      "name": "OOTP27_KBO_TEAM_VECTOR_OFFSET",
+      "canonicalValue": "0x00000090",
+      "builds": {
+        "steam_2026_05_04": "0x00000090"
+      }
+    },
+    {
+      "name": "OOTP27_KBO_TEAM_COUNT_OFFSET",
+      "canonicalValue": "0x0000009C",
+      "builds": {
+        "steam_2026_05_04": "0x0000009C"
+      }
+    },
+    {
+      "name": "OOTP27_KBO_TEAM_ID_OFFSET",
+      "canonicalValue": "0x00004450",
+      "builds": {
+        "steam_2026_05_04": "0x00004450"
+      }
+    },
+    {
+      "name": "OOTP27_KBO_TEAM_READABLE_BYTES",
+      "canonicalValue": "0x00004460",
+      "builds": {
+        "steam_2026_05_04": "0x00004460"
+      }
+    },
+    {
+      "name": "OOTP27_GLOBAL_CURRENT_DATE_OFFSET",
+      "canonicalValue": "0x000002D8",
+      "builds": {
+        "steam_2026_05_04": "0x000002D8"
+      }
+    },
+    {
+      "name": "OOTP27_GLOBAL_CURRENT_LEAGUE_OFFSET",
+      "canonicalValue": "0x000002E0",
+      "builds": {
+        "steam_2026_05_04": "0x000002E0"
+      }
+    },
+    {
+      "name": "OOTP27_GLOBAL_SQL_DATABASE_OFFSET",
+      "canonicalValue": "0x00002D78",
+      "builds": {
+        "steam_2026_05_04": "0x00002D78"
+      }
+    },
+    {
+      "name": "OOTP27_GLOBAL_SQL_ENABLED_OFFSET",
+      "canonicalValue": "0x00002DF0",
+      "builds": {
+        "steam_2026_05_04": "0x00002DF0"
+      }
+    },
+    {
+      "name": "OOTP27_KBO_LEAGUE_ID_OFFSET",
+      "canonicalValue": "0x00004CC0",
+      "builds": {
+        "steam_2026_05_04": "0x00004CC0"
+      }
+    },
+    {
+      "name": "OOTP27_KBO_LEAGUE_YEAR_OFFSET",
+      "canonicalValue": "0x000044EC",
+      "builds": {
+        "steam_2026_05_04": "0x000044EC"
+      }
+    },
+    {
+      "name": "OOTP27_KBO_LEAGUE_PHASE_OFFSET",
+      "canonicalValue": "0x000044F0",
+      "builds": {
+        "steam_2026_05_04": "0x000044F0"
+      }
+    },
+    {
+      "name": "OOTP27_KBO_LEAGUE_SUBLEAGUE_COUNT_OFFSET",
+      "canonicalValue": "0x00004A3C",
+      "builds": {
+        "steam_2026_05_04": "0x00004A3C"
+      }
+    }
+  ]
+}
