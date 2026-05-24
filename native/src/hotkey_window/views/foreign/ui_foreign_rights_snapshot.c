@@ -102,6 +102,109 @@ static void kbo_foreign_rights_ui_snapshot_fill_row(
     }
 }
 
+static int kbo_foreign_rights_ui_snapshot_has_player(
+    const KboForeignRightsUiSnapshot* snapshot,
+    uint32_t player_id)
+{
+    if (snapshot == NULL || player_id == 0u) {
+        return 0;
+    }
+    for (int i = 0; i < snapshot->count; i++) {
+        if (snapshot->rows[i].player_id == player_id) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static void kbo_foreign_rights_ui_snapshot_fill_row_from_right(
+    KboForeignRightsUiSnapshotRow* row,
+    const KboForeignWaiverRetention* right,
+    uint32_t selected_team_id,
+    uint32_t today,
+    uint32_t window_end)
+{
+    if (row == NULL || right == NULL) {
+        return;
+    }
+
+    uint8_t* player = kbo_find_player_by_id(right->player_id, NULL, NULL);
+    if (player != NULL) {
+        kbo_foreign_rights_ui_snapshot_fill_row(
+            row,
+            player,
+            right->player_id,
+            selected_team_id,
+            today,
+            window_end);
+        if (!row->has_active_right) {
+            row->has_active_right = 1u;
+            row->retained_on = right->retained_on_yyyymmdd;
+            row->expires_on = right->expires_on_yyyymmdd;
+        }
+        return;
+    }
+
+    memset(row, 0, sizeof(*row));
+    row->player_id = right->player_id;
+    row->current_team_id = right->team_id;
+    row->retained_on = right->retained_on_yyyymmdd;
+    row->expires_on = right->expires_on_yyyymmdd;
+    row->has_active_right = 1u;
+    snprintf(row->player_name, sizeof(row->player_name), "Player #%u", right->player_id);
+    kbo_hub_copy_team_abbrev_by_id(right->team_id, row->team_abbrev, sizeof(row->team_abbrev), NULL);
+    snprintf(row->uniform_number, sizeof(row->uniform_number), "-");
+    snprintf(row->position_label, sizeof(row->position_label), "-");
+}
+
+static void kbo_foreign_rights_ui_snapshot_append_active_right_rows(
+    KboForeignRightsUiSnapshot* snapshot,
+    uint32_t selected_team_id)
+{
+    if (snapshot == NULL || selected_team_id == 0u || snapshot->today == 0u) {
+        return;
+    }
+
+    kbo_ensure_foreign_waiver_rights_loaded_for_lookup();
+
+    KboForeignWaiverRetention rights[KBO_FOREIGN_WAIVER_RIGHTS_MAX];
+    int right_count = 0;
+    memset(rights, 0, sizeof(rights));
+    kbo_lock_enter(&g_kbo_foreign_waiver_rights_lock);
+    for (int i = 0; i < g_kbo_foreign_waiver_rights_count
+            && right_count < KBO_FOREIGN_WAIVER_RIGHTS_MAX; i++) {
+        const KboForeignWaiverRetention* right = &g_kbo_foreign_waiver_rights[i];
+        if (right->team_id != selected_team_id
+                || !kbo_is_foreign_waiver_right_active(right, snapshot->today)) {
+            continue;
+        }
+        rights[right_count++] = *right;
+    }
+    kbo_lock_leave(&g_kbo_foreign_waiver_rights_lock);
+
+    for (int i = 0; i < right_count && snapshot->count < KBO_FOREIGN_RIGHTS_UI_MAX_ROWS; i++) {
+        const KboForeignWaiverRetention* right = &rights[i];
+        if (kbo_foreign_rights_ui_snapshot_has_player(snapshot, right->player_id)) {
+            continue;
+        }
+        KboForeignRightsUiSnapshotRow row;
+        kbo_foreign_rights_ui_snapshot_fill_row_from_right(
+            &row,
+            right,
+            selected_team_id,
+            snapshot->today,
+            snapshot->window_end);
+        if (row.player_id == 0u) {
+            continue;
+        }
+        if (snapshot->top_player_id == 0u) {
+            snapshot->top_player_id = row.player_id;
+            snapshot->top_current_team_id = row.current_team_id;
+        }
+        snapshot->rows[snapshot->count++] = row;
+    }
+}
+
 static void kbo_foreign_rights_ui_snapshot_post_refresh(void)
 {
     HWND hwnd = g_kbo_hotkey_window;
@@ -164,6 +267,7 @@ static DWORD WINAPI kbo_foreign_rights_ui_snapshot_worker(LPVOID parameter)
             snapshot.rows[snapshot.count++] = row;
         }
     }
+    kbo_foreign_rights_ui_snapshot_append_active_right_rows(&snapshot, job->selected_team_id);
 
     LONG generation = InterlockedCompareExchange(
         &g_kbo_foreign_rights_ui_snapshot_generation,
@@ -225,6 +329,13 @@ int kbo_foreign_rights_ui_snapshot_get(
     }
 
     kbo_foreign_rights_ui_snapshot_fill_meta(selected_team_id, out_snapshot);
+    if (!out_snapshot->window_open && selected_team_id != 0u) {
+        kbo_foreign_rights_ui_snapshot_append_active_right_rows(out_snapshot, selected_team_id);
+        if (out_snapshot->count > 0) {
+            return 1;
+        }
+    }
+
     LONG generation = InterlockedCompareExchange(
         &g_kbo_foreign_rights_ui_snapshot_generation,
         0,
