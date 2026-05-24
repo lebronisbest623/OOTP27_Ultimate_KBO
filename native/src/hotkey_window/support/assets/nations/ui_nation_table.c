@@ -8,10 +8,10 @@
 #include "../../../../core/files/save_paths/core_save_paths.h"
 #include "ui_nation_table.h"
 
-#define KBO_NATION_TABLE_MAX      64
+#define KBO_NATION_TABLE_MAX      256
 #define KBO_NATIONS_FILE          "kbo_nations.json"
-#define KBO_NATIONS_JSON_MAX_BYTES (32u * 1024u)
-#define KBO_NATIONS_JSON_MAX_TOKENS 512
+#define KBO_NATIONS_JSON_MAX_BYTES (128u * 1024u)
+#define KBO_NATIONS_JSON_MAX_TOKENS 4096
 
 typedef struct {
     uint32_t id;

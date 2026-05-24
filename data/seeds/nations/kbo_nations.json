@@ -1,15 +1,1468 @@
 {
   "nations": [
-    { "id": 12,  "label": "Australia",         "abbrev": "AUS", "flag_file": "aus.png" },
-    { "id": 36,  "label": "Canada",             "abbrev": "CAN", "flag_file": "can.png" },
-    { "id": 43,  "label": "Taiwan",             "abbrev": "TPE", "flag_file": "tpe.png" },
-    { "id": 49,  "label": "Cuba",               "abbrev": "CUB", "flag_file": "cub.png" },
-    { "id": 56,  "label": "Dominican Republic", "abbrev": "DOM", "flag_file": "dom.png" },
-    { "id": 98,  "label": "Japan",              "abbrev": "JPN", "flag_file": "jpn.png" },
-    { "id": 124, "label": "Mexico",             "abbrev": "MEX", "flag_file": "mex.png" },
-    { "id": 145, "label": "Panama",             "abbrev": "PAN", "flag_file": "pan.png" },
-    { "id": 177, "label": "Korea",              "abbrev": "KOR", "flag_file": "kor.png" },
-    { "id": 206, "label": "United States",      "abbrev": "USA", "flag_file": "usa.png" },
-    { "id": 210, "label": "Venezuela",          "abbrev": "VEN", "flag_file": "ven.png" }
+    {
+      "id": 1,
+      "label": "Afghanistan",
+      "abbrev": "AFG",
+      "flag_file": "afg.png"
+    },
+    {
+      "id": 2,
+      "label": "Albania",
+      "abbrev": "ALB",
+      "flag_file": "alb.png"
+    },
+    {
+      "id": 3,
+      "label": "Algeria",
+      "abbrev": "ALG",
+      "flag_file": "alg.png"
+    },
+    {
+      "id": 4,
+      "label": "American Samoa",
+      "abbrev": "ASA",
+      "flag_file": "asa.png"
+    },
+    {
+      "id": 5,
+      "label": "Andorra",
+      "abbrev": "AND",
+      "flag_file": "and.png"
+    },
+    {
+      "id": 6,
+      "label": "Angola",
+      "abbrev": "ANG",
+      "flag_file": "ang.png"
+    },
+    {
+      "id": 7,
+      "label": "Anguilla",
+      "abbrev": "AIA",
+      "flag_file": "aia.png"
+    },
+    {
+      "id": 8,
+      "label": "Antigua & Barbuda",
+      "abbrev": "ATG",
+      "flag_file": "atg.png"
+    },
+    {
+      "id": 9,
+      "label": "Argentina",
+      "abbrev": "ARG",
+      "flag_file": "arg.png"
+    },
+    {
+      "id": 10,
+      "label": "Armenia",
+      "abbrev": "ARM",
+      "flag_file": "arm.png"
+    },
+    {
+      "id": 11,
+      "label": "Aruba",
+      "abbrev": "ARU",
+      "flag_file": "aru.png"
+    },
+    {
+      "id": 12,
+      "label": "Australia",
+      "abbrev": "AUS",
+      "flag_file": "aus.png"
+    },
+    {
+      "id": 13,
+      "label": "Austria",
+      "abbrev": "AUT",
+      "flag_file": "aut.png"
+    },
+    {
+      "id": 14,
+      "label": "Azerbaijan",
+      "abbrev": "AZE",
+      "flag_file": "aze.png"
+    },
+    {
+      "id": 15,
+      "label": "Bahamas",
+      "abbrev": "BAH",
+      "flag_file": "bah.png"
+    },
+    {
+      "id": 16,
+      "label": "Bahrain",
+      "abbrev": "BHR",
+      "flag_file": "bhr.png"
+    },
+    {
+      "id": 17,
+      "label": "Bangladesh",
+      "abbrev": "BAN",
+      "flag_file": "ban.png"
+    },
+    {
+      "id": 18,
+      "label": "Barbados",
+      "abbrev": "BRB",
+      "flag_file": "brb.png"
+    },
+    {
+      "id": 19,
+      "label": "Belarus",
+      "abbrev": "BLR",
+      "flag_file": "blr.png"
+    },
+    {
+      "id": 20,
+      "label": "Belgium",
+      "abbrev": "BEL",
+      "flag_file": "bel.png"
+    },
+    {
+      "id": 21,
+      "label": "Belize",
+      "abbrev": "BLZ",
+      "flag_file": "blz.png"
+    },
+    {
+      "id": 22,
+      "label": "B\u00e9nin",
+      "abbrev": "BEN",
+      "flag_file": "ben.png"
+    },
+    {
+      "id": 23,
+      "label": "Bermuda",
+      "abbrev": "BER",
+      "flag_file": "ber.png"
+    },
+    {
+      "id": 24,
+      "label": "Bhutan",
+      "abbrev": "BHU",
+      "flag_file": "bhu.png"
+    },
+    {
+      "id": 25,
+      "label": "Bolivia",
+      "abbrev": "BOL",
+      "flag_file": "bol.png"
+    },
+    {
+      "id": 26,
+      "label": "Bosnia & Herzegovina",
+      "abbrev": "BIH",
+      "flag_file": "bih.png"
+    },
+    {
+      "id": 27,
+      "label": "Botswana",
+      "abbrev": "BOT",
+      "flag_file": "bot.png"
+    },
+    {
+      "id": 28,
+      "label": "Brazil",
+      "abbrev": "BRA",
+      "flag_file": "bra.png"
+    },
+    {
+      "id": 29,
+      "label": "British Virgin Islands",
+      "abbrev": "VGB",
+      "flag_file": "vgb.png"
+    },
+    {
+      "id": 30,
+      "label": "Brunei",
+      "abbrev": "BRU",
+      "flag_file": "bru.png"
+    },
+    {
+      "id": 31,
+      "label": "Bulgaria",
+      "abbrev": "BUL",
+      "flag_file": "bul.png"
+    },
+    {
+      "id": 32,
+      "label": "Burkina Faso",
+      "abbrev": "BFA",
+      "flag_file": "bfa.png"
+    },
+    {
+      "id": 33,
+      "label": "Burundi",
+      "abbrev": "BDI",
+      "flag_file": "bdi.png"
+    },
+    {
+      "id": 34,
+      "label": "Cambodia",
+      "abbrev": "CAM",
+      "flag_file": "cam.png"
+    },
+    {
+      "id": 35,
+      "label": "Cameroon",
+      "abbrev": "CMR",
+      "flag_file": "cmr.png"
+    },
+    {
+      "id": 36,
+      "label": "Canada",
+      "abbrev": "CAN",
+      "flag_file": "can.png"
+    },
+    {
+      "id": 37,
+      "label": "Cape Verde",
+      "abbrev": "CPV",
+      "flag_file": "cpv.png"
+    },
+    {
+      "id": 38,
+      "label": "Cayman Islands",
+      "abbrev": "CAY",
+      "flag_file": "cay.png"
+    },
+    {
+      "id": 39,
+      "label": "Central African Republic",
+      "abbrev": "CTA",
+      "flag_file": "cta.png"
+    },
+    {
+      "id": 40,
+      "label": "Chad",
+      "abbrev": "CHA",
+      "flag_file": "cha.png"
+    },
+    {
+      "id": 41,
+      "label": "Chile",
+      "abbrev": "CHI",
+      "flag_file": "chi.png"
+    },
+    {
+      "id": 42,
+      "label": "China",
+      "abbrev": "CHN",
+      "flag_file": "chn.png"
+    },
+    {
+      "id": 43,
+      "label": "Taiwan",
+      "abbrev": "TPE",
+      "flag_file": "tpe.png"
+    },
+    {
+      "id": 44,
+      "label": "Colombia",
+      "abbrev": "COL",
+      "flag_file": "col.png"
+    },
+    {
+      "id": 45,
+      "label": "Comoros",
+      "abbrev": "COM",
+      "flag_file": "com.png"
+    },
+    {
+      "id": 46,
+      "label": "Cook Islands",
+      "abbrev": "COK",
+      "flag_file": "cok.png"
+    },
+    {
+      "id": 47,
+      "label": "Costa Rica",
+      "abbrev": "CRC",
+      "flag_file": "crc.png"
+    },
+    {
+      "id": 48,
+      "label": "Croatia",
+      "abbrev": "CRO",
+      "flag_file": "cro.png"
+    },
+    {
+      "id": 49,
+      "label": "Cuba",
+      "abbrev": "CUB",
+      "flag_file": "cub.png"
+    },
+    {
+      "id": 50,
+      "label": "Cyprus",
+      "abbrev": "CYP",
+      "flag_file": "cyp.png"
+    },
+    {
+      "id": 51,
+      "label": "Czech Republic",
+      "abbrev": "CZE",
+      "flag_file": "cze.png"
+    },
+    {
+      "id": 53,
+      "label": "Denmark",
+      "abbrev": "DEN",
+      "flag_file": "den.png"
+    },
+    {
+      "id": 54,
+      "label": "Djibouti",
+      "abbrev": "DJI",
+      "flag_file": "dji.png"
+    },
+    {
+      "id": 55,
+      "label": "Dominica",
+      "abbrev": "DMA",
+      "flag_file": "dma.png"
+    },
+    {
+      "id": 56,
+      "label": "Dominican Republic",
+      "abbrev": "DOM",
+      "flag_file": "dom.png"
+    },
+    {
+      "id": 57,
+      "label": "East Timor",
+      "abbrev": "TMP",
+      "flag_file": "tmp.png"
+    },
+    {
+      "id": 58,
+      "label": "Ecuador",
+      "abbrev": "ECU",
+      "flag_file": "ecu.png"
+    },
+    {
+      "id": 59,
+      "label": "Egypt",
+      "abbrev": "EGY",
+      "flag_file": "egy.png"
+    },
+    {
+      "id": 60,
+      "label": "El Salvador",
+      "abbrev": "SLV",
+      "flag_file": "slv.png"
+    },
+    {
+      "id": 61,
+      "label": "England",
+      "abbrev": "ENG",
+      "flag_file": "eng.png"
+    },
+    {
+      "id": 62,
+      "label": "Equatorial Guinea",
+      "abbrev": "EQG",
+      "flag_file": "eqg.png"
+    },
+    {
+      "id": 63,
+      "label": "Eritrea",
+      "abbrev": "ERI",
+      "flag_file": "eri.png"
+    },
+    {
+      "id": 64,
+      "label": "Estonia",
+      "abbrev": "EST",
+      "flag_file": "est.png"
+    },
+    {
+      "id": 65,
+      "label": "Ethiopia",
+      "abbrev": "ETH",
+      "flag_file": "eth.png"
+    },
+    {
+      "id": 66,
+      "label": "North Macedonia",
+      "abbrev": "MKD",
+      "flag_file": "mkd.png"
+    },
+    {
+      "id": 67,
+      "label": "Faroe Islands",
+      "abbrev": "FRO",
+      "flag_file": "fro.png"
+    },
+    {
+      "id": 68,
+      "label": "Fiji",
+      "abbrev": "FIJ",
+      "flag_file": "fij.png"
+    },
+    {
+      "id": 69,
+      "label": "Finland",
+      "abbrev": "FIN",
+      "flag_file": "fin.png"
+    },
+    {
+      "id": 70,
+      "label": "France",
+      "abbrev": "FRA",
+      "flag_file": "fra.png"
+    },
+    {
+      "id": 71,
+      "label": "French Guiana",
+      "abbrev": "GUF",
+      "flag_file": "guf.png"
+    },
+    {
+      "id": 72,
+      "label": "Gabon",
+      "abbrev": "GAB",
+      "flag_file": "gab.png"
+    },
+    {
+      "id": 73,
+      "label": "Georgia",
+      "abbrev": "GEO",
+      "flag_file": "geo.png"
+    },
+    {
+      "id": 74,
+      "label": "Germany",
+      "abbrev": "GER",
+      "flag_file": "ger.png"
+    },
+    {
+      "id": 75,
+      "label": "Ghana",
+      "abbrev": "GHA",
+      "flag_file": "gha.png"
+    },
+    {
+      "id": 76,
+      "label": "Greece",
+      "abbrev": "GRE",
+      "flag_file": "gre.png"
+    },
+    {
+      "id": 77,
+      "label": "Grenada",
+      "abbrev": "GRN",
+      "flag_file": "grn.png"
+    },
+    {
+      "id": 78,
+      "label": "Guadeloupe",
+      "abbrev": "GLP",
+      "flag_file": "glp.png"
+    },
+    {
+      "id": 79,
+      "label": "Guam",
+      "abbrev": "GUM",
+      "flag_file": "gum.png"
+    },
+    {
+      "id": 80,
+      "label": "Guatemala",
+      "abbrev": "GUA",
+      "flag_file": "gua.png"
+    },
+    {
+      "id": 81,
+      "label": "Guinea",
+      "abbrev": "GUI",
+      "flag_file": "gui.png"
+    },
+    {
+      "id": 82,
+      "label": "Guinea-Bissau",
+      "abbrev": "GNB",
+      "flag_file": "gnb.png"
+    },
+    {
+      "id": 83,
+      "label": "Guyana",
+      "abbrev": "GUY",
+      "flag_file": "guy.png"
+    },
+    {
+      "id": 84,
+      "label": "Haiti",
+      "abbrev": "HAI",
+      "flag_file": "hai.png"
+    },
+    {
+      "id": 85,
+      "label": "The Netherlands",
+      "abbrev": "NED",
+      "flag_file": "ned.png"
+    },
+    {
+      "id": 86,
+      "label": "Honduras",
+      "abbrev": "HON",
+      "flag_file": "hon.png"
+    },
+    {
+      "id": 88,
+      "label": "Hungary",
+      "abbrev": "HUN",
+      "flag_file": "hun.png"
+    },
+    {
+      "id": 89,
+      "label": "Iceland",
+      "abbrev": "ISL",
+      "flag_file": "isl.png"
+    },
+    {
+      "id": 90,
+      "label": "India",
+      "abbrev": "IND",
+      "flag_file": "ind.png"
+    },
+    {
+      "id": 91,
+      "label": "Indonesia",
+      "abbrev": "IDN",
+      "flag_file": "idn.png"
+    },
+    {
+      "id": 92,
+      "label": "Iran",
+      "abbrev": "IRN",
+      "flag_file": "irn.png"
+    },
+    {
+      "id": 93,
+      "label": "Iraq",
+      "abbrev": "IRQ",
+      "flag_file": "irq.png"
+    },
+    {
+      "id": 94,
+      "label": "Israel",
+      "abbrev": "ISR",
+      "flag_file": "isr.png"
+    },
+    {
+      "id": 95,
+      "label": "Italy",
+      "abbrev": "ITA",
+      "flag_file": "ita.png"
+    },
+    {
+      "id": 96,
+      "label": "Ivory Coast",
+      "abbrev": "CIV",
+      "flag_file": "civ.png"
+    },
+    {
+      "id": 97,
+      "label": "Jamaica",
+      "abbrev": "JAM",
+      "flag_file": "jam.png"
+    },
+    {
+      "id": 98,
+      "label": "Japan",
+      "abbrev": "JPN",
+      "flag_file": "jpn.png"
+    },
+    {
+      "id": 99,
+      "label": "Jordan",
+      "abbrev": "JOR",
+      "flag_file": "jor.png"
+    },
+    {
+      "id": 100,
+      "label": "Kazakhstan",
+      "abbrev": "KAZ",
+      "flag_file": "kaz.png"
+    },
+    {
+      "id": 101,
+      "label": "Kenya",
+      "abbrev": "KEN",
+      "flag_file": "ken.png"
+    },
+    {
+      "id": 102,
+      "label": "Kuwait",
+      "abbrev": "KUW",
+      "flag_file": "kuw.png"
+    },
+    {
+      "id": 103,
+      "label": "Kyrgyzstan",
+      "abbrev": "KGZ",
+      "flag_file": "kgz.png"
+    },
+    {
+      "id": 104,
+      "label": "Laos",
+      "abbrev": "LAO",
+      "flag_file": "lao.png"
+    },
+    {
+      "id": 105,
+      "label": "Latvia",
+      "abbrev": "LVA",
+      "flag_file": "lva.png"
+    },
+    {
+      "id": 106,
+      "label": "Lebanon",
+      "abbrev": "LIB",
+      "flag_file": "lib.png"
+    },
+    {
+      "id": 107,
+      "label": "Lesotho",
+      "abbrev": "LES",
+      "flag_file": "les.png"
+    },
+    {
+      "id": 108,
+      "label": "Liberia",
+      "abbrev": "LBR",
+      "flag_file": "lbr.png"
+    },
+    {
+      "id": 109,
+      "label": "Libya",
+      "abbrev": "LBY",
+      "flag_file": "lby.png"
+    },
+    {
+      "id": 110,
+      "label": "Liechtenstein",
+      "abbrev": "LIE",
+      "flag_file": "lie.png"
+    },
+    {
+      "id": 111,
+      "label": "Lithuania",
+      "abbrev": "LTU",
+      "flag_file": "ltu.png"
+    },
+    {
+      "id": 112,
+      "label": "Luxembourg",
+      "abbrev": "LUX",
+      "flag_file": "lux.png"
+    },
+    {
+      "id": 114,
+      "label": "Madagascar",
+      "abbrev": "MAD",
+      "flag_file": "mad.png"
+    },
+    {
+      "id": 115,
+      "label": "Malawi",
+      "abbrev": "MWI",
+      "flag_file": "mwi.png"
+    },
+    {
+      "id": 116,
+      "label": "Malaysia",
+      "abbrev": "MAS",
+      "flag_file": "mas.png"
+    },
+    {
+      "id": 117,
+      "label": "Maldives",
+      "abbrev": "MDV",
+      "flag_file": "mdv.png"
+    },
+    {
+      "id": 118,
+      "label": "Mali",
+      "abbrev": "MLI",
+      "flag_file": "mli.png"
+    },
+    {
+      "id": 119,
+      "label": "Malta",
+      "abbrev": "MLT",
+      "flag_file": "mlt.png"
+    },
+    {
+      "id": 120,
+      "label": "Martinique",
+      "abbrev": "MTQ",
+      "flag_file": "mtq.png"
+    },
+    {
+      "id": 121,
+      "label": "Mauritania",
+      "abbrev": "MTN",
+      "flag_file": "mtn.png"
+    },
+    {
+      "id": 122,
+      "label": "Mauritius",
+      "abbrev": "MRI",
+      "flag_file": "mri.png"
+    },
+    {
+      "id": 123,
+      "label": "Mayotte",
+      "abbrev": "MAY",
+      "flag_file": "may.png"
+    },
+    {
+      "id": 124,
+      "label": "Mexico",
+      "abbrev": "MEX",
+      "flag_file": "mex.png"
+    },
+    {
+      "id": 125,
+      "label": "Moldova",
+      "abbrev": "MDA",
+      "flag_file": "mda.png"
+    },
+    {
+      "id": 126,
+      "label": "Mongolia",
+      "abbrev": "MGL",
+      "flag_file": "mgl.png"
+    },
+    {
+      "id": 128,
+      "label": "Morocco",
+      "abbrev": "MAR",
+      "flag_file": "mar.png"
+    },
+    {
+      "id": 129,
+      "label": "Mozambique",
+      "abbrev": "MOZ",
+      "flag_file": "moz.png"
+    },
+    {
+      "id": 130,
+      "label": "Myanmar",
+      "abbrev": "MYA",
+      "flag_file": "mya.png"
+    },
+    {
+      "id": 131,
+      "label": "Namibia",
+      "abbrev": "NAM",
+      "flag_file": "nam.png"
+    },
+    {
+      "id": 132,
+      "label": "Nepal",
+      "abbrev": "NEP",
+      "flag_file": "nep.png"
+    },
+    {
+      "id": 133,
+      "label": "Netherlands Antilles",
+      "abbrev": "ANT",
+      "flag_file": "ant.png"
+    },
+    {
+      "id": 134,
+      "label": "New Caledonia",
+      "abbrev": "NCL",
+      "flag_file": "ncl.png"
+    },
+    {
+      "id": 135,
+      "label": "New Zealand",
+      "abbrev": "NZL",
+      "flag_file": "nzl.png"
+    },
+    {
+      "id": 136,
+      "label": "Nicaragua",
+      "abbrev": "NCA",
+      "flag_file": "nca.png"
+    },
+    {
+      "id": 137,
+      "label": "Niger",
+      "abbrev": "NIG",
+      "flag_file": "nig.png"
+    },
+    {
+      "id": 138,
+      "label": "Nigeria",
+      "abbrev": "NGA",
+      "flag_file": "nga.png"
+    },
+    {
+      "id": 139,
+      "label": "North Korea",
+      "abbrev": "PRK",
+      "flag_file": "prk.png"
+    },
+    {
+      "id": 140,
+      "label": "Northern Ireland",
+      "abbrev": "NIR",
+      "flag_file": "nir.png"
+    },
+    {
+      "id": 141,
+      "label": "Norway",
+      "abbrev": "NOR",
+      "flag_file": "nor.png"
+    },
+    {
+      "id": 142,
+      "label": "Oman",
+      "abbrev": "OMA",
+      "flag_file": "oma.png"
+    },
+    {
+      "id": 143,
+      "label": "Pakistan",
+      "abbrev": "PAK",
+      "flag_file": "pak.png"
+    },
+    {
+      "id": 144,
+      "label": "Palestine",
+      "abbrev": "PAL",
+      "flag_file": "pal.png"
+    },
+    {
+      "id": 145,
+      "label": "Panama",
+      "abbrev": "PAN",
+      "flag_file": "pan.png"
+    },
+    {
+      "id": 146,
+      "label": "Papua New Guinea",
+      "abbrev": "PNG",
+      "flag_file": "png.png"
+    },
+    {
+      "id": 147,
+      "label": "Paraguay",
+      "abbrev": "PAR",
+      "flag_file": "par.png"
+    },
+    {
+      "id": 148,
+      "label": "Peru",
+      "abbrev": "PER",
+      "flag_file": "per.png"
+    },
+    {
+      "id": 149,
+      "label": "Poland",
+      "abbrev": "POL",
+      "flag_file": "pol.png"
+    },
+    {
+      "id": 150,
+      "label": "Portugal",
+      "abbrev": "POR",
+      "flag_file": "por.png"
+    },
+    {
+      "id": 151,
+      "label": "Puerto Rico",
+      "abbrev": "PUR",
+      "flag_file": "pur.png"
+    },
+    {
+      "id": 152,
+      "label": "Qatar",
+      "abbrev": "QAT",
+      "flag_file": "qat.png"
+    },
+    {
+      "id": 153,
+      "label": "Ireland",
+      "abbrev": "IRL",
+      "flag_file": "irl.png"
+    },
+    {
+      "id": 154,
+      "label": "R\u00e9union",
+      "abbrev": "REU",
+      "flag_file": "reu.png"
+    },
+    {
+      "id": 155,
+      "label": "Romania",
+      "abbrev": "ROM",
+      "flag_file": "rom.png"
+    },
+    {
+      "id": 156,
+      "label": "Russia",
+      "abbrev": "RUS",
+      "flag_file": "rus.png"
+    },
+    {
+      "id": 157,
+      "label": "Rwanda",
+      "abbrev": "RWA",
+      "flag_file": "rwa.png"
+    },
+    {
+      "id": 158,
+      "label": "St. Lucia",
+      "abbrev": "LCA",
+      "flag_file": "lca.png"
+    },
+    {
+      "id": 160,
+      "label": "Saint-Pierre & Miquelon",
+      "abbrev": "SPM",
+      "flag_file": "spm.png"
+    },
+    {
+      "id": 161,
+      "label": "Samoa",
+      "abbrev": "SAM",
+      "flag_file": "sam.png"
+    },
+    {
+      "id": 162,
+      "label": "San Marino",
+      "abbrev": "SMR",
+      "flag_file": "smr.png"
+    },
+    {
+      "id": 163,
+      "label": "Saudi Arabia",
+      "abbrev": "KSA",
+      "flag_file": "ksa.png"
+    },
+    {
+      "id": 164,
+      "label": "Scotland",
+      "abbrev": "SCO",
+      "flag_file": "sco.png"
+    },
+    {
+      "id": 165,
+      "label": "Senegal",
+      "abbrev": "SEN",
+      "flag_file": "sen.png"
+    },
+    {
+      "id": 166,
+      "label": "Serbia",
+      "abbrev": "SER",
+      "flag_file": "ser.png"
+    },
+    {
+      "id": 167,
+      "label": "Seychelles",
+      "abbrev": "SEY",
+      "flag_file": "sey.png"
+    },
+    {
+      "id": 168,
+      "label": "Sierra Leone",
+      "abbrev": "SLE",
+      "flag_file": "sle.png"
+    },
+    {
+      "id": 169,
+      "label": "Singapore",
+      "abbrev": "SIN",
+      "flag_file": "sin.png"
+    },
+    {
+      "id": 171,
+      "label": "Slovakia",
+      "abbrev": "SVK",
+      "flag_file": "svk.png"
+    },
+    {
+      "id": 172,
+      "label": "Slovenia",
+      "abbrev": "SVN",
+      "flag_file": "svn.png"
+    },
+    {
+      "id": 173,
+      "label": "S\u00e3o Tom\u00e9 & Principe",
+      "abbrev": "STP",
+      "flag_file": "stp.png"
+    },
+    {
+      "id": 174,
+      "label": "Solomon Islands",
+      "abbrev": "SOL",
+      "flag_file": "sol.png"
+    },
+    {
+      "id": 175,
+      "label": "Somalia",
+      "abbrev": "SOM",
+      "flag_file": "som.png"
+    },
+    {
+      "id": 176,
+      "label": "South Africa",
+      "abbrev": "RSA",
+      "flag_file": "rsa.png"
+    },
+    {
+      "id": 177,
+      "label": "Korea",
+      "abbrev": "KOR",
+      "flag_file": "kor.png"
+    },
+    {
+      "id": 178,
+      "label": "Spain",
+      "abbrev": "ESP",
+      "flag_file": "esp.png"
+    },
+    {
+      "id": 179,
+      "label": "Sri Lanka",
+      "abbrev": "SRI",
+      "flag_file": "sri.png"
+    },
+    {
+      "id": 180,
+      "label": "St. Kitts & Nevis",
+      "abbrev": "SKN",
+      "flag_file": "skn.png"
+    },
+    {
+      "id": 181,
+      "label": "St. Vincent & The Grenadines",
+      "abbrev": "VIN",
+      "flag_file": "vin.png"
+    },
+    {
+      "id": 182,
+      "label": "Sudan",
+      "abbrev": "SUD",
+      "flag_file": "sud.png"
+    },
+    {
+      "id": 183,
+      "label": "Suriname",
+      "abbrev": "SUR",
+      "flag_file": "sur.png"
+    },
+    {
+      "id": 184,
+      "label": "Eswatini",
+      "abbrev": "ESW",
+      "flag_file": "swz.png"
+    },
+    {
+      "id": 185,
+      "label": "Sweden",
+      "abbrev": "SWE",
+      "flag_file": "swe.png"
+    },
+    {
+      "id": 186,
+      "label": "Switzerland",
+      "abbrev": "SUI",
+      "flag_file": "sui.png"
+    },
+    {
+      "id": 187,
+      "label": "Syria",
+      "abbrev": "SYR",
+      "flag_file": "syr.png"
+    },
+    {
+      "id": 188,
+      "label": "Tahiti & French Polynesia",
+      "abbrev": "TAH",
+      "flag_file": "tah.png"
+    },
+    {
+      "id": 189,
+      "label": "Tajikistan",
+      "abbrev": "TJK",
+      "flag_file": "tjk.png"
+    },
+    {
+      "id": 190,
+      "label": "Tanzania",
+      "abbrev": "TAN",
+      "flag_file": "tan.png"
+    },
+    {
+      "id": 191,
+      "label": "Thailand",
+      "abbrev": "THA",
+      "flag_file": "tha.png"
+    },
+    {
+      "id": 192,
+      "label": "Congo",
+      "abbrev": "CGO",
+      "flag_file": "cgo.png"
+    },
+    {
+      "id": 193,
+      "label": "Gambia",
+      "abbrev": "GAM",
+      "flag_file": "gam.png"
+    },
+    {
+      "id": 194,
+      "label": "Philippines",
+      "abbrev": "PHI",
+      "flag_file": "phi.png"
+    },
+    {
+      "id": 195,
+      "label": "Togo",
+      "abbrev": "TOG",
+      "flag_file": "tog.png"
+    },
+    {
+      "id": 196,
+      "label": "Tonga",
+      "abbrev": "TGA",
+      "flag_file": "tga.png"
+    },
+    {
+      "id": 197,
+      "label": "Trinidad & Tobago",
+      "abbrev": "TRI",
+      "flag_file": "tri.png"
+    },
+    {
+      "id": 198,
+      "label": "Tunisia",
+      "abbrev": "TUN",
+      "flag_file": "tun.png"
+    },
+    {
+      "id": 199,
+      "label": "Turkey",
+      "abbrev": "TUR",
+      "flag_file": "tur.png"
+    },
+    {
+      "id": 200,
+      "label": "Turkmenistan",
+      "abbrev": "TKM",
+      "flag_file": "tkm.png"
+    },
+    {
+      "id": 202,
+      "label": "Virgin Islands",
+      "abbrev": "VIR",
+      "flag_file": "vir.png"
+    },
+    {
+      "id": 203,
+      "label": "Uganda",
+      "abbrev": "UGA",
+      "flag_file": "uga.png"
+    },
+    {
+      "id": 204,
+      "label": "Ukraine",
+      "abbrev": "UKR",
+      "flag_file": "ukr.png"
+    },
+    {
+      "id": 205,
+      "label": "United Arab Emirates",
+      "abbrev": "UAE",
+      "flag_file": "uae.png"
+    },
+    {
+      "id": 206,
+      "label": "United States",
+      "abbrev": "USA",
+      "flag_file": "usa.png"
+    },
+    {
+      "id": 207,
+      "label": "Uruguay",
+      "abbrev": "URU",
+      "flag_file": "uru.png"
+    },
+    {
+      "id": 208,
+      "label": "Uzbekistan",
+      "abbrev": "UZB",
+      "flag_file": "uzb.png"
+    },
+    {
+      "id": 209,
+      "label": "Vanuatu",
+      "abbrev": "VAN",
+      "flag_file": "van.png"
+    },
+    {
+      "id": 210,
+      "label": "Venezuela",
+      "abbrev": "VEN",
+      "flag_file": "ven.png"
+    },
+    {
+      "id": 211,
+      "label": "Vietnam",
+      "abbrev": "VIE",
+      "flag_file": "vie.png"
+    },
+    {
+      "id": 212,
+      "label": "Wales",
+      "abbrev": "WAL",
+      "flag_file": "wal.png"
+    },
+    {
+      "id": 213,
+      "label": "Wallis & Futuna",
+      "abbrev": "WFI",
+      "flag_file": "wfi.png"
+    },
+    {
+      "id": 214,
+      "label": "Yemen",
+      "abbrev": "YEM",
+      "flag_file": "yem.png"
+    },
+    {
+      "id": 215,
+      "label": "Zambia",
+      "abbrev": "ZAM",
+      "flag_file": "zam.png"
+    },
+    {
+      "id": 216,
+      "label": "Zimbabwe",
+      "abbrev": "ZIM",
+      "flag_file": "zim.png"
+    },
+    {
+      "id": 217,
+      "label": "Kiribati",
+      "abbrev": "KIR",
+      "flag_file": "kir.png"
+    },
+    {
+      "id": 218,
+      "label": "Western Sahara",
+      "abbrev": "WSH",
+      "flag_file": "wsh.png"
+    },
+    {
+      "id": 219,
+      "label": "Palau",
+      "abbrev": "PAU",
+      "flag_file": "pau.png"
+    },
+    {
+      "id": 220,
+      "label": "Marshall Islands",
+      "abbrev": "MIS",
+      "flag_file": "mis.png"
+    },
+    {
+      "id": 221,
+      "label": "Tuvalu",
+      "abbrev": "TUV",
+      "flag_file": "tuv.png"
+    },
+    {
+      "id": 222,
+      "label": "Micronesia",
+      "abbrev": "MIC",
+      "flag_file": "mic.png"
+    },
+    {
+      "id": 223,
+      "label": "Monaco",
+      "abbrev": "MSR",
+      "flag_file": "msr.png"
+    },
+    {
+      "id": 225,
+      "label": "Vatican City",
+      "abbrev": "VCY",
+      "flag_file": "vcy.png"
+    },
+    {
+      "id": 226,
+      "label": "Nauru",
+      "abbrev": "NAU",
+      "flag_file": "nau.png"
+    },
+    {
+      "id": 227,
+      "label": "Montenegro",
+      "abbrev": "MON",
+      "flag_file": "mon.png"
+    },
+    {
+      "id": 228,
+      "label": "DR Congo",
+      "abbrev": "COD",
+      "flag_file": "cod.png"
+    },
+    {
+      "id": 229,
+      "label": "Northern Marianas",
+      "abbrev": "NMI",
+      "flag_file": "nmi.png"
+    },
+    {
+      "id": 230,
+      "label": "Kosovo",
+      "abbrev": "KSV",
+      "flag_file": "ksv.png"
+    },
+    {
+      "id": 231,
+      "label": "Cura\u00e7ao",
+      "abbrev": "CUR",
+      "flag_file": "cur.png"
+    },
+    {
+      "id": 232,
+      "label": "Sint Maarten",
+      "abbrev": "SIM",
+      "flag_file": "sim.png"
+    },
+    {
+      "id": 233,
+      "label": "South Sudan",
+      "abbrev": "SSU",
+      "flag_file": "ssu.png"
+    },
+    {
+      "id": 234,
+      "label": "Gibraltar",
+      "abbrev": "GBR",
+      "flag_file": "gbr.png"
+    },
+    {
+      "id": 235,
+      "label": "Montserrat",
+      "abbrev": "MST",
+      "flag_file": "mst.png"
+    },
+    {
+      "id": 236,
+      "label": "Turks & Caicos",
+      "abbrev": "TCI",
+      "flag_file": "tci.png"
+    },
+    {
+      "id": 237,
+      "label": "Hong Kong",
+      "abbrev": "HKG",
+      "flag_file": "hkg.png"
+    },
+    {
+      "id": 238,
+      "label": "Macau",
+      "abbrev": "MCU",
+      "flag_file": "mcu.png"
+    },
+    {
+      "id": 239,
+      "label": "Rapa Nui",
+      "abbrev": "RPN",
+      "flag_file": "rpn.png"
+    },
+    {
+      "id": 240,
+      "label": "Azores",
+      "abbrev": "AZR",
+      "flag_file": "azr.png"
+    },
+    {
+      "id": 241,
+      "label": "Madeira",
+      "abbrev": "MDR",
+      "flag_file": "mdr.png"
+    },
+    {
+      "id": 242,
+      "label": "Falkland Islands",
+      "abbrev": "FLK",
+      "flag_file": "flk.png"
+    },
+    {
+      "id": 243,
+      "label": "Saint-Barth\u00e9lemy",
+      "abbrev": "STB",
+      "flag_file": "stb.png"
+    },
+    {
+      "id": 244,
+      "label": "Saint-Martin",
+      "abbrev": "STM",
+      "flag_file": "stm.png"
+    },
+    {
+      "id": 245,
+      "label": "Guernsey",
+      "abbrev": "GSY",
+      "flag_file": "gsy.png"
+    },
+    {
+      "id": 246,
+      "label": "Jersey",
+      "abbrev": "JSY",
+      "flag_file": "jsy.png"
+    },
+    {
+      "id": 247,
+      "label": "Isle of Man",
+      "abbrev": "IOM",
+      "flag_file": "iom.png"
+    },
+    {
+      "id": 248,
+      "label": "\u00c5land",
+      "abbrev": "ALD",
+      "flag_file": "ald.png"
+    },
+    {
+      "id": 249,
+      "label": "St. Helena",
+      "abbrev": "STH",
+      "flag_file": "sth.png"
+    },
+    {
+      "id": 250,
+      "label": "Greenland",
+      "abbrev": "GRL",
+      "flag_file": "grl.png"
+    },
+    {
+      "id": 251,
+      "label": "Niue",
+      "abbrev": "NIU",
+      "flag_file": "niu.png"
+    },
+    {
+      "id": 252,
+      "label": "Tokelau",
+      "abbrev": "TOK",
+      "flag_file": "tok.png"
+    }
   ]
 }
