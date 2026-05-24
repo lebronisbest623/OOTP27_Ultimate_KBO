@@ -122,7 +122,7 @@ static int kbo_find_player_portrait_src(uint32_t player_id, char* out, size_t ou
         return 0;
     }
 
-    kbo_webview_copy_file_url(portrait_path, out, out_size);
+    kbo_webview_copy_image_src(portrait_path, out, out_size);
     return out[0] != '\0';
 }
 
