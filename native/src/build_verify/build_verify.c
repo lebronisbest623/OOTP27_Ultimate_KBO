@@ -179,6 +179,12 @@ int kbo_resolve_build_specific_abi_value(const char* name, uint32_t* out_value)
     return 1;
 }
 
+uint32_t kbo_resolve_build_specific_abi_value_or_default(const char* name, uint32_t default_value)
+{
+    uint32_t value = 0u;
+    return kbo_resolve_build_specific_abi_value(name, &value) ? value : default_value;
+}
+
 int kbo_current_build_has_abi_profile(void)
 {
     return kbo_build_has_abi_profile(kbo_cached_ootp_build_info());

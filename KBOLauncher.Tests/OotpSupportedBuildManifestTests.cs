@@ -128,7 +128,9 @@ public sealed class OotpSupportedBuildManifestTests
             "OOTP27_PLAYER_FA_DEMAND_SALARY_OFFSET",
             "OOTP27_KBO_TEAM_ID_OFFSET",
             "OOTP27_GLOBAL_CURRENT_DATE_OFFSET",
+            "OOTP27_GLOBAL_CURRENT_LEAGUE_ID_OFFSET",
             "OOTP27_GLOBAL_SQL_DATABASE_OFFSET",
+            "OOTP27_LEAGUE_MINIMUM_SALARY_OFFSET",
             "OOTP27_KBO_LEAGUE_ID_OFFSET",
             "OOTP27_KBO_LEAGUE_YEAR_OFFSET",
         };

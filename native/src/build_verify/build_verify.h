@@ -38,6 +38,8 @@ typedef struct OotpBuildAbiValue {
     uint32_t build_value;
 } OotpBuildAbiValue;
 
+#define KBO_OOTP_ABI_VALUE_NAME(name) #name
+
 OotpBuildInfo read_ootp_build_info(void);
 int verify_ootp_build(void);
 size_t kbo_supported_ootp_build_count(void);
@@ -46,6 +48,7 @@ int kbo_ootp_build_is_steam_2026_05_04(OotpBuildInfo info);
 int kbo_resolve_build_specific_rva(uint32_t canonical_rva, uint32_t* out_rva);
 void* kbo_resolve_build_specific_rva_ptr(HMODULE exe, uint32_t canonical_rva);
 int kbo_resolve_build_specific_abi_value(const char* name, uint32_t* out_value);
+uint32_t kbo_resolve_build_specific_abi_value_or_default(const char* name, uint32_t default_value);
 int kbo_current_build_has_abi_profile(void);
 int kbo_resolve_build_specific_rva_delta(
     uint32_t from_canonical_rva,

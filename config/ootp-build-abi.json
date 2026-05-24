@@ -275,6 +275,13 @@
       }
     },
     {
+      "name": "OOTP27_GLOBAL_CURRENT_LEAGUE_ID_OFFSET",
+      "canonicalValue": "0x00000048",
+      "builds": {
+        "steam_2026_05_04": "0x00000048"
+      }
+    },
+    {
       "name": "OOTP27_GLOBAL_SQL_DATABASE_OFFSET",
       "canonicalValue": "0x00002D78",
       "builds": {
@@ -286,6 +293,13 @@
       "canonicalValue": "0x00002DF0",
       "builds": {
         "steam_2026_05_04": "0x00002DF0"
+      }
+    },
+    {
+      "name": "OOTP27_LEAGUE_MINIMUM_SALARY_OFFSET",
+      "canonicalValue": "0x00000278",
+      "builds": {
+        "steam_2026_05_04": "0x00000278"
       }
     },
     {

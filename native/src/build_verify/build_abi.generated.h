@@ -6,7 +6,7 @@
 
 #include "build_verify.h"
 
-#define KBO_BUILD_ABI_VALUE_COUNT 45
+#define KBO_BUILD_ABI_VALUE_COUNT 47
 
 extern const OotpBuildAbiValue KBO_BUILD_ABI_VALUES[KBO_BUILD_ABI_VALUE_COUNT];
 
