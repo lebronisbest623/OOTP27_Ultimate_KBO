@@ -31,7 +31,7 @@
 #include "../../patch_installers/allstar/events/patch_installers_allstar_events.h"
 #include "../../patch_installers/allstar/settings/patch_installers_allstar_settings.h"
 #include "../../patch_installers/allstar/static/patch_installers_allstar_static.h"
-#include "../../patch_installers/foreign/ai_fa/patch_installers_foreign_ai_fa_fallback.h"
+#include "../../patch_installers/foreign/ai_fa/fallback/patch_installers_foreign_ai_fa_fallback.h"
 #include "../../patch_installers/foreign/ai_fa/patch_installers_foreign_ai_fa_status.h"
 #include "../../patch_installers/foreign/roster_limits/callup/patch_installers_foreign_callup_limits.h"
 #include "../../patch_installers/foreign/roster_limits/counts/patch_installers_foreign_counts.h"

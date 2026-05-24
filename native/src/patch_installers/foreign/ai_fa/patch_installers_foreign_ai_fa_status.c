@@ -1,4 +1,4 @@
-#include "patch_installers_foreign_ai_fa_status.h"
+#include "patch_installers_foreign_ai_fa_status_internal.h"
 #include <stdio.h>
 #include <string.h>
 #include "../../common/patch_host.h"
@@ -188,124 +188,6 @@ int install_kbo_ai_fa_status_candidate_insert_patch(void)
     return primary_ok && expansion_ok && direct_ok;
 }
 
-static int kbo_install_foreign_ai_offer_build_probe_patch(HMODULE exe)
-{
-    const size_t patch_len = 20;
-    const uint8_t expected[20] = {
-        0xC6, 0x44, 0x24, 0x20, 0x00,                   /* mov byte ptr [rsp+0x20],0 */
-        0x4C, 0x8D, 0x4D, 0x99,                         /* lea r9,[rbp-0x67] */
-        0x45, 0x33, 0xC0,                               /* xor r8d,r8d */
-        0x49, 0x8B, 0xCC,                               /* mov rcx,r12 */
-        0xE8, 0xE0, 0x94, 0xDA, 0xFF                    /* call offer builder */
-    };
-
-    uint8_t* target = resolve_patch_target_by_rva_existing_rax_or_pattern(
-        exe,
-        OOTP27_AI_FA_OFFER_BUILD_PREP_RVA,
-        expected,
-        sizeof(expected),
-        "KBO foreign AI offer build probe patch");
-    if (target == NULL) { return 0; }
-    if (is_rax_absolute_jump_patch(target)) {
-        kbo_log_runtimef("KBO foreign AI offer build probe patch already installed target=%p", target);
-        return 1;
-    }
-
-    uint8_t* stub = build_kbo_foreign_ai_offer_build_probe_stub(target + patch_len);
-    if (stub == NULL) {
-        kbo_log_runtime_line("failed to allocate KBO foreign AI offer build probe stub");
-        return 0;
-    }
-
-    uint8_t patch[20] = {
-        0x48, 0xB8,                                     /* mov rax, stub */
-        0,0,0,0,0,0,0,0,
-        0xFF, 0xE0,                                     /* jmp rax */
-        0x90, 0x90, 0x90, 0x90,
-        0x90, 0x90, 0x90, 0x90
-    };
-    write_u64(&patch[2], (uint64_t)(uintptr_t)stub);
-
-    DWORD old_protect = 0;
-    if (!VirtualProtect(target, sizeof(patch), PAGE_EXECUTE_READWRITE, &old_protect)) {
-        kbo_log_runtimef("VirtualProtect failed for KBO foreign AI offer build probe patch error=%lu", GetLastError());
-        return 0;
-    }
-    memcpy(target, patch, sizeof(patch));
-    FlushInstructionCache(GetCurrentProcess(), target, sizeof(patch));
-    DWORD ignored = 0;
-    VirtualProtect(target, sizeof(patch), old_protect, &ignored);
-
-    kbo_log_runtimef(
-        "installed KBO foreign AI offer build probe patch target=%p rva=0x%llx stub=%p wrapper=%p",
-        target,
-        (unsigned long long)((uintptr_t)target - (uintptr_t)exe),
-        stub,
-        &ootp_kbo_foreign_ai_offer_build_probe_wrapper);
-    return 1;
-}
-
-static int kbo_install_foreign_ai_offer_final_gate_probe_patch(HMODULE exe)
-{
-    const size_t patch_len = 19;
-    const uint8_t expected[19] = {
-        0x49, 0x8B, 0xD4,                               /* mov rdx,r12 */
-        0x49, 0x8B, 0xCD,                               /* mov rcx,r13 */
-        0xE8, 0xCD, 0x77, 0x00, 0x00,                   /* call final gate */
-        0x84, 0xC0,                                     /* test al,al */
-        0x0F, 0x84, 0x8F, 0xEF, 0xFF, 0xFF              /* je failure */
-    };
-
-    uint8_t* target = resolve_patch_target_by_rva_existing_rax_or_pattern(
-        exe,
-        OOTP27_AI_FA_OFFER_FINAL_GATE_RVA,
-        expected,
-        sizeof(expected),
-        "KBO foreign AI offer final gate probe patch");
-    if (target == NULL) { return 0; }
-    if (is_rax_absolute_jump_patch(target)) {
-        kbo_log_runtimef("KBO foreign AI offer final gate probe patch already installed target=%p", target);
-        return 1;
-    }
-
-    uintptr_t failure_delta =
-        (uintptr_t)OOTP27_AI_FA_OFFER_FINAL_GATE_RVA
-        - (uintptr_t)OOTP27_AI_FA_OFFER_FINAL_GATE_FAILURE_RVA;
-    uint8_t* failure = target - failure_delta;
-    uint8_t* stub = build_kbo_foreign_ai_offer_final_gate_probe_stub(target + patch_len, failure);
-    if (stub == NULL) {
-        kbo_log_runtime_line("failed to allocate KBO foreign AI offer final gate probe stub");
-        return 0;
-    }
-
-    uint8_t patch[19] = {
-        0x48, 0xB8,                                     /* mov rax, stub */
-        0,0,0,0,0,0,0,0,
-        0xFF, 0xE0,                                     /* jmp rax */
-        0x90, 0x90, 0x90, 0x90,
-        0x90, 0x90, 0x90
-    };
-    write_u64(&patch[2], (uint64_t)(uintptr_t)stub);
-
-    DWORD old_protect = 0;
-    if (!VirtualProtect(target, sizeof(patch), PAGE_EXECUTE_READWRITE, &old_protect)) {
-        kbo_log_runtimef("VirtualProtect failed for KBO foreign AI offer final gate probe patch error=%lu", GetLastError());
-        return 0;
-    }
-    memcpy(target, patch, sizeof(patch));
-    FlushInstructionCache(GetCurrentProcess(), target, sizeof(patch));
-    DWORD ignored = 0;
-    VirtualProtect(target, sizeof(patch), old_protect, &ignored);
-
-    kbo_log_runtimef(
-        "installed KBO foreign AI offer final gate probe patch target=%p rva=0x%llx stub=%p wrapper=%p",
-        target,
-        (unsigned long long)((uintptr_t)target - (uintptr_t)exe),
-        stub,
-        &ootp_kbo_foreign_ai_offer_final_gate_probe_wrapper);
-    return 1;
-}
-
 int install_kbo_foreign_ai_offer_attach_probe_patch(void)
 {
     HMODULE exe = GetModuleHandleA(NULL);
@@ -390,6 +272,7 @@ int install_kbo_foreign_ai_offer_attach_probe_patch(void)
     }
 
     int build_ok = kbo_install_foreign_ai_offer_build_probe_patch(exe);
+    int terms_ok = kbo_install_foreign_ai_offer_terms_build_probe_patch(exe);
     int gate_ok = kbo_install_foreign_ai_offer_final_gate_probe_patch(exe);
-    return attach_ok && build_ok && gate_ok;
+    return attach_ok && build_ok && terms_ok && gate_ok;
 }

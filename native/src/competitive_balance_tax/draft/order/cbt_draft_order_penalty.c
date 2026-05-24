@@ -7,15 +7,12 @@
 
 #include "cbt_draft_order_penalty.h"
 #include "ledger/cbt_draft_order_ledger.h"
-#include "../../records/cbt_records.h"
-#include "../../rules/cbt_rules.h"
+#include "penalty/cbt_draft_order_penalty_policy.h"
 #include "../../../bootstrap/abi/ootp_offsets.h"
 #include "../../../core/core_flags/api/flags_api.h"
 #include "../../../core/core_league_context_parts/api/league_context_lookup.h"
-#include "../../../core/league_roles/kbo_league_roles.h"
 #include "../../../core/logging/core_log.h"
 #include "../../../runtime_memory/runtime_memory.h"
-#include "../../../team/lookup/team_lookup.h"
 #include "../../../core/core_flags/keys/runtime_flag_keys.generated.h"
 
 #define KBO_CBT_DRAFT_ORDER_MAX_ROWS 4096
@@ -29,12 +26,6 @@ typedef struct KboCbtDraftOrderSlot {
     uint32_t owner_team_id;
 } KboCbtDraftOrderSlot;
 
-typedef struct KboCbtDraftPenaltyInfo {
-    uint32_t season;
-    uint32_t team_id;
-    uint32_t stages;
-} KboCbtDraftPenaltyInfo;
-
 static volatile LONG g_kbo_cbt_draft_order_busy = 0;
 static PVOID volatile g_kbo_cbt_draft_order_observed_state = NULL;
 static uintptr_t g_kbo_cbt_draft_order_last_state = 0;
@@ -45,61 +36,6 @@ static int kbo_cbt_draft_order_slot_compare(const void* a, const void* b)
     const KboCbtDraftOrderSlot* lhs = (const KboCbtDraftOrderSlot*)a;
     const KboCbtDraftOrderSlot* rhs = (const KboCbtDraftOrderSlot*)b;
     return (int)lhs->pick - (int)rhs->pick;
-}
-
-static int kbo_cbt_draft_order_penalty_for_team(
-    uint32_t team_id,
-    KboCbtDraftPenaltyInfo* out)
-{
-    if (out != NULL) {
-        memset(out, 0, sizeof(*out));
-    }
-    if (team_id == 0u) {
-        return 0;
-    }
-
-    KboCbtRules rules;
-    kbo_cbt_rules_load(&rules);
-
-    KboCbtRecord records[KBO_CBT_RECORDS_MAX];
-    int record_count = kbo_cbt_load_records(records, KBO_CBT_RECORDS_MAX, NULL, 0);
-    if (record_count <= 0) {
-        return 0;
-    }
-
-    int best_index = -1;
-    uint32_t best_season = 0u;
-    for (int i = 0; i < record_count; i++) {
-        const KboCbtRecord* rec = &records[i];
-        if (rec->team_id == team_id && rec->season > best_season) {
-            best_index = i;
-            best_season = rec->season;
-        }
-    }
-    if (best_index < 0) {
-        return 0;
-    }
-
-    const KboCbtRecord* rec = &records[best_index];
-    if (rec->overage <= 0 || rec->consecutive_count < rules.draft_penalty_min_consecutive) {
-        return 0;
-    }
-
-    if (out != NULL) {
-        out->season = rec->season;
-        out->team_id = team_id;
-        out->stages = rules.draft_penalty_stages;
-    }
-    return rules.draft_penalty_stages > 0u;
-}
-
-static int kbo_cbt_draft_order_team_is_main_kbo(uint32_t team_id)
-{
-    uint8_t* team = find_kbo_team_by_numeric_id_any_league(team_id, 0);
-    if (team == NULL || !memory_range_readable(team, OOTP27_KBO_TEAM_READABLE_BYTES)) {
-        return 0;
-    }
-    return *(uint32_t*)(team + OOTP27_KBO_TEAM_LEAGUE_ID_OFFSET) == kbo_league_role_main_league_id();
 }
 
 static uint64_t kbo_cbt_draft_order_signature(const KboCbtDraftOrderSlot* slots, int slot_count)
@@ -120,12 +56,23 @@ static uint64_t kbo_cbt_draft_order_signature(const KboCbtDraftOrderSlot* slots,
 static int kbo_cbt_collect_round_slots(
     uintptr_t draft_state,
     KboCbtDraftOrderSlot* slots,
-    int max_slots)
+    int max_slots,
+    const char* source)
 {
     if (draft_state == 0u || slots == NULL || max_slots <= 0) {
+        kbo_log_runtimef(
+            "KBO CBT draft order skipped source=%s reason=invalid_args state=%p max=%d",
+            source != NULL ? source : "",
+            (void*)draft_state,
+            max_slots);
         return 0;
     }
     if (!memory_range_readable((void*)draft_state, OOTP27_DRAFT_STATE_READABLE_BYTES)) {
+        kbo_log_runtimef(
+            "KBO CBT draft order skipped source=%s reason=state_unreadable state=%p bytes=%u",
+            source != NULL ? source : "",
+            (void*)draft_state,
+            (unsigned)OOTP27_DRAFT_STATE_READABLE_BYTES);
         return 0;
     }
 
@@ -133,9 +80,22 @@ static int kbo_cbt_collect_round_slots(
     uintptr_t vector = *(uintptr_t*)(state + OOTP27_DRAFT_STATE_ORDER_VECTOR_OFFSET);
     int32_t count = *(int32_t*)(state + OOTP27_DRAFT_STATE_ORDER_COUNT_OFFSET);
     if (vector == 0u || count <= 0 || count > KBO_CBT_DRAFT_ORDER_MAX_ROWS) {
+        kbo_log_runtimef(
+            "KBO CBT draft order skipped source=%s reason=invalid_order_vector state=%p vector=%p count=%d max=%d",
+            source != NULL ? source : "",
+            (void*)draft_state,
+            (void*)vector,
+            count,
+            KBO_CBT_DRAFT_ORDER_MAX_ROWS);
         return 0;
     }
     if (!memory_range_readable((void*)vector, (SIZE_T)count * sizeof(uintptr_t))) {
+        kbo_log_runtimef(
+            "KBO CBT draft order skipped source=%s reason=order_vector_unreadable state=%p vector=%p count=%d",
+            source != NULL ? source : "",
+            (void*)draft_state,
+            (void*)vector,
+            count);
         return 0;
     }
 
@@ -161,7 +121,8 @@ static int kbo_cbt_collect_round_slots(
         }
         if (slot_count >= max_slots) {
             kbo_log_runtimef(
-                "KBO CBT draft order skipped reason=round_slot_limit state=%p count=%d max=%d",
+                "KBO CBT draft order skipped source=%s reason=round_slot_limit state=%p count=%d max=%d",
+                source != NULL ? source : "",
                 (void*)draft_state,
                 count,
                 max_slots);
@@ -177,6 +138,15 @@ static int kbo_cbt_collect_round_slots(
 
     if (slot_count > 1) {
         qsort(slots, (size_t)slot_count, sizeof(slots[0]), kbo_cbt_draft_order_slot_compare);
+    }
+    if (slot_count <= 1) {
+        kbo_log_runtimef(
+            "KBO CBT draft order skipped source=%s reason=not_enough_round_slots state=%p vector=%p count=%d round_slots=%d",
+            source != NULL ? source : "",
+            (void*)draft_state,
+            (void*)vector,
+            count,
+            slot_count);
     }
     return slot_count;
 }
@@ -222,6 +192,12 @@ int kbo_cbt_apply_primary_league_draft_order_penalties(uint32_t league_id, const
     }
 
     uintptr_t draft_state = league_ptr + OOTP27_LEAGUE_PRIMARY_DRAFT_STATE_OFFSET;
+    kbo_log_runtimef(
+        "KBO CBT draft order primary league apply source=%s league_id=%u league=%p state=%p",
+        source != NULL ? source : "",
+        league_id,
+        (void*)league_ptr,
+        (void*)draft_state);
     kbo_cbt_note_draft_order_state(draft_state);
     return kbo_cbt_apply_draft_order_penalties(draft_state, source);
 }
@@ -258,7 +234,8 @@ int kbo_cbt_apply_draft_order_penalties(uintptr_t draft_state, const char* sourc
     int slot_count = kbo_cbt_collect_round_slots(
         draft_state,
         slots,
-        KBO_CBT_DRAFT_ORDER_MAX_ROUND_ROWS);
+        KBO_CBT_DRAFT_ORDER_MAX_ROUND_ROWS,
+        source);
     if (slot_count <= 1) {
         InterlockedExchange(&g_kbo_cbt_draft_order_busy, 0);
         return 0;
@@ -292,6 +269,10 @@ int kbo_cbt_apply_draft_order_penalties(uintptr_t draft_state, const char* sourc
     for (int i = 0; i < slot_count && penalty_count < KBO_CBT_DRAFT_ORDER_MAX_MOVES; i++) {
         uint32_t team_id = slots[i].owner_team_id;
         if (!kbo_cbt_draft_order_team_is_main_kbo(team_id)) {
+            kbo_log_runtimef(
+                "KBO CBT draft order team skipped source=%s team=%u reason=not_main_kbo",
+                source != NULL ? source : "",
+                team_id);
             continue;
         }
 
@@ -311,6 +292,13 @@ int kbo_cbt_apply_draft_order_penalties(uintptr_t draft_state, const char* sourc
             continue;
         }
         penalties[penalty_count++] = info;
+    }
+    if (penalty_count == 0) {
+        kbo_log_runtimef(
+            "KBO CBT draft order skipped source=%s reason=no_penalty_teams state=%p round_slots=%d",
+            source != NULL ? source : "",
+            (void*)draft_state,
+            slot_count);
     }
 
     KboCbtDraftOrderMove moves[KBO_CBT_DRAFT_ORDER_MAX_MOVES];

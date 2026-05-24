@@ -92,6 +92,11 @@ int kbo_secondary_draft_collect_team_list_rows(
     int max_rows,
     int* out_submitted,
     int* out_saved_count);
+int kbo_secondary_draft_load_team_protection_status(
+    uint32_t season,
+    uint32_t team_id,
+    int* out_saved_count,
+    int* out_submitted);
 int kbo_secondary_draft_collect_draft_pool_rows(
     uint32_t season,
     uint32_t drafting_team_id,

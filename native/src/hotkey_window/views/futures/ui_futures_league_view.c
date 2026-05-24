@@ -7,7 +7,7 @@
 #include "../../../bootstrap/profiling/profiler.h"
 #include "../../runtime/hotkey_window_runtime_shared.h"
 #include "../../support/actions/ui_team_actions.h"
-#include "ui_futures_offer_snapshot.h"
+#include "snapshot/ui_futures_offer_snapshot.h"
 #include "ui_futures_league_view_helpers.h"
 #include "../../../team/independent_acquisition/ui/independent_acquisition_ui.h"
 

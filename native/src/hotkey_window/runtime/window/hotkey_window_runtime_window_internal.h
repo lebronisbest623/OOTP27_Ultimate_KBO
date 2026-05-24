@@ -24,6 +24,7 @@ int kbo_hub_rect_height(const RECT* rect);
 int kbo_hub_try_load_window_placement(HWND hwnd, RECT* out_rect);
 void kbo_hub_save_window_placement(HWND hwnd);
 void kbo_hub_apply_fixed_window_placement(HWND hwnd, int preserve_position);
+void kbo_hotkey_window_install_exception_guard(void);
 LRESULT CALLBACK kbo_hotkey_window_proc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam);
 DWORD WINAPI kbo_hotkey_window_thread(LPVOID parameter);
 void start_kbo_hotkey_window_thread(HINSTANCE instance);

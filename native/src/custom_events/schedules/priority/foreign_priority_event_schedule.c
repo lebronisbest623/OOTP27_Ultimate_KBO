@@ -192,240 +192,35 @@ int kbo_schedule_foreign_priority_custom_events_at_anchor(
         KBO_FOREIGN_PRIORITY_SCHEDULE_RETURN(0);
     }
 
-    char open_title[160] = {0};
-    char close_title[160] = {0};
-    char fa_declaration_title[160] = {0};
-    char intl_established_fa_title[160] = {0};
-    char military_title[160] = {0};
-    char secondary_draft_title[160] = {0};
-    if (!kbo_custom_event_title_for_kind(KBO_CUSTOM_EVENT_KIND_FOREIGN_PRIORITY_OPEN, open_title, sizeof(open_title))
-            || !kbo_custom_event_title_for_kind(KBO_CUSTOM_EVENT_KIND_FOREIGN_PRIORITY_CLOSE, close_title, sizeof(close_title))
-            || !kbo_custom_event_title_for_kind(KBO_CUSTOM_EVENT_KIND_FA_DECLARATION, fa_declaration_title, sizeof(fa_declaration_title))
-            || !kbo_custom_event_title_for_kind(KBO_CUSTOM_EVENT_KIND_INTL_ESTABLISHED_FA, intl_established_fa_title, sizeof(intl_established_fa_title))
-            || !kbo_custom_event_title_for_kind(KBO_CUSTOM_EVENT_KIND_MILITARY_SELECTION, military_title, sizeof(military_title))
-            || (secondary_draft_year
-                && !kbo_custom_event_title_for_kind(
-                    KBO_CUSTOM_EVENT_KIND_SECONDARY_DRAFT,
-                    secondary_draft_title,
-                    sizeof(secondary_draft_title)))) {
-        kbo_audit_foreign_priority_schedule("fail", "title_unavailable", source, &audit);
-        kbo_log_runtimef(
-            "KBO custom event schedule skipped source=%s reason=title_unavailable season_end=%u",
-            source != NULL ? source : "",
-            offseason_starts_yyyymmdd);
-        KBO_FOREIGN_PRIORITY_SCHEDULE_RETURN(-1);
-    }
-
-    int open_exists = kbo_custom_event_exists_for_date(
-        league_id,
+    KboForeignPriorityScheduleDates dates = {
+        anchor_date,
         open_date,
-        1);
-    int close_exists = kbo_custom_event_exists_for_date(
-        league_id,
         close_date,
-        0);
-    int fa_declaration_exists = kbo_custom_event_exists_by_kind_for_date(
-        league_id,
         fa_declaration_date,
-        KBO_CUSTOM_EVENT_KIND_FA_DECLARATION);
-    int pruned_old_intl_established_fa = 0;
-    if (intl_established_fa_date != fa_declaration_date) {
-        pruned_old_intl_established_fa = kbo_delete_custom_events_by_kind_for_date(
-            league_id,
-            fa_declaration_date,
-            KBO_CUSTOM_EVENT_KIND_INTL_ESTABLISHED_FA,
-            source);
-    }
-    int intl_established_fa_exists = kbo_custom_event_exists_by_kind_for_date(
-        league_id,
         intl_established_fa_date,
-        KBO_CUSTOM_EVENT_KIND_INTL_ESTABLISHED_FA);
-    audit.pruned_old_intl_established_fa = pruned_old_intl_established_fa;
-    int military_exists = military_selection_date == 0u
-        || kbo_custom_event_exists_by_kind_for_date(
-            league_id,
-            military_selection_date,
-            KBO_CUSTOM_EVENT_KIND_MILITARY_SELECTION);
-    int secondary_draft_exists = !secondary_draft_year
-        || kbo_custom_event_exists_by_kind_for_date(
-            league_id,
-            secondary_draft_date,
-            KBO_CUSTOM_EVENT_KIND_SECONDARY_DRAFT);
-    if (g_kbo_foreign_priority_last_scheduled_date == offseason_starts_yyyymmdd
-            && open_exists
-            && close_exists
-            && fa_declaration_exists
-            && intl_established_fa_exists
-            && military_exists
-            && secondary_draft_exists
-            && pruned_old_intl_established_fa == 0) {
-        static uint32_t last_logged_already_scheduled = 0u;
-        if (last_logged_already_scheduled != offseason_starts_yyyymmdd) {
-            last_logged_already_scheduled = offseason_starts_yyyymmdd;
-            kbo_log_runtimef(
-                "KBO custom event schedule skipped source=%s reason=already_scheduled_for_season_end today=%u season_end=%u",
-                source != NULL ? source : "",
-                today,
-                offseason_starts_yyyymmdd);
-            audit.ready = 1;
-            kbo_audit_foreign_priority_schedule("skip", "already_scheduled", source, &audit);
-        }
+        military_selection_date,
+        secondary_draft_protection_open_date,
+        secondary_draft_protection_deadline_date,
+        secondary_draft_date,
+        secondary_draft_year
+    };
+    KboForeignPriorityScheduleResult schedule_result = {0};
+    int schedule_status = kbo_foreign_priority_schedule_events(
+        league_id,
+        today,
+        offseason_starts_yyyymmdd,
+        &dates,
+        &secondary_draft_window,
+        registered_secondary_draft_window,
+        source,
+        &audit,
+        &schedule_result);
+    if (schedule_result.already_scheduled) {
         KBO_FOREIGN_PRIORITY_SCHEDULE_RETURN(0);
     }
-
-    int created_open = 0;
-    if (!open_exists) {
-        created_open = create_kbo_league_event(
-            open_date / 10000u,
-            (open_date / 100u) % 100u,
-            open_date % 100u,
-            league_id,
-            OOTP27_EVENT_TYPE_CUSTOM_EVENT,
-            open_title,
-            0,
-            source != NULL ? source : g_kbo_default_event_source);
+    if (schedule_status < 0) {
+        KBO_FOREIGN_PRIORITY_SCHEDULE_RETURN(-1);
     }
-
-    int created_close = 0;
-    if (!close_exists) {
-        created_close = create_kbo_league_event(
-            close_date / 10000u,
-            (close_date / 100u) % 100u,
-            close_date % 100u,
-            league_id,
-            OOTP27_EVENT_TYPE_CUSTOM_EVENT,
-            close_title,
-            0,
-            source != NULL ? source : g_kbo_default_event_source);
-    }
-
-    int created_fa_declaration = 0;
-    if (!fa_declaration_exists) {
-        created_fa_declaration = create_kbo_league_event(
-            fa_declaration_date / 10000u,
-            (fa_declaration_date / 100u) % 100u,
-            fa_declaration_date % 100u,
-            league_id,
-            OOTP27_EVENT_TYPE_CUSTOM_EVENT,
-            fa_declaration_title,
-            0,
-            source != NULL ? source : g_kbo_default_event_source);
-    }
-
-    int created_intl_established_fa = 0;
-    if (!intl_established_fa_exists) {
-        created_intl_established_fa = create_kbo_league_event(
-            intl_established_fa_date / 10000u,
-            (intl_established_fa_date / 100u) % 100u,
-            intl_established_fa_date % 100u,
-            league_id,
-            OOTP27_EVENT_TYPE_CUSTOM_EVENT,
-            intl_established_fa_title,
-            0,
-            source != NULL ? source : g_kbo_default_event_source);
-    }
-
-    int created_military = 0;
-    if (military_selection_date != 0u
-            && !military_exists) {
-        created_military = create_kbo_league_event(
-            military_selection_date / 10000u,
-            (military_selection_date / 100u) % 100u,
-            military_selection_date % 100u,
-            league_id,
-            OOTP27_EVENT_TYPE_CUSTOM_EVENT,
-            military_title,
-            0,
-            source != NULL ? source : g_kbo_default_event_source);
-        if (created_military) {
-            g_kbo_military_selection_last_scheduled_date = offseason_starts_yyyymmdd;
-        }
-    }
-
-    int created_secondary_draft = 0;
-    if (secondary_draft_year
-            && secondary_draft_date != 0u
-            && !secondary_draft_exists) {
-        created_secondary_draft = create_kbo_league_event(
-            secondary_draft_date / 10000u,
-            (secondary_draft_date / 100u) % 100u,
-            secondary_draft_date % 100u,
-            league_id,
-            OOTP27_EVENT_TYPE_CUSTOM_EVENT,
-            secondary_draft_title,
-            0,
-            source != NULL ? source : g_kbo_default_event_source);
-    }
-
-    open_exists = open_exists || created_open || kbo_custom_event_exists_for_date(
-        league_id,
-        open_date,
-        1);
-    close_exists = close_exists || created_close || kbo_custom_event_exists_for_date(
-        league_id,
-        close_date,
-        0);
-    fa_declaration_exists = fa_declaration_exists
-        || created_fa_declaration
-        || kbo_custom_event_exists_by_kind_for_date(
-            league_id,
-            fa_declaration_date,
-            KBO_CUSTOM_EVENT_KIND_FA_DECLARATION);
-    intl_established_fa_exists = intl_established_fa_exists
-        || created_intl_established_fa
-        || kbo_custom_event_exists_by_kind_for_date(
-            league_id,
-            intl_established_fa_date,
-            KBO_CUSTOM_EVENT_KIND_INTL_ESTABLISHED_FA);
-    kbo_prune_duplicate_custom_events_by_kind_for_date(
-        league_id,
-        fa_declaration_date,
-        KBO_CUSTOM_EVENT_KIND_FA_DECLARATION,
-        source);
-    kbo_prune_duplicate_custom_events_by_kind_for_date(
-        league_id,
-        intl_established_fa_date,
-        KBO_CUSTOM_EVENT_KIND_INTL_ESTABLISHED_FA,
-        source);
-    military_exists = military_selection_date == 0u
-        || military_exists
-        || created_military
-        || kbo_custom_event_exists_by_kind_for_date(
-            league_id,
-            military_selection_date,
-            KBO_CUSTOM_EVENT_KIND_MILITARY_SELECTION);
-    secondary_draft_exists = !secondary_draft_year
-        || secondary_draft_exists
-        || created_secondary_draft
-        || kbo_custom_event_exists_by_kind_for_date(
-            league_id,
-            secondary_draft_date,
-            KBO_CUSTOM_EVENT_KIND_SECONDARY_DRAFT);
-    if (secondary_draft_year && secondary_draft_date != 0u) {
-        kbo_prune_duplicate_custom_events_by_kind_for_date(
-            league_id,
-            secondary_draft_date,
-            KBO_CUSTOM_EVENT_KIND_SECONDARY_DRAFT,
-            source);
-    }
-    int secondary_draft_window_news = 0;
-    if (secondary_draft_year && registered_secondary_draft_window) {
-        secondary_draft_window_news = kbo_secondary_draft_emit_window_news(
-            today != 0u ? today : anchor_date,
-            &secondary_draft_window,
-            source != NULL ? source : "foreign_priority_schedule");
-    }
-    audit.created_open = created_open;
-    audit.created_close = created_close;
-    audit.created_fa_declaration = created_fa_declaration;
-    audit.created_intl_established_fa = created_intl_established_fa;
-    audit.created_military = created_military;
-    audit.ready = open_exists
-        && close_exists
-        && fa_declaration_exists
-        && intl_established_fa_exists
-        && military_exists
-        && secondary_draft_exists;
 
     kbo_log_runtimef(
         "KBO custom event schedule source=%s season_end=%u anchor=%u open=%u close=%u fa_declaration=%u intl_established_fa=%u military=%u secondary_draft_open=%u secondary_draft_deadline=%u secondary_draft=%u created_open=%d created_close=%d created_fa_declaration=%d created_intl_established_fa=%d pruned_old_intl_established_fa=%d created_military=%d created_secondary_draft=%d registered_secondary_draft_window=%d secondary_draft_window_news=%d ready=%d",
@@ -440,28 +235,18 @@ int kbo_schedule_foreign_priority_custom_events_at_anchor(
         secondary_draft_protection_open_date,
         secondary_draft_protection_deadline_date,
         secondary_draft_date,
-        created_open,
-        created_close,
-        created_fa_declaration,
-        created_intl_established_fa,
-        pruned_old_intl_established_fa,
-        created_military,
-        created_secondary_draft,
+        schedule_result.created_open,
+        schedule_result.created_close,
+        schedule_result.created_fa_declaration,
+        schedule_result.created_intl_established_fa,
+        schedule_result.pruned_old_intl_established_fa,
+        schedule_result.created_military,
+        schedule_result.created_secondary_draft,
         registered_secondary_draft_window,
-        secondary_draft_window_news,
-        open_exists
-            && close_exists
-            && fa_declaration_exists
-            && intl_established_fa_exists
-            && military_exists
-            && secondary_draft_exists);
+        schedule_result.secondary_draft_window_news,
+        schedule_result.ready);
 
-    if (!(open_exists
-            && close_exists
-            && fa_declaration_exists
-            && intl_established_fa_exists
-            && military_exists
-            && secondary_draft_exists)) {
+    if (!schedule_result.ready) {
         kbo_audit_foreign_priority_schedule("fail", "events_not_ready", source, &audit);
         KBO_FOREIGN_PRIORITY_SCHEDULE_RETURN(-1);
     }
@@ -480,14 +265,7 @@ int kbo_schedule_foreign_priority_custom_events_at_anchor(
     }
     g_kbo_foreign_priority_last_scheduled_date = offseason_starts_yyyymmdd;
     kbo_foreign_priority_ready_cache_store(offseason_starts_yyyymmdd, league_id);
-    int changed = created_open
-        || created_close
-        || created_fa_declaration
-        || created_intl_established_fa
-        || pruned_old_intl_established_fa
-        || created_military
-        || created_secondary_draft
-        || secondary_draft_window_news;
+    int changed = schedule_result.changed;
     kbo_audit_foreign_priority_schedule(changed ? "schedule" : "ready", "created_or_existing_events", source, &audit);
     KBO_FOREIGN_PRIORITY_SCHEDULE_RETURN(changed);
 }

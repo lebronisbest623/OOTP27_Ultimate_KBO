@@ -79,6 +79,13 @@ int kbo_handle_secondary_draft_event(uint32_t event_yyyymmdd, const char* source
         team_count,
         candidates,
         KBO_SECONDARY_DRAFT_CANDIDATE_MAX);
+    int auto_submitted_lists = kbo_secondary_draft_auto_submit_missing_protection_lists(
+        season,
+        teams,
+        team_count,
+        candidates,
+        candidate_count,
+        "secondary_draft_event_auto_protect");
     int protected_count = kbo_secondary_draft_mark_protected_players(candidates, candidate_count, team_count, season);
 
     KboSecondaryDraftPick picks[KBO_SECONDARY_DRAFT_TEAM_MAX * KBO_SECONDARY_DRAFT_ROUNDS];
@@ -148,13 +155,14 @@ int kbo_handle_secondary_draft_event(uint32_t event_yyyymmdd, const char* source
         source != NULL ? source : "secondary_draft");
 
     kbo_log_runtimef(
-        "KBO secondary draft completed source=%s season=%u league=%u teams=%d candidates=%d protected=%d picks=%d cash_total=%lld run_saved=%d news=%d",
+        "KBO secondary draft completed source=%s season=%u league=%u teams=%d candidates=%d protected=%d auto_submitted_lists=%d picks=%d cash_total=%lld run_saved=%d news=%d",
         source != NULL ? source : "",
         season,
         league_id,
         team_count,
         candidate_count,
         protected_count,
+        auto_submitted_lists,
         pick_count,
         (long long)cash_total,
         run_saved,

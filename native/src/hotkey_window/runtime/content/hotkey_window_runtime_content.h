@@ -74,6 +74,7 @@ int kbo_hub_view_available_for_selected_league(int view);
 void kbo_webview_append_main_tabs(KboWindowTextBuffer* buffer);
 void kbo_webview_append_sub_tabs(KboWindowTextBuffer* buffer);
 int kbo_webview_current_view_has_sub_tabs(void);
+void kbo_webview_append_developer_render_probe_script(KboWindowTextBuffer* buffer);
 WCHAR* kbo_build_webview_hub_html(void);
 int kbo_webview_is_failed(void);
 void kbo_webview_mark_failed(const char* reason, HRESULT hr);

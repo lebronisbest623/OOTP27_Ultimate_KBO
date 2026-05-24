@@ -164,6 +164,13 @@ int kbo_secondary_draft_mark_protected_players(
     int candidate_count,
     int team_count,
     uint32_t season);
+int kbo_secondary_draft_auto_submit_missing_protection_lists(
+    uint32_t season,
+    const KboSecondaryDraftTeam* teams,
+    int team_count,
+    KboSecondaryDraftCandidate* candidates,
+    int candidate_count,
+    const char* source);
 int kbo_secondary_draft_best_candidate_for_team(
     KboSecondaryDraftCandidate* candidates,
     int candidate_count,
