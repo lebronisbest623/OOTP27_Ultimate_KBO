@@ -202,7 +202,7 @@ void kbo_webview_append_foreign_rights_view(
             }
             KBO_PROFILE_END(profile_foreign_rights_render, "webview.foreign_rights.render");
             if (rendered == 0) {
-                kbo_window_text_appendf(buffer, "<tr><td colspan='10'></td></tr>");
+                kbo_window_text_appendf(buffer, "<tr><td colspan='10'>표시할 외국인 보류권 선수가 없습니다.</td></tr>");
             }
             kbo_profiler_record_us("webview.foreign_rights.rows", (unsigned long long)rendered);
             kbo_window_text_appendf(buffer, "</tbody></table></section></div>");

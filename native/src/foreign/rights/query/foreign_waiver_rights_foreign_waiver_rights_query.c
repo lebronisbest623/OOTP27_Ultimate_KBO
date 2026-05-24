@@ -7,14 +7,25 @@ void kbo_ensure_foreign_waiver_rights_loaded_for_lookup(void)
     static volatile LONG rights_loaded = 0;
     static volatile LONG load_in_progress = 0;
     static volatile LONG last_attempt_tick = 0;
+    static char loaded_path[MAX_PATH] = {0};
 
-    if (InterlockedCompareExchange(&rights_loaded, 0, 0) == 1) {
+    char current_path[MAX_PATH] = {0};
+    if (!kbo_get_foreign_waiver_rights_path(current_path, sizeof(current_path))) {
+        current_path[0] = '\0';
+    }
+
+    if (InterlockedCompareExchange(&rights_loaded, 0, 0) == 1
+            && current_path[0] != '\0'
+            && strcmp(loaded_path, current_path) == 0) {
         return;
     }
 
     DWORD now = GetTickCount();
     LONG last = InterlockedCompareExchange(&last_attempt_tick, 0, 0);
-    if (last != 0 && now - (DWORD)last < 1000u) {
+    if (last != 0
+            && now - (DWORD)last < 1000u
+            && current_path[0] != '\0'
+            && strcmp(loaded_path, current_path) == 0) {
         return;
     }
 
@@ -24,6 +35,7 @@ void kbo_ensure_foreign_waiver_rights_loaded_for_lookup(void)
 
     InterlockedExchange(&last_attempt_tick, (LONG)now);
     if (kbo_load_foreign_waiver_rights()) {
+        snprintf(loaded_path, sizeof(loaded_path), "%s", current_path);
         InterlockedExchange(&rights_loaded, 1);
     }
     InterlockedExchange(&load_in_progress, 0);
