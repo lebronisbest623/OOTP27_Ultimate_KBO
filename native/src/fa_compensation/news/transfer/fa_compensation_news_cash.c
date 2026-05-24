@@ -49,22 +49,32 @@ void kbo_emit_fa_compensation_cash_only_news(
         { "cash_text", cash_text },
     };
 
+    const char* title_key = rec->requires_player_compensation
+        ? "fa_compensation.cash_only.title"
+        : "fa_compensation.cash_required.title";
+    const char* body_key = rec->requires_player_compensation
+        ? "fa_compensation.cash_only.body"
+        : "fa_compensation.cash_required.body";
+    const char* log_source = rec->requires_player_compensation
+        ? "fa_compensation_cash"
+        : "fa_compensation_cash_required";
+
     char title[160] = {0};
     char body[1200] = {0};
     if (!kbo_news_template_render_key(
-            "fa_compensation.cash_only.title",
+            title_key,
             news_vars,
             (int)(sizeof(news_vars) / sizeof(news_vars[0])),
             title,
             sizeof(title),
-            "fa_compensation_cash")
+            log_source)
             || !kbo_news_template_render_key(
-                "fa_compensation.cash_only.body",
+                body_key,
                 news_vars,
                 (int)(sizeof(news_vars) / sizeof(news_vars[0])),
                 body,
                 sizeof(body),
-                "fa_compensation_cash")) {
+                log_source)) {
         kbo_log_runtimef(
             "KBO FA compensation cash-only news skipped fa_player=%u reason=template_unavailable",
             rec->player_id);

@@ -43,11 +43,21 @@
   "fa_compensation.cash_only.title.variants": 4,
   "fa_compensation.cash_only.title.v1": "{fa_player_link} 이적 보상, 현금으로 확정",
   "fa_compensation.cash_only.title.v2": "{fa_player_link} 보상 절차, 현금 지급으로 종료",
-  "fa_compensation.cash_only.title.v3": "{original_team_link}, 선수 대신 돈으로 받는다",
+  "fa_compensation.cash_only.title.v3": "{original_team_link}, FA 보상 현금 수령",
   "fa_compensation.cash_only.title.v4": "FA 보상 현금 수령, 보상선수 없이 마무리",
   "fa_compensation.cash_only.body": "{fa_player_link}의 FA 이적 보상이 현금으로 확정됐습니다. {original_team_link}는 {signing_team_link}로부터 보상금 {cash_text}를 받습니다. 등급은 {grade}입니다.\n\n보상선수 이동은 없지만 절차는 여기서 마무리됩니다. {original_team_link}는 확보한 금액을 다음 전력 보강에 활용하고, {signing_team_link}는 FA 영입 비용을 현금으로 정리했습니다.",
   "fa_compensation.cash_only.body.variants": 3,
   "fa_compensation.cash_only.body.v1": "{fa_player_link}의 FA 이적 보상이 현금으로 확정됐습니다. {original_team_link}는 {signing_team_link}로부터 보상금 {cash_text}를 받습니다. 등급은 {grade}입니다.\n\n보상선수 이동은 없지만 절차는 여기서 마무리됩니다. {original_team_link}는 확보한 금액을 다음 전력 보강에 활용하고, {signing_team_link}는 FA 영입 비용을 현금으로 정리했습니다.",
   "fa_compensation.cash_only.body.v2": "{signing_team_link}가 {fa_player_link}를 영입하면서 생긴 FA 보상은 현금 지급으로 닫혔습니다. {original_team_link}에 돌아갈 보상금은 {cash_text}이며, 등급은 {grade}입니다.\n\n선수 지명은 이뤄지지 않았습니다. 대신 {original_team_link}는 자금 여유를 얻었고, {signing_team_link}는 추가 선수 유출 없이 보상 절차를 끝냈습니다.",
-  "fa_compensation.cash_only.body.v3": "보상선수 없이 정리됐습니다. {original_team_link}는 {fa_player_link}가 떠난 대가로 {signing_team_link}로부터 보상금 {cash_text}를 받습니다. 등급은 {grade}.\n\n선수를 데려오는 대신 돈을 택한 이유는 구단마다 다릅니다. {original_team_link}는 확보한 자금을 어디에 쓸지가 다음 질문입니다."
+  "fa_compensation.cash_only.body.v3": "보상선수 없이 정리됐습니다. {original_team_link}는 {fa_player_link}가 떠난 대가로 {signing_team_link}로부터 보상금 {cash_text}를 받습니다. 등급은 {grade}.\n\n현금 보상으로 마무리한 배경은 구단마다 다릅니다. {original_team_link}는 확보한 자금을 어디에 쓸지가 다음 질문입니다.",
+  "fa_compensation.cash_required.title": "{fa_player_link} {grade}등급 보상, 현금 지급 확정",
+  "fa_compensation.cash_required.title.variants": 3,
+  "fa_compensation.cash_required.title.v1": "{fa_player_link} {grade}등급 보상, 현금 지급 확정",
+  "fa_compensation.cash_required.title.v2": "{original_team_link}, {grade}등급 FA 보상금 수령",
+  "fa_compensation.cash_required.title.v3": "{fa_player_link} 이적 보상, 규정대로 현금 처리",
+  "fa_compensation.cash_required.body": "{fa_player_link}의 FA 이적 보상은 현금으로 확정됐습니다. 등급은 {grade}이며, 이 등급은 보상선수 지명 없이 보상금만 발생합니다.\n\n{original_team_link}는 {signing_team_link}로부터 {cash_text}를 받습니다. 선수 선택 절차는 열리지 않고, 보상은 현금 지급으로 마무리됩니다.",
+  "fa_compensation.cash_required.body.variants": 3,
+  "fa_compensation.cash_required.body.v1": "{fa_player_link}의 FA 이적 보상은 현금으로 확정됐습니다. 등급은 {grade}이며, 이 등급은 보상선수 지명 없이 보상금만 발생합니다.\n\n{original_team_link}는 {signing_team_link}로부터 {cash_text}를 받습니다. 선수 선택 절차는 열리지 않고, 보상은 현금 지급으로 마무리됩니다.",
+  "fa_compensation.cash_required.body.v2": "{signing_team_link}가 {fa_player_link}를 영입하면서 {original_team_link}에 지급할 FA 보상금이 정해졌습니다. {grade}등급 보상은 선수 이동을 동반하지 않습니다.\n\n지급액은 {cash_text}입니다. 이번 건은 보호명단이나 보상선수 선택 없이 현금 보상으로 처리됩니다.",
+  "fa_compensation.cash_required.body.v3": "{fa_player_link}의 이적에 따른 {grade}등급 FA 보상은 현금 지급으로 정리됩니다. {original_team_link}가 받을 금액은 {cash_text}입니다.\n\n이 등급에서는 보상선수를 고르는 절차가 없기 때문에, {signing_team_link}의 추가 선수 이동 없이 보상금만 기록됩니다."
 }
