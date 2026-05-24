@@ -150,6 +150,10 @@ int kbo_secondary_draft_owner_index_for_player_from_map(
     const KboSecondaryDraftTeamOwnerMapEntry* entries,
     int entry_count);
 int kbo_secondary_draft_player_status_ok(uint8_t* player);
+int kbo_secondary_draft_player_auto_protected_by_tenure(
+    uint8_t* player,
+    int* out_total_seasons,
+    int* out_known);
 int kbo_secondary_draft_collect_candidates(
     const KboSecondaryDraftTeam* teams,
     int team_count,

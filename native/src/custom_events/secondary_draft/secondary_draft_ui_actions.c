@@ -4,10 +4,15 @@
 #include "secondary_draft_ui_actions_internal.h"
 
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "../../bootstrap/abi/ootp_offsets.h"
+#include "../../foreign/common/player_eval/foreign_waiver_player_eval.h"
+#include "../../runtime_memory/runtime_memory.h"
 #include "../../team/lookup/team_lookup.h"
+#include "../../team/names/team_name_cache.h"
 
 int kbo_secondary_draft_collect_team_list_rows(
     uint32_t season,
@@ -81,6 +86,57 @@ int kbo_secondary_draft_collect_team_list_rows(
     return count;
 }
 
+static int kbo_secondary_draft_resolve_single_team(
+    uint32_t team_id,
+    KboSecondaryDraftTeam* out_team)
+{
+    if (team_id == 0u || out_team == NULL) {
+        return 0;
+    }
+    memset(out_team, 0, sizeof(*out_team));
+    out_team->team = find_kbo_team_by_numeric_id_any_league(team_id, 1);
+    if (out_team->team == NULL
+            || !memory_range_readable(out_team->team, OOTP27_KBO_TEAM_READABLE_BYTES)) {
+        return 0;
+    }
+    out_team->team_id = team_id;
+    uint32_t parent_team_id = *(uint32_t*)(out_team->team + OOTP27_KBO_TEAM_PARENT_TEAM_ID_OFFSET);
+    out_team->org_team_id = parent_team_id != 0u ? parent_team_id : team_id;
+    out_team->league_id = *(uint32_t*)(out_team->team + OOTP27_KBO_TEAM_LEAGUE_ID_OFFSET);
+    kbo_secondary_draft_copy_team_name(out_team->team, team_id, out_team->name, sizeof(out_team->name));
+    return 1;
+}
+
+static int kbo_secondary_draft_validate_single_protect_candidate(
+    uint32_t team_id,
+    uint32_t player_id,
+    KboSecondaryDraftTeam* out_team,
+    char* out_player_name,
+    size_t player_name_size)
+{
+    if (!kbo_secondary_draft_resolve_single_team(team_id, out_team)) {
+        return 0;
+    }
+    uint8_t* player = kbo_find_player_by_id(player_id, NULL, NULL);
+    if (player == NULL || !kbo_secondary_draft_player_status_ok(player)) {
+        return 0;
+    }
+    if (kbo_secondary_draft_owner_index_for_player(player, out_team, 1) < 0) {
+        return 0;
+    }
+    if (kbo_secondary_draft_player_auto_protected_by_tenure(player, NULL, NULL)) {
+        return 0;
+    }
+    if (out_player_name != NULL && player_name_size > 0u) {
+        out_player_name[0] = '\0';
+        kbo_copy_player_display_name(player, out_player_name, player_name_size);
+        if (out_player_name[0] == '\0') {
+            snprintf(out_player_name, player_name_size, "Player #%u", player_id);
+        }
+    }
+    return 1;
+}
+
 int kbo_secondary_draft_set_protected_player(
     uint32_t season,
     uint32_t team_id,
@@ -99,48 +155,40 @@ int kbo_secondary_draft_set_protected_player(
         return 0;
     }
 
-    KboSecondaryDraftCandidate* candidates = (KboSecondaryDraftCandidate*)HeapAlloc(
-        GetProcessHeap(),
-        HEAP_ZERO_MEMORY,
-        (SIZE_T)KBO_SECONDARY_DRAFT_CANDIDATE_MAX * sizeof(KboSecondaryDraftCandidate));
-    if (candidates == NULL) {
+    if (!protect) {
+        if (kbo_secondary_draft_sql_result_player_exists(season, player_id)) {
+            return 0;
+        }
+        return kbo_secondary_draft_sql_delete_protected_player(season, team_id, player_id);
+    }
+
+    if (kbo_secondary_draft_sql_result_player_exists(season, player_id)) {
         return 0;
     }
-    KboSecondaryDraftTeam team;
-    int candidate_count = kbo_secondary_draft_collect_team_candidates(
-        team_id,
-        &team,
-        candidates,
-        KBO_SECONDARY_DRAFT_CANDIDATE_MAX);
-    int ok = 0;
-    for (int i = 0; i < candidate_count; i++) {
-        KboSecondaryDraftCandidate* c = &candidates[i];
-        if (c->player_id != player_id) {
-            continue;
-        }
-        if (c->auto_protected || kbo_secondary_draft_sql_result_player_exists(season, player_id)) {
-            break;
-        }
-        if (protect) {
-            int already = kbo_secondary_draft_sql_player_protected(season, team_id, player_id);
-            int saved_count = kbo_secondary_draft_sql_protected_count(season, team_id);
-            if (!already && saved_count >= KBO_SECONDARY_DRAFT_PROTECTED_LIST_LIMIT) {
-                break;
-            }
-            ok = kbo_secondary_draft_sql_write_protected_player(
-                season,
-                team_id,
-                player_id,
-                c->player_name,
-                team.name,
-                source);
-        } else {
-            ok = kbo_secondary_draft_sql_delete_protected_player(season, team_id, player_id);
-        }
-        break;
+
+    int already = kbo_secondary_draft_sql_player_protected(season, team_id, player_id);
+    int saved_count = kbo_secondary_draft_sql_protected_count(season, team_id);
+    if (!already && saved_count >= KBO_SECONDARY_DRAFT_PROTECTED_LIST_LIMIT) {
+        return 0;
     }
-    HeapFree(GetProcessHeap(), 0, candidates);
-    return ok;
+
+    KboSecondaryDraftTeam team;
+    char player_name[96] = {0};
+    if (!kbo_secondary_draft_validate_single_protect_candidate(
+        team_id,
+        player_id,
+        &team,
+        player_name,
+        sizeof(player_name))) {
+        return 0;
+    }
+    return kbo_secondary_draft_sql_write_protected_player(
+        season,
+        team_id,
+        player_id,
+        player_name,
+        team.name,
+        source);
 }
 
 int kbo_secondary_draft_autofill_protected_list(uint32_t season, uint32_t team_id, const char* source)

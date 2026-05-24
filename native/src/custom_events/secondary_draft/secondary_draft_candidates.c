@@ -105,7 +105,7 @@ static int32_t kbo_secondary_draft_player_value_score(uint8_t* player)
     return score;
 }
 
-static int kbo_secondary_draft_player_auto_protected_by_tenure(
+int kbo_secondary_draft_player_auto_protected_by_tenure(
     uint8_t* player,
     int* out_total_seasons,
     int* out_known)
