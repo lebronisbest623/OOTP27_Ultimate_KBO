@@ -73,6 +73,7 @@ int kbo_get_current_save_path(char* out, size_t out_size)
 #include "../src/allstar/allstar_native_events/schedule/schedule_dates.h"
 #include "../src/foreign/common/dates/foreign_waiver_date.h"
 #include "../src/core/core_flags/keys/flag_key.h"
+#include "../src/core/core_flags/api/settings/economic/economic_defaults.h"
 #include "../src/fa_filing/fa_filing_parts/fa_filing_csv_parse.h"
 #include "../src/fa_salary_snapshot/csv/salary_snapshot_csv_parse.h"
 #include "../src/fa_market_classification/internal/fa_market_policy_internal.h"
@@ -2441,6 +2442,26 @@ static void test_asian_quota_slot_candidate_ignores_unprepared_salary(void)
     printf("test_asian_quota_slot_candidate_ignores_unprepared_salary: PASS\n");
 }
 
+static void test_economic_defaults_use_hard_fallbacks_for_missing_policy_keys(void)
+{
+    assert(kbo_economic_default_foreign_fa_demand_baseline(0) == 700000);
+    assert(kbo_economic_default_foreign_fa_demand_baseline(8) == 2600000);
+    assert(kbo_economic_default_asian_quota_fa_demand_baseline(0) == 80000);
+    assert(kbo_economic_default_asian_quota_fa_demand_baseline(8) == 200000);
+    assert(kbo_economic_default_non_asian_quality_cap(0) == 126500);
+    assert(kbo_economic_default_asian_quality_cap(0) == 72000);
+    assert(kbo_economic_default_asian_quota_salary_limit() == 200000);
+    assert(kbo_economic_default_foreign_fa_quality_cap_enabled() == 1);
+    assert(kbo_economic_default_intl_established_fa_multiplier() == 20);
+    assert(kbo_economic_default_asian_games_no_gold_odds_denominator() == 7);
+    assert(kbo_economic_default_independent_acquisition_foreign_cash_cost() == 100000);
+    assert(kbo_economic_default_independent_acquisition_domestic_cash_cost() == 30000);
+    assert(kbo_economic_default_independent_acquisition_foreign_seller_transfer_fee() == 100000);
+    assert(kbo_economic_default_independent_acquisition_domestic_seller_transfer_fee() == 30000);
+
+    printf("test_economic_defaults_use_hard_fallbacks_for_missing_policy_keys: PASS\n");
+}
+
 static void test_foreign_injury_slot_label(void)
 {
     /* The two named slot types: regular foreign vs Asian quota. */
@@ -3470,6 +3491,7 @@ int main(void)
     test_foreign_waiver_value_score();
     test_player_is_foreign_for_kbo_rights();
     test_asian_quota_slot_candidate_ignores_unprepared_salary();
+    test_economic_defaults_use_hard_fallbacks_for_missing_policy_keys();
     test_foreign_injury_slot_label();
     test_foreign_injury_status_label();
     test_foreign_injury_policy_helpers();
