@@ -2212,6 +2212,7 @@ static void test_rule_audit_ndjson_sink(void)
         "ok",
         "native_tests",
         &audit_fields);
+    kbo_log_event_shutdown();
 
     HANDLE file = CreateFileA(
         audit_path,

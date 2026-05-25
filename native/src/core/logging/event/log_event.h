@@ -68,4 +68,7 @@ void kbo_log_runtime_message(
     const char* event,
     const char* message);
 
+void kbo_log_event_flush(void);
+void kbo_log_event_shutdown(void);
+
 #endif

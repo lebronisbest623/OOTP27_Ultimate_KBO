@@ -1,5 +1,6 @@
 #include "../entrypoint_internal.h"
 #include "../../core/core_flags/keys/runtime_flag_keys.generated.h"
+#include "../../core/logging/event/log_event.h"
 
 void start_kbo_full_runtime_marker_wait_thread(HINSTANCE instance)
 {
@@ -298,6 +299,7 @@ BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved)
     } else if (reason == DLL_PROCESS_DETACH) {
         if (reserved == NULL) {
             kbo_shutdown_runtime_threads(10000u);
+            kbo_log_event_shutdown();
         } else {
             kbo_request_runtime_threads_stop();
         }
