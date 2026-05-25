@@ -6,6 +6,7 @@
 #include "../../../../../bootstrap/profiling/profiler.h"
 #include "../../../../../core/core_flags/api/flags_api.h"
 #include "../../../../../core/logging/core_log.h"
+#include "../../../../../offer_candidate/replacement/offer_candidate_replacement_dispatcher.h"
 #include "../../../../../runtime_memory/runtime_memory.h"
 #include "../../../../../team/assignment/org_query/team_org_assignment_query.h"
 #include "../../../../common/dates/foreign_waiver_date.h"
@@ -54,6 +55,23 @@ static uint32_t kbo_offer_candidate_priority_team_id(uintptr_t frame_ptr)
         return 0u;
     }
     return *(uint32_t*)(team_ptr + OOTP27_KBO_TEAM_ID_OFFSET);
+}
+
+static uint32_t kbo_offer_candidate_priority_team_league_id(uintptr_t frame_ptr)
+{
+    if (frame_ptr == 0
+            || !memory_range_readable(
+                (void*)(frame_ptr + OOTP27_AI_FA_OFFER_FRAME_TEAM_PTR_OFFSET),
+                sizeof(uintptr_t))) {
+        return 0u;
+    }
+
+    uintptr_t team_ptr = *(uintptr_t*)(frame_ptr + OOTP27_AI_FA_OFFER_FRAME_TEAM_PTR_OFFSET);
+    if (team_ptr == 0
+            || !memory_range_readable((void*)(team_ptr + OOTP27_KBO_TEAM_LEAGUE_ID_OFFSET), sizeof(uint32_t))) {
+        return 0u;
+    }
+    return *(uint32_t*)(team_ptr + OOTP27_KBO_TEAM_LEAGUE_ID_OFFSET);
 }
 
 static uint32_t kbo_offer_candidate_priority_player_u32(uint8_t* player, uint32_t offset)
@@ -144,10 +162,31 @@ __declspec(noinline) uintptr_t ootp_kbo_foreign_ai_offer_candidate_priority_wrap
 {
     KBO_HOOK_PROFILE_BEGIN(profile_hook);
     if (candidate_player_ptr == 0
-            || !kbo_foreign_ai_offer_candidate_priority_enabled()
             || !memory_range_readable(
                 (void*)candidate_player_ptr,
                 OOTP27_PLAYER_NATION_ID_OFFSET + sizeof(uint32_t))) {
+        KBO_HOOK_PROFILE_RETURN(profile_hook, "foreign.ai_offer_candidate_priority", candidate_player_ptr);
+    }
+
+    uint32_t team_id = kbo_offer_candidate_priority_team_id(frame_ptr);
+    uint32_t team_league_id = kbo_offer_candidate_priority_team_league_id(frame_ptr);
+    uint32_t today = 0u;
+    if (team_id != 0u && kbo_get_foreign_waiver_current_yyyymmdd(&today) && today != 0u) {
+        KboOfferCandidateReplacementResult replacement =
+            kbo_offer_candidate_replacement_dispatch(
+                candidate_player_ptr,
+                team_id,
+                team_league_id,
+                today);
+        if (replacement.source != KBO_OFFER_CANDIDATE_REPLACEMENT_NONE) {
+            KBO_HOOK_PROFILE_RETURN(
+                profile_hook,
+                "foreign.ai_offer_candidate_priority",
+                replacement.player_ptr);
+        }
+    }
+
+    if (!kbo_foreign_ai_offer_candidate_priority_enabled()) {
         KBO_HOOK_PROFILE_RETURN(profile_hook, "foreign.ai_offer_candidate_priority", candidate_player_ptr);
     }
 
@@ -159,9 +198,7 @@ __declspec(noinline) uintptr_t ootp_kbo_foreign_ai_offer_candidate_priority_wrap
         KBO_HOOK_PROFILE_RETURN(profile_hook, "foreign.ai_offer_candidate_priority", candidate_player_ptr);
     }
 
-    uint32_t team_id = kbo_offer_candidate_priority_team_id(frame_ptr);
-    uint32_t today = 0u;
-    if (team_id == 0u || !kbo_get_foreign_waiver_current_yyyymmdd(&today) || today == 0u) {
+    if (team_id == 0u || today == 0u) {
         KBO_HOOK_PROFILE_RETURN(profile_hook, "foreign.ai_offer_candidate_priority", candidate_player_ptr);
     }
 

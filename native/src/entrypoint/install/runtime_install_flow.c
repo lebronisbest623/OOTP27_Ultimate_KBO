@@ -203,17 +203,21 @@ void install_kbo_full_runtime_after_roster_marker(HINSTANCE instance)
         read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_FOREIGN_AI_ROSTER_MANAGEMENT_FILE);
     int auto_enable_foreign_ai_offer_candidate_priority_hook_for_foreign_controller =
         kbo_foreign_ai_controller_enabled();
+    int auto_enable_foreign_ai_offer_candidate_priority_hook_for_offer_replacement =
+        kbo_offer_candidate_replacement_dispatcher_needs_hook();
     int enable_foreign_ai_offer_candidate_priority_hook =
         !disable_foreign_ai_offer_candidate_priority_hook
         && (explicit_enable_foreign_ai_offer_candidate_priority_hook
             || auto_enable_foreign_ai_offer_candidate_priority_hook_for_foreign_ai
-            || auto_enable_foreign_ai_offer_candidate_priority_hook_for_foreign_controller);
+            || auto_enable_foreign_ai_offer_candidate_priority_hook_for_foreign_controller
+            || auto_enable_foreign_ai_offer_candidate_priority_hook_for_offer_replacement);
     kbo_log_runtimef(
-        "KBO foreign AI offer candidate priority flags: enable=%d explicit=%d auto_foreign_ai=%d auto_foreign_controller=%d disable=%d",
+        "KBO foreign AI offer candidate priority flags: enable=%d explicit=%d auto_foreign_ai=%d auto_foreign_controller=%d auto_offer_replacement=%d disable=%d",
         enable_foreign_ai_offer_candidate_priority_hook,
         explicit_enable_foreign_ai_offer_candidate_priority_hook,
         auto_enable_foreign_ai_offer_candidate_priority_hook_for_foreign_ai,
         auto_enable_foreign_ai_offer_candidate_priority_hook_for_foreign_controller,
+        auto_enable_foreign_ai_offer_candidate_priority_hook_for_offer_replacement,
         disable_foreign_ai_offer_candidate_priority_hook);
     if (enable_foreign_ai_offer_candidate_priority_hook) {
         install_kbo_foreign_ai_offer_candidate_priority_patch();

@@ -19,6 +19,7 @@
   "investigation_age_old_min": 36,
   "investigation_market_days_long_min": 45,
   "investigation_market_days_very_long_min": 90,
+  "orphan_rescue_market_days_min": 45,
   "investigation_unexplained_value_score_min": 85000,
   "investigation_thread_sleep_ms": 5000,
   "investigation_top_log_count": 20

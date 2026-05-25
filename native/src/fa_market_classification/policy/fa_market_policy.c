@@ -61,6 +61,7 @@ static BOOL CALLBACK kbo_fa_market_policy_init_once(PINIT_ONCE init_once, PVOID 
     p->investigation_age_old_min = kbo_fa_market_policy_int("investigation_age_old_min", 36, 0, 80);
     p->investigation_market_days_long_min = kbo_fa_market_policy_int("investigation_market_days_long_min", 45, 0, 1000);
     p->investigation_market_days_very_long_min = kbo_fa_market_policy_int("investigation_market_days_very_long_min", 90, 0, 1000);
+    p->orphan_rescue_market_days_min = kbo_fa_market_policy_int("orphan_rescue_market_days_min", p->investigation_market_days_long_min, 0, 1000);
     p->investigation_unexplained_value_score_min = kbo_fa_market_policy_int("investigation_unexplained_value_score_min", 85000, 0, 10000000);
     p->investigation_thread_sleep_ms = kbo_fa_market_policy_int("investigation_thread_sleep_ms", 5000, 100, 600000);
     p->investigation_top_log_count = kbo_fa_market_policy_int("investigation_top_log_count", 20, 0, 1000);
@@ -72,6 +73,9 @@ static BOOL CALLBACK kbo_fa_market_policy_init_once(PINIT_ONCE init_once, PVOID 
     }
     if (p->investigation_market_days_very_long_min < p->investigation_market_days_long_min) {
         p->investigation_market_days_very_long_min = p->investigation_market_days_long_min;
+    }
+    if (p->orphan_rescue_market_days_min <= 0) {
+        p->orphan_rescue_market_days_min = p->investigation_market_days_long_min;
     }
     if (p->player_age_max < p->player_age_min) {
         p->player_age_max = p->player_age_min;

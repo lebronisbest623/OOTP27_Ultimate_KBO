@@ -26,6 +26,7 @@
 #include "../fa_market_investigation/api/fa_market_investigation.h"
 #include "../fa_salary_snapshot/threads/salary_snapshot_phase_events.h"
 #include "../fa_salary_snapshot/threads/salary_snapshot_thread.h"
+#include "../offer_candidate/replacement/offer_candidate_replacement_dispatcher.h"
 #include "../foreign/waiver_core/api/foreign_waiver_core.h"
 #include "../foreign/common/policy/foreign_waiver_policy.h"
 #include "../foreign/controller/foreign_ai_controller.h"

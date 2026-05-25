@@ -11,6 +11,12 @@ $ForeignRetentionScoreGateTestSrc = Join-Path $PSScriptRoot "test_foreign_retent
 $ForeignRetentionScoreGateTestExe = Join-Path $PSScriptRoot "test_foreign_retention_score_gate.exe"
 $ForeignOfferAttachHookPolicyTestSrc = Join-Path $PSScriptRoot "test_foreign_offer_attach_hook_policy.c"
 $ForeignOfferAttachHookPolicyTestExe = Join-Path $PSScriptRoot "test_foreign_offer_attach_hook_policy.exe"
+$OfferCandidateReplacementDispatcherTestSrc = Join-Path $PSScriptRoot "test_offer_candidate_replacement_dispatcher.c"
+$OfferCandidateReplacementDispatcherTestExe = Join-Path $PSScriptRoot "test_offer_candidate_replacement_dispatcher.exe"
+$DomesticFaOrphanRescuePolicyTestSrc = Join-Path $PSScriptRoot "test_domestic_fa_orphan_rescue_policy.c"
+$DomesticFaOrphanRescuePolicyTestExe = Join-Path $PSScriptRoot "test_domestic_fa_orphan_rescue_policy.exe"
+$DomesticFaOrphanRescueOfferReplacementTestSrc = Join-Path $PSScriptRoot "test_domestic_fa_orphan_rescue_offer_replacement.c"
+$DomesticFaOrphanRescueOfferReplacementTestExe = Join-Path $PSScriptRoot "test_domestic_fa_orphan_rescue_offer_replacement.exe"
 $IndependentAcquisitionCashFlowTestSrc = Join-Path $PSScriptRoot "test_independent_acquisition_cash_flow.c"
 $IndependentAcquisitionCashFlowTestExe = Join-Path $PSScriptRoot "test_independent_acquisition_cash_flow.exe"
 $IntlEstablishedFaMarketNormalizeTestSrc = Join-Path $PSScriptRoot "test_intl_established_fa_market_normalize.c"
@@ -149,6 +155,51 @@ if ($LASTEXITCODE -ne 0) {
 & $ForeignOfferAttachHookPolicyTestExe
 if ($LASTEXITCODE -ne 0) {
     throw "Foreign offer attach hook policy tests failed"
+}
+
+& $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
+    -I $Root `
+    -I (Join-Path $Root "src") `
+    -o $OfferCandidateReplacementDispatcherTestExe `
+    $OfferCandidateReplacementDispatcherTestSrc `
+    (Join-Path $Root "src\offer_candidate\replacement\offer_candidate_replacement_dispatcher.c")
+if ($LASTEXITCODE -ne 0) {
+    throw "Offer candidate replacement dispatcher test build failed"
+}
+
+& $OfferCandidateReplacementDispatcherTestExe
+if ($LASTEXITCODE -ne 0) {
+    throw "Offer candidate replacement dispatcher tests failed"
+}
+
+& $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
+    -I $Root `
+    -I (Join-Path $Root "src") `
+    -o $DomesticFaOrphanRescuePolicyTestExe `
+    $DomesticFaOrphanRescuePolicyTestSrc `
+    (Join-Path $Root "src\fa_market_investigation\rescue\domestic_fa_orphan_rescue_policy.c")
+if ($LASTEXITCODE -ne 0) {
+    throw "Domestic FA orphan rescue policy test build failed"
+}
+
+& $DomesticFaOrphanRescuePolicyTestExe
+if ($LASTEXITCODE -ne 0) {
+    throw "Domestic FA orphan rescue policy tests failed"
+}
+
+& $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
+    -I $Root `
+    -I (Join-Path $Root "src") `
+    -o $DomesticFaOrphanRescueOfferReplacementTestExe `
+    $DomesticFaOrphanRescueOfferReplacementTestSrc `
+    (Join-Path $Root "src\fa_market_investigation\rescue\offer_replacement\domestic_fa_orphan_rescue_offer_replacement.c")
+if ($LASTEXITCODE -ne 0) {
+    throw "Domestic FA orphan rescue offer replacement test build failed"
+}
+
+& $DomesticFaOrphanRescueOfferReplacementTestExe
+if ($LASTEXITCODE -ne 0) {
+    throw "Domestic FA orphan rescue offer replacement tests failed"
 }
 
 & $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `

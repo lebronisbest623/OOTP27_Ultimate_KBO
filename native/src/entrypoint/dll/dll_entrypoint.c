@@ -98,6 +98,7 @@ DWORD WINAPI patch_thread(LPVOID parameter)
     if (!read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_DISABLE_KBO_FOREIGN_AI_OFFER_CANDIDATE_PRIORITY_HOOK_FILE)
             && (foreign_ai_roster_management
                 || foreign_ai_controller
+                || kbo_offer_candidate_replacement_dispatcher_needs_hook()
                 || read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_KBO_FOREIGN_AI_OFFER_CANDIDATE_PRIORITY_HOOK_FILE))) {
         kbo_log_runtime_line("KBO presave foreign AI offer candidate priority hook install requested");
         install_kbo_foreign_ai_offer_candidate_priority_patch();
@@ -248,6 +249,7 @@ static DWORD WINAPI kbo_hot_reinject_ai_roster_management_thread(LPVOID paramete
     }
     if ((foreign_ai_roster_management
             || foreign_ai_controller
+            || kbo_offer_candidate_replacement_dispatcher_needs_hook()
             || read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_KBO_FOREIGN_AI_OFFER_CANDIDATE_PRIORITY_HOOK_FILE))
             && !read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_DISABLE_KBO_FOREIGN_AI_OFFER_CANDIDATE_PRIORITY_HOOK_FILE)) {
         install_kbo_foreign_ai_offer_candidate_priority_patch();

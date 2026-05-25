@@ -27,6 +27,7 @@ typedef struct KboFaMarketPolicy {
     int32_t investigation_age_old_min;
     int32_t investigation_market_days_long_min;
     int32_t investigation_market_days_very_long_min;
+    int32_t orphan_rescue_market_days_min;
     int32_t investigation_unexplained_value_score_min;
     int32_t investigation_thread_sleep_ms;
     int32_t investigation_top_log_count;
