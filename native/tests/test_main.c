@@ -602,6 +602,35 @@ static void test_current_date_tick_consumer_preserves_hooks_before_save_path_rea
     printf("test_current_date_tick_consumer_preserves_hooks_before_save_path_ready: PASS\n");
 }
 
+static void test_current_date_tick_consumer_coalesces_to_latest(void)
+{
+    kbo_test_reset_current_date_tick_state();
+    snprintf(g_test_current_save_path, sizeof(g_test_current_save_path), "C:\\test\\saved_games\\New Game.lg");
+
+    KboCurrentDateTickConsumer consumer = {0};
+    KboCurrentDateTickWork work = {0};
+    kbo_current_date_tick_consumer_init(
+        &consumer,
+        "test_coalesce_latest",
+        KBO_CURRENT_DATE_TICK_CONSUMER_COALESCE_TO_LATEST);
+
+    assert(kbo_current_date_tick_publish(20260302u, 0x2222u));
+    assert(kbo_current_date_tick_publish(20260303u, 0x3333u));
+    assert(kbo_current_date_tick_publish(20260304u, 0x4444u));
+
+    assert(kbo_current_date_tick_consumer_next(&consumer, &work));
+    assert(work.date == 20260304u);
+    assert(work.event_date == 20260304u);
+    assert(work.site_rva == 0x4444u);
+    assert(work.sequence == 3u);
+    assert(work.missed_events == 2u);
+    kbo_current_date_tick_consumer_mark_processed(&consumer);
+    assert(!kbo_current_date_tick_consumer_next(&consumer, &work));
+
+    kbo_test_reset_current_date_tick_state();
+    printf("test_current_date_tick_consumer_coalesces_to_latest: PASS\n");
+}
+
 static void test_current_date_tick_consumer_requires_published_dates(void)
 {
     kbo_test_reset_current_date_tick_state();
@@ -3398,6 +3427,7 @@ int main(void)
     test_date_serial();
     test_current_date_tick_consumer_retries_save_enter_until_date_ready();
     test_current_date_tick_consumer_preserves_hooks_before_save_path_ready();
+    test_current_date_tick_consumer_coalesces_to_latest();
     test_current_date_tick_consumer_requires_published_dates();
     test_current_date_tick_publish_rejects_non_adjacent_live_dates();
     test_current_date_tick_live_candidate_publishable_filters_transient_dates();

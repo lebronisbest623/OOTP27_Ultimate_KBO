@@ -161,6 +161,14 @@ static uint32_t kbo_current_date_tick_consumer_pending_missed_events(
     return (uint32_t)(consumer->pending_valid - 1);
 }
 
+static uint32_t kbo_current_date_tick_add_missed_events(uint32_t left, uint32_t right)
+{
+    if (UINT32_MAX - left < right) {
+        return UINT32_MAX;
+    }
+    return left + right;
+}
+
 static void kbo_current_date_tick_consumer_set_pending(
     KboCurrentDateTickConsumer* consumer,
     KboCurrentDateTickEvent event,
@@ -179,6 +187,75 @@ static const char* kbo_current_date_tick_consumer_label(
         return "current_date_tick_consumer";
     }
     return consumer->label;
+}
+
+static int kbo_current_date_tick_consumer_coalesce_enabled(
+    const KboCurrentDateTickConsumer* consumer)
+{
+    return consumer != NULL
+        && (consumer->flags & KBO_CURRENT_DATE_TICK_CONSUMER_COALESCE_TO_LATEST) != 0u;
+}
+
+static KboCurrentDateTickEvent kbo_current_date_tick_consumer_coalesce_event(
+    KboCurrentDateTickConsumer* consumer,
+    KboCurrentDateTickEvent first_event,
+    uint32_t* io_missed_events,
+    uint32_t* out_skipped_events)
+{
+    if (out_skipped_events != NULL) {
+        *out_skipped_events = 0u;
+    }
+    if (consumer == NULL) {
+        return first_event;
+    }
+
+    KboCurrentDateTickCursor cursor = consumer->cursor;
+    if (cursor.next_sequence < (LONG)first_event.sequence) {
+        cursor.next_sequence = (LONG)first_event.sequence;
+    }
+
+    KboCurrentDateTickEvent selected = first_event;
+    uint32_t selected_missed = io_missed_events != NULL ? *io_missed_events : 0u;
+    uint32_t skipped_events = 0u;
+
+    for (;;) {
+        KboCurrentDateTickEvent event = {0};
+        uint32_t missed_events = 0u;
+        if (!kbo_current_date_tick_peek_ex(
+                &cursor,
+                kbo_current_date_tick_consumer_label(consumer),
+                &consumer->overflow_log_count,
+                &event,
+                &missed_events)) {
+            break;
+        }
+
+        cursor.next_sequence = (LONG)event.sequence;
+        if (!kbo_yyyymmdd_valid(event.date)
+                || (consumer->last_processed_date != 0u
+                    && event.date <= consumer->last_processed_date)) {
+            continue;
+        }
+        if (event.date <= selected.date) {
+            skipped_events = kbo_current_date_tick_add_missed_events(skipped_events, 1u);
+            continue;
+        }
+
+        skipped_events = kbo_current_date_tick_add_missed_events(skipped_events, 1u);
+        selected = event;
+        selected_missed = missed_events;
+    }
+
+    consumer->cursor = cursor;
+    if (io_missed_events != NULL) {
+        *io_missed_events = kbo_current_date_tick_add_missed_events(
+            selected_missed,
+            skipped_events);
+    }
+    if (out_skipped_events != NULL) {
+        *out_skipped_events = skipped_events;
+    }
+    return selected;
 }
 
 static void kbo_current_date_tick_consumer_reset_save(
@@ -341,6 +418,15 @@ int kbo_current_date_tick_consumer_next(
             continue;
         }
 
+        uint32_t skipped_events = 0u;
+        if (kbo_current_date_tick_consumer_coalesce_enabled(consumer)) {
+            event = kbo_current_date_tick_consumer_coalesce_event(
+                consumer,
+                event,
+                &missed_events,
+                &skipped_events);
+        }
+
         kbo_current_date_tick_consumer_set_pending(
             consumer,
             event,
@@ -355,6 +441,16 @@ int kbo_current_date_tick_consumer_next(
                 event.date,
                 event.site_rva,
                 event.sequence,
+                missed_events);
+        }
+        if (skipped_events != 0u
+                && kbo_current_date_tick_log_allowed(&consumer->observed_log_count)) {
+            kbo_log_runtimef(
+                "KBO current date tick consumer coalesced label=\"%s\" selected=%u seq=%u skipped=%u missed=%u",
+                kbo_current_date_tick_consumer_label(consumer),
+                event.date,
+                event.sequence,
+                skipped_events,
                 missed_events);
         }
         return kbo_current_date_tick_consumer_pending_work(consumer, out_work);

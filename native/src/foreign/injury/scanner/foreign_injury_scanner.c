@@ -56,6 +56,20 @@ static void kbo_foreign_injury_replacement_scan_for_date_mode(
             source != NULL ? source : "",
             today,
             live_date);
+        if (today < live_date) {
+            static volatile LONG stale_date_skip_log_count = 0;
+            LONG stale_slot = InterlockedIncrement(&stale_date_skip_log_count);
+            if (stale_slot <= 80) {
+                kbo_log_runtimef(
+                    "foreign injury replacement: stale date hook scan skipped source=%s event_date=%u live_date=%u reason=coalesced_to_live_date",
+                    source != NULL ? source : "",
+                    today,
+                    live_date);
+            }
+            kbo_profiler_record_us("foreign_injury.scan.stale_date_hook_skipped", 0);
+            KBO_PROFILE_END(profile_foreign_injury_scan, "foreign_injury.scan.stale_date_hook_skipped");
+            return;
+        }
     }
     if (kbo_foreign_injury_same_date_idle_scan_cached(today, source)) {
         kbo_profiler_record_us("foreign_injury.scan.same_date_idle_cached", 0);
