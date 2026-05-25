@@ -29,6 +29,8 @@ $NoMinorDemandClassifyTestSrc = Join-Path $PSScriptRoot "test_no_minor_demand_cl
 $NoMinorDemandClassifyTestExe = Join-Path $PSScriptRoot "test_no_minor_demand_classify.exe"
 $ForeignNoMinorContractRepairTestSrc = Join-Path $PSScriptRoot "test_foreign_no_minor_contract_repair.c"
 $ForeignNoMinorContractRepairTestExe = Join-Path $PSScriptRoot "test_foreign_no_minor_contract_repair.exe"
+$ForeignInjuryExistingReplacementsTestSrc = Join-Path $PSScriptRoot "test_foreign_injury_existing_replacements.c"
+$ForeignInjuryExistingReplacementsTestExe = Join-Path $PSScriptRoot "test_foreign_injury_existing_replacements.exe"
 $IntlEstablishedFaObservedPlayersTestSrc = Join-Path $PSScriptRoot "test_intl_established_fa_observed_players.c"
 $IntlEstablishedFaObservedPlayersTestExe = Join-Path $PSScriptRoot "test_intl_established_fa_observed_players.exe"
 $TeamLookupPlayerVectorCacheTestSrc = Join-Path $PSScriptRoot "test_team_lookup_player_vector_cache.c"
@@ -299,6 +301,21 @@ if ($LASTEXITCODE -ne 0) {
 & $ForeignNoMinorContractRepairTestExe
 if ($LASTEXITCODE -ne 0) {
     throw "Foreign no-minor contract repair tests failed"
+}
+
+& $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
+    -I $Root `
+    -I (Join-Path $Root "src") `
+    -o $ForeignInjuryExistingReplacementsTestExe `
+    $ForeignInjuryExistingReplacementsTestSrc `
+    (Join-Path $Root "src\foreign\injury\scanner\lifecycle\foreign_injury_existing_replacements.c")
+if ($LASTEXITCODE -ne 0) {
+    throw "Foreign injury existing replacements test build failed"
+}
+
+& $ForeignInjuryExistingReplacementsTestExe
+if ($LASTEXITCODE -ne 0) {
+    throw "Foreign injury existing replacements tests failed"
 }
 
 & $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `

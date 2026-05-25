@@ -30,6 +30,9 @@ void kbo_foreign_injury_process_existing_replacements(
     for (int i = 0; i < g_kbo_foreign_injury_replacement_count; i++) {
         KboForeignInjuryReplacement* rec = &g_kbo_foreign_injury_replacements[i];
         if (rec->status == KBO_FOREIGN_INJURY_STATUS_CLOSED) {
+            if (rec->close_choice == KBO_FOREIGN_INJURY_CLOSE_OFFSEASON_RESET) {
+                continue;
+            }
             if (rec->converted == 0u && rec->replacement_player_id != 0u) {
                 uint8_t* top_team = kbo_foreign_injury_cached_team_lookup(
                     rec->team_id,
