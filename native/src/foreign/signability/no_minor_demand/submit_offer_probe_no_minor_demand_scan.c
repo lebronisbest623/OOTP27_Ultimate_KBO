@@ -92,10 +92,6 @@ int kbo_no_minor_scan_and_floor_teamless_fa_demands(const char* source)
         KBO_PROFILE_END(profile_no_minor_scan, "no_minor.scan.no_league");
         return 0;
     }
-    KBO_PROFILE_BEGIN(profile_no_minor_scan_financials);
-    uint8_t* financials = kbo_resolve_current_league_financials(NULL);
-    KBO_PROFILE_END(profile_no_minor_scan_financials, "no_minor.scan.resolve_financials");
-
     const char* snapshot_failure_reason = NULL;
     KBO_PROFILE_BEGIN(profile_no_minor_scan_snapshot);
     uintptr_t* player_snapshot = kbo_no_minor_copy_player_vector_snapshot(
@@ -122,14 +118,11 @@ int kbo_no_minor_scan_and_floor_teamless_fa_demands(const char* source)
 
     int scanned = 0;
     int teamless = 0;
+    int foreign_skipped = 0;
     int changed = 0;
     int demand_fixed = 0;
-    int retained_demand_fixed = 0;
-    int foreign_contract_demand_fixed = 0;
-    int foreign_demand_mapped = 0;
     int level_observed_nonmajor = 0;
     static LONG detail_log_count = 0;
-    static LONG foreign_detail_log_count = 0;
 
     KBO_PROFILE_BEGIN(profile_no_minor_scan_loop);
     for (int32_t i = 0; i < player_count; i++) {
@@ -144,8 +137,7 @@ int kbo_no_minor_scan_and_floor_teamless_fa_demands(const char* source)
         scanned++;
 
         int no_minor_candidate = kbo_no_minor_scan_is_teamless_demand_floor_candidate(player_prefilter, league_id);
-        int foreign_candidate = kbo_no_minor_scan_is_foreign_demand_remap_candidate(player_prefilter);
-        if (!no_minor_candidate && !foreign_candidate) {
+        if (!no_minor_candidate) {
             continue;
         }
 
@@ -154,79 +146,30 @@ int kbo_no_minor_scan_and_floor_teamless_fa_demands(const char* source)
             continue;
         }
         no_minor_candidate = kbo_no_minor_scan_is_teamless_demand_floor_candidate(player_scan, league_id);
-        foreign_candidate = kbo_no_minor_scan_is_foreign_demand_remap_candidate(player_scan);
-        if (!no_minor_candidate && !foreign_candidate) {
+        if (!no_minor_candidate) {
             continue;
         }
         if (no_minor_candidate) {
             teamless++;
         }
 
+        if (!kbo_no_minor_scan_should_floor_teamless_demand(player_scan, league_id)) {
+            foreign_skipped++;
+            continue;
+        }
+
         uint32_t player_id = *(uint32_t*)(player_scan + OOTP27_PLAYER_ID_OFFSET);
         int32_t old_demand = *(int32_t*)(player_scan + OOTP27_PLAYER_FA_DEMAND_SALARY_OFFSET);
         uint8_t old_contract_level = player_scan[OOTP27_PLAYER_CONTRACT_LEVEL_FLAG_OFFSET];
         int player_changed = 0;
-        uint32_t retained_holder_team_id = 0u;
-        int32_t retained_score = 0;
-        int retained_index = 0;
-        int retained_asian_quota = 0;
-        int32_t retained_demand_floor = kbo_foreign_reserve_demand_floor_for_player(
-            player_scan,
-            today,
-            &retained_holder_team_id,
-            &retained_score,
-            &retained_index,
-            &retained_asian_quota);
-        if (retained_demand_floor > old_demand
-                && kbo_apply_foreign_reserve_demand_floor(player_ptr, source)) {
-            retained_demand_fixed++;
-            player_changed = 1;
-            kbo_no_minor_read_player_i32(player_ptr, OOTP27_PLAYER_FA_DEMAND_SALARY_OFFSET, &old_demand);
-        }
-        if (foreign_candidate && kbo_apply_foreign_contract_demand_floor(player_ptr, today, source)) {
-            foreign_contract_demand_fixed++;
-            player_changed = 1;
-            kbo_no_minor_read_player_i32(player_ptr, OOTP27_PLAYER_FA_DEMAND_SALARY_OFFSET, &old_demand);
-        }
         if (no_minor_candidate && old_contract_level != 1u) {
             level_observed_nonmajor++;
         }
-        if (no_minor_candidate && !foreign_candidate && old_demand < salary_floor) {
+        if (no_minor_candidate && old_demand < salary_floor) {
             if (kbo_no_minor_write_player_i32(player_ptr, OOTP27_PLAYER_FA_DEMAND_SALARY_OFFSET, salary_floor)) {
                 demand_fixed++;
                 player_changed = 1;
                 old_demand = salary_floor;
-            }
-        }
-        if (foreign_candidate && financials != NULL && retained_demand_floor <= 0) {
-            int32_t current_demand = old_demand;
-            kbo_no_minor_read_player_i32(player_ptr, OOTP27_PLAYER_FA_DEMAND_SALARY_OFFSET, &current_demand);
-            if (kbo_foreign_fa_demand_remap_already_applied(player_id, current_demand)) {
-                continue;
-            }
-            int asian_quota = kbo_nation_is_asian_quota_candidate(
-                *(uint32_t*)(player_scan + OOTP27_PLAYER_NATION_ID_OFFSET));
-            int32_t mapped_demand = kbo_foreign_fa_remap_demand_from_salary_ladder(current_demand, financials, asian_quota);
-            if (mapped_demand > 0 && mapped_demand < current_demand) {
-                if (kbo_no_minor_write_player_i32(player_ptr, OOTP27_PLAYER_FA_DEMAND_SALARY_OFFSET, mapped_demand)) {
-                    kbo_foreign_fa_demand_remap_remember(player_id, current_demand, mapped_demand);
-                    foreign_demand_mapped++;
-                    player_changed = 1;
-                    LONG foreign_detail_slot = InterlockedIncrement(&foreign_detail_log_count);
-                    if (foreign_detail_slot <= kbo_foreign_player_policy()->no_minor_scan_max_detail_logs) {
-                        kbo_log_runtimef(
-                            "KBO foreign FA demand remapped: source=%s player=%u asian_quota=%d old_demand=%d mapped_demand=%d original_superstar=%d foreign_superstar=%d",
-                            source,
-                            player_id,
-                            asian_quota,
-                            current_demand,
-                            mapped_demand,
-                            memory_range_readable(financials + OOTP27_FINANCIALS_AVERAGE_SALARY_OFFSET, sizeof(int32_t))
-                                ? *(int32_t*)(financials + OOTP27_FINANCIALS_AVERAGE_SALARY_OFFSET)
-                                : 0,
-                            kbo_get_foreign_fa_demand_baseline_value_for_player(8, asian_quota));
-                    }
-                }
             }
         }
         if (player_changed) {
@@ -251,17 +194,15 @@ int kbo_no_minor_scan_and_floor_teamless_fa_demands(const char* source)
     LONG summary_slot = changed > 0 ? InterlockedIncrement(&summary_log_count) : 0;
     if (changed > 0 && (summary_slot <= 20 || (summary_slot % 40) == 0)) {
         kbo_log_runtimef(
-            "KBO no-minor demand floor prescan complete: source=%s league=%u vector_off=0x%x scanned=%d teamless=%d changed=%d demand_fixed=%d retained_demand_fixed=%d foreign_contract_demand_fixed=%d foreign_demand_mapped=%d level_observed_nonmajor=%d floor=%d summary_slot=%ld",
+            "KBO no-minor demand floor prescan complete: source=%s league=%u vector_off=0x%x scanned=%d teamless=%d foreign_skipped=%d changed=%d demand_fixed=%d level_observed_nonmajor=%d floor=%d summary_slot=%ld",
             source,
             league_id,
             vector_offset,
             scanned,
             teamless,
+            foreign_skipped,
             changed,
             demand_fixed,
-            retained_demand_fixed,
-            foreign_contract_demand_fixed,
-            foreign_demand_mapped,
             level_observed_nonmajor,
             salary_floor,
             summary_slot);

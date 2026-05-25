@@ -10,6 +10,7 @@ int kbo_no_minor_copy_player_scan(uintptr_t player_ptr, uint8_t* out);
 int kbo_no_minor_read_player_i32(uintptr_t player_ptr, uint32_t offset, int32_t* out);
 int kbo_no_minor_write_player_i32(uintptr_t player_ptr, uint32_t offset, int32_t value);
 int kbo_no_minor_scan_is_teamless_demand_floor_candidate(const uint8_t* scan, uint32_t league_id);
-int kbo_no_minor_scan_is_foreign_demand_remap_candidate(const uint8_t* scan);
+int kbo_no_minor_scan_is_foreign_fa_candidate(const uint8_t* scan);
+int kbo_no_minor_scan_should_floor_teamless_demand(const uint8_t* scan, uint32_t league_id);
 
 #endif

@@ -33,9 +33,11 @@ public sealed class NativeForeignFaBaselineRegressionTests
         var prepareText = File.ReadAllText(Path.Combine(repoRoot, "native", "src", "foreign", "signability", "submit_offer_probe", "baseline", "submit_offer_probe_foreign_fa_baseline_prepare.c"));
         var submitProbeHeaderText = File.ReadAllText(Path.Combine(repoRoot, "native", "src", "foreign", "signability", "submit_offer_probe", "submit_offer_probe.h"));
         var offerProbeText = File.ReadAllText(Path.Combine(repoRoot, "native", "src", "foreign", "signability", "foreign_policy", "wrappers", "offer_attach", "foreign_signability_foreign_ai_offer_attach_probe.c"));
+        var offerCallbackText = File.ReadAllText(Path.Combine(repoRoot, "native", "src", "foreign", "signability", "submit_offer_probe", "callbacks", "submit_offer_probe_offer_callback_wrappers.c"));
         var hookStubsText = File.ReadAllText(Path.Combine(repoRoot, "native", "src", "hook_stubs", "foreign", "ai_status", "hook_stubs_foreign_ai_status.c"));
         var patchInstallerText = File.ReadAllText(Path.Combine(repoRoot, "native", "src", "patch_installers", "foreign", "ai_fa", "patch_installers_foreign_ai_fa_status.c"));
-        var demandRemapText = File.ReadAllText(Path.Combine(repoRoot, "native", "src", "foreign", "signability", "submit_offer_probe", "demand", "submit_offer_probe_foreign_fa_demand_remap.c"));
+        var demandRemapPath = Path.Combine(repoRoot, "native", "src", "foreign", "signability", "submit_offer_probe", "demand", "submit_offer_probe_foreign_fa_demand_remap.c");
+        var noMinorClassifyText = File.ReadAllText(Path.Combine(repoRoot, "native", "src", "foreign", "signability", "no_minor_demand", "submit_offer_probe_no_minor_demand_classify.c"));
         var teamAddText = File.ReadAllText(Path.Combine(repoRoot, "native", "src", "team", "add_player_guard", "team_add_player_guard.c"));
 
         offsetsText.Should().Contain("#define OOTP27_KBO_LEAGUE_FINANCIALS_REDIRECT_LEAGUE_ID_OFFSET 0x44e8u");
@@ -51,10 +53,14 @@ public sealed class NativeForeignFaBaselineRegressionTests
         offerProbeText.Should().Contain("kbo_prepare_foreign_fa_offer_demand_baseline_for_team_key");
         hookStubsText.Should().Contain("build_kbo_foreign_ai_offer_terms_build_probe_stub");
         patchInstallerText.Should().Contain("kbo_install_foreign_ai_offer_terms_build_probe_patch");
-        demandRemapText.Should().Contain("demand_floor <= 0 || holder_team_id == 0u");
-        demandRemapText.Should().NotContain("kbo_apply_foreign_contract_salary_floor");
+        File.Exists(demandRemapPath).Should().BeFalse("foreign FA demand must be shaped by offer-build baselines, not a post-write demand floor/remap module");
+        submitProbeHeaderText.Should().NotContain("kbo_apply_foreign_contract_demand_floor");
+        submitProbeHeaderText.Should().NotContain("kbo_apply_foreign_reserve_demand_floor");
+        noMinorClassifyText.Should().Contain("!kbo_no_minor_scan_is_foreign_fa_candidate");
+        offerCallbackText.Should().Contain("foreign_offer ? 0 : kbo_no_minor_resolve_current_league_minimum_salary()");
+        offerCallbackText.Should().Contain("kbo_player_is_foreign_for_kbo_rights");
         teamAddText.Should().NotContain("team_add_post_original");
-        teamAddText.Should().NotContain("kbo_apply_foreign_contract_salary_floor");
+        teamAddText.Should().NotContain("kbo_apply_foreign_contract_demand_floor");
     }
 
     private static string RepoRoot()

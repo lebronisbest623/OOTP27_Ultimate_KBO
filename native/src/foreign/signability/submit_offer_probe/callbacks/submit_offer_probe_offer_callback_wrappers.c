@@ -15,7 +15,10 @@ static int kbo_no_minor_force_contract_offer_major_terms(
     }
 
     int changed = 0;
-    int32_t salary_floor = kbo_no_minor_resolve_current_league_minimum_salary();
+    uint32_t player_id = *(uint32_t*)(offer_ptr + OOTP27_FA_CONTRACT_OFFER_PLAYER_ID_OFFSET);
+    uint8_t* player = player_id != 0u ? kbo_find_player_by_id(player_id, NULL, NULL) : NULL;
+    int foreign_offer = player != NULL && kbo_player_is_foreign_for_kbo_rights(player);
+    int32_t salary_floor = foreign_offer ? 0 : kbo_no_minor_resolve_current_league_minimum_salary();
     int32_t salary = *(int32_t*)(offer_ptr + OOTP27_FA_CONTRACT_OFFER_SALARY_OFFSET);
     int32_t option_salary = *(int32_t*)(offer_ptr + OOTP27_FA_CONTRACT_OFFER_OPTION_SALARY_OFFSET);
     uint8_t major_flag = *(uint8_t*)(offer_ptr + OOTP27_FA_CONTRACT_OFFER_MAJOR_FLAG_OFFSET);
@@ -54,9 +57,11 @@ static int kbo_no_minor_force_contract_offer_major_terms(
         LONG slot = InterlockedIncrement(&force_log_count);
         if (slot <= 120) {
             kbo_log_runtimef(
-                "KBO no-minor offer terms forced: source=%s offer=%p salary=%d option_salary=%d major_flag=%u floor=%d",
+                "KBO no-minor offer terms forced: source=%s offer=%p player=%u foreign_offer=%d salary=%d option_salary=%d major_flag=%u floor=%d",
                 source,
                 (void*)offer_ptr,
+                player_id,
+                foreign_offer,
                 salary,
                 option_salary,
                 (unsigned)major_flag,

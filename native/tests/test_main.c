@@ -1869,6 +1869,16 @@ static void test_core_atomic_file_round_trip(void)
     assert(strcmp(read_buf2, payload2) == 0);
     CloseHandle(check2);
 
+    HANDLE held_dest = CreateFileA(dest_path, GENERIC_READ, FILE_SHARE_READ,
+        NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    assert(held_dest != INVALID_HANDLE_VALUE);
+    HANDLE file3 = kbo_atomic_open_tmp(dest_path, tmp_path, sizeof(tmp_path));
+    assert(file3 != INVALID_HANDLE_VALUE);
+    assert(WriteFile(file3, payload2, (DWORD)(sizeof(payload2) - 1u), &written, NULL));
+    assert(kbo_atomic_commit(file3, tmp_path, dest_path));
+    assert(GetFileAttributesA(tmp_path) == INVALID_FILE_ATTRIBUTES);
+    CloseHandle(held_dest);
+
     DeleteFileA(dest_path);
 
     /* commit() rejects bad inputs. All four guards short-circuit before

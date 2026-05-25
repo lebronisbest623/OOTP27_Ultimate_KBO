@@ -16,8 +16,6 @@
 #include "../../../../rights/query/foreign_waiver_rights_query.h"
 #include "../../../../../core/core_flags/keys/runtime_flag_keys.generated.h"
 
-int kbo_apply_foreign_reserve_demand_floor(uintptr_t player_ptr, const char* source);
-
 int kbo_ai_fa_status_retention_recently_attempted(
     uintptr_t frame_ptr,
     uintptr_t candidate_array,
@@ -236,11 +234,7 @@ static int kbo_ai_fa_status_retained_market_demand_ready(
         return 1;
     }
 
-    (void)kbo_apply_foreign_reserve_demand_floor(
-        (uintptr_t)player,
-        "retained_candidate_eval");
-    candidate->fa_demand = *(int32_t*)(player + OOTP27_PLAYER_FA_DEMAND_SALARY_OFFSET);
-    return kbo_foreign_policy_demand_salary_plausible(candidate->fa_demand);
+    return 0;
 }
 
 void kbo_ai_fa_status_log_retained_candidate_eval(

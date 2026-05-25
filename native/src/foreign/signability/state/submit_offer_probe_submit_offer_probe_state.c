@@ -53,16 +53,8 @@ typedef struct KboFinancialSalaryLadderSnapshot {
     LONG active;
 } KboFinancialSalaryLadderSnapshot;
 
-typedef struct KboForeignFaDemandRemapRecord {
-    uint32_t player_id;
-    int32_t original_demand;
-    int32_t mapped_demand;
-} KboForeignFaDemandRemapRecord;
-
 KboFinancialSalaryLadderSnapshot g_kbo_foreign_fa_demand_ladder_snapshot = {0};
 KboLock g_kbo_foreign_fa_demand_ladder_snapshot_lock = KBO_LOCK_INIT;
-KboForeignFaDemandRemapRecord g_kbo_foreign_fa_demand_remap_records[512] = {0};
-volatile LONG g_kbo_foreign_fa_demand_remap_record_cursor = 0;
 volatile LONG g_kbo_foreign_fa_demand_restore_timer_pending = 0;
 
 const uint32_t KBO_FINANCIALS_SALARY_LADDER_OFFSETS[9] = {

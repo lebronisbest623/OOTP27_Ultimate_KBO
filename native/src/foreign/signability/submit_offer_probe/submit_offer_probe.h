@@ -23,7 +23,6 @@
 #include "../../common/policy/foreign_waiver_policy.h"
 #include "../../injury/api/foreign_injury.h"
 #include "../../rights/query/foreign_waiver_rights_query.h"
-#include "../api/foreign_signability_salary_floor.h"
 #include "../../../military_service/military_service.h"
 #include "../state/foreign_fa_block_state.h"
 #include "../state/submit_offer_probe_state.h"
@@ -48,33 +47,14 @@ typedef struct KboFinancialSalaryLadderSnapshot {
     uint32_t today;
     LONG active;
 } KboFinancialSalaryLadderSnapshot;
-typedef struct KboForeignFaDemandRemapRecord {
-    uint32_t player_id;
-    int32_t original_demand;
-    int32_t mapped_demand;
-} KboForeignFaDemandRemapRecord;
 extern LONG g_kbo_no_minor_contract_demand_floor_enabled;
 extern KboFinancialSalaryLadderSnapshot g_kbo_foreign_fa_demand_ladder_snapshot;
 extern KboLock g_kbo_foreign_fa_demand_ladder_snapshot_lock;
-extern KboForeignFaDemandRemapRecord g_kbo_foreign_fa_demand_remap_records[512];
-extern volatile LONG g_kbo_foreign_fa_demand_remap_record_cursor;
 extern volatile LONG g_kbo_foreign_fa_demand_restore_timer_pending;
 extern const uint32_t KBO_FINANCIALS_SALARY_LADDER_OFFSETS[9];
 extern volatile LONG g_kbo_no_minor_contract_demand_floor_scanner_started;
 
 void kbo_enable_no_minor_contract_demand_floor(void);
-int kbo_foreign_fa_demand_remap_already_applied(uint32_t player_id, int32_t demand);
-void kbo_foreign_fa_demand_remap_remember(uint32_t player_id, int32_t original_demand, int32_t mapped_demand);
-int kbo_foreign_fa_demand_remap_candidate(uint8_t* player);
-int32_t kbo_foreign_fa_remap_demand_from_salary_ladder(int32_t demand, uint8_t* financials, int asian_quota);
-int32_t kbo_foreign_reserve_demand_floor_for_player(
-    uint8_t* player,
-    uint32_t today,
-    uint32_t* out_holder_team_id,
-    int32_t* out_score,
-    int* out_index,
-    int* out_asian_quota);
-int kbo_apply_foreign_reserve_demand_floor(uintptr_t player_ptr, const char* source);
 DWORD WINAPI kbo_foreign_fa_demand_restore_timer_thread(void* param);
 int kbo_write_i32(uint8_t* address, int32_t value);
 void kbo_restore_foreign_fa_demand_salary_ladder(const char* source);

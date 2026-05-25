@@ -11,6 +11,8 @@ $ForeignRetentionScoreGateTestSrc = Join-Path $PSScriptRoot "test_foreign_retent
 $ForeignRetentionScoreGateTestExe = Join-Path $PSScriptRoot "test_foreign_retention_score_gate.exe"
 $ForeignOfferAttachHookPolicyTestSrc = Join-Path $PSScriptRoot "test_foreign_offer_attach_hook_policy.c"
 $ForeignOfferAttachHookPolicyTestExe = Join-Path $PSScriptRoot "test_foreign_offer_attach_hook_policy.exe"
+$ForeignAiOfferContractTypeTestSrc = Join-Path $PSScriptRoot "test_foreign_ai_offer_contract_type.c"
+$ForeignAiOfferContractTypeTestExe = Join-Path $PSScriptRoot "test_foreign_ai_offer_contract_type.exe"
 $OfferCandidateReplacementDispatcherTestSrc = Join-Path $PSScriptRoot "test_offer_candidate_replacement_dispatcher.c"
 $OfferCandidateReplacementDispatcherTestExe = Join-Path $PSScriptRoot "test_offer_candidate_replacement_dispatcher.exe"
 $DomesticFaOrphanRescuePolicyTestSrc = Join-Path $PSScriptRoot "test_domestic_fa_orphan_rescue_policy.c"
@@ -21,6 +23,8 @@ $IndependentAcquisitionCashFlowTestSrc = Join-Path $PSScriptRoot "test_independe
 $IndependentAcquisitionCashFlowTestExe = Join-Path $PSScriptRoot "test_independent_acquisition_cash_flow.exe"
 $IntlEstablishedFaMarketNormalizeTestSrc = Join-Path $PSScriptRoot "test_intl_established_fa_market_normalize.c"
 $IntlEstablishedFaMarketNormalizeTestExe = Join-Path $PSScriptRoot "test_intl_established_fa_market_normalize.exe"
+$NoMinorDemandClassifyTestSrc = Join-Path $PSScriptRoot "test_no_minor_demand_classify.c"
+$NoMinorDemandClassifyTestExe = Join-Path $PSScriptRoot "test_no_minor_demand_classify.exe"
 $ForeignNoMinorContractRepairTestSrc = Join-Path $PSScriptRoot "test_foreign_no_minor_contract_repair.c"
 $ForeignNoMinorContractRepairTestExe = Join-Path $PSScriptRoot "test_foreign_no_minor_contract_repair.exe"
 $IntlEstablishedFaObservedPlayersTestSrc = Join-Path $PSScriptRoot "test_intl_established_fa_observed_players.c"
@@ -162,6 +166,21 @@ if ($LASTEXITCODE -ne 0) {
 & $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
     -I $Root `
     -I (Join-Path $Root "src") `
+    -o $ForeignAiOfferContractTypeTestExe `
+    $ForeignAiOfferContractTypeTestSrc `
+    (Join-Path $Root "src\foreign\signability\foreign_policy\wrappers\offer_attach\foreign_ai_offer_contract_type.c")
+if ($LASTEXITCODE -ne 0) {
+    throw "Foreign AI offer contract type test build failed"
+}
+
+& $ForeignAiOfferContractTypeTestExe
+if ($LASTEXITCODE -ne 0) {
+    throw "Foreign AI offer contract type tests failed"
+}
+
+& $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
+    -I $Root `
+    -I (Join-Path $Root "src") `
     -o $OfferCandidateReplacementDispatcherTestExe `
     $OfferCandidateReplacementDispatcherTestSrc `
     (Join-Path $Root "src\offer_candidate\replacement\offer_candidate_replacement_dispatcher.c")
@@ -232,6 +251,21 @@ if ($LASTEXITCODE -ne 0) {
 & $IntlEstablishedFaMarketNormalizeTestExe
 if ($LASTEXITCODE -ne 0) {
     throw "International established FA market normalization tests failed"
+}
+
+& $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
+    -I $Root `
+    -I (Join-Path $Root "src") `
+    -o $NoMinorDemandClassifyTestExe `
+    $NoMinorDemandClassifyTestSrc `
+    (Join-Path $Root "src\foreign\signability\no_minor_demand\submit_offer_probe_no_minor_demand_classify.c")
+if ($LASTEXITCODE -ne 0) {
+    throw "No-minor demand classification test build failed"
+}
+
+& $NoMinorDemandClassifyTestExe
+if ($LASTEXITCODE -ne 0) {
+    throw "No-minor demand classification tests failed"
 }
 
 & $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `

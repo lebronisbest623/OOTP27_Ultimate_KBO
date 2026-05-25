@@ -89,6 +89,11 @@ int kbo_no_minor_clamp_player_demand_salary(uintptr_t player_ptr, uintptr_t scre
         ? *(uint32_t*)(player + OOTP27_PLAYER_ID_OFFSET)
         : 0u;
 
+    if (kbo_player_is_foreign_for_kbo_rights(player)) {
+        KBO_PROFILE_END(profile_no_minor_clamp_player, "no_minor.clamp_player.foreign_baseline_only");
+        return 0;
+    }
+
     int32_t salary_floor = kbo_no_minor_resolve_current_league_minimum_salary();
     if (salary_floor <= 0) {
         static LONG floor_miss_log_count = 0;

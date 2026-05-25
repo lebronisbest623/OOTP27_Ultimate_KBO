@@ -14,7 +14,6 @@
 #include "../../runtime_memory/runtime_memory.h"
 #include "../../foreign/common/player_eval/foreign_waiver_player_eval.h"
 #include "../../foreign/quota/counts/foreign_quota_counts.h"
-#include "../../foreign/signability/api/foreign_signability_salary_floor.h"
 #include "../assignment/org_query/team_org_assignment_query.h"
 #include "../lookup/team_lookup.h"
 #include "foreign_policy/purchase_restore/team_add_player_guard_foreign_purchase_restore.h"
@@ -226,18 +225,6 @@ __declspec(noinline) uint8_t ootp_kbo_team_add_player_guard_wrapper(
         player,
         &amateur_league_id,
         &amateur_pre_rerouted);
-
-    if (!is_military_team
-            && !amateur_generation_call
-            && player_plausible
-            && before_current_team_id == 0u
-            && before_active_team_id == 0u
-            && kbo_team_add_known_foreign_market_minor_caller(caller_rva)) {
-        kbo_apply_foreign_contract_demand_floor(
-            player_ptr,
-            0u,
-            "team_add_pre_original");
-    }
 
     KBO_PROFILE_BEGIN(profile_team_add_original);
     if (!kbo_team_add_original_args_readable(effective_team_ptr, player_ptr)) {
