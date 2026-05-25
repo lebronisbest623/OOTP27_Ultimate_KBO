@@ -57,6 +57,10 @@ extern volatile LONG g_kbo_no_minor_contract_demand_floor_scanner_started;
 void kbo_enable_no_minor_contract_demand_floor(void);
 DWORD WINAPI kbo_foreign_fa_demand_restore_timer_thread(void* param);
 int kbo_write_i32(uint8_t* address, int32_t value);
+int kbo_write_foreign_fa_financials_values(
+    uint8_t* financials,
+    const int32_t ladder_values[9],
+    int32_t demand_ceiling_value);
 void kbo_restore_foreign_fa_demand_salary_ladder(const char* source);
 void kbo_schedule_foreign_fa_demand_restore_timer(void);
 void kbo_prepare_foreign_fa_offer_demand_baseline(uintptr_t player_ptr, const char* source);

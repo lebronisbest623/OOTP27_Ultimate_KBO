@@ -13,6 +13,8 @@ $ForeignOfferAttachHookPolicyTestSrc = Join-Path $PSScriptRoot "test_foreign_off
 $ForeignOfferAttachHookPolicyTestExe = Join-Path $PSScriptRoot "test_foreign_offer_attach_hook_policy.exe"
 $ForeignAiOfferContractTypeTestSrc = Join-Path $PSScriptRoot "test_foreign_ai_offer_contract_type.c"
 $ForeignAiOfferContractTypeTestExe = Join-Path $PSScriptRoot "test_foreign_ai_offer_contract_type.exe"
+$ForeignFaFinancialsWriteTestSrc = Join-Path $PSScriptRoot "test_foreign_fa_financials_write.c"
+$ForeignFaFinancialsWriteTestExe = Join-Path $PSScriptRoot "test_foreign_fa_financials_write.exe"
 $OfferCandidateReplacementDispatcherTestSrc = Join-Path $PSScriptRoot "test_offer_candidate_replacement_dispatcher.c"
 $OfferCandidateReplacementDispatcherTestExe = Join-Path $PSScriptRoot "test_offer_candidate_replacement_dispatcher.exe"
 $DomesticFaOrphanRescuePolicyTestSrc = Join-Path $PSScriptRoot "test_domestic_fa_orphan_rescue_policy.c"
@@ -176,6 +178,21 @@ if ($LASTEXITCODE -ne 0) {
 & $ForeignAiOfferContractTypeTestExe
 if ($LASTEXITCODE -ne 0) {
     throw "Foreign AI offer contract type tests failed"
+}
+
+& $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
+    -I $Root `
+    -I (Join-Path $Root "src") `
+    -o $ForeignFaFinancialsWriteTestExe `
+    $ForeignFaFinancialsWriteTestSrc `
+    (Join-Path $Root "src\foreign\signability\submit_offer_probe\demand\submit_offer_probe_foreign_fa_demand_restore.c")
+if ($LASTEXITCODE -ne 0) {
+    throw "Foreign FA financials write test build failed"
+}
+
+& $ForeignFaFinancialsWriteTestExe
+if ($LASTEXITCODE -ne 0) {
+    throw "Foreign FA financials write tests failed"
 }
 
 & $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `

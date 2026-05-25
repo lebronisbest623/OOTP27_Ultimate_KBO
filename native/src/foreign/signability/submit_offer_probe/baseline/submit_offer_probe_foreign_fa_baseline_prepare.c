@@ -142,16 +142,14 @@ __declspec(noinline) void ootp_kbo_foreign_fa_demand_baseline_prepare_wrapper(
             ? kbo_foreign_fa_reserve_right_baseline_value(i, asian_quota)
             : kbo_get_foreign_fa_demand_baseline_value_for_player(i, asian_quota);
         g_kbo_foreign_fa_demand_ladder_snapshot.patched_values[i] = patched_value;
-        patched += kbo_write_i32(
-            financials + KBO_FINANCIALS_SALARY_LADDER_OFFSETS[i],
-            patched_value);
     }
     g_kbo_foreign_fa_demand_ladder_snapshot.patched_demand_ceiling_value =
         reserve_right
             ? kbo_foreign_fa_reserve_right_baseline_value(8, asian_quota)
             : kbo_get_foreign_fa_demand_baseline_value_for_player(8, asian_quota);
-    patched += kbo_write_i32(
-        financials + OOTP27_FINANCIALS_FA_DEMAND_CEILING_OFFSET,
+    patched = kbo_write_foreign_fa_financials_values(
+        financials,
+        g_kbo_foreign_fa_demand_ladder_snapshot.patched_values,
         g_kbo_foreign_fa_demand_ladder_snapshot.patched_demand_ceiling_value);
 
     InterlockedExchange(&g_kbo_foreign_fa_demand_ladder_snapshot.active, 1);

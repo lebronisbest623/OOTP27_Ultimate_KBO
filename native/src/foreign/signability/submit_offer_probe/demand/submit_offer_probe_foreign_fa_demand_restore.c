@@ -1,6 +1,13 @@
 #include "../submit_offer_probe.h"
 #include "../../../common/policy/foreign_player_policy.h"
 
+enum {
+    KBO_FOREIGN_FA_FINANCIALS_WRITE_TARGET_COUNT = 10,
+    KBO_FOREIGN_FA_FINANCIALS_WRITE_START_OFFSET = OOTP27_FINANCIALS_SALARY_LADDER_MINIMUM_OFFSET,
+    KBO_FOREIGN_FA_FINANCIALS_WRITE_END_OFFSET =
+        OOTP27_FINANCIALS_FA_DEMAND_CEILING_OFFSET + sizeof(int32_t)
+};
+
 DWORD WINAPI kbo_foreign_fa_demand_restore_timer_thread(void* param)
 {
     (void)param;
@@ -19,6 +26,9 @@ int kbo_write_i32(uint8_t* address, int32_t value)
     if (address == NULL || !memory_range_readable(address, sizeof(int32_t))) {
         return 0;
     }
+    if (*(int32_t*)address == value) {
+        return 1;
+    }
 
     DWORD old_protect = 0;
     if (!VirtualProtect(address, sizeof(int32_t), PAGE_READWRITE, &old_protect)) {
@@ -29,6 +39,92 @@ int kbo_write_i32(uint8_t* address, int32_t value)
     DWORD ignored = 0;
     VirtualProtect(address, sizeof(int32_t), old_protect, &ignored);
     return 1;
+}
+
+static int kbo_foreign_fa_financials_targets_readable(uint8_t* financials)
+{
+    if (financials == NULL) {
+        return 0;
+    }
+
+    for (int i = 0; i < 9; i++) {
+        if (!memory_range_readable(financials + KBO_FINANCIALS_SALARY_LADDER_OFFSETS[i], sizeof(int32_t))) {
+            return 0;
+        }
+    }
+    return memory_range_readable(
+        financials + OOTP27_FINANCIALS_FA_DEMAND_CEILING_OFFSET,
+        sizeof(int32_t));
+}
+
+static int kbo_foreign_fa_financials_values_match(
+    uint8_t* financials,
+    const int32_t ladder_values[9],
+    int32_t demand_ceiling_value)
+{
+    for (int i = 0; i < 9; i++) {
+        if (*(int32_t*)(financials + KBO_FINANCIALS_SALARY_LADDER_OFFSETS[i]) != ladder_values[i]) {
+            return 0;
+        }
+    }
+    return *(int32_t*)(financials + OOTP27_FINANCIALS_FA_DEMAND_CEILING_OFFSET)
+        == demand_ceiling_value;
+}
+
+static int kbo_write_foreign_fa_financials_values_individually(
+    uint8_t* financials,
+    const int32_t ladder_values[9],
+    int32_t demand_ceiling_value)
+{
+    int written = 0;
+    for (int i = 0; i < 9; i++) {
+        written += kbo_write_i32(
+            financials + KBO_FINANCIALS_SALARY_LADDER_OFFSETS[i],
+            ladder_values[i]);
+    }
+    written += kbo_write_i32(
+        financials + OOTP27_FINANCIALS_FA_DEMAND_CEILING_OFFSET,
+        demand_ceiling_value);
+    return written;
+}
+
+int kbo_write_foreign_fa_financials_values(
+    uint8_t* financials,
+    const int32_t ladder_values[9],
+    int32_t demand_ceiling_value)
+{
+    if (financials == NULL
+            || ladder_values == NULL
+            || !kbo_foreign_fa_financials_targets_readable(financials)) {
+        return 0;
+    }
+    if (kbo_foreign_fa_financials_values_match(financials, ladder_values, demand_ceiling_value)) {
+        return KBO_FOREIGN_FA_FINANCIALS_WRITE_TARGET_COUNT;
+    }
+
+    uint8_t* write_start = financials + KBO_FOREIGN_FA_FINANCIALS_WRITE_START_OFFSET;
+    SIZE_T write_size =
+        (SIZE_T)(KBO_FOREIGN_FA_FINANCIALS_WRITE_END_OFFSET - KBO_FOREIGN_FA_FINANCIALS_WRITE_START_OFFSET);
+    DWORD old_protect = 0;
+    if (!memory_range_readable(write_start, write_size)
+            || !VirtualProtect(write_start, write_size, PAGE_READWRITE, &old_protect)) {
+        return kbo_write_foreign_fa_financials_values_individually(
+            financials,
+            ladder_values,
+            demand_ceiling_value);
+    }
+
+    int written = 0;
+    for (int i = 0; i < 9; i++) {
+        *(int32_t*)(financials + KBO_FINANCIALS_SALARY_LADDER_OFFSETS[i]) = ladder_values[i];
+        written++;
+    }
+    *(int32_t*)(financials + OOTP27_FINANCIALS_FA_DEMAND_CEILING_OFFSET) = demand_ceiling_value;
+    written++;
+
+    DWORD ignored = 0;
+    VirtualProtect(write_start, write_size, old_protect, &ignored);
+    return written;
 }
 
 void kbo_restore_foreign_fa_demand_salary_ladder(const char* source)
@@ -46,13 +142,9 @@ void kbo_restore_foreign_fa_demand_salary_ladder(const char* source)
 
     snapshot = g_kbo_foreign_fa_demand_ladder_snapshot;
     if (snapshot.financials != NULL) {
-        for (int i = 0; i < 9; i++) {
-            restored += kbo_write_i32(
-                snapshot.financials + KBO_FINANCIALS_SALARY_LADDER_OFFSETS[i],
-                snapshot.values[i]);
-        }
-        restored += kbo_write_i32(
-            snapshot.financials + OOTP27_FINANCIALS_FA_DEMAND_CEILING_OFFSET,
+        restored = kbo_write_foreign_fa_financials_values(
+            snapshot.financials,
+            snapshot.values,
             snapshot.demand_ceiling_value);
         restore_complete = restored == 10;
     } else {
