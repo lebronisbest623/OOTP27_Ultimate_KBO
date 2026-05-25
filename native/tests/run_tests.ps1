@@ -11,10 +11,14 @@ $ForeignRetentionCandidateGateTestSrc = Join-Path $PSScriptRoot "test_foreign_re
 $ForeignRetentionCandidateGateTestExe = Join-Path $PSScriptRoot "test_foreign_retention_candidate_gate.exe"
 $ForeignRetentionScoreGateTestSrc = Join-Path $PSScriptRoot "test_foreign_retention_score_gate.c"
 $ForeignRetentionScoreGateTestExe = Join-Path $PSScriptRoot "test_foreign_retention_score_gate.exe"
+$ForeignWaiverRightsLookupReloadTestSrc = Join-Path $PSScriptRoot "test_foreign_waiver_rights_lookup_reload.c"
+$ForeignWaiverRightsLookupReloadTestExe = Join-Path $PSScriptRoot "test_foreign_waiver_rights_lookup_reload.exe"
 $ForeignOfferAttachHookPolicyTestSrc = Join-Path $PSScriptRoot "test_foreign_offer_attach_hook_policy.c"
 $ForeignOfferAttachHookPolicyTestExe = Join-Path $PSScriptRoot "test_foreign_offer_attach_hook_policy.exe"
 $ForeignAiOfferContractTypeTestSrc = Join-Path $PSScriptRoot "test_foreign_ai_offer_contract_type.c"
 $ForeignAiOfferContractTypeTestExe = Join-Path $PSScriptRoot "test_foreign_ai_offer_contract_type.exe"
+$TeamAddFormerOrgPolicyTestSrc = Join-Path $PSScriptRoot "test_team_add_former_org_policy.c"
+$TeamAddFormerOrgPolicyTestExe = Join-Path $PSScriptRoot "test_team_add_former_org_policy.exe"
 $ForeignFaFinancialsWriteTestSrc = Join-Path $PSScriptRoot "test_foreign_fa_financials_write.c"
 $ForeignFaFinancialsWriteTestExe = Join-Path $PSScriptRoot "test_foreign_fa_financials_write.exe"
 $ForeignDemandBaselineCacheTestSrc = Join-Path $PSScriptRoot "test_foreign_demand_baseline_cache.c"
@@ -175,6 +179,22 @@ if ($LASTEXITCODE -ne 0) {
 & $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
     -I $Root `
     -I (Join-Path $Root "src") `
+    -o $ForeignWaiverRightsLookupReloadTestExe `
+    $ForeignWaiverRightsLookupReloadTestSrc `
+    (Join-Path $Root "src\foreign\rights\query\foreign_waiver_rights_foreign_waiver_rights_query.c") `
+    (Join-Path $Root "src\foreign\rights\active\foreign_waiver_rights_foreign_waiver_rights_active.c")
+if ($LASTEXITCODE -ne 0) {
+    throw "Foreign waiver rights lookup reload test build failed"
+}
+
+& $ForeignWaiverRightsLookupReloadTestExe
+if ($LASTEXITCODE -ne 0) {
+    throw "Foreign waiver rights lookup reload tests failed"
+}
+
+& $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
+    -I $Root `
+    -I (Join-Path $Root "src") `
     -o $ForeignOfferAttachHookPolicyTestExe `
     $ForeignOfferAttachHookPolicyTestSrc `
     (Join-Path $Root "src\foreign\signability\foreign_policy\wrappers\offer_attach\install_policy\foreign_ai_offer_attach_hook_policy.c")
@@ -200,6 +220,21 @@ if ($LASTEXITCODE -ne 0) {
 & $ForeignAiOfferContractTypeTestExe
 if ($LASTEXITCODE -ne 0) {
     throw "Foreign AI offer contract type tests failed"
+}
+
+& $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
+    -I $Root `
+    -I (Join-Path $Root "src") `
+    -o $TeamAddFormerOrgPolicyTestExe `
+    $TeamAddFormerOrgPolicyTestSrc `
+    (Join-Path $Root "src\team\add_player_guard\foreign_policy\team_add_player_guard_former_org_policy.c")
+if ($LASTEXITCODE -ne 0) {
+    throw "Team-add former-org policy test build failed"
+}
+
+& $TeamAddFormerOrgPolicyTestExe
+if ($LASTEXITCODE -ne 0) {
+    throw "Team-add former-org policy tests failed"
 }
 
 & $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
