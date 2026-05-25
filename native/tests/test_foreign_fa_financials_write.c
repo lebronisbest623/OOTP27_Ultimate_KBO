@@ -13,8 +13,10 @@
 LONG g_kbo_no_minor_contract_demand_floor_enabled = 0;
 KboFinancialSalaryLadderSnapshot g_kbo_foreign_fa_demand_ladder_snapshot = {0};
 KboLock g_kbo_foreign_fa_demand_ladder_snapshot_lock = KBO_LOCK_INIT;
+volatile LONG g_kbo_foreign_fa_demand_ladder_snapshot_generation = 0;
 volatile LONG g_kbo_foreign_fa_demand_restore_timer_pending = 0;
 volatile LONG g_kbo_no_minor_contract_demand_floor_scanner_started = 0;
+static int g_test_runtime_sleep_should_continue = 0;
 
 const uint32_t KBO_FINANCIALS_SALARY_LADDER_OFFSETS[9] = {
     OOTP27_FINANCIALS_SALARY_LADDER_MINIMUM_OFFSET,
@@ -73,7 +75,7 @@ void kbo_log_runtimef_at(const char* file, int line, const char* format, ...)
 int kbo_runtime_sleep_should_continue(uint32_t total_ms)
 {
     (void)total_ms;
-    return 0;
+    return g_test_runtime_sleep_should_continue;
 }
 
 int kbo_start_runtime_thread(LPTHREAD_START_ROUTINE start, LPVOID parameter, const char* label)
@@ -119,6 +121,29 @@ static void test_assert_financials(
         assert(*(int32_t*)(financials + KBO_FINANCIALS_SALARY_LADDER_OFFSETS[i]) == ladder_values[i]);
     }
     assert(*(int32_t*)(financials + OOTP27_FINANCIALS_FA_DEMAND_CEILING_OFFSET) == demand_ceiling_value);
+}
+
+static void test_seed_active_snapshot(
+    uint8_t* financials,
+    const int32_t original_ladder[9],
+    int32_t original_ceiling,
+    const int32_t patched_ladder[9],
+    int32_t patched_ceiling,
+    LONG generation)
+{
+    memset(&g_kbo_foreign_fa_demand_ladder_snapshot, 0, sizeof(g_kbo_foreign_fa_demand_ladder_snapshot));
+    for (int i = 0; i < 9; i++) {
+        g_kbo_foreign_fa_demand_ladder_snapshot.values[i] = original_ladder[i];
+        g_kbo_foreign_fa_demand_ladder_snapshot.patched_values[i] = patched_ladder[i];
+    }
+    g_kbo_foreign_fa_demand_ladder_snapshot.financials = financials;
+    g_kbo_foreign_fa_demand_ladder_snapshot.demand_ceiling_value = original_ceiling;
+    g_kbo_foreign_fa_demand_ladder_snapshot.patched_demand_ceiling_value = patched_ceiling;
+    g_kbo_foreign_fa_demand_ladder_snapshot.player_id = 3469u;
+    g_kbo_foreign_fa_demand_ladder_snapshot.source_rva = 0xaaa2f0u;
+    g_kbo_foreign_fa_demand_ladder_snapshot.generation = generation;
+    InterlockedExchange(&g_kbo_foreign_fa_demand_ladder_snapshot.active, 1);
+    InterlockedExchange(&g_kbo_foreign_fa_demand_ladder_snapshot_generation, generation);
 }
 
 static void test_write_i32_updates_readonly_page_and_restores_protection(void)
@@ -175,10 +200,70 @@ static void test_batch_foreign_fa_financials_write_updates_only_target_fields(vo
     printf("test_batch_foreign_fa_financials_write_updates_only_target_fields: PASS\n");
 }
 
+static void test_restore_timer_ignores_stale_snapshot_generation(void)
+{
+    uint8_t* financials = VirtualAlloc(NULL, 4096u, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    assert(financials != NULL);
+
+    const int32_t original_ladder[9] = {
+        700000, 700000, 760000, 840000, 930000, 1030000, 1150000, 1300000, 1500000
+    };
+    const int32_t patched_ladder[9] = {
+        700000, 700000, 700000, 714000, 790500, 875500, 977500, 1105000, 1275000
+    };
+    test_seed_financials(financials, patched_ladder, 1275000);
+    test_seed_active_snapshot(financials, original_ladder, 1500000, patched_ladder, 1275000, 2);
+    InterlockedExchange(&g_kbo_foreign_fa_demand_restore_timer_pending, 1);
+    g_test_runtime_sleep_should_continue = 1;
+
+    kbo_foreign_fa_demand_restore_timer_thread((void*)(intptr_t)1);
+
+    test_assert_financials(financials, patched_ladder, 1275000);
+    assert(InterlockedCompareExchange(&g_kbo_foreign_fa_demand_ladder_snapshot.active, 0, 0) == 1);
+    assert(InterlockedCompareExchange(&g_kbo_foreign_fa_demand_restore_timer_pending, 0, 0) == 0);
+
+    kbo_restore_foreign_fa_demand_salary_ladder("test_cleanup");
+    test_assert_financials(financials, original_ladder, 1500000);
+    assert(InterlockedCompareExchange(&g_kbo_foreign_fa_demand_ladder_snapshot.active, 0, 0) == 0);
+
+    g_test_runtime_sleep_should_continue = 0;
+    assert(VirtualFree(financials, 0u, MEM_RELEASE));
+    printf("test_restore_timer_ignores_stale_snapshot_generation: PASS\n");
+}
+
+static void test_restore_timer_restores_matching_snapshot_generation(void)
+{
+    uint8_t* financials = VirtualAlloc(NULL, 4096u, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    assert(financials != NULL);
+
+    const int32_t original_ladder[9] = {
+        1200000, 1210000, 1220000, 1230000, 1240000, 1250000, 1260000, 1270000, 1280000
+    };
+    const int32_t patched_ladder[9] = {
+        700000, 710000, 720000, 730000, 740000, 750000, 760000, 770000, 780000
+    };
+    test_seed_financials(financials, patched_ladder, 780000);
+    test_seed_active_snapshot(financials, original_ladder, 1280000, patched_ladder, 780000, 3);
+    InterlockedExchange(&g_kbo_foreign_fa_demand_restore_timer_pending, 1);
+    g_test_runtime_sleep_should_continue = 1;
+
+    kbo_foreign_fa_demand_restore_timer_thread((void*)(intptr_t)3);
+
+    test_assert_financials(financials, original_ladder, 1280000);
+    assert(InterlockedCompareExchange(&g_kbo_foreign_fa_demand_ladder_snapshot.active, 0, 0) == 0);
+    assert(InterlockedCompareExchange(&g_kbo_foreign_fa_demand_restore_timer_pending, 0, 0) == 0);
+
+    g_test_runtime_sleep_should_continue = 0;
+    assert(VirtualFree(financials, 0u, MEM_RELEASE));
+    printf("test_restore_timer_restores_matching_snapshot_generation: PASS\n");
+}
+
 int main(void)
 {
     test_write_i32_updates_readonly_page_and_restores_protection();
     test_batch_foreign_fa_financials_write_updates_only_target_fields();
+    test_restore_timer_ignores_stale_snapshot_generation();
+    test_restore_timer_restores_matching_snapshot_generation();
     printf("Foreign FA financials write tests passed.\n");
     return 0;
 }

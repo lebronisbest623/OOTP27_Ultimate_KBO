@@ -15,6 +15,8 @@ $ForeignAiOfferContractTypeTestSrc = Join-Path $PSScriptRoot "test_foreign_ai_of
 $ForeignAiOfferContractTypeTestExe = Join-Path $PSScriptRoot "test_foreign_ai_offer_contract_type.exe"
 $ForeignFaFinancialsWriteTestSrc = Join-Path $PSScriptRoot "test_foreign_fa_financials_write.c"
 $ForeignFaFinancialsWriteTestExe = Join-Path $PSScriptRoot "test_foreign_fa_financials_write.exe"
+$ForeignDemandBaselineCacheTestSrc = Join-Path $PSScriptRoot "test_foreign_demand_baseline_cache.c"
+$ForeignDemandBaselineCacheTestExe = Join-Path $PSScriptRoot "test_foreign_demand_baseline_cache.exe"
 $OfferCandidateReplacementDispatcherTestSrc = Join-Path $PSScriptRoot "test_offer_candidate_replacement_dispatcher.c"
 $OfferCandidateReplacementDispatcherTestExe = Join-Path $PSScriptRoot "test_offer_candidate_replacement_dispatcher.exe"
 $DomesticFaOrphanRescuePolicyTestSrc = Join-Path $PSScriptRoot "test_domestic_fa_orphan_rescue_policy.c"
@@ -195,6 +197,21 @@ if ($LASTEXITCODE -ne 0) {
 & $ForeignFaFinancialsWriteTestExe
 if ($LASTEXITCODE -ne 0) {
     throw "Foreign FA financials write tests failed"
+}
+
+& $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
+    -I $Root `
+    -I (Join-Path $Root "src") `
+    -o $ForeignDemandBaselineCacheTestExe `
+    $ForeignDemandBaselineCacheTestSrc `
+    (Join-Path $Root "src\core\core_flags\api\settings\foreign\foreign_demand_baselines.c")
+if ($LASTEXITCODE -ne 0) {
+    throw "Foreign demand baseline cache test build failed"
+}
+
+& $ForeignDemandBaselineCacheTestExe
+if ($LASTEXITCODE -ne 0) {
+    throw "Foreign demand baseline cache tests failed"
 }
 
 & $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
