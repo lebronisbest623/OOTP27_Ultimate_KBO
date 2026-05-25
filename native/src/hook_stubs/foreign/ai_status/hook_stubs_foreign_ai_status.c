@@ -217,6 +217,103 @@ uint8_t* build_kbo_foreign_ai_offer_build_probe_stub(void* continuation)
     return memory;
 }
 
+uint8_t* build_kbo_foreign_ai_offer_terms_build_probe_stub(void* continuation)
+{
+    uint8_t code[] = {
+        0x44, 0x88, 0x74, 0x24, 0x30,                   // mov [rsp+0x30],r14b
+        0x44, 0x88, 0x74, 0x24, 0x28,                   // mov [rsp+0x28],r14b
+        0x44, 0x88, 0x74, 0x24, 0x20,                   // mov [rsp+0x20],r14b
+        0x45, 0x33, 0xC9,                               // xor r9d,r9d
+        0x48, 0x8B, 0x85, 0x40, 0x05, 0x00, 0x00,       // mov rax,[rbp+0x540]
+        0x44, 0x8B, 0x80, 0x50, 0x44, 0x00, 0x00,       // mov r8d,[rax+0x4450]
+        0x48, 0x8D, 0x95, 0x90, 0x01, 0x00, 0x00,       // lea rdx,[rbp+0x190]
+        0x49, 0x8B, 0xCC,                               // mov rcx,r12
+        0x48, 0xB8,                                     // mov rax, wrapper
+        0,0,0,0,0,0,0,0,
+        0xFF, 0xD0,                                     // call rax
+        0x49, 0xBB,                                     // mov r11, continuation
+        0,0,0,0,0,0,0,0,
+        0x41, 0xFF, 0xE3,                               // jmp r11
+        0xCC, 0xCC, 0xCC, 0xCC,
+        0xCC, 0xCC, 0xCC, 0xCC,
+        0xCC, 0xCC, 0xCC, 0xCC,
+        0xCC, 0xCC, 0xCC, 0xCC
+    };
+
+    write_u64(&code[44], (uint64_t)(uintptr_t)&ootp_kbo_foreign_ai_offer_terms_build_probe_wrapper);
+    write_u64(&code[56], (uint64_t)(uintptr_t)continuation);
+
+    uint8_t* memory = (uint8_t*)VirtualAlloc(NULL, sizeof(code), MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+    if (memory == NULL) {
+        return NULL;
+    }
+    memcpy(memory, code, sizeof(code));
+    FlushInstructionCache(GetCurrentProcess(), memory, sizeof(code));
+    return memory;
+}
+
+uint8_t* build_kbo_foreign_ai_offer_terms_build_probe_final_create_stub(void* continuation)
+{
+    uint8_t code[] = {
+        0xC6, 0x44, 0x24, 0x30, 0x00,                   // mov byte ptr [rsp+0x30],0
+        0xC6, 0x44, 0x24, 0x28, 0x00,                   // mov byte ptr [rsp+0x28],0
+        0xC6, 0x44, 0x24, 0x20, 0x00,                   // mov byte ptr [rsp+0x20],0
+        0x41, 0xB1, 0x01,                               // mov r9b,1
+        0x45, 0x8B, 0x85, 0x50, 0x44, 0x00, 0x00,       // mov r8d,[r13+0x4450]
+        0x48, 0x8D, 0x95, 0x80, 0x01, 0x00, 0x00,       // lea rdx,[rbp+0x180]
+        0x48, 0x8B, 0xCE,                               // mov rcx,rsi
+        0x48, 0xB8,                                     // mov rax, wrapper
+        0,0,0,0,0,0,0,0,
+        0xFF, 0xD0,                                     // call rax
+        0x49, 0xBB,                                     // mov r11, continuation
+        0,0,0,0,0,0,0,0,
+        0x41, 0xFF, 0xE3,                               // jmp r11
+        0xCC, 0xCC, 0xCC, 0xCC
+    };
+
+    write_u64(&code[37], (uint64_t)(uintptr_t)&ootp_kbo_foreign_ai_offer_terms_build_probe_wrapper);
+    write_u64(&code[49], (uint64_t)(uintptr_t)continuation);
+
+    uint8_t* memory = (uint8_t*)VirtualAlloc(NULL, sizeof(code), MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+    if (memory == NULL) {
+        return NULL;
+    }
+    memcpy(memory, code, sizeof(code));
+    FlushInstructionCache(GetCurrentProcess(), memory, sizeof(code));
+    return memory;
+}
+
+uint8_t* build_kbo_foreign_ai_offer_terms_build_probe_final_create_alt_stub(void* continuation)
+{
+    uint8_t code[] = {
+        0xC6, 0x44, 0x24, 0x30, 0x00,                   // mov byte ptr [rsp+0x30],0
+        0xC6, 0x44, 0x24, 0x28, 0x00,                   // mov byte ptr [rsp+0x28],0
+        0xC6, 0x44, 0x24, 0x20, 0x00,                   // mov byte ptr [rsp+0x20],0
+        0x45, 0x33, 0xC9,                               // xor r9d,r9d
+        0x45, 0x8B, 0x85, 0x50, 0x44, 0x00, 0x00,       // mov r8d,[r13+0x4450]
+        0x48, 0x8D, 0x55, 0x90,                         // lea rdx,[rbp-0x70]
+        0x48, 0x8B, 0xCE,                               // mov rcx,rsi
+        0x48, 0xB8,                                     // mov rax, wrapper
+        0,0,0,0,0,0,0,0,
+        0xFF, 0xD0,                                     // call rax
+        0x49, 0xBB,                                     // mov r11, continuation
+        0,0,0,0,0,0,0,0,
+        0x41, 0xFF, 0xE3,                               // jmp r11
+        0xCC, 0xCC, 0xCC, 0xCC
+    };
+
+    write_u64(&code[34], (uint64_t)(uintptr_t)&ootp_kbo_foreign_ai_offer_terms_build_probe_wrapper);
+    write_u64(&code[46], (uint64_t)(uintptr_t)continuation);
+
+    uint8_t* memory = (uint8_t*)VirtualAlloc(NULL, sizeof(code), MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+    if (memory == NULL) {
+        return NULL;
+    }
+    memcpy(memory, code, sizeof(code));
+    FlushInstructionCache(GetCurrentProcess(), memory, sizeof(code));
+    return memory;
+}
+
 uint8_t* build_kbo_foreign_ai_offer_final_gate_probe_stub(void* success_continuation, void* failure_continuation)
 {
     uint8_t code[] = {

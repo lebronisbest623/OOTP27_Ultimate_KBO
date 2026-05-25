@@ -101,6 +101,14 @@ __declspec(noinline) uintptr_t ootp_kbo_foreign_ai_offer_candidate_priority_wrap
     uintptr_t frame_ptr, uintptr_t candidate_player_ptr);
 __declspec(noinline) uintptr_t ootp_kbo_foreign_ai_offer_build_probe_wrapper(
     uintptr_t player_ptr, int32_t team_id, uintptr_t zero_arg, uintptr_t flag_ptr);
+__declspec(noinline) void ootp_kbo_foreign_ai_offer_terms_build_probe_wrapper(
+    uintptr_t player_ptr,
+    uintptr_t terms_ptr,
+    int32_t team_id,
+    uint8_t offer_flag,
+    uint8_t stack_flag_0,
+    uint8_t stack_flag_1,
+    uint8_t stack_flag_2);
 __declspec(noinline) uint8_t ootp_kbo_foreign_ai_offer_final_gate_probe_wrapper(
     uintptr_t team_ptr, uintptr_t player_ptr, int32_t salary, uintptr_t offer_ptr);
 __declspec(noinline) int32_t ootp_kbo_intl_established_fa_count_wrapper(

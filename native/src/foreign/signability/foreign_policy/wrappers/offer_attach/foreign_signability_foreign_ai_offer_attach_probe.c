@@ -2,8 +2,8 @@
 #include "foreign_signability_offer_attach_probe_utils.h"
 #include "log/foreign_signability_foreign_ai_offer_attach_probe_log.h"
 #include "../../../../../build_verify/build_verify.h"
-#include "../../../api/foreign_signability_salary_floor.h"
 #include "../../../../../core/core_flags/keys/runtime_flag_keys.generated.h"
+#include "../../../submit_offer_probe/submit_offer_probe.h"
 
 typedef void (__fastcall *KboOotpForeignAiOfferAttachFn)(uintptr_t player_ptr, uintptr_t offer_slot_ptr);
 typedef uintptr_t (__fastcall *KboOotpForeignAiOfferBuildFn)(
@@ -12,13 +12,18 @@ typedef uintptr_t (__fastcall *KboOotpForeignAiOfferBuildFn)(
     uintptr_t zero_arg,
     uintptr_t flag_ptr,
     uint8_t stack_flag);
+typedef void (__fastcall *KboOotpForeignAiOfferTermsBuildFn)(
+    uintptr_t player_ptr,
+    uintptr_t terms_ptr,
+    int32_t team_id,
+    uint8_t offer_flag,
+    uint8_t stack_flag_0,
+    uint8_t stack_flag_1,
+    uint8_t stack_flag_2);
 typedef uint8_t (__fastcall *KboOotpForeignAiOfferFinalGateFn)(
     uintptr_t team_ptr,
     uintptr_t player_ptr,
     int32_t salary);
-
-void kbo_prepare_foreign_fa_offer_demand_baseline(uintptr_t player_ptr, const char* source);
-void kbo_restore_foreign_fa_demand_salary_ladder(const char* source);
 
 __declspec(noinline) void ootp_kbo_foreign_ai_offer_attach_probe_wrapper(
     uintptr_t player_ptr,
@@ -29,9 +34,11 @@ __declspec(noinline) void ootp_kbo_foreign_ai_offer_attach_probe_wrapper(
     KBO_HOOK_PROFILE_BEGIN(profile_hook);
     KboOotpForeignAiOfferAttachFn original_func = (KboOotpForeignAiOfferAttachFn)original_func_ptr;
     if (original_func != NULL) {
+        kbo_prepare_foreign_fa_offer_demand_baseline(player_ptr, "foreign_ai_offer_attach");
         KBO_HOOK_PROFILE_PAUSE(profile_hook);
         original_func(player_ptr, offer_slot_ptr);
         KBO_HOOK_PROFILE_RESUME(profile_hook);
+        kbo_restore_foreign_fa_demand_salary_ladder("foreign_ai_offer_attach");
     }
     if (read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_FOREIGN_AI_ROSTER_RESEARCH_HOOKS_FILE)
             || read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_KBO_FOREIGN_AI_OFFER_ATTACH_PROBE_FILE)) {
@@ -50,20 +57,73 @@ __declspec(noinline) uintptr_t ootp_kbo_foreign_ai_offer_build_probe_wrapper(
     KboOotpForeignAiOfferBuildFn original_func =
         (KboOotpForeignAiOfferBuildFn)kbo_offer_probe_resolve_rva(OOTP27_AI_FA_OFFER_BUILD_FUNC_RVA);
 
+    kbo_prepare_foreign_fa_offer_demand_baseline_for_team_key(player_ptr, team_id, "foreign_ai_offer_build");
     uintptr_t offer_ptr = 0;
     if (original_func != NULL) {
-        kbo_apply_foreign_contract_demand_floor(player_ptr, 0u, "ai_offer_build");
-        kbo_prepare_foreign_fa_offer_demand_baseline(player_ptr, "ai_offer_build");
         KBO_HOOK_PROFILE_PAUSE(profile_hook);
         offer_ptr = original_func(player_ptr, team_id, zero_arg, flag_ptr, 0u);
         KBO_HOOK_PROFILE_RESUME(profile_hook);
-        kbo_restore_foreign_fa_demand_salary_ladder("ai_offer_build");
     }
-    if (read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_FOREIGN_AI_ROSTER_RESEARCH_HOOKS_FILE)
-            || read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_KBO_FOREIGN_AI_OFFER_ATTACH_PROBE_FILE)) {
-        kbo_log_foreign_ai_offer_build(player_ptr, team_id, flag_ptr, offer_ptr);
-    }
+    kbo_restore_foreign_fa_demand_salary_ladder("foreign_ai_offer_build");
+    kbo_log_foreign_ai_offer_build(player_ptr, team_id, flag_ptr, offer_ptr);
     KBO_HOOK_PROFILE_RETURN(profile_hook, "foreign.ai_offer_build", offer_ptr);
+}
+
+__declspec(noinline) void ootp_kbo_foreign_ai_offer_terms_build_probe_wrapper(
+    uintptr_t player_ptr,
+    uintptr_t terms_ptr,
+    int32_t team_id,
+    uint8_t offer_flag,
+    uint8_t stack_flag_0,
+    uint8_t stack_flag_1,
+    uint8_t stack_flag_2)
+{
+    KBO_HOOK_PROFILE_BEGIN(profile_hook);
+    KboOotpForeignAiOfferTermsBuildFn original_func =
+        (KboOotpForeignAiOfferTermsBuildFn)kbo_offer_probe_resolve_rva(OOTP27_AI_FA_OFFER_TERMS_BUILD_FUNC_RVA);
+
+    kbo_prepare_foreign_fa_offer_demand_baseline_for_team_key(player_ptr, team_id, "foreign_ai_offer_terms");
+    int baseline_active =
+        InterlockedCompareExchange(&g_kbo_foreign_fa_demand_ladder_snapshot.active, 0, 0) != 0;
+    if (original_func != NULL) {
+        KBO_HOOK_PROFILE_PAUSE(profile_hook);
+        original_func(
+            player_ptr,
+            terms_ptr,
+            team_id,
+            offer_flag,
+            stack_flag_0,
+            stack_flag_1,
+            stack_flag_2);
+        KBO_HOOK_PROFILE_RESUME(profile_hook);
+    }
+
+    if (baseline_active
+            && player_ptr != 0
+            && memory_range_readable((void*)player_ptr, OOTP27_PLAYER_SCAN_BYTES)) {
+        uint8_t* player = (uint8_t*)player_ptr;
+        uint32_t player_id = *(uint32_t*)(player + OOTP27_PLAYER_ID_OFFSET);
+        static volatile LONG terms_log_count = 0;
+        LONG slot = InterlockedIncrement(&terms_log_count);
+        if (slot <= 240) {
+            kbo_log_runtimef(
+                "KBO foreign AI offer terms baseline active player=%u team=%d asian_quota=%u terms=%p salary_primary=%d salary_y1=%d years=%u demand=%d flag=%u stack0=%u stack1=%u stack2=%u",
+                player_id,
+                team_id,
+                (uint32_t)kbo_player_is_asian_quota_slot_candidate(player),
+                (void*)terms_ptr,
+                kbo_offer_read_i32(terms_ptr, KBO_OFFER_SALARY_PRIMARY_OFFSET),
+                kbo_offer_read_i32(terms_ptr, KBO_OFFER_SALARY_FIRST_YEAR_OFFSET),
+                (uint32_t)kbo_offer_read_u8(terms_ptr, KBO_OFFER_YEAR_COUNT_OFFSET),
+                *(int32_t*)(player + OOTP27_PLAYER_FA_DEMAND_SALARY_OFFSET),
+                (uint32_t)offer_flag,
+                (uint32_t)stack_flag_0,
+                (uint32_t)stack_flag_1,
+                (uint32_t)stack_flag_2);
+        }
+    }
+    kbo_restore_foreign_fa_demand_salary_ladder("foreign_ai_offer_terms");
+    KBO_HOOK_PROFILE_END(profile_hook, "foreign.ai_offer_terms");
 }
 
 __declspec(noinline) uint8_t ootp_kbo_foreign_ai_offer_final_gate_probe_wrapper(

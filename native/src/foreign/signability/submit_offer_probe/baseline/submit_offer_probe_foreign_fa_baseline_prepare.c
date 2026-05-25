@@ -186,6 +186,65 @@ __declspec(noinline) void ootp_kbo_foreign_fa_demand_baseline_prepare_wrapper(
     KBO_HOOK_PROFILE_END(profile_hook, "foreign.fa_demand_baseline_prepare");
 }
 
+static uint32_t kbo_foreign_fa_offer_baseline_source_rva(const char* source)
+{
+    uint32_t source_rva = 0u;
+    if (source != NULL && strstr(source, "17B50B4") != NULL) {
+        kbo_resolve_build_specific_rva(
+            OOTP27_NO_MINOR_CONTRACT_FA_OFFER_DEMAND_FLOOR_17B50B4_RVA,
+            &source_rva);
+    } else if (source != NULL && strstr(source, "17A79BB") != NULL) {
+        kbo_resolve_build_specific_rva(
+            OOTP27_NO_MINOR_CONTRACT_FA_OFFER_DEMAND_FLOOR_17A79BB_RVA,
+            &source_rva);
+    } else if (source != NULL && strstr(source, "foreign_ai_offer_terms") != NULL) {
+        kbo_resolve_build_specific_rva(
+            OOTP27_AI_FA_OFFER_TERMS_BUILD_PREP_RVA,
+            &source_rva);
+    } else if (source != NULL && strstr(source, "foreign_ai_offer_build") != NULL) {
+        kbo_resolve_build_specific_rva(
+            OOTP27_AI_FA_OFFER_BUILD_PREP_RVA,
+            &source_rva);
+    } else if (source != NULL && strstr(source, "foreign_ai_offer_attach") != NULL) {
+        kbo_resolve_build_specific_rva(
+            OOTP27_PLAYER_CONTRACT_OFFER_ATTACH_RVA,
+            &source_rva);
+    }
+    return source_rva;
+}
+
+static void kbo_prepare_foreign_fa_offer_demand_baseline_with_financials(
+    uintptr_t player_ptr,
+    const char* source,
+    uint8_t* financials,
+    uint32_t league_id,
+    int32_t team_key)
+{
+    if (financials == NULL) {
+        return;
+    }
+
+    uint8_t* player = (uint8_t*)player_ptr;
+    uint32_t source_rva = kbo_foreign_fa_offer_baseline_source_rva(source);
+    ootp_kbo_foreign_fa_demand_baseline_prepare_wrapper((uintptr_t)financials, player_ptr, source_rva);
+    if (InterlockedCompareExchange(&g_kbo_foreign_fa_demand_ladder_snapshot.active, 0, 0) != 0) {
+        kbo_schedule_foreign_fa_demand_restore_timer();
+        static LONG offer_prepare_log_count = 0;
+        LONG slot = InterlockedIncrement(&offer_prepare_log_count);
+        if (slot <= 120) {
+            kbo_log_runtimef(
+                "KBO foreign FA demand baseline offer-build active source=%s player=%u team_key=%d league=%u financials=%p",
+                source != NULL ? source : "",
+                memory_range_readable(player + OOTP27_PLAYER_ID_OFFSET, sizeof(uint32_t))
+                    ? *(uint32_t*)(player + OOTP27_PLAYER_ID_OFFSET)
+                    : 0u,
+                team_key,
+                league_id,
+                (void*)financials);
+        }
+    }
+}
+
 void kbo_prepare_foreign_fa_offer_demand_baseline(uintptr_t player_ptr, const char* source)
 {
     if (!kbo_foreign_fa_demand_baseline_enabled()) {
@@ -200,7 +259,6 @@ void kbo_prepare_foreign_fa_offer_demand_baseline(uintptr_t player_ptr, const ch
     if (!kbo_player_is_foreign_for_kbo_rights(player)) {
         return;
     }
-    kbo_apply_foreign_contract_demand_floor(player_ptr, 0u, source != NULL ? source : "offer_demand_baseline_prepare");
 
     uint32_t league_id = 0u;
     uint8_t* financials = kbo_resolve_current_league_financials(&league_id);
@@ -218,33 +276,56 @@ void kbo_prepare_foreign_fa_offer_demand_baseline(uintptr_t player_ptr, const ch
         return;
     }
 
-    uint32_t source_rva = 0u;
-    if (source != NULL && strstr(source, "17B50B4") != NULL) {
-        kbo_resolve_build_specific_rva(
-            OOTP27_NO_MINOR_CONTRACT_FA_OFFER_DEMAND_FLOOR_17B50B4_RVA,
-            &source_rva);
-    } else if (source != NULL && strstr(source, "17A79BB") != NULL) {
-        kbo_resolve_build_specific_rva(
-            OOTP27_NO_MINOR_CONTRACT_FA_OFFER_DEMAND_FLOOR_17A79BB_RVA,
-            &source_rva);
+    kbo_prepare_foreign_fa_offer_demand_baseline_with_financials(
+        player_ptr,
+        source,
+        financials,
+        league_id,
+        0);
+}
+
+void kbo_prepare_foreign_fa_offer_demand_baseline_for_team_key(
+    uintptr_t player_ptr,
+    int32_t team_key,
+    const char* source)
+{
+    if (!kbo_foreign_fa_demand_baseline_enabled()) {
+        kbo_restore_foreign_fa_demand_salary_ladder("offer_baseline_disabled");
+        return;
+    }
+    if (player_ptr == 0 || !kbo_player_pointer_plausible(player_ptr)) {
+        return;
     }
 
-    ootp_kbo_foreign_fa_demand_baseline_prepare_wrapper((uintptr_t)financials, player_ptr, source_rva);
-    if (InterlockedCompareExchange(&g_kbo_foreign_fa_demand_ladder_snapshot.active, 0, 0) != 0) {
-        kbo_schedule_foreign_fa_demand_restore_timer();
-        static LONG offer_prepare_log_count = 0;
-        LONG slot = InterlockedIncrement(&offer_prepare_log_count);
-        if (slot <= 120) {
+    uint8_t* player = (uint8_t*)player_ptr;
+    if (!kbo_player_is_foreign_for_kbo_rights(player)) {
+        return;
+    }
+
+    uint32_t league_id = 0u;
+    uint8_t* financials = kbo_resolve_team_key_league_financials(team_key, &league_id);
+    if (financials == NULL) {
+        static LONG no_team_financials_log_count = 0;
+        LONG slot = InterlockedIncrement(&no_team_financials_log_count);
+        if (slot <= 80) {
             kbo_log_runtimef(
-                "KBO foreign FA demand baseline offer-build active source=%s player=%u league=%u financials=%p",
+                "KBO foreign FA demand baseline offer-build target financials skipped source=%s reason=no_team_financials player=%u team_key=%d",
                 source != NULL ? source : "",
                 memory_range_readable(player + OOTP27_PLAYER_ID_OFFSET, sizeof(uint32_t))
                     ? *(uint32_t*)(player + OOTP27_PLAYER_ID_OFFSET)
                     : 0u,
-                league_id,
-                (void*)financials);
+                team_key);
         }
+        kbo_prepare_foreign_fa_offer_demand_baseline(player_ptr, source);
+        return;
     }
+
+    kbo_prepare_foreign_fa_offer_demand_baseline_with_financials(
+        player_ptr,
+        source,
+        financials,
+        league_id,
+        team_key);
 }
 
 uint8_t* kbo_resolve_current_league_financials(uint32_t* out_league_id)
@@ -281,6 +362,89 @@ uint8_t* kbo_resolve_current_league_financials(uint32_t* out_league_id)
 
     if (out_league_id != NULL) {
         *out_league_id = (uint32_t)league_id;
+    }
+    return financials;
+}
+
+uint8_t* kbo_resolve_team_key_league_financials(int32_t team_key, uint32_t* out_league_id)
+{
+    if (out_league_id != NULL) {
+        *out_league_id = 0u;
+    }
+    if (team_key <= 0) {
+        return NULL;
+    }
+
+    uintptr_t global_db = get_ootp_global_database();
+    if (global_db == 0
+            || !memory_range_readable((void*)(global_db + OOTP27_KBO_TEAM_COUNT_OFFSET), sizeof(int32_t))
+            || !memory_range_readable((void*)(global_db + OOTP27_KBO_TEAM_VECTOR_OFFSET), sizeof(uintptr_t))) {
+        return NULL;
+    }
+
+    int32_t team_count = *(int32_t*)(global_db + OOTP27_KBO_TEAM_COUNT_OFFSET);
+    int32_t team_index = team_key - 1;
+    if (team_count <= 0 || team_count > 100000 || team_index < 0 || team_index >= team_count) {
+        return NULL;
+    }
+
+    uintptr_t team_vector = *(uintptr_t*)(global_db + OOTP27_KBO_TEAM_VECTOR_OFFSET);
+    uintptr_t team_slot = team_vector + ((uintptr_t)team_index * sizeof(uintptr_t));
+    if (team_vector == 0 || !memory_range_readable((void*)team_slot, sizeof(uintptr_t))) {
+        return NULL;
+    }
+
+    uint8_t* team = *(uint8_t**)team_slot;
+    if (team == NULL
+            || !memory_range_readable(
+                team + OOTP27_KBO_TEAM_LEAGUE_ID_OFFSET,
+                sizeof(int32_t))) {
+        return NULL;
+    }
+
+    int32_t league_id = *(int32_t*)(team + OOTP27_KBO_TEAM_LEAGUE_ID_OFFSET);
+    if (league_id <= 0) {
+        return NULL;
+    }
+
+    HMODULE exe = GetModuleHandleA(NULL);
+    if (exe == NULL) {
+        return NULL;
+    }
+
+    OotpLeagueFinancialsLookupFn lookup =
+        (OotpLeagueFinancialsLookupFn)kbo_resolve_build_specific_rva_ptr(exe, OOTP27_LEAGUE_FINANCIALS_LOOKUP_RVA);
+    if (!memory_range_readable((void*)lookup, 16)) {
+        return NULL;
+    }
+
+    uint8_t* financials = lookup((void*)global_db, league_id);
+    if (financials == NULL
+            || !memory_range_readable(financials + OOTP27_FINANCIALS_PROBE_LAST_OFFSET, sizeof(int32_t))) {
+        return NULL;
+    }
+
+    uint32_t effective_league_id = (uint32_t)league_id;
+    if (memory_range_readable(
+            financials + OOTP27_KBO_LEAGUE_FINANCIALS_REDIRECT_LEAGUE_ID_OFFSET,
+            sizeof(int32_t))) {
+        int32_t redirect_league_id =
+            *(int32_t*)(financials + OOTP27_KBO_LEAGUE_FINANCIALS_REDIRECT_LEAGUE_ID_OFFSET);
+        if (redirect_league_id > 0 && redirect_league_id != league_id) {
+            uint8_t* redirected_financials = lookup((void*)global_db, redirect_league_id);
+            if (redirected_financials == NULL
+                    || !memory_range_readable(
+                        redirected_financials + OOTP27_FINANCIALS_PROBE_LAST_OFFSET,
+                        sizeof(int32_t))) {
+                return NULL;
+            }
+            financials = redirected_financials;
+            effective_league_id = (uint32_t)redirect_league_id;
+        }
+    }
+
+    if (out_league_id != NULL) {
+        *out_league_id = effective_league_id;
     }
     return financials;
 }

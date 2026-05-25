@@ -184,6 +184,13 @@
       }
     },
     {
+      "name": "OOTP27_AI_FA_OFFER_TERMS_BUILD_FUNC_RVA",
+      "canonicalRva": "0x00857ED0",
+      "builds": {
+        "steam_2026_05_04": "0x00857ED0"
+      }
+    },
+    {
       "name": "OOTP27_AI_FA_OFFER_CANDIDATE_SELECTED_RVA",
       "canonicalRva": "0x00AA9741",
       "builds": {
@@ -202,6 +209,27 @@
       "canonicalRva": "0x00AAA2CC",
       "builds": {
         "steam_2026_05_04": "0x00AAA2CC"
+      }
+    },
+    {
+      "name": "OOTP27_AI_FA_OFFER_TERMS_BUILD_PREP_RVA",
+      "canonicalRva": "0x00AAA2F0",
+      "builds": {
+        "steam_2026_05_04": "0x00AAA2F0"
+      }
+    },
+    {
+      "name": "OOTP27_AI_FA_OFFER_TERMS_BUILD_PREP_FINAL_CREATE_RVA",
+      "canonicalRva": "0x00AA10AF",
+      "builds": {
+        "steam_2026_05_04": "0x00AA10AF"
+      }
+    },
+    {
+      "name": "OOTP27_AI_FA_OFFER_TERMS_BUILD_PREP_FINAL_CREATE_ALT_RVA",
+      "canonicalRva": "0x00AAC755",
+      "builds": {
+        "steam_2026_05_04": "0x00AAC755"
       }
     },
     {

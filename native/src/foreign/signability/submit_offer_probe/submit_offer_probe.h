@@ -80,7 +80,12 @@ int kbo_write_i32(uint8_t* address, int32_t value);
 void kbo_restore_foreign_fa_demand_salary_ladder(const char* source);
 void kbo_schedule_foreign_fa_demand_restore_timer(void);
 void kbo_prepare_foreign_fa_offer_demand_baseline(uintptr_t player_ptr, const char* source);
+void kbo_prepare_foreign_fa_offer_demand_baseline_for_team_key(
+    uintptr_t player_ptr,
+    int32_t team_key,
+    const char* source);
 uint8_t* kbo_resolve_current_league_financials(uint32_t* out_league_id);
+uint8_t* kbo_resolve_team_key_league_financials(int32_t team_key, uint32_t* out_league_id);
 void kbo_log_financials_salary_baseline_probe(const char* source);
 int32_t kbo_no_minor_resolve_current_league_id(void);
 int32_t kbo_no_minor_resolve_current_league_minimum_salary(void);
