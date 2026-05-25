@@ -298,6 +298,8 @@ int kbo_retention_opportunity_probe_should_block(
         reason = "quota_blocked";
     } else if (opportunity.best_player_id == 0u) {
         reason = "no_retained_candidate";
+    } else if (!kbo_retention_candidate_consumes_last_effective_slot(effective_after, effective_limit)) {
+        reason = "slot_open_after_candidate";
     } else if (reserved_after <= effective_limit) {
         reason = "slot_available_after_reserve";
     } else if (kbo_retention_candidate_score_clears_best(candidate_score, opportunity.best_score)) {
