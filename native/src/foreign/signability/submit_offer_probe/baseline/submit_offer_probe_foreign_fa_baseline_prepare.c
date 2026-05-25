@@ -73,10 +73,23 @@ __declspec(noinline) void ootp_kbo_foreign_fa_demand_baseline_prepare_wrapper(
     if (!kbo_foreign_fa_demand_baseline_enabled()) {
         KBO_HOOK_PROFILE_RETURN_VOID(profile_hook, "foreign.fa_demand_baseline_prepare");
     }
+    if (InterlockedCompareExchange(&g_kbo_foreign_fa_demand_ladder_snapshot.active, 0, 0) != 0) {
+        static LONG pending_restore_log_count = 0;
+        LONG pending_slot = InterlockedIncrement(&pending_restore_log_count);
+        if (pending_slot <= 40) {
+            kbo_log_runtimef(
+                "KBO foreign FA demand baseline prepare skipped source=0x%x reason=restore_pending",
+                source_rva);
+        }
+        KBO_HOOK_PROFILE_RETURN_VOID(profile_hook, "foreign.fa_demand_baseline_prepare");
+    }
 
     if (financials_ptr == 0
             || !memory_range_readable(
                 (void*)(financials_ptr + OOTP27_FINANCIALS_AVERAGE_SALARY_OFFSET),
+                sizeof(int32_t))
+            || !memory_range_readable(
+                (void*)(financials_ptr + OOTP27_FINANCIALS_FA_DEMAND_CEILING_OFFSET),
                 sizeof(int32_t))) {
         KBO_HOOK_PROFILE_RETURN_VOID(profile_hook, "foreign.fa_demand_baseline_prepare");
     }
@@ -88,6 +101,9 @@ __declspec(noinline) void ootp_kbo_foreign_fa_demand_baseline_prepare_wrapper(
     if (!kbo_player_is_foreign_for_kbo_rights(player)) {
         KBO_HOOK_PROFILE_RETURN_VOID(profile_hook, "foreign.fa_demand_baseline_prepare");
     }
+    uint32_t player_id = memory_range_readable(player + OOTP27_PLAYER_ID_OFFSET, sizeof(uint32_t))
+        ? *(uint32_t*)(player + OOTP27_PLAYER_ID_OFFSET)
+        : 0u;
     int asian_quota = kbo_player_is_asian_quota_slot_candidate(player);
     uint32_t reserve_holder_team_id = 0u;
     uint32_t reserve_today = 0u;
@@ -98,45 +114,74 @@ __declspec(noinline) void ootp_kbo_foreign_fa_demand_baseline_prepare_wrapper(
 
     uint8_t* financials = (uint8_t*)financials_ptr;
     for (int i = 0; i < 9; i++) {
+        if (!memory_range_readable(financials + KBO_FINANCIALS_SALARY_LADDER_OFFSETS[i], sizeof(int32_t))) {
+            KBO_HOOK_PROFILE_RETURN_VOID(profile_hook, "foreign.fa_demand_baseline_prepare");
+        }
+    }
+
+    KboFinancialSalaryLadderSnapshot prepared_snapshot = {0};
+    int patched = 0;
+    kbo_lock_enter(&g_kbo_foreign_fa_demand_ladder_snapshot_lock);
+    memset(&g_kbo_foreign_fa_demand_ladder_snapshot, 0, sizeof(g_kbo_foreign_fa_demand_ladder_snapshot));
+    for (int i = 0; i < 9; i++) {
         g_kbo_foreign_fa_demand_ladder_snapshot.values[i] =
             *(int32_t*)(financials + KBO_FINANCIALS_SALARY_LADDER_OFFSETS[i]);
     }
+    g_kbo_foreign_fa_demand_ladder_snapshot.demand_ceiling_value =
+        *(int32_t*)(financials + OOTP27_FINANCIALS_FA_DEMAND_CEILING_OFFSET);
     g_kbo_foreign_fa_demand_ladder_snapshot.financials = financials;
+    g_kbo_foreign_fa_demand_ladder_snapshot.player_id = player_id;
+    g_kbo_foreign_fa_demand_ladder_snapshot.source_rva = source_rva;
+    g_kbo_foreign_fa_demand_ladder_snapshot.asian_quota = (uint32_t)asian_quota;
+    g_kbo_foreign_fa_demand_ladder_snapshot.reserve_right = (uint32_t)reserve_right;
+    g_kbo_foreign_fa_demand_ladder_snapshot.holder_team_id = reserve_holder_team_id;
+    g_kbo_foreign_fa_demand_ladder_snapshot.today = reserve_today;
 
-    int patched = 0;
     for (int i = 0; i < 9; i++) {
+        int32_t patched_value = reserve_right
+            ? kbo_foreign_fa_reserve_right_baseline_value(i, asian_quota)
+            : kbo_get_foreign_fa_demand_baseline_value_for_player(i, asian_quota);
+        g_kbo_foreign_fa_demand_ladder_snapshot.patched_values[i] = patched_value;
         patched += kbo_write_i32(
             financials + KBO_FINANCIALS_SALARY_LADDER_OFFSETS[i],
-            reserve_right
-                ? kbo_foreign_fa_reserve_right_baseline_value(i, asian_quota)
-                : kbo_get_foreign_fa_demand_baseline_value_for_player(i, asian_quota));
+            patched_value);
     }
+    g_kbo_foreign_fa_demand_ladder_snapshot.patched_demand_ceiling_value =
+        reserve_right
+            ? kbo_foreign_fa_reserve_right_baseline_value(8, asian_quota)
+            : kbo_get_foreign_fa_demand_baseline_value_for_player(8, asian_quota);
+    patched += kbo_write_i32(
+        financials + OOTP27_FINANCIALS_FA_DEMAND_CEILING_OFFSET,
+        g_kbo_foreign_fa_demand_ladder_snapshot.patched_demand_ceiling_value);
 
-    if (patched == 9) {
-        InterlockedExchange(&g_kbo_foreign_fa_demand_ladder_snapshot.active, 1);
-    } else {
+    InterlockedExchange(&g_kbo_foreign_fa_demand_ladder_snapshot.active, 1);
+    prepared_snapshot = g_kbo_foreign_fa_demand_ladder_snapshot;
+    kbo_lock_leave(&g_kbo_foreign_fa_demand_ladder_snapshot_lock);
+
+    if (patched != 10) {
         kbo_restore_foreign_fa_demand_salary_ladder("prepare_failed");
+        KBO_HOOK_PROFILE_RETURN_VOID(profile_hook, "foreign.fa_demand_baseline_prepare");
     }
 
     static LONG prepare_log_count = 0;
     LONG slot = InterlockedIncrement(&prepare_log_count);
     if (slot <= 120) {
         kbo_log_runtimef(
-            "KBO foreign FA demand baseline prepared source=0x%x player=%u asian_quota=%d reserve_right=%d holder_team=%u today=%u financials=%p patched=%d original_superstar=%d foreign_superstar=%d",
+            "KBO foreign FA demand baseline prepared source=0x%x player=%u asian_quota=%d reserve_right=%d holder_team=%u today=%u financials=%p patched=%d original_min=%d original_superstar=%d original_ceiling=%d foreign_min=%d foreign_superstar=%d foreign_ceiling=%d",
             source_rva,
-            memory_range_readable(player + OOTP27_PLAYER_ID_OFFSET, sizeof(uint32_t))
-                ? *(uint32_t*)(player + OOTP27_PLAYER_ID_OFFSET)
-                : 0u,
+            player_id,
             asian_quota,
             reserve_right,
             reserve_holder_team_id,
             reserve_today,
             (void*)financials,
             patched,
-            g_kbo_foreign_fa_demand_ladder_snapshot.values[8],
-            reserve_right
-                ? kbo_foreign_fa_reserve_right_baseline_value(8, asian_quota)
-                : kbo_get_foreign_fa_demand_baseline_value_for_player(8, asian_quota));
+            prepared_snapshot.values[0],
+            prepared_snapshot.values[8],
+            prepared_snapshot.demand_ceiling_value,
+            prepared_snapshot.patched_values[0],
+            prepared_snapshot.patched_values[8],
+            prepared_snapshot.patched_demand_ceiling_value);
     }
     KBO_HOOK_PROFILE_END(profile_hook, "foreign.fa_demand_baseline_prepare");
 }

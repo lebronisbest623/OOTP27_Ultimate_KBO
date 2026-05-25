@@ -15,6 +15,7 @@
 #include "../../../core/core_flags/api/flags_api.h"
 #include "../../../core/core_league_context_parts/api/league_context_lookup.h"
 #include "../../../core/logging/core_log.h"
+#include "../../../core/sync/lock.h"
 #include "../../../runtime_memory/runtime_memory.h"
 #include "../../../team/lookup/team_lookup.h"
 #include "../../common/dates/foreign_waiver_date.h"
@@ -36,6 +37,15 @@ typedef uint8_t* (__fastcall *OotpLeagueFinancialsLookupFn)(void* global_db, int
 typedef struct KboFinancialSalaryLadderSnapshot {
     uint8_t* financials;
     int32_t values[9];
+    int32_t patched_values[9];
+    int32_t demand_ceiling_value;
+    int32_t patched_demand_ceiling_value;
+    uint32_t player_id;
+    uint32_t source_rva;
+    uint32_t asian_quota;
+    uint32_t reserve_right;
+    uint32_t holder_team_id;
+    uint32_t today;
     LONG active;
 } KboFinancialSalaryLadderSnapshot;
 typedef struct KboForeignFaDemandRemapRecord {
@@ -45,6 +55,7 @@ typedef struct KboForeignFaDemandRemapRecord {
 } KboForeignFaDemandRemapRecord;
 extern LONG g_kbo_no_minor_contract_demand_floor_enabled;
 extern KboFinancialSalaryLadderSnapshot g_kbo_foreign_fa_demand_ladder_snapshot;
+extern KboLock g_kbo_foreign_fa_demand_ladder_snapshot_lock;
 extern KboForeignFaDemandRemapRecord g_kbo_foreign_fa_demand_remap_records[512];
 extern volatile LONG g_kbo_foreign_fa_demand_remap_record_cursor;
 extern volatile LONG g_kbo_foreign_fa_demand_restore_timer_pending;
