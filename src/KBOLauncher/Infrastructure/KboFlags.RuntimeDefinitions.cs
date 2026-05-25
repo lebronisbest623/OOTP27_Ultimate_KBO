@@ -22,7 +22,6 @@ internal static partial class KboFlags
         new("disable_kbo_no_minor_contract_patch", false, RuntimeFlagLifecycle.Recovery),
         new("enable_kbo_ai_fa_status_candidate_insert_hook", false, RuntimeFlagLifecycle.Recovery),
         new("disable_kbo_foreign_ai_offer_candidate_priority_hook", null, RuntimeFlagLifecycle.Recovery),
-        new("disable_kbo_foreign_ai_fast_fill_offer_gate", null, RuntimeFlagLifecycle.Recovery),
         new("disable_kbo_custom_foreign_policy", null, RuntimeFlagLifecycle.Recovery),
         new("disable_kbo_foreign_signing_branch_patch", null, RuntimeFlagLifecycle.Recovery),
         new("disable_kbo_foreign_trade_check_patch", null, RuntimeFlagLifecycle.Recovery),
