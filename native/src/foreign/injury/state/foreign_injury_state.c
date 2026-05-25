@@ -38,6 +38,7 @@
 #define KBO_FOREIGN_INJURY_STATUS_CLOSED        4
 #define KBO_FOREIGN_INJURY_CLOSE_KEEP_INJURED      1u
 #define KBO_FOREIGN_INJURY_CLOSE_KEEP_REPLACEMENT  2u
+#define KBO_FOREIGN_INJURY_CLOSE_OFFSEASON_RESET   3u
 
 typedef struct KboForeignInjuryReplacement {
     uint32_t team_id;
@@ -276,7 +277,8 @@ int kbo_foreign_injury_closed_record_can_repair_on_date(
             || rec->status != KBO_FOREIGN_INJURY_STATUS_CLOSED
             || rec->converted != 0u
             || rec->replacement_player_id == 0u
-            || rec->expected_end_yyyymmdd == 0u) {
+            || rec->expected_end_yyyymmdd == 0u
+            || rec->close_choice == KBO_FOREIGN_INJURY_CLOSE_OFFSEASON_RESET) {
         return 0;
     }
 

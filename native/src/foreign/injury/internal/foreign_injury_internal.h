@@ -42,6 +42,7 @@
 #define KBO_FOREIGN_INJURY_STATUS_CLOSED        4
 #define KBO_FOREIGN_INJURY_CLOSE_KEEP_INJURED      1u
 #define KBO_FOREIGN_INJURY_CLOSE_KEEP_REPLACEMENT  2u
+#define KBO_FOREIGN_INJURY_CLOSE_OFFSEASON_RESET   3u
 typedef struct KboForeignInjuryReplacement {
     uint32_t team_id;
     uint32_t league_id;

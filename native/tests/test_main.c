@@ -2651,6 +2651,9 @@ static void test_foreign_injury_episode_policy(void)
     live.injury_id = 500u;
     live.days_left = 60;
     assert(kbo_foreign_injury_closed_record_can_repair_on_date(&rec, &live, 20260724u, 0, 0));
+    rec.close_choice = KBO_FOREIGN_INJURY_CLOSE_OFFSEASON_RESET;
+    assert(!kbo_foreign_injury_closed_record_can_repair_on_date(&rec, &live, 20260724u, 0, 0));
+    rec.close_choice = 0u;
     rec.converted = 1u;
     assert(!kbo_foreign_injury_closed_record_can_repair_on_date(&rec, &live, 20260724u, 0, 0));
 
@@ -2766,7 +2769,7 @@ static void test_foreign_injury_offseason_reset_closes_open_slots(void)
         assert(g_kbo_foreign_injury_replacements[i].status == KBO_FOREIGN_INJURY_STATUS_CLOSED);
         assert(g_kbo_foreign_injury_replacements[i].closed_on_yyyymmdd == 20261001u);
         assert(g_kbo_foreign_injury_replacements[i].converted == 0u);
-        assert(g_kbo_foreign_injury_replacements[i].close_choice == KBO_FOREIGN_INJURY_CLOSE_KEEP_INJURED);
+        assert(g_kbo_foreign_injury_replacements[i].close_choice == KBO_FOREIGN_INJURY_CLOSE_OFFSEASON_RESET);
     }
     assert(g_kbo_foreign_injury_replacements[3].closed_on_yyyymmdd == 20260809u);
 
