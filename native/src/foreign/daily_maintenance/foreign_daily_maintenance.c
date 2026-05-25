@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "../roster_audit/api/foreign_roster_audit.h"
+#include "../no_minor_contracts/repair/foreign_no_minor_contract_repair.h"
 #include "../../team/add_player_guard/team_add_player_guard_ai_roster.h"
 #include "../../team/independent_acquisition/independent_acquisition_ai.h"
 #include "../retention_guard/foreign_retention_guard.h"
@@ -37,6 +38,7 @@ static int kbo_foreign_roster_daily_abort_if_save(const char* stage, uint32_t to
 typedef struct KboForeignRosterDailyState {
     uint32_t last_date_critical_date;
     uint32_t last_audit_date;
+    uint32_t last_no_minor_repair_date;
     uint32_t last_fa_repair_current_season;
     uint32_t last_fa_repair_previous_season;
     DWORD last_fa_repair_current_tick;
@@ -66,6 +68,7 @@ static int kbo_foreign_roster_daily_refresh_save_scope(
         state->last_audit_date = kbo_foreign_roster_daily_load_last_audit_date(
             source != NULL ? source : "foreign_roster_daily_save_scope");
         state->last_date_critical_date = 0u;
+        state->last_no_minor_repair_date = 0u;
         state->last_fa_repair_current_season = 0u;
         state->last_fa_repair_previous_season = 0u;
         state->last_fa_repair_current_tick = 0u;
@@ -111,6 +114,28 @@ static int kbo_foreign_roster_daily_process_date_critical(
     return !kbo_runtime_save_in_progress();
 }
 
+static int kbo_foreign_roster_daily_run_no_minor_repair_once(
+    KboForeignRosterDailyState* state,
+    uint32_t today,
+    const char* source)
+{
+    if (state == NULL || today == 0u) {
+        return 1;
+    }
+    if (state->last_no_minor_repair_date != 0u && today <= state->last_no_minor_repair_date) {
+        return 1;
+    }
+    if (kbo_foreign_roster_daily_abort_if_save("before_no_minor_contract_repair", today)) {
+        return 0;
+    }
+
+    KBO_PROFILE_BEGIN(profile_foreign_roster_daily_no_minor_repair);
+    kbo_foreign_no_minor_contract_repair_all(source != NULL ? source : "foreign_roster_daily_background");
+    KBO_PROFILE_END(profile_foreign_roster_daily_no_minor_repair, "foreign_roster.daily.background.no_minor_contract_repair");
+    state->last_no_minor_repair_date = today;
+    return !kbo_runtime_save_in_progress();
+}
+
 static int kbo_foreign_roster_daily_process_background_date(
     KboForeignRosterDailyState* state,
     uint32_t today,
@@ -140,6 +165,10 @@ static int kbo_foreign_roster_daily_process_background_date(
     KBO_PROFILE_END(profile_foreign_roster_daily_ai_callup, "foreign_roster.daily.background.dirty_ai_roster_callup");
 
     if (state->last_audit_date != 0u && today <= state->last_audit_date) {
+        if (!kbo_foreign_roster_daily_run_no_minor_repair_once(state, today, source)) {
+            KBO_PROFILE_END(profile_foreign_roster_daily_tick, "foreign_roster.daily.background.cached_no_minor_repair_stop");
+            return 0;
+        }
         KBO_PROFILE_END(profile_foreign_roster_daily_tick, "foreign_roster.daily.background.cached");
         return 1;
     }
@@ -161,6 +190,11 @@ static int kbo_foreign_roster_daily_process_background_date(
     KBO_PROFILE_BEGIN(profile_foreign_roster_daily_retention);
     kbo_foreign_retention_guard_repair(source != NULL ? source : "foreign_roster_daily_background");
     KBO_PROFILE_END(profile_foreign_roster_daily_retention, "foreign_roster.daily.background.retention_guard");
+
+    if (!kbo_foreign_roster_daily_run_no_minor_repair_once(state, today, source)) {
+        KBO_PROFILE_END(profile_foreign_roster_daily_tick, "foreign_roster.daily.background.no_minor_repair_stop");
+        return 0;
+    }
 
     uint32_t season = today / 10000u;
     DWORD now = GetTickCount();

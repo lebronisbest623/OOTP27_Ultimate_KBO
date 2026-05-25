@@ -21,6 +21,8 @@ $IndependentAcquisitionCashFlowTestSrc = Join-Path $PSScriptRoot "test_independe
 $IndependentAcquisitionCashFlowTestExe = Join-Path $PSScriptRoot "test_independent_acquisition_cash_flow.exe"
 $IntlEstablishedFaMarketNormalizeTestSrc = Join-Path $PSScriptRoot "test_intl_established_fa_market_normalize.c"
 $IntlEstablishedFaMarketNormalizeTestExe = Join-Path $PSScriptRoot "test_intl_established_fa_market_normalize.exe"
+$ForeignNoMinorContractRepairTestSrc = Join-Path $PSScriptRoot "test_foreign_no_minor_contract_repair.c"
+$ForeignNoMinorContractRepairTestExe = Join-Path $PSScriptRoot "test_foreign_no_minor_contract_repair.exe"
 $IntlEstablishedFaObservedPlayersTestSrc = Join-Path $PSScriptRoot "test_intl_established_fa_observed_players.c"
 $IntlEstablishedFaObservedPlayersTestExe = Join-Path $PSScriptRoot "test_intl_established_fa_observed_players.exe"
 $TeamLookupPlayerVectorCacheTestSrc = Join-Path $PSScriptRoot "test_team_lookup_player_vector_cache.c"
@@ -230,6 +232,22 @@ if ($LASTEXITCODE -ne 0) {
 & $IntlEstablishedFaMarketNormalizeTestExe
 if ($LASTEXITCODE -ne 0) {
     throw "International established FA market normalization tests failed"
+}
+
+& $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
+    -I $Root `
+    -I (Join-Path $Root "src") `
+    -o $ForeignNoMinorContractRepairTestExe `
+    $ForeignNoMinorContractRepairTestSrc `
+    (Join-Path $Root "src\foreign\no_minor_contracts\repair\foreign_no_minor_contract_repair_mutation.c") `
+    (Join-Path $Root "src\team\assignment\roster_arrays\team_roster_arrays.c")
+if ($LASTEXITCODE -ne 0) {
+    throw "Foreign no-minor contract repair test build failed"
+}
+
+& $ForeignNoMinorContractRepairTestExe
+if ($LASTEXITCODE -ne 0) {
+    throw "Foreign no-minor contract repair tests failed"
 }
 
 & $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
