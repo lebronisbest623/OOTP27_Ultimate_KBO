@@ -1,7 +1,89 @@
 #include "hotkey_window_runtime_window_internal.h"
+#include "../../../core/core_flags/keys/runtime_flag_keys.generated.h"
+#include "../../../core/dates/tick/current_date_tick_capture.h"
 
 static PVOID g_kbo_hotkey_window_exception_handler = NULL;
 static volatile LONG g_kbo_hotkey_window_crashed = 0;
+static volatile LONG g_kbo_hotkey_window_deferred_refresh = 0;
+static volatile LONG g_kbo_hotkey_window_fast_sim_defer_log_count = 0;
+static LONG g_kbo_hotkey_window_last_date_sequence = 0;
+static ULONGLONG g_kbo_hotkey_window_last_date_sequence_ms = 0ull;
+static ULONGLONG g_kbo_hotkey_window_fast_sim_defer_until_ms = 0ull;
+
+static int kbo_hotkey_window_auto_refresh_deferred_by_fast_sim(const char* source)
+{
+    enum {
+        KBO_HUB_FAST_SIM_SEQUENCE_WINDOW_MS = 750u,
+        KBO_HUB_FAST_SIM_MAX_OBSERVATION_GAP_MS = 3000u,
+        KBO_HUB_FAST_SIM_REFRESH_QUIET_MS = 1500u
+    };
+
+    if (read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_DISABLE_KBO_F2_FAST_SIM_REFRESH_DEFER_FILE)) {
+        return 0;
+    }
+
+    ULONGLONG now_ms = GetTickCount64();
+    LONG sequence = InterlockedCompareExchange(
+        &g_kbo_current_date_tick_event_published_sequence,
+        0,
+        0);
+    LONG last_sequence = g_kbo_hotkey_window_last_date_sequence;
+    ULONGLONG last_ms = g_kbo_hotkey_window_last_date_sequence_ms;
+
+    if (sequence != last_sequence) {
+        LONG delta = sequence - last_sequence;
+        ULONGLONG elapsed_ms = last_ms != 0ull ? now_ms - last_ms : 0ull;
+        if (last_ms != 0ull
+                && delta > 0
+                && elapsed_ms <= KBO_HUB_FAST_SIM_MAX_OBSERVATION_GAP_MS
+                && (delta >= 3 || elapsed_ms <= KBO_HUB_FAST_SIM_SEQUENCE_WINDOW_MS)) {
+            g_kbo_hotkey_window_fast_sim_defer_until_ms =
+                now_ms + KBO_HUB_FAST_SIM_REFRESH_QUIET_MS;
+        }
+        g_kbo_hotkey_window_last_date_sequence = sequence;
+        g_kbo_hotkey_window_last_date_sequence_ms = now_ms;
+    }
+
+    ULONGLONG defer_until = g_kbo_hotkey_window_fast_sim_defer_until_ms;
+    if (defer_until != 0ull && now_ms < defer_until) {
+        LONG slot = InterlockedIncrement(&g_kbo_hotkey_window_fast_sim_defer_log_count);
+        if (slot <= 40) {
+            kbo_log_runtimef(
+                "KBO F2 hub auto refresh deferred during fast sim source=%s sequence=%ld quiet_ms=%llu",
+                source != NULL ? source : "",
+                (long)sequence,
+                (unsigned long long)(defer_until - now_ms));
+        }
+        return 1;
+    }
+
+    return 0;
+}
+
+static void kbo_hotkey_window_defer_auto_refresh(const char* source)
+{
+    InterlockedExchange(&g_kbo_hotkey_window_deferred_refresh, 1);
+    (void)source;
+}
+
+static int kbo_hotkey_window_try_flush_deferred_refresh(HWND hwnd)
+{
+    if (InterlockedCompareExchange(&g_kbo_hotkey_window_deferred_refresh, 0, 0) == 0) {
+        return 0;
+    }
+    if (hwnd == NULL || !IsWindow(hwnd) || !IsWindowVisible(hwnd)) {
+        return 0;
+    }
+    if (kbo_hotkey_window_auto_refresh_deferred_by_fast_sim("deferred_refresh")) {
+        return 0;
+    }
+
+    InterlockedExchange(&g_kbo_hotkey_window_deferred_refresh, 0);
+    kbo_independent_acquisition_ui_invalidate_offer_cache();
+    kbo_refresh_hotkey_window_layout(hwnd);
+    kbo_log_runtimef("KBO F2 hub deferred refresh flushed hwnd=%p", (void*)hwnd);
+    return 1;
+}
 
 static LONG CALLBACK kbo_hotkey_window_exception_guard(EXCEPTION_POINTERS* exception_info)
 {
@@ -249,6 +331,16 @@ LRESULT CALLBACK kbo_hotkey_window_proc(HWND hwnd, UINT message, WPARAM wparam, 
             static uintptr_t s_last_db_ptr = 0;
             static ULONGLONG s_last_scrollbar_invalidate_ms = 0ull;
             uintptr_t cur_db = get_ootp_cached_global_database();
+            if (kbo_hotkey_window_auto_refresh_deferred_by_fast_sim("timer")) {
+                if (cur_db != s_last_db_ptr) {
+                    s_last_db_ptr = cur_db;
+                    kbo_hotkey_window_defer_auto_refresh("timer_db_changed");
+                }
+                return 0;
+            }
+            if (kbo_hotkey_window_try_flush_deferred_refresh(hwnd)) {
+                return 0;
+            }
             if (cur_db != s_last_db_ptr) {
                 s_last_db_ptr = cur_db;
                 kbo_independent_acquisition_ui_invalidate_offer_cache();
@@ -269,6 +361,10 @@ LRESULT CALLBACK kbo_hotkey_window_proc(HWND hwnd, UINT message, WPARAM wparam, 
         return 0;
 
     case KBO_WM_REFRESH_HUB:
+        if (kbo_hotkey_window_auto_refresh_deferred_by_fast_sim("refresh_request")) {
+            kbo_hotkey_window_defer_auto_refresh("refresh_request");
+            return 0;
+        }
         kbo_independent_acquisition_ui_invalidate_offer_cache();
         kbo_refresh_hotkey_window_layout(hwnd);
         kbo_log_runtimef("KBO F2 hub refreshed by request hwnd=%p", (void*)hwnd);

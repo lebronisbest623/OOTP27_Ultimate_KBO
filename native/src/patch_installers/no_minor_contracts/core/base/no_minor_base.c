@@ -36,7 +36,7 @@ int install_kbo_no_minor_contract_base_patches(HMODULE exe)
     ok |= install_kbo_no_minor_contract_demand_write_floor_aab739_patch(exe);
     ok |= install_kbo_no_minor_contract_demand_write_floor_1077952_patch(exe);
     kbo_log_runtime_line("KBO no-minor demand write-floor patches enabled: demand salary only, no player contract-level writes");
-    kbo_log_runtime_line("KBO foreign FA demand baseline prepare patch retired from no-minor safe profile");
+    ok |= install_kbo_foreign_fa_demand_baseline_prepare_patch(exe);
     ok |= install_kbo_no_minor_contract_submit_salary_floor_patch(exe);
     return ok;
 }

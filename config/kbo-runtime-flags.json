@@ -51,6 +51,16 @@
       }
     },
     {
+      "key": "enable_kbo_foreign_fa_demand_baseline",
+      "defaultValue": false,
+      "lifecycle": "Recovery",
+      "ui": {
+        "label": "Foreign FA demand baseline",
+        "enabledValue": 1,
+        "defaultEnabled": false
+      }
+    },
+    {
       "key": "disable_kbo_custom_foreign_policy",
       "defaultValue": null,
       "lifecycle": "Recovery",
@@ -153,6 +163,16 @@
       "lifecycle": "Recovery",
       "ui": {
         "label": "Runtime roster marker guard",
+        "enabledValue": 0,
+        "defaultEnabled": true
+      }
+    },
+    {
+      "key": "disable_kbo_f2_fast_sim_refresh_defer",
+      "defaultValue": null,
+      "lifecycle": "Recovery",
+      "ui": {
+        "label": "F2 fast-sim refresh defer",
         "enabledValue": 0,
         "defaultEnabled": true
       }

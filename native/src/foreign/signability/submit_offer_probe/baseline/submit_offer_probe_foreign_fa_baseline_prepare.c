@@ -1,6 +1,26 @@
 #include "../submit_offer_probe.h"
 #include "../../../../core/core_flags/keys/runtime_flag_keys.generated.h"
 
+static int kbo_foreign_fa_demand_baseline_enabled(void)
+{
+    enum { KBO_FOREIGN_FA_DEMAND_BASELINE_FLAG_CACHE_MS = 500u };
+    static volatile LONG s_cached_tick = 0;
+    static volatile LONG s_cached_enabled = 0;
+
+    DWORD now = GetTickCount();
+    LONG cached_tick = InterlockedCompareExchange(&s_cached_tick, 0, 0);
+    if (cached_tick != 0
+            && (DWORD)(now - (DWORD)cached_tick) <= KBO_FOREIGN_FA_DEMAND_BASELINE_FLAG_CACHE_MS) {
+        return InterlockedCompareExchange(&s_cached_enabled, 0, 0) != 0;
+    }
+
+    int enabled = read_kbo_localappdata_flag_file(
+        KBO_RUNTIME_FLAG_ENABLE_KBO_FOREIGN_FA_DEMAND_BASELINE_FILE);
+    InterlockedExchange(&s_cached_enabled, enabled ? 1 : 0);
+    InterlockedExchange(&s_cached_tick, (LONG)now);
+    return enabled;
+}
+
 static int kbo_foreign_fa_player_has_active_reserve_right(
     uint8_t* player,
     uint32_t* out_holder_team_id,
@@ -50,6 +70,9 @@ __declspec(noinline) void ootp_kbo_foreign_fa_demand_baseline_prepare_wrapper(
 {
     KBO_HOOK_PROFILE_BEGIN(profile_hook);
     kbo_restore_foreign_fa_demand_salary_ladder("prepare_enter");
+    if (!kbo_foreign_fa_demand_baseline_enabled()) {
+        KBO_HOOK_PROFILE_RETURN_VOID(profile_hook, "foreign.fa_demand_baseline_prepare");
+    }
 
     if (financials_ptr == 0
             || !memory_range_readable(
@@ -120,6 +143,10 @@ __declspec(noinline) void ootp_kbo_foreign_fa_demand_baseline_prepare_wrapper(
 
 void kbo_prepare_foreign_fa_offer_demand_baseline(uintptr_t player_ptr, const char* source)
 {
+    if (!kbo_foreign_fa_demand_baseline_enabled()) {
+        kbo_restore_foreign_fa_demand_salary_ladder("offer_baseline_disabled");
+        return;
+    }
     if (player_ptr == 0 || !kbo_player_pointer_plausible(player_ptr)) {
         return;
     }

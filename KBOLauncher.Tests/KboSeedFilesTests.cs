@@ -170,6 +170,37 @@ public sealed class KboSeedFilesTests : IDisposable
     }
 
     [Fact]
+    public void EconomicDefaults_AsianQuotaDemandLadderStaysWithinSalaryLimit()
+    {
+        var path = FindRepoFile("data", "seeds", "economy_and_fa", "economic_defaults.json");
+        using var document = JsonDocument.Parse(File.ReadAllText(path));
+        var root = document.RootElement;
+        var limit = root.GetProperty("asian_quota_salary_limit").GetInt32();
+        var keys = new[]
+        {
+            "asian_quota_fa_demand_minimum_salary",
+            "asian_quota_fa_demand_poor_salary",
+            "asian_quota_fa_demand_fair_salary",
+            "asian_quota_fa_demand_below_average_salary",
+            "asian_quota_fa_demand_average_salary",
+            "asian_quota_fa_demand_above_average_salary",
+            "asian_quota_fa_demand_good_salary",
+            "asian_quota_fa_demand_star_salary",
+            "asian_quota_fa_demand_superstar_salary",
+        };
+
+        var previous = 0;
+        foreach (var key in keys)
+        {
+            var value = root.GetProperty(key).GetInt32();
+            value.Should().BeGreaterThan(0, key);
+            value.Should().BeGreaterThanOrEqualTo(previous, key);
+            value.Should().BeLessThanOrEqualTo(limit, key);
+            previous = value;
+        }
+    }
+
+    [Fact]
     public void EnsureBundledKboDataDirectory_CopiesNestedFilesWhenMissingOrChanged()
     {
         var localDir = Path.Combine(tempDir, "local");
@@ -292,5 +323,25 @@ public sealed class KboSeedFilesTests : IDisposable
             .GetProperty("Files")
             .GetProperty(relativePath)
             .GetString()!;
+    }
+
+    private static string FindRepoFile(params string[] parts)
+    {
+        var directory = AppContext.BaseDirectory;
+        while (directory is not null)
+        {
+            var candidateParts = new string[parts.Length + 1];
+            candidateParts[0] = directory;
+            Array.Copy(parts, 0, candidateParts, 1, parts.Length);
+            var candidate = Path.Combine(candidateParts);
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+
+            directory = Directory.GetParent(directory)?.FullName;
+        }
+
+        throw new FileNotFoundException("Could not find repository file.", Path.Combine(parts));
     }
 }
