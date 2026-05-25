@@ -8,6 +8,7 @@
 #include "../../core/logging/core_log.h"
 #include "../../core/csv/core_csv.h"
 #include "../../core/files/save_paths/core_save_paths.h"
+#include "../../core/files/save_paths/platform/core_path_io.h"
 #include "../api/fa_market_classification.h"
 #include "fa_market_seed_cases.h"
 
@@ -85,25 +86,30 @@ int kbo_fa_market_case_is_seeded_official(const char* case_label)
 
 static void kbo_ensure_fa_market_cases_seed_template(void)
 {
-    char path[MAX_PATH] = {0};
+    char path[KBO_UTF8_PATH_BYTES] = {0};
     if (!kbo_get_fa_market_cases_seed_path(path, sizeof(path))) {
         return;
     }
 
-    DWORD attributes = GetFileAttributesA(path);
+    DWORD attributes = kbo_get_file_attributes_utf8(path);
     if (attributes != INVALID_FILE_ATTRIBUTES && (attributes & FILE_ATTRIBUTE_DIRECTORY) == 0) {
         return;
     }
 
-    char dir[MAX_PATH] = {0};
+    char dir[KBO_UTF8_PATH_BYTES] = {0};
     snprintf(dir, sizeof(dir), "%s", path);
     char* slash = strrchr(dir, '\\');
     if (slash != NULL) {
         *slash = '\0';
-        CreateDirectoryA(dir, NULL);
+        kbo_create_directory_utf8(dir);
     }
 
-    HANDLE file = CreateFileA(path, GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
+    HANDLE file = kbo_create_file_utf8(
+        path,
+        GENERIC_WRITE,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        CREATE_NEW,
+        FILE_ATTRIBUTE_NORMAL);
     if (file == INVALID_HANDLE_VALUE) {
         return;
     }
@@ -127,7 +133,7 @@ int kbo_load_fa_market_seed_cases(KboFaMarketSeedCase* seeds, int max_seeds, cha
     memset(seeds, 0, (SIZE_T)max_seeds * sizeof(seeds[0]));
     kbo_ensure_fa_market_cases_seed_template();
 
-    char path[MAX_PATH] = {0};
+    char path[KBO_UTF8_PATH_BYTES] = {0};
     if (!kbo_get_fa_market_cases_seed_path(path, sizeof(path))) {
         return 0;
     }

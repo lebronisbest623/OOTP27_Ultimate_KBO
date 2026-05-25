@@ -13,6 +13,7 @@
 #include "../../core/core_league_context_parts/api/league_context_lookup.h"
 #include "../../core/logging/core_log.h"
 #include "../../core/files/save_paths/core_save_paths.h"
+#include "../../core/files/save_paths/platform/core_path_io.h"
 #include "../../fa_filing/fa_filing.h"
 #include "../../fa_filing/fa_filing_parts/fa_filing_csv_parse.h"
 #include "../../fa_rules/fa_rules.h"
@@ -74,7 +75,7 @@ extern KboFaMarketSqliteApi g_kbo_fa_market_sqlite_api;
 extern KboFaMarketHistoryCase g_kbo_fa_market_history_cache[KBO_FA_MARKET_CLASSIFICATION_MAX];
 extern int g_kbo_fa_market_history_cache_count;
 extern int g_kbo_fa_market_history_cache_valid;
-extern char g_kbo_fa_market_history_cache_save_path[MAX_PATH];
+extern char g_kbo_fa_market_history_cache_save_path[KBO_UTF8_PATH_BYTES];
 extern KboFaMarketFileSignature g_kbo_fa_market_history_cache_db_sig;
 extern KboFaMarketFileSignature g_kbo_fa_market_history_cache_wal_sig;
 extern KboFaMarketFileSignature g_kbo_fa_market_history_cache_shm_sig;

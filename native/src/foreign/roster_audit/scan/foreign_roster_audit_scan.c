@@ -110,7 +110,7 @@ void audit_foreign_roster_state(const char* source, int write_snapshot)
         return;
     }
 
-    char save_path[MAX_PATH] = {0};
+    char save_path[KBO_UTF8_PATH_BYTES] = {0};
     if (!kbo_get_current_save_path(save_path, sizeof(save_path))) {
         strcpy_s(save_path, sizeof(save_path), "unknown_save");
     }

@@ -1,6 +1,7 @@
 #include "log_event.h"
 
 #include "../../files/save_paths/core_save_paths.h"
+#include "../../files/save_paths/platform/core_path_io.h"
 #include "../../sync/spin_lock.h"
 
 #include <stdarg.h>
@@ -229,7 +230,12 @@ static int kbo_log_path_equals(const char* left, const char* right)
 
 static int kbo_log_append_ndjson_path(const char* path, const char* json)
 {
-    HANDLE file = CreateFileA(path, FILE_APPEND_DATA, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    HANDLE file = kbo_create_file_utf8(
+        path,
+        FILE_APPEND_DATA,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        OPEN_ALWAYS,
+        FILE_ATTRIBUTE_NORMAL);
     if (file == INVALID_HANDLE_VALUE) {
         return 0;
     }
@@ -250,7 +256,7 @@ static void kbo_log_rotate_if_needed(const char* path, size_t max_bytes, int arc
         return;
     }
     WIN32_FILE_ATTRIBUTE_DATA attrs;
-    if (!GetFileAttributesExA(path, GetFileExInfoStandard, &attrs)) {
+    if (!kbo_get_file_attributes_ex_utf8(path, &attrs)) {
         return;
     }
     uint64_t size = ((uint64_t)attrs.nFileSizeHigh << 32) | (uint64_t)attrs.nFileSizeLow;
@@ -258,23 +264,23 @@ static void kbo_log_rotate_if_needed(const char* path, size_t max_bytes, int arc
         return;
     }
     if (archive_count <= 0) {
-        DeleteFileA(path);
+        kbo_delete_file_utf8(path);
         return;
     }
     for (int i = archive_count; i >= 1; i--) {
-        char from[MAX_PATH] = {0};
-        char to[MAX_PATH] = {0};
+        char from[KBO_UTF8_PATH_BYTES] = {0};
+        char to[KBO_UTF8_PATH_BYTES] = {0};
         snprintf(from, sizeof(from), "%s.%d", path, i);
         if (i == archive_count) {
-            DeleteFileA(from);
+            kbo_delete_file_utf8(from);
             continue;
         }
         snprintf(to, sizeof(to), "%s.%d", path, i + 1);
-        MoveFileExA(from, to, MOVEFILE_REPLACE_EXISTING);
+        kbo_move_file_replace_utf8(from, to);
     }
-    char first[MAX_PATH] = {0};
+    char first[KBO_UTF8_PATH_BYTES] = {0};
     snprintf(first, sizeof(first), "%s.1", path);
-    MoveFileExA(path, first, MOVEFILE_REPLACE_EXISTING);
+    kbo_move_file_replace_utf8(path, first);
 }
 
 static void kbo_log_build_json(char* out, size_t out_size, const char* channel, KboLogLevel level,

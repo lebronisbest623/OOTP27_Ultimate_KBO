@@ -1,4 +1,5 @@
 #include "../fa_rules_internal.h"
+#include "../../core/files/save_paths/platform/core_path_io.h"
 
 int kbo_fa_rules_load(KboFaRules* rules)
 {
@@ -7,12 +8,17 @@ int kbo_fa_rules_load(KboFaRules* rules)
     }
     kbo_fa_rules_init_defaults(rules);
 
-    char path[MAX_PATH] = {0};
+    char path[KBO_UTF8_PATH_BYTES] = {0};
     if (!kbo_fa_rules_resolve_existing_path(path, sizeof(path))) {
         return 0;
     }
 
-    HANDLE file = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    HANDLE file = kbo_create_file_utf8(
+        path,
+        GENERIC_READ,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        OPEN_EXISTING,
+        FILE_ATTRIBUTE_NORMAL);
     if (file == INVALID_HANDLE_VALUE) {
         return 0;
     }

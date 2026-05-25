@@ -7,6 +7,7 @@
 #include "../../../core/dates/core_current_date.h"
 #include "../../../core/dates/tick/current_date_tick_capture.h"
 #include "../../../core/files/save_paths/core_save_paths.h"
+#include "../../../core/files/save_paths/platform/core_path_io.h"
 #include "../../../core/dates/core_text_date.h"
 #include "../../../core/core_flags/api/flags_api.h"
 #include "../../../runtime_memory/runtime_memory.h"
@@ -93,19 +94,19 @@ static int kbo_process_due_asian_games_custom_event(
 
 static int kbo_asian_games_schedule_seed_source_available(void)
 {
-    char global_path[MAX_PATH] = {0};
+    char global_path[KBO_UTF8_PATH_BYTES] = {0};
     if (kbo_get_global_asian_games_schedule_seed_path(global_path, sizeof(global_path))
             && global_path[0] != '\0') {
-        DWORD attrs = GetFileAttributesA(global_path);
+        DWORD attrs = kbo_get_file_attributes_utf8(global_path);
         if (attrs != INVALID_FILE_ATTRIBUTES && (attrs & FILE_ATTRIBUTE_DIRECTORY) == 0u) {
             return 1;
         }
     }
 
-    char save_path[MAX_PATH] = {0};
+    char save_path[KBO_UTF8_PATH_BYTES] = {0};
     if (kbo_get_save_asian_games_schedule_seed_path(save_path, sizeof(save_path))
             && save_path[0] != '\0') {
-        DWORD attrs = GetFileAttributesA(save_path);
+        DWORD attrs = kbo_get_file_attributes_utf8(save_path);
         if (attrs != INVALID_FILE_ATTRIBUTES && (attrs & FILE_ATTRIBUTE_DIRECTORY) == 0u) {
             return 1;
         }

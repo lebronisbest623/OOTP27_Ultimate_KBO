@@ -175,13 +175,13 @@ uint32_t kbo_resolve_military_service_seed_key_from_players_dat(const char* key)
         return 0u;
     }
 
-    char players_dat_path[MAX_PATH] = {0};
+    char players_dat_path[KBO_UTF8_PATH_BYTES] = {0};
     if (!kbo_get_current_players_dat_path_for_military_seed(players_dat_path, sizeof(players_dat_path))) {
         kbo_log_runtimef("KBO military service seed unresolved key=%s reason=players.dat missing or save not written", key);
         return 0u;
     }
 
-    HANDLE file = CreateFileA(players_dat_path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    HANDLE file = kbo_create_file_read_utf8(players_dat_path);
     if (file == INVALID_HANDLE_VALUE) {
         kbo_log_runtimef("KBO military service seed unresolved key=%s reason=players.dat open failed gle=%lu", key, (unsigned long)GetLastError());
         return 0u;

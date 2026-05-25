@@ -8,11 +8,11 @@ void kbo_captain_display_loaded_key(uint32_t season, char* out, size_t out_size)
     }
     out[0] = '\0';
 
-    char path[MAX_PATH] = {0};
+    char path[KBO_UTF8_PATH_BYTES] = {0};
     char csv_key[192] = "csv:missing";
     if (kbo_captain_selection_csv_path(season, path, sizeof(path))) {
         WIN32_FILE_ATTRIBUTE_DATA attrs;
-        if (GetFileAttributesExA(path, GetFileExInfoStandard, &attrs)) {
+        if (kbo_get_file_attributes_ex_utf8(path, &attrs)) {
             snprintf(
                 csv_key,
                 sizeof(csv_key),

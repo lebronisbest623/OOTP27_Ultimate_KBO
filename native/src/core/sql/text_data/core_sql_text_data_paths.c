@@ -6,6 +6,7 @@
 #include <stdio.h>
 
 #include "../../files/save_paths/core_save_paths.h"
+#include "../../files/save_paths/platform/core_path_io.h"
 #include "../../product/ootp_product.h"
 
 static void kbo_clear_path(char* out, size_t out_size)
@@ -42,7 +43,7 @@ int kbo_core_sql_current_text_data_path(char* out, size_t out_size)
     }
     out[0] = '\0';
 
-    char save_path[MAX_PATH] = {0};
+    char save_path[KBO_UTF8_PATH_BYTES] = {0};
     if (!kbo_get_current_save_path(save_path, sizeof(save_path))) {
         return 0;
     }

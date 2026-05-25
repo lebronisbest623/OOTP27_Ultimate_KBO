@@ -184,16 +184,24 @@ static HANDLE kbo_cbt_rules_open_file(char* out_path, size_t out_path_size)
     }
 
     if (kbo_cbt_rules_save_config_path(out_path, out_path_size)) {
-        HANDLE file = CreateFileA(out_path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE,
-            NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+        HANDLE file = kbo_create_file_utf8(
+            out_path,
+            GENERIC_READ,
+            FILE_SHARE_READ | FILE_SHARE_WRITE,
+            OPEN_EXISTING,
+            FILE_ATTRIBUTE_NORMAL);
         if (file != INVALID_HANDLE_VALUE) {
             return file;
         }
     }
     out_path[0] = '\0';
     if (kbo_get_global_data_file(KBO_CBT_RULES_FILE, out_path, out_path_size)) {
-        return CreateFileA(out_path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE,
-            NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+        return kbo_create_file_utf8(
+            out_path,
+            GENERIC_READ,
+            FILE_SHARE_READ | FILE_SHARE_WRITE,
+            OPEN_EXISTING,
+            FILE_ATTRIBUTE_NORMAL);
     }
     return INVALID_HANDLE_VALUE;
 }

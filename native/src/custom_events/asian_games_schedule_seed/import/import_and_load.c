@@ -7,6 +7,7 @@
 #include "../../../core/csv/core_csv.h"
 #include "../../../core/dates/core_current_date.h"
 #include "../../../core/files/save_paths/core_save_paths.h"
+#include "../../../core/files/save_paths/platform/core_path_io.h"
 #include "../../../core/dates/core_text_date.h"
 #include "../../../core/core_flags/api/flags_api.h"
 #include "../../../runtime_memory/runtime_memory.h"
@@ -59,7 +60,7 @@ static void kbo_asian_games_schedule_seed_loaded_key_component(
     }
 
     WIN32_FILE_ATTRIBUTE_DATA attrs;
-    if (GetFileAttributesExA(path, GetFileExInfoStandard, &attrs)
+    if (kbo_get_file_attributes_ex_utf8(path, &attrs)
             && (attrs.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0u) {
         snprintf(
             out,

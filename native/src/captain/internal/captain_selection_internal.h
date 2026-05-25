@@ -15,6 +15,7 @@
 #include "../../core/core_league_context_parts/api/league_context_lookup.h"
 #include "../../core/dates/core_current_date.h"
 #include "../../core/files/save_paths/core_save_paths.h"
+#include "../../core/files/save_paths/platform/core_path_io.h"
 #include "../../core/logging/core_log.h"
 #include "../../core/season/phase/season_phase.h"
 #include "../../core/sync/spin_lock.h"

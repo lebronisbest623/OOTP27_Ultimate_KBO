@@ -36,7 +36,7 @@ static void kbo_captain_seed_file_loaded_key_component(const char* path, char* o
     }
 
     WIN32_FILE_ATTRIBUTE_DATA attrs;
-    if (GetFileAttributesExA(path, GetFileExInfoStandard, &attrs)) {
+    if (kbo_get_file_attributes_ex_utf8(path, &attrs)) {
         snprintf(
             out,
             out_size,

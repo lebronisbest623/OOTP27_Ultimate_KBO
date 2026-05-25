@@ -2,6 +2,7 @@
 
 #include "../../localappdata/localappdata_reader.h"
 #include "../../../files/save_paths/core_save_paths.h"
+#include "../../../files/save_paths/platform/core_path_io.h"
 #include "../../../logging/core_log.h"
 #include "../../../product/ootp_product.h"
 #include "../../../sync/spin_lock.h"
@@ -32,7 +33,7 @@ static int kbo_runtime_get_file_write_time(const char* path, FILETIME* out_time)
         return 0;
     }
     WIN32_FILE_ATTRIBUTE_DATA data;
-    if (!GetFileAttributesExA(path, GetFileExInfoStandard, &data)
+    if (!kbo_get_file_attributes_ex_utf8(path, &data)
             || (data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0u) {
         return 0;
     }
@@ -50,13 +51,13 @@ static ULONGLONG kbo_runtime_filetime_u64(FILETIME time)
 
 int kbo_runtime_save_in_progress(void)
 {
-    char save_path[MAX_PATH] = {0};
+    char save_path[KBO_UTF8_PATH_BYTES] = {0};
     if (!kbo_get_current_save_path(save_path, sizeof(save_path))) {
         return 0;
     }
 
-    char started_path[MAX_PATH] = {0};
-    char completed_path[MAX_PATH] = {0};
+    char started_path[KBO_UTF8_PATH_BYTES] = {0};
+    char completed_path[KBO_UTF8_PATH_BYTES] = {0};
     if (!kbo_get_ootp_save_started_file_path(save_path, started_path, sizeof(started_path))
             || !kbo_get_ootp_save_completed_file_path(save_path, completed_path, sizeof(completed_path))) {
         return 0;

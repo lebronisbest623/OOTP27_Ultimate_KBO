@@ -1,8 +1,8 @@
 #include "../internal/foreign_roster_audit_internal.h"
 #include "../../../core/files/atomic/core_atomic_file.h"
 
-static char g_kbo_foreign_roster_snapshot_tmp_path[MAX_PATH];
-static char g_kbo_foreign_roster_snapshot_dest_path[MAX_PATH];
+static char g_kbo_foreign_roster_snapshot_tmp_path[KBO_UTF8_PATH_BYTES];
+static char g_kbo_foreign_roster_snapshot_dest_path[KBO_UTF8_PATH_BYTES];
 
 int kbo_foreign_roster_audit_csv_empty(HANDLE file)
 {
@@ -91,22 +91,20 @@ int append_foreign_roster_snapshot_csv_header(HANDLE file)
 
 HANDLE kbo_open_foreign_roster_audit_append_file(void)
 {
-    char path[MAX_PATH] = {0};
+    char path[KBO_UTF8_PATH_BYTES] = {0};
     if (!get_kbo_foreign_roster_audit_csv_path(path, sizeof(path))) {
         kbo_log_runtime_line("foreign roster audit: unable to resolve audit output path");
         return INVALID_HANDLE_VALUE;
     }
 
-    DWORD attrs = GetFileAttributesA(path);
+    DWORD attrs = kbo_get_file_attributes_utf8(path);
     int needs_header = (attrs == INVALID_FILE_ATTRIBUTES);
-    HANDLE file = CreateFileA(
+    HANDLE file = kbo_create_file_utf8(
         path,
         GENERIC_READ | FILE_APPEND_DATA,
         FILE_SHARE_READ | FILE_SHARE_WRITE,
-        NULL,
         OPEN_ALWAYS,
-        FILE_ATTRIBUTE_NORMAL,
-        NULL);
+        FILE_ATTRIBUTE_NORMAL);
     if (file == INVALID_HANDLE_VALUE) {
         kbo_log_runtimef("foreign roster audit: failed to open audit file path=%s gle=%lu", path, GetLastError());
         return INVALID_HANDLE_VALUE;
@@ -212,13 +210,13 @@ void kbo_write_foreign_roster_snapshot_row(
 
 HANDLE kbo_open_foreign_roster_snapshot_file(void)
 {
-    char path[MAX_PATH] = {0};
+    char path[KBO_UTF8_PATH_BYTES] = {0};
     if (!get_kbo_foreign_roster_snapshot_csv_path(path, sizeof(path))) {
         kbo_log_runtime_line("foreign roster audit: unable to resolve snapshot output path");
         return INVALID_HANDLE_VALUE;
     }
 
-    char tmp_path[MAX_PATH] = {0};
+    char tmp_path[KBO_UTF8_PATH_BYTES] = {0};
     HANDLE file = kbo_atomic_open_tmp(path, tmp_path, sizeof(tmp_path));
     if (file == INVALID_HANDLE_VALUE) {
         kbo_log_runtimef("foreign roster audit: failed to open snapshot file path=%s gle=%lu", path, GetLastError());

@@ -9,6 +9,7 @@
 #include "../../../../core/dates/core_text_date.h"
 #include "../../../../core/dates/tick/current_date_tick_capture.h"
 #include "../../../../core/files/save_paths/core_save_paths.h"
+#include "../../../../core/files/save_paths/platform/core_path_io.h"
 #include "../../../../core/logging/core_log.h"
 #include "../../../../core/runtime_tuning/runtime_tuning_policy.h"
 #include "../../../../core/season/opening_day_storyline_guard.h"
@@ -23,7 +24,7 @@ DWORD WINAPI kbo_military_seed_bootstrap_thread(LPVOID parameter)
     (void)parameter;
     kbo_log_runtime_line("KBO military service seed bootstrap thread started");
 
-    char last_save_path[MAX_PATH] = {0};
+    char last_save_path[KBO_UTF8_PATH_BYTES] = {0};
     int settled_attempts = 0;
     const KboRuntimeTuningPolicy* tuning = kbo_runtime_tuning_policy();
     KboCurrentDateTickConsumer consumer = {0};
@@ -40,7 +41,7 @@ DWORD WINAPI kbo_military_seed_bootstrap_thread(LPVOID parameter)
             break;
         }
 
-        char save_path[MAX_PATH] = {0};
+        char save_path[KBO_UTF8_PATH_BYTES] = {0};
         if (!kbo_get_current_save_path(save_path, sizeof(save_path))) {
             if (attempt <= tuning->military_seed_bootstrap_log_initial_attempts
                     || attempt % tuning->military_seed_bootstrap_log_interval == 0) {
@@ -117,7 +118,7 @@ DWORD WINAPI kbo_military_seed_bootstrap_thread(LPVOID parameter)
             return 0;
         }
 
-        if (GetFileAttributesA(save_path) != INVALID_FILE_ATTRIBUTES) {
+        if (kbo_get_file_attributes_utf8(save_path) != INVALID_FILE_ATTRIBUTES) {
             settled_attempts++;
         }
         if (settled_attempts >= 3) {

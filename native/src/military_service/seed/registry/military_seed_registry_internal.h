@@ -10,6 +10,7 @@
 #include <string.h>
 #include "../../../bootstrap/abi/ootp_offsets.h"
 #include "../../../core/files/atomic/core_atomic_file.h"
+#include "../../../core/files/save_paths/platform/core_path_io.h"
 #include "../../../core/logging/core_log.h"
 #include "../../../core/sync/lock.h"
 #include "../../../runtime_memory/runtime_memory.h"

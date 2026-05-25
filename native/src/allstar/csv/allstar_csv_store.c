@@ -9,6 +9,7 @@
 #include "../../core/csv/core_csv.h"
 #include "../../core/dates/constants/kbo_date_constants.h"
 #include "../../core/files/save_paths/core_save_paths.h"
+#include "../../core/files/save_paths/platform/core_path_io.h"
 
 static int get_kbo_allstar_teams_csv_path(char* path, size_t path_size)
 {
@@ -18,23 +19,25 @@ static int get_kbo_allstar_teams_csv_path(char* path, size_t path_size)
     path[0] = '\0';
 
     if (kbo_get_save_scoped_data_file("config\\allstar_teams.csv", path, path_size)
-            && GetFileAttributesA(path) != INVALID_FILE_ATTRIBUTES) {
+            && kbo_get_file_attributes_utf8(path) != INVALID_FILE_ATTRIBUTES) {
         return 1;
     }
 
     path[0] = '\0';
     HMODULE exe = GetModuleHandleA(NULL);
-    char host_stats_dir[MAX_PATH] = {0};
+    char host_stats_dir[KBO_UTF8_PATH_BYTES] = {0};
     if (exe != NULL) {
-        char host[MAX_PATH] = {0};
-        DWORD got = GetModuleFileNameA(exe, host, (DWORD)sizeof(host));
-        if (got > 0 && got < sizeof(host)) {
+        WCHAR host_w[KBO_WIDE_PATH_CHARS] = {0};
+        DWORD got = GetModuleFileNameW(exe, host_w, KBO_WIDE_PATH_CHARS);
+        char host[KBO_UTF8_PATH_BYTES] = {0};
+        if (got > 0 && got < KBO_WIDE_PATH_CHARS
+                && kbo_wide_to_utf8_path(host_w, host, sizeof(host))) {
             char* slash = strrchr(host, '\\');
             if (slash != NULL) {
                 *slash = '\0';
                 snprintf(host_stats_dir, sizeof(host_stats_dir), "%s\\data\\stats\\KBO", host);
                 snprintf(path, path_size, "%s\\allstar_teams.csv", host_stats_dir);
-                if (GetFileAttributesA(path) != INVALID_FILE_ATTRIBUTES) {
+                if (kbo_get_file_attributes_utf8(path) != INVALID_FILE_ATTRIBUTES) {
                     return 1;
                 }
             }
@@ -42,20 +45,20 @@ static int get_kbo_allstar_teams_csv_path(char* path, size_t path_size)
     }
 
     if (kbo_get_global_data_file("allstar_teams.csv", path, path_size)) {
-        if (GetFileAttributesA(path) != INVALID_FILE_ATTRIBUTES) {
+        if (kbo_get_file_attributes_utf8(path) != INVALID_FILE_ATTRIBUTES) {
             return 1;
         }
     }
 
     if (host_stats_dir[0] != '\0') {
         snprintf(path, path_size, "%s\\Teams.csv", host_stats_dir);
-        if (GetFileAttributesA(path) != INVALID_FILE_ATTRIBUTES) {
+        if (kbo_get_file_attributes_utf8(path) != INVALID_FILE_ATTRIBUTES) {
             return 1;
         }
     }
 
     if (kbo_get_global_data_file("Teams.csv", path, path_size)) {
-        if (GetFileAttributesA(path) != INVALID_FILE_ATTRIBUTES) {
+        if (kbo_get_file_attributes_utf8(path) != INVALID_FILE_ATTRIBUTES) {
             return 1;
         }
     }
@@ -94,7 +97,7 @@ void load_allstar_team_rules_once(void)
         return;
     }
 
-    char path[MAX_PATH] = {0};
+    char path[KBO_UTF8_PATH_BYTES] = {0};
     if (!get_kbo_allstar_teams_csv_path(path, sizeof(path))) {
         kbo_log_runtime_line("all-star team split load failed: could not resolve allstar_teams.csv path");
         return;

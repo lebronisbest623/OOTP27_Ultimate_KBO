@@ -13,6 +13,7 @@
 #include "../../../core/core_flags/api/flags_api.h"
 #include "../../../core/logging/core_log.h"
 #include "../../../core/files/save_paths/core_save_paths.h"
+#include "../../../core/files/save_paths/platform/core_path_io.h"
 #include "../../../runtime_memory/runtime_memory.h"
 #include "../../../team/lookup/team_lookup.h"
 #include "../../common/dates/foreign_waiver_date.h"
@@ -39,7 +40,7 @@ typedef struct KboForeignRosterAuditState {
 extern KboForeignRosterAuditState g_kbo_foreign_roster_audit[KBO_FOREIGN_ROSTER_AUDIT_MAX];
 extern int g_kbo_foreign_roster_audit_count;
 extern uint32_t g_kbo_foreign_roster_audit_generation;
-extern char g_kbo_foreign_roster_audit_save_path[MAX_PATH];
+extern char g_kbo_foreign_roster_audit_save_path[KBO_UTF8_PATH_BYTES];
 
 int kbo_foreign_roster_audit_csv_empty(HANDLE file);
 uint32_t kbo_foreign_roster_audit_get_player_original_team_id(uint8_t* player);

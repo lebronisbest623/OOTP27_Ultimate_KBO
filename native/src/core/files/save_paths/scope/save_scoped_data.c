@@ -144,7 +144,7 @@ int kbo_get_save_scoped_data_file(const char* file_name, char* out, size_t out_s
     }
     out[0] = '\0';
 
-    char dir[MAX_PATH] = {0};
+    char dir[KBO_UTF8_PATH_BYTES] = {0};
     if (!kbo_get_save_scoped_data_dir(dir, sizeof(dir))) {
         return 0;
     }

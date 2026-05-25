@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "../../../core/files/save_paths/core_save_paths.h"
+#include "../../../core/files/save_paths/platform/core_path_io.h"
 
 static int kbo_foreign_policy_config_save_path(const char* file_name, char* out, size_t out_size)
 {
@@ -25,16 +26,14 @@ static HANDLE kbo_open_foreign_policy_config_file(const char* file_name)
         return INVALID_HANDLE_VALUE;
     }
 
-    char path[MAX_PATH] = {0};
+    char path[KBO_UTF8_PATH_BYTES] = {0};
     if (kbo_foreign_policy_config_save_path(file_name, path, sizeof(path))) {
-        HANDLE file = CreateFileA(
+        HANDLE file = kbo_create_file_utf8(
             path,
             GENERIC_READ,
             FILE_SHARE_READ,
-            NULL,
             OPEN_EXISTING,
-            FILE_ATTRIBUTE_NORMAL,
-            NULL);
+            FILE_ATTRIBUTE_NORMAL);
         if (file != INVALID_HANDLE_VALUE) {
             return file;
         }
@@ -42,14 +41,12 @@ static HANDLE kbo_open_foreign_policy_config_file(const char* file_name)
 
     path[0] = '\0';
     if (kbo_get_global_data_file(file_name, path, sizeof(path))) {
-        return CreateFileA(
+        return kbo_create_file_utf8(
             path,
             GENERIC_READ,
             FILE_SHARE_READ,
-            NULL,
             OPEN_EXISTING,
-            FILE_ATTRIBUTE_NORMAL,
-            NULL);
+            FILE_ATTRIBUTE_NORMAL);
     }
 
     return INVALID_HANDLE_VALUE;

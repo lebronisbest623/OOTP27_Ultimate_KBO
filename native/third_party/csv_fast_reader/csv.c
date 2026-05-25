@@ -165,6 +165,22 @@ void CsvClose(CsvHandle handle)
 
 /* extra Windows specific implementations
  */
+#define CSV_WIDE_PATH_CHARS 32768
+
+static int CsvUtf8ToWidePath(const char* filename, WCHAR* out, DWORD out_count)
+{
+    int wrote;
+    if (filename == NULL || filename[0] == '\0' || out == NULL || out_count == 0) {
+        return 0;
+    }
+    out[0] = L'\0';
+    wrote = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, filename, -1, out, (int)out_count);
+    if (wrote <= 0) {
+        wrote = MultiByteToWideChar(CP_ACP, 0, filename, -1, out, (int)out_count);
+    }
+    return wrote > 0 && (DWORD)wrote <= out_count;
+}
+
 CsvHandle CsvOpen2(const char* filename,
                    char delim,
                    char quote,
@@ -172,9 +188,12 @@ CsvHandle CsvOpen2(const char* filename,
 {
     LARGE_INTEGER fsize;
     SYSTEM_INFO info;
+    WCHAR wide_filename[CSV_WIDE_PATH_CHARS];
     CsvHandle handle = calloc(1, sizeof(struct CsvHandle_));
     if (!handle)
         return NULL;
+    handle->fh = INVALID_HANDLE_VALUE;
+    handle->fm = NULL;
 
     handle->delim = delim;
     handle->quote = quote;
@@ -182,13 +201,16 @@ CsvHandle CsvOpen2(const char* filename,
 
     GetSystemInfo(&info);
     handle->blockSize = GET_PAGE_ALIGNED(BUFFER_WIDTH_APROX, info.dwPageSize);
-    handle->fh = CreateFile(filename, 
-                            GENERIC_READ, 
-                            FILE_SHARE_READ, 
-                            NULL, 
-                            OPEN_EXISTING, 
-                            FILE_ATTRIBUTE_NORMAL, 
-                            NULL);
+    if (!CsvUtf8ToWidePath(filename, wide_filename, CSV_WIDE_PATH_CHARS))
+        goto fail;
+
+    handle->fh = CreateFileW(wide_filename,
+                             GENERIC_READ,
+                             FILE_SHARE_READ,
+                             NULL,
+                             OPEN_EXISTING,
+                             FILE_ATTRIBUTE_NORMAL,
+                             NULL);
 
     if (handle->fh == INVALID_HANDLE_VALUE)
         goto fail;

@@ -78,6 +78,7 @@ int kbo_get_current_save_path(char* out, size_t out_size)
 #include "../src/fa_market_classification/internal/fa_market_policy_internal.h"
 #include "../src/core/logging/rule_audit.h"
 #include "../src/core/files/atomic/core_atomic_file.h"
+#include "../src/core/files/save_paths/platform/core_path_io.h"
 #include "../src/custom_events/asian_games/policy/asian_games_roster_policy.h"
 #include "../src/military_service/players/loans/military_native_loan.h"
 #include "../src/team/assignment/roster_arrays/team_roster_arrays.h"
@@ -1881,6 +1882,72 @@ static void test_core_atomic_file_round_trip(void)
     printf("test_core_atomic_file_round_trip: PASS\n");
 }
 
+static void test_utf8_path_helpers_and_atomic_file(void)
+{
+    WCHAR temp_w[KBO_WIDE_PATH_CHARS] = {0};
+    DWORD temp_len = GetTempPathW(KBO_WIDE_PATH_CHARS, temp_w);
+    assert(temp_len > 0u && temp_len < KBO_WIDE_PATH_CHARS);
+
+    char temp_dir[KBO_UTF8_PATH_BYTES] = {0};
+    assert(kbo_wide_to_utf8_path(temp_w, temp_dir, sizeof(temp_dir)));
+
+    const char korean_leaf[] = "kbo_utf8_" "\xED\x95\x9C" "\xEA\xB8\x80";
+    char test_dir[KBO_UTF8_PATH_BYTES] = {0};
+    char pid_suffix[32] = {0};
+    int pid_suffix_len = snprintf(pid_suffix, sizeof(pid_suffix), "_%lu", (unsigned long)GetCurrentProcessId());
+    assert(pid_suffix_len > 0 && (size_t)pid_suffix_len < sizeof(pid_suffix));
+    size_t temp_dir_len = strlen(temp_dir);
+    size_t korean_leaf_len = strlen(korean_leaf);
+    assert(temp_dir_len + korean_leaf_len + (size_t)pid_suffix_len < sizeof(test_dir));
+    memcpy(test_dir, temp_dir, temp_dir_len);
+    memcpy(test_dir + temp_dir_len, korean_leaf, korean_leaf_len);
+    memcpy(test_dir + temp_dir_len + korean_leaf_len, pid_suffix, (size_t)pid_suffix_len + 1u);
+    assert(kbo_create_directory_utf8(test_dir));
+
+    char dest_path[KBO_UTF8_PATH_BYTES] = {0};
+    char tmp_path[KBO_UTF8_PATH_BYTES] = {0};
+    const char dest_suffix[] = "\\atomic.txt";
+    size_t test_dir_len = strlen(test_dir);
+    size_t dest_suffix_len = strlen(dest_suffix);
+    assert(test_dir_len + dest_suffix_len < sizeof(dest_path));
+    memcpy(dest_path, test_dir, test_dir_len);
+    memcpy(dest_path + test_dir_len, dest_suffix, dest_suffix_len + 1u);
+    size_t dest_path_len = strlen(dest_path);
+    assert(dest_path_len + 4u < sizeof(tmp_path));
+    memcpy(tmp_path, dest_path, dest_path_len);
+    memcpy(tmp_path + dest_path_len, ".tmp", 5u);
+    kbo_delete_file_utf8(tmp_path);
+    kbo_delete_file_utf8(dest_path);
+
+    HANDLE file = kbo_atomic_open_tmp(dest_path, tmp_path, sizeof(tmp_path));
+    assert(file != INVALID_HANDLE_VALUE);
+    assert(kbo_get_file_attributes_utf8(tmp_path) != INVALID_FILE_ATTRIBUTES);
+
+    const char payload[] = "utf8 atomic\n";
+    DWORD written = 0;
+    assert(WriteFile(file, payload, (DWORD)(sizeof(payload) - 1u), &written, NULL));
+    assert(written == sizeof(payload) - 1u);
+    assert(kbo_atomic_commit(file, tmp_path, dest_path));
+    assert(kbo_get_file_attributes_utf8(dest_path) != INVALID_FILE_ATTRIBUTES);
+    assert(kbo_get_file_attributes_utf8(tmp_path) == INVALID_FILE_ATTRIBUTES);
+
+    HANDLE read_file = kbo_create_file_read_utf8(dest_path);
+    assert(read_file != INVALID_HANDLE_VALUE);
+    char read_buf[32] = {0};
+    DWORD read_len = 0;
+    assert(ReadFile(read_file, read_buf, (DWORD)(sizeof(read_buf) - 1u), &read_len, NULL));
+    CloseHandle(read_file);
+    assert(read_len == sizeof(payload) - 1u);
+    assert(strcmp(read_buf, payload) == 0);
+
+    assert(kbo_delete_file_utf8(dest_path));
+    WCHAR test_dir_w[KBO_WIDE_PATH_CHARS] = {0};
+    assert(kbo_utf8_to_wide_path(test_dir, test_dir_w, KBO_WIDE_PATH_CHARS));
+    assert(RemoveDirectoryW(test_dir_w));
+
+    printf("test_utf8_path_helpers_and_atomic_file: PASS\n");
+}
+
 /* ---- ABI fakes: byte-level "OOTP Player object" stand-ins for policy tests ----
  *
  * The OOTP Player object lives in the game process at a known size and layout.
@@ -3348,6 +3415,7 @@ int main(void)
     test_fa_filing_csv_parse();
     test_salary_snapshot_csv_parse();
     test_core_atomic_file_round_trip();
+    test_utf8_path_helpers_and_atomic_file();
     test_rule_audit_ndjson_sink();
     test_nation_table_parses_all_seed_rows();
     test_military_native_loan_on_loan_predicate();

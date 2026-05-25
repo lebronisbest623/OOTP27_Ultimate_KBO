@@ -48,7 +48,7 @@ int kbo_fa_market_get_file_signature(const char* path, KboFaMarketFileSignature*
 
     WIN32_FILE_ATTRIBUTE_DATA data;
     memset(&data, 0, sizeof(data));
-    if (!GetFileAttributesExA(path, GetFileExInfoStandard, &data)
+    if (!kbo_get_file_attributes_ex_utf8(path, &data)
             || (data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0) {
         out->exists = 0;
         return 1;
@@ -80,9 +80,9 @@ int kbo_fa_market_get_text_data_signatures(
     KboFaMarketFileSignature* wal_sig,
     KboFaMarketFileSignature* shm_sig)
 {
-    char source_db[MAX_PATH] = {0};
-    char source_wal[MAX_PATH] = {0};
-    char source_shm[MAX_PATH] = {0};
+    char source_db[KBO_UTF8_PATH_BYTES] = {0};
+    char source_wal[KBO_UTF8_PATH_BYTES] = {0};
+    char source_shm[KBO_UTF8_PATH_BYTES] = {0};
     kbo_fa_market_text_data_source_paths(
         save_path,
         source_db,
@@ -171,12 +171,12 @@ int kbo_fa_market_copy_file_if_present(const char* source, const char* destinati
     if (source == NULL || destination == NULL || source[0] == '\0' || destination[0] == '\0') {
         return 0;
     }
-    DWORD attributes = GetFileAttributesA(source);
+    DWORD attributes = kbo_get_file_attributes_utf8(source);
     if (attributes == INVALID_FILE_ATTRIBUTES || (attributes & FILE_ATTRIBUTE_DIRECTORY) != 0) {
-        DeleteFileA(destination);
+        kbo_delete_file_utf8(destination);
         return 1;
     }
-    if (CopyFileA(source, destination, FALSE)) {
+    if (kbo_copy_file_utf8(source, destination, 0)) {
         return 1;
     }
     kbo_log_runtimef("FA market history sqlite copy failed src=%s dst=%s gle=%lu", source, destination, GetLastError());
@@ -190,15 +190,15 @@ int kbo_fa_market_copy_text_data_sqlite(char* out_path, size_t out_path_size)
     }
     out_path[0] = '\0';
 
-    char save_path[MAX_PATH] = {0};
+    char save_path[KBO_UTF8_PATH_BYTES] = {0};
     if (!kbo_get_current_save_path(save_path, sizeof(save_path))) {
         kbo_log_runtime_line("FA market history sqlite skipped reason=no_current_save_path");
         return 0;
     }
 
-    char source_db[MAX_PATH] = {0};
-    char source_wal[MAX_PATH] = {0};
-    char source_shm[MAX_PATH] = {0};
+    char source_db[KBO_UTF8_PATH_BYTES] = {0};
+    char source_wal[KBO_UTF8_PATH_BYTES] = {0};
+    char source_shm[KBO_UTF8_PATH_BYTES] = {0};
     kbo_fa_market_text_data_source_paths(
         save_path,
         source_db,
@@ -208,16 +208,16 @@ int kbo_fa_market_copy_text_data_sqlite(char* out_path, size_t out_path_size)
         source_shm,
         sizeof(source_shm));
 
-    if (GetFileAttributesA(source_db) == INVALID_FILE_ATTRIBUTES) {
+    if (kbo_get_file_attributes_utf8(source_db) == INVALID_FILE_ATTRIBUTES) {
         kbo_log_runtimef("FA market history sqlite skipped reason=source_missing path=%s", source_db);
         return 0;
     }
 
     DWORD pid = GetCurrentProcessId();
     char dest_name[128] = {0};
-    char dest_db[MAX_PATH] = {0};
-    char dest_wal[MAX_PATH] = {0};
-    char dest_shm[MAX_PATH] = {0};
+    char dest_db[KBO_UTF8_PATH_BYTES] = {0};
+    char dest_wal[KBO_UTF8_PATH_BYTES] = {0};
+    char dest_shm[KBO_UTF8_PATH_BYTES] = {0};
     snprintf(dest_name, sizeof(dest_name), "cache\\fa_market_text_data_%lu.sqlite3", (unsigned long)pid);
     if (!kbo_get_save_scoped_data_file(dest_name, dest_db, sizeof(dest_db))) {
         kbo_log_runtime_line("FA market history sqlite skipped reason=no_cache_path");

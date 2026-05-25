@@ -58,6 +58,37 @@ DWORD kbo_get_file_attributes_utf8(const char* path)
     return GetFileAttributesW(wide);
 }
 
+int kbo_delete_file_utf8(const char* path)
+{
+    WCHAR wide[KBO_WIDE_PATH_CHARS] = {0};
+    if (!kbo_utf8_to_wide_path(path, wide, KBO_WIDE_PATH_CHARS)) {
+        return 0;
+    }
+    return DeleteFileW(wide) || GetLastError() == ERROR_FILE_NOT_FOUND;
+}
+
+int kbo_move_file_replace_utf8(const char* source, const char* destination)
+{
+    WCHAR wide_source[KBO_WIDE_PATH_CHARS] = {0};
+    WCHAR wide_destination[KBO_WIDE_PATH_CHARS] = {0};
+    if (!kbo_utf8_to_wide_path(source, wide_source, KBO_WIDE_PATH_CHARS)
+            || !kbo_utf8_to_wide_path(destination, wide_destination, KBO_WIDE_PATH_CHARS)) {
+        return 0;
+    }
+    return MoveFileExW(wide_source, wide_destination, MOVEFILE_REPLACE_EXISTING) != 0;
+}
+
+int kbo_copy_file_utf8(const char* source, const char* destination, int fail_if_exists)
+{
+    WCHAR wide_source[KBO_WIDE_PATH_CHARS] = {0};
+    WCHAR wide_destination[KBO_WIDE_PATH_CHARS] = {0};
+    if (!kbo_utf8_to_wide_path(source, wide_source, KBO_WIDE_PATH_CHARS)
+            || !kbo_utf8_to_wide_path(destination, wide_destination, KBO_WIDE_PATH_CHARS)) {
+        return 0;
+    }
+    return CopyFileW(wide_source, wide_destination, fail_if_exists ? TRUE : FALSE) != 0;
+}
+
 HANDLE kbo_create_file_utf8(
     const char* path,
     DWORD desired_access,
