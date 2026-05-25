@@ -9,28 +9,35 @@
  * Returns the league pointer if found, 0 otherwise. */
 uintptr_t kbo_scan_league_vec(uintptr_t global, uint32_t vec_off, uint32_t league_id, const KboAllstarLayout* layout)
 {
-    uint32_t cnt_off = vec_off + 8u;
-    if (!memory_range_readable((void*)(global + vec_off), 16u)) {
+    if (layout == NULL) {
         return 0;
     }
-    uintptr_t candidate_vec = *(uintptr_t*)(global + vec_off);
-    int32_t candidate_count = *(int32_t*)(global + cnt_off);
-    if (candidate_vec == 0 || candidate_count <= 0 || candidate_count > 10000
+
+    uint32_t cnt_off = vec_off + 8u;
+    uintptr_t candidate_vec = 0u;
+    int32_t candidate_count = 0;
+    if (!kbo_allstar_try_read_ptr(global + vec_off, &candidate_vec)
+            || !kbo_allstar_try_read_i32(global + cnt_off, &candidate_count)) {
+        return 0;
+    }
+
+    if (candidate_vec == 0u || candidate_count <= 0 || candidate_count > 10000
             || !memory_range_readable((void*)candidate_vec, (SIZE_T)candidate_count * sizeof(uintptr_t))) {
         return 0;
     }
     for (int32_t j = 0; j < candidate_count; j++) {
-        uintptr_t lc = *(uintptr_t*)(candidate_vec + (uintptr_t)j * sizeof(uintptr_t));
-        if (lc == 0 || !memory_range_readable((void*)lc, layout->league_id_fallback_offset + 4u)) {
+        uintptr_t lc = 0u;
+        if (!kbo_allstar_try_read_ptr(candidate_vec + (uintptr_t)j * sizeof(uintptr_t), &lc)
+                || lc < KBO_RUNTIME_MIN_USER_POINTER) {
             continue;
         }
         uint8_t* ll = (uint8_t*)lc;
         uint32_t legacy_id = 0u;
-        if (memory_range_readable(ll + OOTP27_KBO_LEAGUE_ID_OFFSET, sizeof(uint32_t))) {
-            legacy_id = *(uint32_t*)(ll + OOTP27_KBO_LEAGUE_ID_OFFSET);
-        }
-        uint32_t primary_id = kbo_allstar_read_u32(ll, layout->league_id_primary_offset);
-        uint32_t fallback_id = kbo_allstar_read_u32(ll, layout->league_id_fallback_offset);
+        uint32_t primary_id = 0u;
+        uint32_t fallback_id = 0u;
+        kbo_allstar_try_read_u32(ll, OOTP27_KBO_LEAGUE_ID_OFFSET, &legacy_id);
+        kbo_allstar_try_read_u32(ll, layout->league_id_primary_offset, &primary_id);
+        kbo_allstar_try_read_u32(ll, layout->league_id_fallback_offset, &fallback_id);
         if ((legacy_id == league_id || primary_id == league_id || fallback_id == league_id)
                 && kbo_allstar_league_core_plausible(lc)) {
             return lc;
@@ -97,32 +104,41 @@ uintptr_t kbo_find_allstar_league_ptr(uint32_t league_id)
         for (uint32_t ptr_off = 0u;
                 ptr_off + (uint32_t)sizeof(uintptr_t) <= KBO_ALLSTAR_GLOBAL_DIRECT_SCAN_BYTES;
                 ptr_off += (uint32_t)sizeof(uintptr_t)) {
-            uintptr_t candidate = *(uintptr_t*)((uint8_t*)global + ptr_off);
+            uintptr_t candidate = 0u;
+            if (!kbo_allstar_try_read_ptr(global + ptr_off, &candidate)) {
+                continue;
+            }
             if (candidate < KBO_RUNTIME_MIN_USER_POINTER) {
                 continue;
             }
             /* Quick year probe before the expensive full check */
-            if (!memory_range_readable((void*)(candidate + OOTP27_KBO_LEAGUE_YEAR_OFFSET), sizeof(uint32_t))) {
+            uint32_t yr = 0u;
+            if (!kbo_allstar_try_read_u32((uint8_t*)candidate, OOTP27_KBO_LEAGUE_YEAR_OFFSET, &yr)) {
                 continue;
             }
-            uint32_t yr = *(uint32_t*)(candidate + OOTP27_KBO_LEAGUE_YEAR_OFFSET);
             if (yr < KBO_SEASON_YEAR_MIN || yr > KBO_SIM_YEAR_MAX) {
                 continue;
             }
             if (!kbo_allstar_league_core_plausible(candidate)) {
                 LONG rl = InterlockedIncrement(&s_reject_log_count);
                 if (rl <= 40) {
-                    uint8_t ph = memory_range_readable((void*)(candidate + OOTP27_KBO_LEAGUE_PHASE_OFFSET), 1)
-                        ? *(uint8_t*)(candidate + OOTP27_KBO_LEAGUE_PHASE_OFFSET) : 0xffu;
+                    uint8_t ph = 0xffu;
+                    uint8_t ph_read = 0u;
+                    if (kbo_allstar_try_read_u8((uint8_t*)candidate, OOTP27_KBO_LEAGUE_PHASE_OFFSET, &ph_read)) {
+                        ph = ph_read;
+                    }
                     kbo_log_runtimef("KBO allstar: global+0x%x ptr=%p year=%u phase=%u rejected by plausibility",
                         ptr_off, (void*)candidate, yr, (unsigned)ph);
                 }
                 continue;
             }
             uint8_t* lp = (uint8_t*)candidate;
-            uint32_t lid_a = memory_range_readable(lp + OOTP27_KBO_LEAGUE_ID_OFFSET, 4) ? *(uint32_t*)(lp + OOTP27_KBO_LEAGUE_ID_OFFSET) : 0u;
-            uint32_t lid_p = kbo_allstar_read_u32(lp, layout.league_id_primary_offset);
-            uint32_t lid_f = kbo_allstar_read_u32(lp, layout.league_id_fallback_offset);
+            uint32_t lid_a = 0u;
+            uint32_t lid_p = 0u;
+            uint32_t lid_f = 0u;
+            kbo_allstar_try_read_u32(lp, OOTP27_KBO_LEAGUE_ID_OFFSET, &lid_a);
+            kbo_allstar_try_read_u32(lp, layout.league_id_primary_offset, &lid_p);
+            kbo_allstar_try_read_u32(lp, layout.league_id_fallback_offset, &lid_f);
             if (lid_a == league_id || lid_p == league_id || lid_f == league_id) {
                 kbo_log_runtimef("KBO allstar: found league via direct db scan global+0x%x ptr=%p year=%u id=%u/%u/%u",
                     ptr_off, (void*)candidate, yr, lid_a, lid_p, lid_f);

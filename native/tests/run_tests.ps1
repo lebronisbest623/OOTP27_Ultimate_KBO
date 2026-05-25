@@ -3,6 +3,8 @@ $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
 $TestSrc = Join-Path $PSScriptRoot "test_main.c"
 $TestExe = Join-Path $PSScriptRoot "tests.exe"
+$AllstarSafeReadTestSrc = Join-Path $PSScriptRoot "test_allstar_safe_read.c"
+$AllstarSafeReadTestExe = Join-Path $PSScriptRoot "test_allstar_safe_read.exe"
 $FaCompensationSelectionTestSrc = Join-Path $PSScriptRoot "test_fa_compensation_selection.c"
 $FaCompensationSelectionTestExe = Join-Path $PSScriptRoot "test_fa_compensation_selection.exe"
 $ForeignRetentionCandidateGateTestSrc = Join-Path $PSScriptRoot "test_foreign_retention_candidate_gate.c"
@@ -107,6 +109,21 @@ if ($LASTEXITCODE -ne 0) {
 & $WebViewCommandRouterTestExe
 if ($LASTEXITCODE -ne 0) {
     throw "WebView command router tests failed"
+}
+
+& $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
+    -I $Root `
+    -I (Join-Path $Root "src") `
+    -o $AllstarSafeReadTestExe `
+    $AllstarSafeReadTestSrc `
+    (Join-Path $Root "src\allstar\allstar_league_context\memory\memory_plausibility.c")
+if ($LASTEXITCODE -ne 0) {
+    throw "All-star safe read test build failed"
+}
+
+& $AllstarSafeReadTestExe
+if ($LASTEXITCODE -ne 0) {
+    throw "All-star safe read tests failed"
 }
 
 & $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `

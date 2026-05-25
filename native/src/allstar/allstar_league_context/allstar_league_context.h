@@ -70,6 +70,11 @@ int kbo_allstar_team_matches_league_ids(uint8_t* team, uint32_t primary_league_i
 int kbo_allstar_league_has_seeded_division_split(uintptr_t league_ptr);
 
 /* memory_plausibility.c */
+int kbo_allstar_try_read_bytes(uintptr_t address, void* out, SIZE_T size);
+int kbo_allstar_try_read_ptr(uintptr_t address, uintptr_t* out_value);
+int kbo_allstar_try_read_i32(uintptr_t address, int32_t* out_value);
+int kbo_allstar_try_read_u8(uint8_t* base, uint32_t offset, uint8_t* out_value);
+int kbo_allstar_try_read_u32(uint8_t* base, uint32_t offset, uint32_t* out_value);
 uint32_t kbo_allstar_read_u32(uint8_t* base, uint32_t offset);
 int kbo_allstar_memory_executable(const void* address);
 int kbo_allstar_league_vtable_plausible(uintptr_t league_ptr);
