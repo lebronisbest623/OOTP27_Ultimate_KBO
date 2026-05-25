@@ -12,7 +12,6 @@
 #include "../../../../common/dates/foreign_waiver_date.h"
 #include "../../../../common/player_eval/foreign_waiver_player_eval.h"
 #include "../../../../common/policy/foreign_player_policy.h"
-#include "../../../../common/policy/foreign_waiver_policy.h"
 #include "../../../../controller/foreign_ai_controller.h"
 #include "../../../../quota/candidates/foreign_quota_retention_opportunity_probe.h"
 #include "../../../../quota/candidates/retention_score/foreign_quota_retention_score_gate.h"
@@ -157,63 +156,6 @@ static void kbo_offer_candidate_priority_log(
         today);
 }
 
-static int kbo_offer_candidate_priority_consumes_last_slot(
-    uint32_t team_id,
-    uint32_t today,
-    uint8_t* candidate,
-    uint32_t candidate_id)
-{
-    if (team_id == 0u
-            || today == 0u
-            || candidate == NULL
-            || candidate_id == 0u
-            || !memory_range_readable(candidate, OOTP27_PLAYER_SCAN_BYTES)) {
-        return 0;
-    }
-
-    uint32_t effective_limit = KBO_CUSTOM_FOREIGN_BASE_EFFECTIVE_LIMIT;
-    if (effective_limit == 0u) {
-        return 0;
-    }
-
-    uint32_t foreign_count = 0u;
-    uint32_t asian_count = 0u;
-    uint32_t non_asian_count = 0u;
-    kbo_count_team_asian_quota_probe(team_id, &foreign_count, &asian_count, &non_asian_count);
-    (void)foreign_count;
-
-    uint32_t pending_asian_count = 0u;
-    uint32_t pending_non_asian_count = 0u;
-    int candidate_pending = 0;
-    kbo_custom_foreign_count_pending_offers(
-        team_id,
-        today,
-        candidate_id,
-        &pending_asian_count,
-        &pending_non_asian_count,
-        &candidate_pending);
-    asian_count += pending_asian_count;
-    non_asian_count += pending_non_asian_count;
-
-    uint32_t asian_after = asian_count;
-    uint32_t non_asian_after = non_asian_count;
-    if (!candidate_pending
-            && !kbo_player_current_assignment_matches_team_or_affiliate(candidate, team_id)) {
-        if (kbo_player_is_asian_quota_slot_candidate(candidate)) {
-            asian_after++;
-        } else {
-            non_asian_after++;
-        }
-    }
-
-    uint32_t effective_after = kbo_effective_foreign_count_with_asian_quota(
-        asian_after,
-        non_asian_after);
-    return kbo_retention_candidate_consumes_last_effective_slot(
-        effective_after,
-        effective_limit);
-}
-
 __declspec(noinline) uintptr_t ootp_kbo_foreign_ai_offer_candidate_priority_wrapper(
     uintptr_t frame_ptr,
     uintptr_t candidate_player_ptr)
@@ -272,13 +214,6 @@ __declspec(noinline) uintptr_t ootp_kbo_foreign_ai_offer_candidate_priority_wrap
         KBO_HOOK_PROFILE_RETURN(profile_hook, "foreign.ai_offer_candidate_priority", candidate_player_ptr);
     }
     if (candidate_retained_by_team && candidate_id == opportunity.best_player_id) {
-        KBO_HOOK_PROFILE_RETURN(profile_hook, "foreign.ai_offer_candidate_priority", candidate_player_ptr);
-    }
-    if (!kbo_offer_candidate_priority_consumes_last_slot(
-            team_id,
-            today,
-            candidate,
-            candidate_id)) {
         KBO_HOOK_PROFILE_RETURN(profile_hook, "foreign.ai_offer_candidate_priority", candidate_player_ptr);
     }
 
