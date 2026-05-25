@@ -82,6 +82,35 @@ public sealed class KboRuntimeFlagManifestTests
         missingFlags.Should().BeEmpty("every native runtime flag read should be declared in config/kbo-runtime-flags.json");
     }
 
+    [Fact]
+    public void ProductionSources_DoNotExposeRemovedForeignAiOfferGate()
+    {
+        var repoRoot = RepoRoot();
+        var scannedFiles = new[]
+            {
+                Path.Combine(repoRoot, "config"),
+                Path.Combine(repoRoot, "src"),
+                Path.Combine(repoRoot, "native", "src"),
+            }
+            .SelectMany(root => Directory.EnumerateFiles(root, "*.*", SearchOption.AllDirectories))
+            .Where(path => path.EndsWith(".c", StringComparison.OrdinalIgnoreCase)
+                || path.EndsWith(".cs", StringComparison.OrdinalIgnoreCase)
+                || path.EndsWith(".h", StringComparison.OrdinalIgnoreCase)
+                || path.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+            .Concat(new[] { Path.Combine(repoRoot, "native", "KBOFix.c") })
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        var removedGatePattern = new Regex("fast" + "[-_ ]?" + "fill", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        var offenders = scannedFiles
+            .Where(path => removedGatePattern.IsMatch(File.ReadAllText(path)))
+            .Select(path => Path.GetRelativePath(repoRoot, path))
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+
+        offenders.Should().BeEmpty("the removed foreign AI offer gate must not be reintroduced in production config or source");
+    }
+
     private static RuntimeFlagManifest ReadManifest()
     {
         using var doc = JsonDocument.Parse(File.ReadAllText(RepoPath("config", "kbo-runtime-flags.json")));
@@ -146,18 +175,28 @@ public sealed class KboRuntimeFlagManifestTests
 
     private static string RepoPath(params string[] parts)
     {
+        var candidate = Path.Combine(new[] { RepoRoot() }.Concat(parts).ToArray());
+        if (File.Exists(candidate))
+        {
+            return candidate;
+        }
+
+        throw new FileNotFoundException("Could not find repository file.", Path.Combine(parts));
+    }
+
+    private static string RepoRoot()
+    {
         var dir = AppContext.BaseDirectory;
         while (dir is not null)
         {
-            var candidate = Path.Combine(new[] { dir }.Concat(parts).ToArray());
-            if (File.Exists(candidate))
+            if (File.Exists(Path.Combine(dir, "CONSTITUTION.md")))
             {
-                return candidate;
+                return dir;
             }
             dir = Directory.GetParent(dir)?.FullName;
         }
 
-        throw new FileNotFoundException("Could not find repository file.", Path.Combine(parts));
+        throw new FileNotFoundException("Could not find repository root.", "CONSTITUTION.md");
     }
 
     private sealed record RuntimeFlagManifest(
