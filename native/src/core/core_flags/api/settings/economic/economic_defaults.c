@@ -53,14 +53,14 @@ static const char* KBO_ECONOMIC_ASIAN_QUALITY_CAP_KEYS[5] = {
 
 static const int32_t KBO_ECONOMIC_FOREIGN_DEMAND_FALLBACKS[9] = {
     700000,
-    750000,
-    850000,
-    1000000,
-    1200000,
-    1450000,
-    1750000,
-    2150000,
-    2600000
+    700000,
+    760000,
+    840000,
+    930000,
+    1030000,
+    1150000,
+    1300000,
+    1500000
 };
 
 static const int32_t KBO_ECONOMIC_ASIAN_QUOTA_DEMAND_FALLBACKS[9] = {

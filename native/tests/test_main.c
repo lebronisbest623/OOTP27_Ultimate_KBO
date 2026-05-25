@@ -2445,7 +2445,7 @@ static void test_asian_quota_slot_candidate_ignores_unprepared_salary(void)
 static void test_economic_defaults_use_hard_fallbacks_for_missing_policy_keys(void)
 {
     assert(kbo_economic_default_foreign_fa_demand_baseline(0) == 700000);
-    assert(kbo_economic_default_foreign_fa_demand_baseline(8) == 2600000);
+    assert(kbo_economic_default_foreign_fa_demand_baseline(8) == 1500000);
     assert(kbo_economic_default_asian_quota_fa_demand_baseline(0) == 80000);
     assert(kbo_economic_default_asian_quota_fa_demand_baseline(8) == 200000);
     assert(kbo_economic_default_non_asian_quality_cap(0) == 126500);

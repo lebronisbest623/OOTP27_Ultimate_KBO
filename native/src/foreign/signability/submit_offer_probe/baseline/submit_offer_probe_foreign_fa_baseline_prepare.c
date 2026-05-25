@@ -214,14 +214,6 @@ static uint32_t kbo_foreign_fa_offer_baseline_source_rva(const char* source)
     return source_rva;
 }
 
-static int kbo_foreign_fa_offer_source_restores_inline(const char* source)
-{
-    return source != NULL
-        && (strstr(source, "foreign_ai_offer_build") != NULL
-            || strstr(source, "foreign_ai_offer_terms") != NULL
-            || strstr(source, "foreign_ai_offer_attach") != NULL);
-}
-
 static void kbo_prepare_foreign_fa_offer_demand_baseline_with_financials(
     uintptr_t player_ptr,
     const char* source,
@@ -237,17 +229,13 @@ static void kbo_prepare_foreign_fa_offer_demand_baseline_with_financials(
     uint32_t source_rva = kbo_foreign_fa_offer_baseline_source_rva(source);
     ootp_kbo_foreign_fa_demand_baseline_prepare_wrapper((uintptr_t)financials, player_ptr, source_rva);
     if (InterlockedCompareExchange(&g_kbo_foreign_fa_demand_ladder_snapshot.active, 0, 0) != 0) {
-        int restores_inline = kbo_foreign_fa_offer_source_restores_inline(source);
-        if (!restores_inline) {
-            kbo_schedule_foreign_fa_demand_restore_timer();
-        }
+        kbo_schedule_foreign_fa_demand_restore_timer();
         static LONG offer_prepare_log_count = 0;
         LONG slot = InterlockedIncrement(&offer_prepare_log_count);
         if (slot <= 120) {
             kbo_log_runtimef(
-                "KBO foreign FA demand baseline offer-build active source=%s inline_restore=%d player=%u team_key=%d league=%u financials=%p",
+                "KBO foreign FA demand baseline offer-build active source=%s restore_timer=1 player=%u team_key=%d league=%u financials=%p",
                 source != NULL ? source : "",
-                restores_inline,
                 memory_range_readable(player + OOTP27_PLAYER_ID_OFFSET, sizeof(uint32_t))
                     ? *(uint32_t*)(player + OOTP27_PLAYER_ID_OFFSET)
                     : 0u,

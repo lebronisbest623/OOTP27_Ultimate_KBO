@@ -7,6 +7,7 @@ typedef struct KboForeignRetentionOpportunitySummary {
     uint32_t team_id;
     uint32_t today;
     uint32_t best_player_id;
+    uint32_t best_retained_on_yyyymmdd;
     int32_t best_score;
     uint8_t best_asian;
     uint32_t active_rights;

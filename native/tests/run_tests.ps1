@@ -161,7 +161,8 @@ if ($LASTEXITCODE -ne 0) {
     -I (Join-Path $Root "src") `
     -o $ForeignRetentionScoreGateTestExe `
     $ForeignRetentionScoreGateTestSrc `
-    (Join-Path $Root "src\foreign\quota\candidates\retention_score\foreign_quota_retention_score_gate.c")
+    (Join-Path $Root "src\foreign\quota\candidates\retention_score\foreign_quota_retention_score_gate.c") `
+    (Join-Path $Root "src\core\dates\core_text_date.c")
 if ($LASTEXITCODE -ne 0) {
     throw "Foreign retention score gate test build failed"
 }

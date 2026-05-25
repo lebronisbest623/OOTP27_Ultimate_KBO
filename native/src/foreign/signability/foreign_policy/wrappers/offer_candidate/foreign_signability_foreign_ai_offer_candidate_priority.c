@@ -232,6 +232,22 @@ __declspec(noinline) uintptr_t ootp_kbo_foreign_ai_offer_candidate_priority_wrap
 
     int32_t candidate_score = kbo_foreign_waiver_value_score(candidate);
     int32_t margin = kbo_retention_opportunity_score_margin_for_best(opportunity.best_score);
+    if (!candidate_retained_by_team
+            && !kbo_retention_candidate_slot_reservation_active(
+                opportunity.best_retained_on_yyyymmdd,
+                today,
+                (uint32_t)kbo_foreign_player_policy()->retention_slot_reserve_days)) {
+        kbo_offer_candidate_priority_log(
+            "retention_reserve_expired",
+            team_id,
+            today,
+            candidate_id,
+            opportunity.best_player_id,
+            candidate_score,
+            opportunity.best_score,
+            margin);
+        KBO_HOOK_PROFILE_RETURN(profile_hook, "foreign.ai_offer_candidate_priority", candidate_player_ptr);
+    }
     if (candidate_retained_by_team
             && kbo_retention_candidate_score_clears_best(candidate_score, opportunity.best_score)) {
         KBO_HOOK_PROFILE_RETURN(profile_hook, "foreign.ai_offer_candidate_priority", candidate_player_ptr);

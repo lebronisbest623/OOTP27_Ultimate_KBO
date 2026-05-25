@@ -45,6 +45,25 @@ static void test_retention_zero_limit_never_blocks(void)
     printf("test_retention_zero_limit_never_blocks: PASS\n");
 }
 
+static void test_retention_slot_reservation_stays_active_inside_window(void)
+{
+    assert(kbo_retention_candidate_slot_reservation_active(20261013u, 20261212u, 60u));
+    printf("test_retention_slot_reservation_stays_active_inside_window: PASS\n");
+}
+
+static void test_retention_slot_reservation_expires_after_window(void)
+{
+    assert(!kbo_retention_candidate_slot_reservation_active(20261013u, 20261213u, 60u));
+    printf("test_retention_slot_reservation_expires_after_window: PASS\n");
+}
+
+static void test_retention_slot_reservation_keeps_invalid_dates_safe(void)
+{
+    assert(kbo_retention_candidate_slot_reservation_active(0u, 20261213u, 60u));
+    assert(kbo_retention_candidate_slot_reservation_active(20261013u, 0u, 60u));
+    printf("test_retention_slot_reservation_keeps_invalid_dates_safe: PASS\n");
+}
+
 int main(void)
 {
     test_better_new_candidate_clears_retained_best();
@@ -54,6 +73,9 @@ int main(void)
     test_retention_consumes_last_slot_at_limit();
     test_retention_consumes_last_slot_over_limit();
     test_retention_zero_limit_never_blocks();
+    test_retention_slot_reservation_stays_active_inside_window();
+    test_retention_slot_reservation_expires_after_window();
+    test_retention_slot_reservation_keeps_invalid_dates_safe();
     printf("All foreign retention score gate tests passed.\n");
     return 0;
 }
