@@ -37,3 +37,17 @@ int kbo_retention_candidate_slot_reservation_active(
     }
     return today_serial - retained_serial <= reserve_days;
 }
+
+int kbo_retention_open_market_candidate_replacement_allowed(
+    uint32_t effective_after,
+    uint32_t effective_limit,
+    int reserve_active,
+    int candidate_clears_retained_best)
+{
+    if (!reserve_active || candidate_clears_retained_best) {
+        return 0;
+    }
+    return kbo_retention_candidate_consumes_last_effective_slot(
+        effective_after,
+        effective_limit);
+}

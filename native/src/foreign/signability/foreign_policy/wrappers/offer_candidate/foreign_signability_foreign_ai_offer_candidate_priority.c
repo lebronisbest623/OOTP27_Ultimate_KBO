@@ -12,6 +12,7 @@
 #include "../../../../common/dates/foreign_waiver_date.h"
 #include "../../../../common/player_eval/foreign_waiver_player_eval.h"
 #include "../../../../common/policy/foreign_player_policy.h"
+#include "../../../../common/policy/foreign_waiver_policy.h"
 #include "../../../../controller/foreign_ai_controller.h"
 #include "../../../../quota/candidates/foreign_quota_retention_opportunity_probe.h"
 #include "../../../../quota/candidates/retention_score/foreign_quota_retention_score_gate.h"
@@ -156,6 +157,67 @@ static void kbo_offer_candidate_priority_log(
         today);
 }
 
+static int kbo_offer_candidate_priority_candidate_slot_context(
+    uint32_t team_id,
+    uint32_t today,
+    uint8_t* candidate,
+    uint32_t candidate_id,
+    uint32_t* out_effective_after,
+    uint32_t* out_effective_limit)
+{
+    if (out_effective_after != NULL) { *out_effective_after = 0u; }
+    if (out_effective_limit != NULL) { *out_effective_limit = 0u; }
+    if (team_id == 0u
+            || today == 0u
+            || candidate == NULL
+            || candidate_id == 0u
+            || !memory_range_readable(candidate, OOTP27_PLAYER_SCAN_BYTES)) {
+        return 0;
+    }
+
+    uint32_t effective_limit = KBO_CUSTOM_FOREIGN_BASE_EFFECTIVE_LIMIT;
+    if (out_effective_limit != NULL) { *out_effective_limit = effective_limit; }
+    if (effective_limit == 0u) {
+        return 0;
+    }
+
+    uint32_t foreign_count = 0u;
+    uint32_t asian_count = 0u;
+    uint32_t non_asian_count = 0u;
+    kbo_count_team_asian_quota_probe(team_id, &foreign_count, &asian_count, &non_asian_count);
+    (void)foreign_count;
+
+    uint32_t pending_asian_count = 0u;
+    uint32_t pending_non_asian_count = 0u;
+    int candidate_pending = 0;
+    kbo_custom_foreign_count_pending_offers(
+        team_id,
+        today,
+        candidate_id,
+        &pending_asian_count,
+        &pending_non_asian_count,
+        &candidate_pending);
+    asian_count += pending_asian_count;
+    non_asian_count += pending_non_asian_count;
+
+    uint32_t asian_after = asian_count;
+    uint32_t non_asian_after = non_asian_count;
+    if (!candidate_pending
+            && !kbo_player_current_assignment_matches_team_or_affiliate(candidate, team_id)) {
+        if (kbo_player_is_asian_quota_slot_candidate(candidate)) {
+            asian_after++;
+        } else {
+            non_asian_after++;
+        }
+    }
+
+    uint32_t effective_after = kbo_effective_foreign_count_with_asian_quota(
+        asian_after,
+        non_asian_after);
+    if (out_effective_after != NULL) { *out_effective_after = effective_after; }
+    return 1;
+}
+
 __declspec(noinline) uintptr_t ootp_kbo_foreign_ai_offer_candidate_priority_wrapper(
     uintptr_t frame_ptr,
     uintptr_t candidate_player_ptr)
@@ -232,37 +294,48 @@ __declspec(noinline) uintptr_t ootp_kbo_foreign_ai_offer_candidate_priority_wrap
 
     int32_t candidate_score = kbo_foreign_waiver_value_score(candidate);
     int32_t margin = kbo_retention_opportunity_score_margin_for_best(opportunity.best_score);
-    if (!candidate_retained_by_team
-            && !kbo_retention_candidate_slot_reservation_active(
-                opportunity.best_retained_on_yyyymmdd,
+    int candidate_clears_retained = kbo_retention_candidate_score_clears_best(
+        candidate_score,
+        opportunity.best_score);
+    if (!candidate_retained_by_team) {
+        int reserve_active = kbo_retention_candidate_slot_reservation_active(
+            opportunity.best_retained_on_yyyymmdd,
+            today,
+            (uint32_t)kbo_foreign_player_policy()->retention_slot_reserve_days);
+        uint32_t effective_after = 0u;
+        uint32_t effective_limit = 0u;
+        int slot_context_ready = kbo_offer_candidate_priority_candidate_slot_context(
+            team_id,
+            today,
+            candidate,
+            candidate_id,
+            &effective_after,
+            &effective_limit);
+        if (!kbo_retention_open_market_candidate_replacement_allowed(
+                effective_after,
+                effective_limit,
+                reserve_active,
+                candidate_clears_retained)) {
+            const char* reason = "slot_open_after_candidate";
+            if (!reserve_active) {
+                reason = "retention_reserve_expired";
+            } else if (candidate_clears_retained) {
+                reason = "candidate_clears_retained_score";
+            } else if (!slot_context_ready) {
+                reason = "slot_context_unavailable";
+            }
+            kbo_offer_candidate_priority_log(
+                reason,
+                team_id,
                 today,
-                (uint32_t)kbo_foreign_player_policy()->retention_slot_reserve_days)) {
-        kbo_offer_candidate_priority_log(
-            "retention_reserve_expired",
-            team_id,
-            today,
-            candidate_id,
-            opportunity.best_player_id,
-            candidate_score,
-            opportunity.best_score,
-            margin);
-        KBO_HOOK_PROFILE_RETURN(profile_hook, "foreign.ai_offer_candidate_priority", candidate_player_ptr);
-    }
-    if (candidate_retained_by_team
-            && kbo_retention_candidate_score_clears_best(candidate_score, opportunity.best_score)) {
-        KBO_HOOK_PROFILE_RETURN(profile_hook, "foreign.ai_offer_candidate_priority", candidate_player_ptr);
-    }
-    if (!candidate_retained_by_team
-            && kbo_retention_candidate_score_clears_best(candidate_score, opportunity.best_score)) {
-        kbo_offer_candidate_priority_log(
-            "candidate_clears_retained_score",
-            team_id,
-            today,
-            candidate_id,
-            opportunity.best_player_id,
-            candidate_score,
-            opportunity.best_score,
-            margin);
+                candidate_id,
+                opportunity.best_player_id,
+                candidate_score,
+                opportunity.best_score,
+                margin);
+            KBO_HOOK_PROFILE_RETURN(profile_hook, "foreign.ai_offer_candidate_priority", candidate_player_ptr);
+        }
+    } else if (candidate_clears_retained) {
         KBO_HOOK_PROFILE_RETURN(profile_hook, "foreign.ai_offer_candidate_priority", candidate_player_ptr);
     }
 

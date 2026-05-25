@@ -64,6 +64,30 @@ static void test_retention_slot_reservation_keeps_invalid_dates_safe(void)
     printf("test_retention_slot_reservation_keeps_invalid_dates_safe: PASS\n");
 }
 
+static void test_open_market_candidate_keeps_open_slot(void)
+{
+    assert(!kbo_retention_open_market_candidate_replacement_allowed(2u, 3u, 1, 0));
+    printf("test_open_market_candidate_keeps_open_slot: PASS\n");
+}
+
+static void test_open_market_candidate_can_be_replaced_for_last_slot(void)
+{
+    assert(kbo_retention_open_market_candidate_replacement_allowed(3u, 3u, 1, 0));
+    printf("test_open_market_candidate_can_be_replaced_for_last_slot: PASS\n");
+}
+
+static void test_open_market_candidate_clearing_score_is_not_replaced(void)
+{
+    assert(!kbo_retention_open_market_candidate_replacement_allowed(3u, 3u, 1, 1));
+    printf("test_open_market_candidate_clearing_score_is_not_replaced: PASS\n");
+}
+
+static void test_expired_retention_reserve_does_not_replace_candidate(void)
+{
+    assert(!kbo_retention_open_market_candidate_replacement_allowed(3u, 3u, 0, 0));
+    printf("test_expired_retention_reserve_does_not_replace_candidate: PASS\n");
+}
+
 int main(void)
 {
     test_better_new_candidate_clears_retained_best();
@@ -76,6 +100,10 @@ int main(void)
     test_retention_slot_reservation_stays_active_inside_window();
     test_retention_slot_reservation_expires_after_window();
     test_retention_slot_reservation_keeps_invalid_dates_safe();
+    test_open_market_candidate_keeps_open_slot();
+    test_open_market_candidate_can_be_replaced_for_last_slot();
+    test_open_market_candidate_clearing_score_is_not_replaced();
+    test_expired_retention_reserve_does_not_replace_candidate();
     printf("All foreign retention score gate tests passed.\n");
     return 0;
 }
