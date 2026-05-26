@@ -10,6 +10,7 @@
 #include "../../core/core_flags/api/flags_api.h"
 #include "../../core/dates/tick/current_date_tick_capture.h"
 #include "../../core/logging/core_log.h"
+#include "../../bootstrap/profiling/profiler.h"
 #include "../../foreign/common/policy/foreign_waiver_policy.h"
 #include "../../runtime_memory/runtime_memory.h"
 #include "../lookup/team_lookup.h"
@@ -61,7 +62,11 @@ int kbo_run_independent_team_acquisition_ai_for_date(uint32_t today, const char*
         goto cleanup;
     }
     if (!kbo_independent_acquisition_window_active_silent(today)) {
+        KBO_PROFILE_BEGIN(profile_independent_acquisition_window_active_emit);
         kbo_independent_acquisition_window_active(today);
+        KBO_PROFILE_END(
+            profile_independent_acquisition_window_active_emit,
+            "independent_acquisition.window_active.emit");
         kbo_independent_acquisition_mark_processed_date(today, source);
         goto cleanup;
     }
@@ -105,28 +110,48 @@ int kbo_run_independent_team_acquisition_ai_for_date(uint32_t today, const char*
 
     uintptr_t player_vector = 0u;
     int32_t player_count = 0;
-    if (!find_kbo_global_player_vector(&player_vector, &player_count, NULL)
+    KBO_PROFILE_BEGIN(profile_independent_acquisition_player_vector_find);
+    int found_player_vector =
+        find_kbo_global_player_vector(&player_vector, &player_count, NULL);
+    KBO_PROFILE_END(
+        profile_independent_acquisition_player_vector_find,
+        "independent_acquisition.player_vector.find");
+    if (!found_player_vector
             || player_vector == 0u
             || player_count <= 0
             || player_count > KBO_RUNTIME_MAX_PLAYER_VECTOR_COUNT) {
         goto cleanup;
     }
     SIZE_T player_vector_bytes = (SIZE_T)player_count * sizeof(uintptr_t);
-    if (!memory_range_readable((void*)player_vector, player_vector_bytes)) {
+    KBO_PROFILE_BEGIN(profile_independent_acquisition_player_vector_readable);
+    int player_vector_readable =
+        memory_range_readable((void*)player_vector, player_vector_bytes);
+    KBO_PROFILE_END(
+        profile_independent_acquisition_player_vector_readable,
+        "independent_acquisition.player_vector.readable");
+    if (!player_vector_readable) {
         goto cleanup;
     }
+    KBO_PROFILE_BEGIN(profile_independent_acquisition_player_snapshot_alloc);
     snapshot = (uintptr_t*)HeapAlloc(GetProcessHeap(), 0, player_vector_bytes);
+    KBO_PROFILE_END(
+        profile_independent_acquisition_player_snapshot_alloc,
+        "independent_acquisition.player_snapshot.alloc");
     if (snapshot == NULL) {
         goto cleanup;
     }
     SIZE_T bytes_read = 0u;
-    if (!ReadProcessMemory(
+    KBO_PROFILE_BEGIN(profile_independent_acquisition_player_snapshot_read);
+    int read_snapshot = ReadProcessMemory(
             GetCurrentProcess(),
             (LPCVOID)player_vector,
             snapshot,
             player_vector_bytes,
-            &bytes_read)
-            || bytes_read != player_vector_bytes) {
+            &bytes_read);
+    KBO_PROFILE_END(
+        profile_independent_acquisition_player_snapshot_read,
+        "independent_acquisition.player_snapshot.read");
+    if (!read_snapshot || bytes_read != player_vector_bytes) {
         goto cleanup;
     }
     if (kbo_independent_acquisition_abort_if_save(source, "after_player_snapshot", today)) {
@@ -134,12 +159,16 @@ int kbo_run_independent_team_acquisition_ai_for_date(uint32_t today, const char*
         goto cleanup;
     }
 
+    KBO_PROFILE_BEGIN(profile_independent_acquisition_with_snapshot);
     result += kbo_run_independent_team_acquisition_ai_with_snapshot_for_date(
         today,
         snapshot,
         player_count,
         source,
         &abort_for_save);
+    KBO_PROFILE_END(
+        profile_independent_acquisition_with_snapshot,
+        "independent_acquisition.with_snapshot.total");
     if (!abort_for_save) {
         kbo_independent_acquisition_mark_processed_date(today, source);
     }
@@ -204,28 +233,48 @@ int kbo_run_independent_team_acquisition_ai(const char* source)
 
     uintptr_t player_vector = 0u;
     int32_t player_count = 0;
-    if (!find_kbo_global_player_vector(&player_vector, &player_count, NULL)
+    KBO_PROFILE_BEGIN(profile_independent_acquisition_player_vector_find);
+    int found_player_vector =
+        find_kbo_global_player_vector(&player_vector, &player_count, NULL);
+    KBO_PROFILE_END(
+        profile_independent_acquisition_player_vector_find,
+        "independent_acquisition.player_vector.find");
+    if (!found_player_vector
             || player_vector == 0u
             || player_count <= 0
             || player_count > KBO_RUNTIME_MAX_PLAYER_VECTOR_COUNT) {
         goto cleanup;
     }
     SIZE_T player_vector_bytes = (SIZE_T)player_count * sizeof(uintptr_t);
-    if (!memory_range_readable((void*)player_vector, player_vector_bytes)) {
+    KBO_PROFILE_BEGIN(profile_independent_acquisition_player_vector_readable);
+    int player_vector_readable =
+        memory_range_readable((void*)player_vector, player_vector_bytes);
+    KBO_PROFILE_END(
+        profile_independent_acquisition_player_vector_readable,
+        "independent_acquisition.player_vector.readable");
+    if (!player_vector_readable) {
         goto cleanup;
     }
+    KBO_PROFILE_BEGIN(profile_independent_acquisition_player_snapshot_alloc);
     snapshot = (uintptr_t*)HeapAlloc(GetProcessHeap(), 0, player_vector_bytes);
+    KBO_PROFILE_END(
+        profile_independent_acquisition_player_snapshot_alloc,
+        "independent_acquisition.player_snapshot.alloc");
     if (snapshot == NULL) {
         goto cleanup;
     }
     SIZE_T bytes_read = 0u;
-    if (!ReadProcessMemory(
+    KBO_PROFILE_BEGIN(profile_independent_acquisition_player_snapshot_read);
+    int read_snapshot = ReadProcessMemory(
             GetCurrentProcess(),
             (LPCVOID)player_vector,
             snapshot,
             player_vector_bytes,
-            &bytes_read)
-            || bytes_read != player_vector_bytes) {
+            &bytes_read);
+    KBO_PROFILE_END(
+        profile_independent_acquisition_player_snapshot_read,
+        "independent_acquisition.player_snapshot.read");
+    if (!read_snapshot || bytes_read != player_vector_bytes) {
         goto cleanup;
     }
     if (kbo_independent_acquisition_abort_if_save(source, "after_player_snapshot", today)) {
@@ -258,19 +307,27 @@ int kbo_run_independent_team_acquisition_ai(const char* source)
 
         if (kbo_independent_acquisition_window_active_silent(run_date)) {
             active_days++;
+            KBO_PROFILE_BEGIN(profile_independent_acquisition_with_snapshot);
             result += kbo_run_independent_team_acquisition_ai_with_snapshot_for_date(
                 run_date,
                 snapshot,
                 player_count,
                 source,
                 &abort_for_save);
+            KBO_PROFILE_END(
+                profile_independent_acquisition_with_snapshot,
+                "independent_acquisition.with_snapshot.total");
             if (abort_for_save) {
                 break;
             }
         } else {
             closed_days++;
             if (run_date == today) {
+                KBO_PROFILE_BEGIN(profile_independent_acquisition_window_active_emit);
                 kbo_independent_acquisition_window_active(run_date);
+                KBO_PROFILE_END(
+                    profile_independent_acquisition_window_active_emit,
+                    "independent_acquisition.window_active.emit");
             }
         }
 
