@@ -65,6 +65,63 @@ uint32_t kbo_custom_foreign_policy_extra_slots_for_candidate(
         return 0u;
     }
 
+    int team_has_candidate_type_slot = 0;
+    if (kbo_custom_foreign_extra_slot_team_cache_hit(
+            team_id,
+            today,
+            league_id,
+            candidate_asian,
+            &team_has_candidate_type_slot)) {
+        if (!team_has_candidate_type_slot) {
+            kbo_profiler_record_us("foreign_policy.candidate.extra_slots.team_none_cache_hit", 0);
+            kbo_custom_foreign_extra_slot_cache_store(
+                team_id,
+                candidate,
+                candidate_id,
+                today,
+                league_id,
+                candidate_asian,
+                0u,
+                0u,
+                0u);
+            return 0u;
+        }
+        kbo_profiler_record_us("foreign_policy.candidate.extra_slots.team_has_cache_hit", 0);
+    } else {
+        uint8_t available_slot_type = 0u;
+        uint32_t available_injured_player_id = 0u;
+        KBO_PROFILE_BEGIN(profile_custom_candidate_extra_team_slot);
+        team_has_candidate_type_slot = kbo_team_has_foreign_injury_slot_for_candidate_type_any(
+            team_id,
+            candidate_asian != 0u,
+            &available_slot_type,
+            &available_injured_player_id);
+        KBO_PROFILE_END(profile_custom_candidate_extra_team_slot, team_has_candidate_type_slot
+            ? "foreign_policy.candidate.extra_slots.team_has_slot"
+            : "foreign_policy.candidate.extra_slots.team_no_slot");
+        (void)available_slot_type;
+        (void)available_injured_player_id;
+        kbo_custom_foreign_extra_slot_team_cache_store(
+            team_id,
+            today,
+            league_id,
+            candidate_asian,
+            team_has_candidate_type_slot);
+        if (!team_has_candidate_type_slot) {
+            kbo_custom_foreign_extra_slot_cache_store(
+                team_id,
+                candidate,
+                candidate_id,
+                today,
+                league_id,
+                candidate_asian,
+                0u,
+                0u,
+                0u);
+            return 0u;
+        }
+    }
+
     uint32_t injured_player_id = 0u;
     uint8_t slot_type = 0u;
     if (kbo_team_has_foreign_injury_slot_for_candidate_any(
@@ -365,14 +422,17 @@ int kbo_custom_foreign_policy_team_allows_final_signing(
         }
     }
 
+    uint32_t effective_after = kbo_effective_foreign_count_with_asian_quota(asian_after, non_asian_after);
     uint8_t slot_type = 0u;
     uint32_t injured_player_id = 0u;
-    uint32_t extra_slots = kbo_custom_foreign_policy_extra_slots_for_candidate(
-        team_id,
-        candidate,
-        &slot_type,
-        &injured_player_id);
-    uint32_t effective_after = kbo_effective_foreign_count_with_asian_quota(asian_after, non_asian_after);
+    uint32_t extra_slots = 0u;
+    if (!already_in_org && effective_after > KBO_CUSTOM_FOREIGN_BASE_EFFECTIVE_LIMIT) {
+        extra_slots = kbo_custom_foreign_policy_extra_slots_for_candidate(
+            team_id,
+            candidate,
+            &slot_type,
+            &injured_player_id);
+    }
     uint32_t effective_limit = KBO_CUSTOM_FOREIGN_BASE_EFFECTIVE_LIMIT + extra_slots;
 
     if (out_effective_before != NULL) { *out_effective_before = effective_before; }

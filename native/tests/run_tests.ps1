@@ -13,6 +13,8 @@ $ForeignOfferAttachHookPolicyTestSrc = Join-Path $PSScriptRoot "test_foreign_off
 $ForeignOfferAttachHookPolicyTestExe = Join-Path $PSScriptRoot "test_foreign_offer_attach_hook_policy.exe"
 $ForeignAiOfferContractTypeTestSrc = Join-Path $PSScriptRoot "test_foreign_ai_offer_contract_type.c"
 $ForeignAiOfferContractTypeTestExe = Join-Path $PSScriptRoot "test_foreign_ai_offer_contract_type.exe"
+$ForeignCandidateLimitCacheTestSrc = Join-Path $PSScriptRoot "test_foreign_candidate_limit_cache.c"
+$ForeignCandidateLimitCacheTestExe = Join-Path $PSScriptRoot "test_foreign_candidate_limit_cache.exe"
 $ForeignFaFinancialsWriteTestSrc = Join-Path $PSScriptRoot "test_foreign_fa_financials_write.c"
 $ForeignFaFinancialsWriteTestExe = Join-Path $PSScriptRoot "test_foreign_fa_financials_write.exe"
 $OfferCandidateReplacementDispatcherTestSrc = Join-Path $PSScriptRoot "test_offer_candidate_replacement_dispatcher.c"
@@ -180,6 +182,21 @@ if ($LASTEXITCODE -ne 0) {
 & $ForeignAiOfferContractTypeTestExe
 if ($LASTEXITCODE -ne 0) {
     throw "Foreign AI offer contract type tests failed"
+}
+
+& $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
+    -I $Root `
+    -I (Join-Path $Root "src") `
+    -o $ForeignCandidateLimitCacheTestExe `
+    $ForeignCandidateLimitCacheTestSrc `
+    (Join-Path $Root "src\foreign\quota\candidates\cache\foreign_quota_candidate_limit_cache.c")
+if ($LASTEXITCODE -ne 0) {
+    throw "Foreign candidate limit cache test build failed"
+}
+
+& $ForeignCandidateLimitCacheTestExe
+if ($LASTEXITCODE -ne 0) {
+    throw "Foreign candidate limit cache tests failed"
 }
 
 & $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `

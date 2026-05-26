@@ -39,6 +39,18 @@ void kbo_custom_foreign_extra_slot_cache_store(
     uint32_t extra_slots,
     uint8_t slot_type,
     uint32_t injured_player_id);
+int kbo_custom_foreign_extra_slot_team_cache_hit(
+    uint32_t team_id,
+    uint32_t today,
+    uint32_t league_id,
+    uint8_t candidate_asian,
+    int* out_has_slot);
+void kbo_custom_foreign_extra_slot_team_cache_store(
+    uint32_t team_id,
+    uint32_t today,
+    uint32_t league_id,
+    uint8_t candidate_asian,
+    int has_slot);
 int kbo_custom_foreign_candidate_cache_hit(
     uint32_t team_id,
     uint8_t* candidate,
