@@ -20,6 +20,7 @@
 #include "../src/core/csv/core_csv.h"
 #include "../src/core/sql/escape/core_sql_escape.h"
 #include "../src/core/dates/tick/current_date_tick_capture.h"
+#include "../src/core/core_flags/localappdata/localappdata_reader.h"
 #include "../src/foreign/replacement_seed/parse/foreign_replacement_seed_parse.h"
 #include "../src/captain/season/captain_season.h"
 #include "../src/captain/seed/parse/captain_seed_parse.h"
@@ -79,6 +80,7 @@ int kbo_get_current_save_path(char* out, size_t out_size)
 #include "../src/core/logging/rule_audit.h"
 #include "../src/core/files/atomic/core_atomic_file.h"
 #include "../src/core/files/save_paths/platform/core_path_io.h"
+#include "../src/core/product/ootp_product.h"
 #include "../src/custom_events/asian_games/policy/asian_games_roster_policy.h"
 #include "../src/military_service/players/loans/military_native_loan.h"
 #include "../src/team/assignment/roster_arrays/team_roster_arrays.h"
@@ -2441,6 +2443,93 @@ static void test_asian_quota_slot_candidate_ignores_unprepared_salary(void)
     printf("test_asian_quota_slot_candidate_ignores_unprepared_salary: PASS\n");
 }
 
+static void test_localappdata_setting_cache_invalidates_on_external_file_change(void)
+{
+    char old_local_app_data[MAX_PATH] = {0};
+    DWORD old_len = GetEnvironmentVariableA("LOCALAPPDATA", old_local_app_data, sizeof(old_local_app_data));
+    int had_old_local_app_data = old_len > 0u && old_len < sizeof(old_local_app_data);
+
+    char temp_dir[MAX_PATH] = {0};
+    DWORD temp_len = GetTempPathA(sizeof(temp_dir), temp_dir);
+    assert(temp_len > 0u && temp_len < sizeof(temp_dir));
+
+    char root[MAX_PATH] = {0};
+    char root_suffix[64] = {0};
+    int suffix_len = snprintf(
+        root_suffix,
+        sizeof(root_suffix),
+        "kbo_localappdata_cache_%lu",
+        (unsigned long)GetCurrentProcessId());
+    assert(suffix_len > 0 && (size_t)suffix_len < sizeof(root_suffix));
+    assert((size_t)temp_len + (size_t)suffix_len + 1u <= sizeof(root));
+    memcpy(root, temp_dir, temp_len);
+    memcpy(root + temp_len, root_suffix, (size_t)suffix_len + 1u);
+    CreateDirectoryA(root, NULL);
+
+    char product_dir[MAX_PATH] = {0};
+    size_t root_len = strlen(root);
+    size_t product_name_len = strlen(KBO_PRODUCT_LOCAL_DATA_DIR);
+    assert(root_len + 1u + product_name_len + 1u <= sizeof(product_dir));
+    memcpy(product_dir, root, root_len);
+    product_dir[root_len] = '\\';
+    memcpy(product_dir + root_len + 1u, KBO_PRODUCT_LOCAL_DATA_DIR, product_name_len + 1u);
+    CreateDirectoryA(product_dir, NULL);
+
+    char settings_path[MAX_PATH] = {0};
+    size_t product_dir_len = strlen(product_dir);
+    size_t settings_name_len = strlen(KBO_PRODUCT_SETTINGS_JSON_FILE);
+    assert(product_dir_len + 1u + settings_name_len + 1u <= sizeof(settings_path));
+    memcpy(settings_path, product_dir, product_dir_len);
+    settings_path[product_dir_len] = '\\';
+    memcpy(settings_path + product_dir_len + 1u, KBO_PRODUCT_SETTINGS_JSON_FILE, settings_name_len + 1u);
+
+    assert(SetEnvironmentVariableA("LOCALAPPDATA", root));
+
+    const char first_json[] = "{ \"asian_quota_salary_limit\": 200000 }\n";
+    HANDLE file = CreateFileA(settings_path, GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE,
+        NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    assert(file != INVALID_HANDLE_VALUE);
+    DWORD written = 0;
+    assert(WriteFile(file, first_json, (DWORD)strlen(first_json), &written, NULL));
+    assert(written == (DWORD)strlen(first_json));
+    FILETIME first_time = { 0x1000u, 0x01d00000u };
+    assert(SetFileTime(file, NULL, NULL, &first_time));
+    CloseHandle(file);
+
+    int value = 0;
+    assert(kbo_read_localappdata_setting_int_value("asian_quota_salary_limit", &value));
+    assert(value == 200000);
+    assert(kbo_get_asian_quota_salary_limit() == 200000);
+
+    const char second_json[] = "{ \"asian_quota_salary_limit\": 300000 }\n";
+    file = CreateFileA(settings_path, GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE,
+        NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    assert(file != INVALID_HANDLE_VALUE);
+    written = 0;
+    assert(WriteFile(file, second_json, (DWORD)strlen(second_json), &written, NULL));
+    assert(written == (DWORD)strlen(second_json));
+    FILETIME second_time = { 0x2000u, 0x01d00000u };
+    assert(SetFileTime(file, NULL, NULL, &second_time));
+    CloseHandle(file);
+
+    value = 0;
+    assert(kbo_read_localappdata_setting_int_value("asian_quota_salary_limit", &value));
+    assert(value == 300000);
+    assert(kbo_get_asian_quota_salary_limit() == 300000);
+
+    if (had_old_local_app_data) {
+        assert(SetEnvironmentVariableA("LOCALAPPDATA", old_local_app_data));
+    } else {
+        assert(SetEnvironmentVariableA("LOCALAPPDATA", NULL));
+    }
+
+    DeleteFileA(settings_path);
+    RemoveDirectoryA(product_dir);
+    RemoveDirectoryA(root);
+
+    printf("test_localappdata_setting_cache_invalidates_on_external_file_change: PASS\n");
+}
+
 static void test_foreign_injury_slot_label(void)
 {
     /* The two named slot types: regular foreign vs Asian quota. */
@@ -3470,6 +3559,7 @@ int main(void)
     test_foreign_waiver_value_score();
     test_player_is_foreign_for_kbo_rights();
     test_asian_quota_slot_candidate_ignores_unprepared_salary();
+    test_localappdata_setting_cache_invalidates_on_external_file_change();
     test_foreign_injury_slot_label();
     test_foreign_injury_status_label();
     test_foreign_injury_policy_helpers();
