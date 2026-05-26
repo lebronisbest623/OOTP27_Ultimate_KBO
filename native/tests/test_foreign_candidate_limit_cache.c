@@ -29,21 +29,18 @@ int main(void)
     int has_slot = 1;
     assert(!kbo_custom_foreign_extra_slot_team_cache_hit(
         7u,
-        20270403u,
         100u,
         0u,
         &has_slot));
 
     kbo_custom_foreign_extra_slot_team_cache_store(
         7u,
-        20270403u,
         100u,
         0u,
         0);
     has_slot = 1;
     assert(kbo_custom_foreign_extra_slot_team_cache_hit(
         7u,
-        20270403u,
         100u,
         0u,
         &has_slot));
@@ -51,21 +48,18 @@ int main(void)
 
     assert(!kbo_custom_foreign_extra_slot_team_cache_hit(
         7u,
-        20270403u,
         100u,
         1u,
         &has_slot));
 
     kbo_custom_foreign_extra_slot_team_cache_store(
         7u,
-        20270403u,
         100u,
         1u,
         1);
     has_slot = 0;
     assert(kbo_custom_foreign_extra_slot_team_cache_hit(
         7u,
-        20270403u,
         100u,
         1u,
         &has_slot));
@@ -74,10 +68,70 @@ int main(void)
     g_test_injury_replacement_fingerprint++;
     assert(!kbo_custom_foreign_extra_slot_team_cache_hit(
         7u,
-        20270403u,
         100u,
         1u,
         &has_slot));
+
+    uint8_t candidate = 0u;
+    uint8_t slot_type = 0u;
+    uint32_t injured_player_id = 0u;
+    uint32_t extra_slots = 0u;
+    g_test_injury_replacement_fingerprint++;
+    assert(!kbo_custom_foreign_extra_slot_cache_hit(
+        8u,
+        &candidate,
+        910001u,
+        100u,
+        0u,
+        &slot_type,
+        &injured_player_id,
+        &extra_slots));
+
+    kbo_custom_foreign_extra_slot_cache_store(
+        8u,
+        &candidate,
+        910001u,
+        100u,
+        0u,
+        1u,
+        1u,
+        3001u);
+    slot_type = 0u;
+    injured_player_id = 0u;
+    extra_slots = 0u;
+    assert(kbo_custom_foreign_extra_slot_cache_hit(
+        8u,
+        &candidate,
+        910001u,
+        100u,
+        0u,
+        &slot_type,
+        &injured_player_id,
+        &extra_slots));
+    assert(extra_slots == 1u);
+    assert(slot_type == 1u);
+    assert(injured_player_id == 3001u);
+
+    assert(!kbo_custom_foreign_extra_slot_cache_hit(
+        8u,
+        &candidate,
+        910001u,
+        100u,
+        1u,
+        &slot_type,
+        &injured_player_id,
+        &extra_slots));
+
+    g_test_injury_replacement_fingerprint++;
+    assert(!kbo_custom_foreign_extra_slot_cache_hit(
+        8u,
+        &candidate,
+        910001u,
+        100u,
+        0u,
+        &slot_type,
+        &injured_player_id,
+        &extra_slots));
 
     return 0;
 }

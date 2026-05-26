@@ -32,12 +32,19 @@ uint32_t kbo_custom_foreign_policy_extra_slots_for_candidate(
     uint32_t league_id = kbo_resolve_kbo_league_id();
 
     uint8_t candidate_asian = kbo_player_is_asian_quota_slot_candidate(candidate) ? 1u : 0u;
+    if (!kbo_foreign_injury_replacement_in_season_window(
+            league_id,
+            today,
+            "foreign_policy.candidate_extra_slot",
+            "candidate_extra_slot")) {
+        return 0u;
+    }
+
     uint32_t cached_extra_slots = 0u;
     if (kbo_custom_foreign_extra_slot_cache_hit(
             team_id,
             candidate,
             candidate_id,
-            today,
             league_id,
             candidate_asian,
             out_slot_type,
@@ -47,28 +54,9 @@ uint32_t kbo_custom_foreign_policy_extra_slots_for_candidate(
         return cached_extra_slots;
     }
 
-    if (!kbo_foreign_injury_replacement_in_season_window(
-            league_id,
-            today,
-            "foreign_policy.candidate_extra_slot",
-            "candidate_extra_slot")) {
-        kbo_custom_foreign_extra_slot_cache_store(
-            team_id,
-            candidate,
-            candidate_id,
-            today,
-            league_id,
-            candidate_asian,
-            0u,
-            0u,
-            0u);
-        return 0u;
-    }
-
     int team_has_candidate_type_slot = 0;
     if (kbo_custom_foreign_extra_slot_team_cache_hit(
             team_id,
-            today,
             league_id,
             candidate_asian,
             &team_has_candidate_type_slot)) {
@@ -78,7 +66,6 @@ uint32_t kbo_custom_foreign_policy_extra_slots_for_candidate(
                 team_id,
                 candidate,
                 candidate_id,
-                today,
                 league_id,
                 candidate_asian,
                 0u,
@@ -103,7 +90,6 @@ uint32_t kbo_custom_foreign_policy_extra_slots_for_candidate(
         (void)available_injured_player_id;
         kbo_custom_foreign_extra_slot_team_cache_store(
             team_id,
-            today,
             league_id,
             candidate_asian,
             team_has_candidate_type_slot);
@@ -112,7 +98,6 @@ uint32_t kbo_custom_foreign_policy_extra_slots_for_candidate(
                 team_id,
                 candidate,
                 candidate_id,
-                today,
                 league_id,
                 candidate_asian,
                 0u,
@@ -137,7 +122,6 @@ uint32_t kbo_custom_foreign_policy_extra_slots_for_candidate(
             team_id,
             candidate,
             candidate_id,
-            today,
             league_id,
             candidate_asian,
             1u,
@@ -150,7 +134,6 @@ uint32_t kbo_custom_foreign_policy_extra_slots_for_candidate(
         team_id,
         candidate,
         candidate_id,
-        today,
         league_id,
         candidate_asian,
         0u,

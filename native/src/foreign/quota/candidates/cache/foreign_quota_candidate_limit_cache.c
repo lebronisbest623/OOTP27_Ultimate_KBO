@@ -26,7 +26,6 @@ typedef struct KboCustomForeignCandidateCacheEntry {
 typedef struct KboCustomForeignExtraSlotCacheEntry {
     uint32_t team_id;
     uint32_t player_id;
-    uint32_t today;
     uint32_t league_id;
     uintptr_t player_ptr;
     uint64_t injury_replacement_fingerprint;
@@ -40,7 +39,6 @@ typedef struct KboCustomForeignExtraSlotCacheEntry {
 
 typedef struct KboCustomForeignExtraSlotTeamCacheEntry {
     uint32_t team_id;
-    uint32_t today;
     uint32_t league_id;
     uint64_t injury_replacement_fingerprint;
     DWORD tick;
@@ -75,12 +73,10 @@ static uint32_t kbo_custom_foreign_candidate_cache_slot(uint32_t team_id, uint32
 static uint32_t kbo_custom_foreign_extra_slot_cache_slot(
     uint32_t team_id,
     uint32_t player_id,
-    uint32_t today,
     uint32_t league_id)
 {
     uint32_t h = player_id * 2654435761u;
     h ^= team_id * 2246822519u;
-    h ^= today * 3266489917u;
     h ^= league_id * 668265263u;
     h ^= h >> 16;
     return h & (KBO_CUSTOM_FOREIGN_EXTRA_SLOT_CACHE_SIZE - KBO_CUSTOM_FOREIGN_EXTRA_SLOT_CACHE_WAYS);
@@ -88,12 +84,10 @@ static uint32_t kbo_custom_foreign_extra_slot_cache_slot(
 
 static uint32_t kbo_custom_foreign_extra_slot_team_cache_slot(
     uint32_t team_id,
-    uint32_t today,
     uint32_t league_id,
     uint8_t candidate_asian)
 {
     uint32_t h = team_id * 2246822519u;
-    h ^= today * 3266489917u;
     h ^= league_id * 668265263u;
     h ^= (uint32_t)candidate_asian * 374761393u;
     h ^= h >> 16;
@@ -162,7 +156,6 @@ int kbo_custom_foreign_extra_slot_cache_hit(
     uint32_t team_id,
     uint8_t* candidate,
     uint32_t candidate_id,
-    uint32_t today,
     uint32_t league_id,
     uint8_t candidate_asian,
     uint8_t* out_slot_type,
@@ -170,7 +163,7 @@ int kbo_custom_foreign_extra_slot_cache_hit(
     uint32_t* out_extra_slots)
 {
     uint64_t injury_replacement_fingerprint = kbo_foreign_injury_replacement_fingerprint();
-    uint32_t base_slot = kbo_custom_foreign_extra_slot_cache_slot(team_id, candidate_id, today, league_id);
+    uint32_t base_slot = kbo_custom_foreign_extra_slot_cache_slot(team_id, candidate_id, league_id);
     KboCustomForeignExtraSlotCacheEntry* entry = NULL;
     for (uint32_t way = 0; way < KBO_CUSTOM_FOREIGN_EXTRA_SLOT_CACHE_WAYS; way++) {
         KboCustomForeignExtraSlotCacheEntry* candidate_entry =
@@ -178,7 +171,6 @@ int kbo_custom_foreign_extra_slot_cache_hit(
         if (candidate_entry->valid
                 && candidate_entry->team_id == team_id
                 && candidate_entry->player_id == candidate_id
-                && candidate_entry->today == today
                 && candidate_entry->league_id == league_id
                 && candidate_entry->player_ptr == (uintptr_t)candidate
                 && candidate_entry->candidate_asian == candidate_asian
@@ -202,7 +194,6 @@ void kbo_custom_foreign_extra_slot_cache_store(
     uint32_t team_id,
     uint8_t* candidate,
     uint32_t candidate_id,
-    uint32_t today,
     uint32_t league_id,
     uint8_t candidate_asian,
     uint32_t extra_slots,
@@ -213,7 +204,7 @@ void kbo_custom_foreign_extra_slot_cache_store(
         return;
     }
 
-    uint32_t base_slot = kbo_custom_foreign_extra_slot_cache_slot(team_id, candidate_id, today, league_id);
+    uint32_t base_slot = kbo_custom_foreign_extra_slot_cache_slot(team_id, candidate_id, league_id);
     KboCustomForeignExtraSlotCacheEntry* entry = &g_kbo_custom_foreign_extra_slot_cache[base_slot];
     for (uint32_t way = 0; way < KBO_CUSTOM_FOREIGN_EXTRA_SLOT_CACHE_WAYS; way++) {
         KboCustomForeignExtraSlotCacheEntry* candidate_entry =
@@ -224,7 +215,6 @@ void kbo_custom_foreign_extra_slot_cache_store(
         }
         if (candidate_entry->team_id == team_id
                 && candidate_entry->player_id == candidate_id
-                && candidate_entry->today == today
                 && candidate_entry->league_id == league_id
                 && candidate_entry->player_ptr == (uintptr_t)candidate) {
             entry = candidate_entry;
@@ -237,7 +227,6 @@ void kbo_custom_foreign_extra_slot_cache_store(
     entry->valid = 0u;
     entry->team_id = team_id;
     entry->player_id = candidate_id;
-    entry->today = today;
     entry->league_id = league_id;
     entry->player_ptr = (uintptr_t)candidate;
     entry->injury_replacement_fingerprint = kbo_foreign_injury_replacement_fingerprint();
@@ -251,7 +240,6 @@ void kbo_custom_foreign_extra_slot_cache_store(
 
 int kbo_custom_foreign_extra_slot_team_cache_hit(
     uint32_t team_id,
-    uint32_t today,
     uint32_t league_id,
     uint8_t candidate_asian,
     int* out_has_slot)
@@ -259,7 +247,6 @@ int kbo_custom_foreign_extra_slot_team_cache_hit(
     uint64_t injury_replacement_fingerprint = kbo_foreign_injury_replacement_fingerprint();
     uint32_t base_slot = kbo_custom_foreign_extra_slot_team_cache_slot(
         team_id,
-        today,
         league_id,
         candidate_asian);
     KboCustomForeignExtraSlotTeamCacheEntry* entry = NULL;
@@ -268,7 +255,6 @@ int kbo_custom_foreign_extra_slot_team_cache_hit(
             &g_kbo_custom_foreign_extra_slot_team_cache[base_slot + way];
         if (candidate_entry->valid
                 && candidate_entry->team_id == team_id
-                && candidate_entry->today == today
                 && candidate_entry->league_id == league_id
                 && candidate_entry->candidate_asian == candidate_asian
                 && candidate_entry->injury_replacement_fingerprint == injury_replacement_fingerprint
@@ -289,18 +275,16 @@ int kbo_custom_foreign_extra_slot_team_cache_hit(
 
 void kbo_custom_foreign_extra_slot_team_cache_store(
     uint32_t team_id,
-    uint32_t today,
     uint32_t league_id,
     uint8_t candidate_asian,
     int has_slot)
 {
-    if (team_id == 0u || today == 0u || league_id == 0u) {
+    if (team_id == 0u || league_id == 0u) {
         return;
     }
 
     uint32_t base_slot = kbo_custom_foreign_extra_slot_team_cache_slot(
         team_id,
-        today,
         league_id,
         candidate_asian);
     KboCustomForeignExtraSlotTeamCacheEntry* entry =
@@ -313,7 +297,6 @@ void kbo_custom_foreign_extra_slot_team_cache_store(
             break;
         }
         if (candidate_entry->team_id == team_id
-                && candidate_entry->today == today
                 && candidate_entry->league_id == league_id
                 && candidate_entry->candidate_asian == candidate_asian) {
             entry = candidate_entry;
@@ -325,7 +308,6 @@ void kbo_custom_foreign_extra_slot_team_cache_store(
     }
     entry->valid = 0u;
     entry->team_id = team_id;
-    entry->today = today;
     entry->league_id = league_id;
     entry->injury_replacement_fingerprint = kbo_foreign_injury_replacement_fingerprint();
     entry->tick = GetTickCount();
