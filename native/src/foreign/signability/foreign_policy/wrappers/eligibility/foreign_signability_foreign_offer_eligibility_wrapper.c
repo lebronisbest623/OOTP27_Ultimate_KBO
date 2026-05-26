@@ -239,6 +239,14 @@ __declspec(noinline) uint8_t ootp_kbo_player_offer_eligibility_wrapper(
                 && kbo_find_active_foreign_waiver_holder(player_id, today, &holder_team_id)
                 && holder_team_id != 0u
                 && kbo_foreign_reserve_high_value_offer_visible_to_ai(player, &score, &threshold)) {
+            uint32_t retained_on = 0u;
+            uint32_t expires_on = 0u;
+            (void)kbo_get_active_foreign_waiver_right_dates(
+                holder_team_id,
+                player_id,
+                today,
+                &retained_on,
+                &expires_on);
             kbo_sync_active_foreign_waiver_right_to_memory(player, player_id, holder_team_id, today);
             kbo_record_recent_foreign_offer_allow(player_id, holder_team_id, today);
             uint8_t adjusted = kbo_foreign_reserve_holder_offer_eligibility(original_result);
@@ -246,13 +254,15 @@ __declspec(noinline) uint8_t ootp_kbo_player_offer_eligibility_wrapper(
             LONG slot = InterlockedIncrement(&generic_holder_log_count);
             if (slot <= 120) {
                 kbo_log_runtimef(
-                    "foreign reserve offer eligibility holder-visible generic player=%u holder_team=%u original=%u adjusted=%u flag=%d today=%u score=%d threshold=%d",
+                    "foreign reserve offer eligibility holder-visible generic player=%u holder_team=%u original=%u adjusted=%u flag=%d today=%u retained_on=%u expires_on=%u score=%d threshold=%d",
                     player_id,
                     holder_team_id,
                     (uint32_t)original_result,
                     (uint32_t)adjusted,
                     flag,
                     today,
+                    retained_on,
+                    expires_on,
                     score,
                     threshold);
             }
@@ -274,13 +284,21 @@ __declspec(noinline) uint8_t ootp_kbo_player_offer_eligibility_wrapper(
             && holder_team_id != 0u) {
         kbo_sync_active_foreign_waiver_right_to_memory(player, player_id, holder_team_id, today);
         if (holder_team_id == (uint32_t)team_id) {
+            uint32_t retained_on = 0u;
+            uint32_t expires_on = 0u;
+            (void)kbo_get_active_foreign_waiver_right_dates(
+                holder_team_id,
+                player_id,
+                today,
+                &retained_on,
+                &expires_on);
             kbo_record_recent_foreign_offer_allow(player_id, (uint32_t)team_id, today);
             uint8_t adjusted = kbo_foreign_reserve_holder_offer_eligibility(original_result);
             static volatile LONG holder_log_count = 0;
             LONG holder_slot = InterlockedIncrement(&holder_log_count);
             if (holder_slot <= 120) {
                 kbo_log_runtimef(
-                    "foreign reserve offer eligibility holder adjusted player=%u requester_team=%d holder_team=%u original=%u adjusted=%u flag=%d today=%u score=%d",
+                    "foreign reserve offer eligibility holder adjusted player=%u requester_team=%d holder_team=%u original=%u adjusted=%u flag=%d today=%u retained_on=%u expires_on=%u score=%d",
                     player_id,
                     team_id,
                     holder_team_id,
@@ -288,6 +306,8 @@ __declspec(noinline) uint8_t ootp_kbo_player_offer_eligibility_wrapper(
                     (uint32_t)adjusted,
                     flag,
                     today,
+                    retained_on,
+                    expires_on,
                     kbo_foreign_waiver_value_score(player));
             }
             KBO_HOOK_PROFILE_RETURN(profile_hook, "foreign.offer_eligibility", adjusted);
