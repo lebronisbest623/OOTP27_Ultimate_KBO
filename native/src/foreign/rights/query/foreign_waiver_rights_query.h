@@ -26,7 +26,6 @@ int kbo_find_active_foreign_waiver_holder(
     uint32_t today_yyyymmdd,
     uint32_t* out_team_id);
 void kbo_ensure_foreign_waiver_rights_loaded_for_lookup(void);
-int kbo_foreign_waiver_rights_lookup_context_ready(void);
 int kbo_is_foreign_waiver_right_active(const KboForeignWaiverRetention* rec, uint32_t today);
 int kbo_load_foreign_waiver_rights(void);
 int kbo_persist_foreign_waiver_rights(void);

@@ -39,7 +39,6 @@ typedef struct KboForeignPlayerPolicy {
     int32_t retention_margin_divisor;
     int32_t retention_margin_min;
     int32_t retention_margin_max;
-    int32_t retention_slot_reserve_days;
     int32_t reserve_demand_discount_percent;
     int32_t reserve_demand_score_min[KBO_FOREIGN_POLICY_RESERVE_DEMAND_INDEX_COUNT];
     uint32_t asian_quota_nation_ids[KBO_FOREIGN_POLICY_ASIAN_QUOTA_NATION_MAX];

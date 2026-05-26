@@ -8,17 +8,11 @@ enum {
         OOTP27_FINANCIALS_FA_DEMAND_CEILING_OFFSET + sizeof(int32_t)
 };
 
-static void kbo_restore_foreign_fa_demand_salary_ladder_for_generation(
-    const char* source,
-    LONG expected_generation);
-
 DWORD WINAPI kbo_foreign_fa_demand_restore_timer_thread(void* param)
 {
-    LONG expected_generation = (LONG)(intptr_t)param;
+    (void)param;
     if (kbo_runtime_sleep_should_continue((uint32_t)kbo_foreign_player_policy()->no_minor_demand_restore_timer_delay_ms)) {
-        kbo_restore_foreign_fa_demand_salary_ladder_for_generation(
-            "offer_build_timer",
-            expected_generation);
+        kbo_restore_foreign_fa_demand_salary_ladder("offer_build_timer");
     }
     InterlockedExchange(&g_kbo_foreign_fa_demand_restore_timer_pending, 0);
     if (InterlockedCompareExchange(&g_kbo_foreign_fa_demand_ladder_snapshot.active, 0, 0) != 0) {
@@ -133,9 +127,7 @@ int kbo_write_foreign_fa_financials_values(
     return written;
 }
 
-static void kbo_restore_foreign_fa_demand_salary_ladder_for_generation(
-    const char* source,
-    LONG expected_generation)
+void kbo_restore_foreign_fa_demand_salary_ladder(const char* source)
 {
     KboFinancialSalaryLadderSnapshot snapshot = {0};
     int restored = 0;
@@ -149,23 +141,6 @@ static void kbo_restore_foreign_fa_demand_salary_ladder_for_generation(
     }
 
     snapshot = g_kbo_foreign_fa_demand_ladder_snapshot;
-    if (expected_generation != 0 && snapshot.generation != expected_generation) {
-        kbo_lock_leave(&g_kbo_foreign_fa_demand_ladder_snapshot_lock);
-
-        static LONG stale_timer_log_count = 0;
-        LONG stale_slot = InterlockedIncrement(&stale_timer_log_count);
-        if (stale_slot <= 80) {
-            kbo_log_runtimef(
-                "KBO foreign FA demand baseline restore skipped source=%s reason=stale_timer expected_generation=%ld active_generation=%ld player=%u baseline_source=0x%x",
-                source != NULL ? source : "",
-                expected_generation,
-                snapshot.generation,
-                snapshot.player_id,
-                snapshot.source_rva);
-        }
-        return;
-    }
-
     if (snapshot.financials != NULL) {
         restored = kbo_write_foreign_fa_financials_values(
             snapshot.financials,
@@ -188,10 +163,9 @@ static void kbo_restore_foreign_fa_demand_salary_ladder_for_generation(
     LONG slot = InterlockedIncrement(&restore_log_count);
     if (slot <= 80 || !restore_complete) {
         kbo_log_runtimef(
-            "KBO foreign FA demand baseline restored source=%s baseline_source=0x%x generation=%ld player=%u asian_quota=%u reserve_right=%u holder_team=%u today=%u financials=%p restored=%d complete=%d original_min=%d original_superstar=%d original_ceiling=%d patched_min=%d patched_superstar=%d patched_ceiling=%d",
+            "KBO foreign FA demand baseline restored source=%s baseline_source=0x%x player=%u asian_quota=%u reserve_right=%u holder_team=%u today=%u financials=%p restored=%d complete=%d original_min=%d original_superstar=%d original_ceiling=%d patched_min=%d patched_superstar=%d patched_ceiling=%d",
             source != NULL ? source : "",
             snapshot.source_rva,
-            snapshot.generation,
             snapshot.player_id,
             snapshot.asian_quota,
             snapshot.reserve_right,
@@ -213,30 +187,15 @@ static void kbo_restore_foreign_fa_demand_salary_ladder_for_generation(
     }
 }
 
-void kbo_restore_foreign_fa_demand_salary_ladder(const char* source)
-{
-    kbo_restore_foreign_fa_demand_salary_ladder_for_generation(source, 0);
-}
-
 void kbo_schedule_foreign_fa_demand_restore_timer(void)
 {
-    LONG generation = 0;
-    kbo_lock_enter(&g_kbo_foreign_fa_demand_ladder_snapshot_lock);
-    if (InterlockedCompareExchange(&g_kbo_foreign_fa_demand_ladder_snapshot.active, 0, 0) != 0) {
-        generation = g_kbo_foreign_fa_demand_ladder_snapshot.generation;
-    }
-    kbo_lock_leave(&g_kbo_foreign_fa_demand_ladder_snapshot_lock);
-    if (generation == 0) {
-        return;
-    }
-
     if (InterlockedCompareExchange(&g_kbo_foreign_fa_demand_restore_timer_pending, 1, 0) != 0) {
         return;
     }
 
     if (!kbo_start_runtime_thread(
             kbo_foreign_fa_demand_restore_timer_thread,
-            (LPVOID)(intptr_t)generation,
+            NULL,
             "foreign FA demand restore timer")) {
         InterlockedExchange(&g_kbo_foreign_fa_demand_restore_timer_pending, 0);
     }

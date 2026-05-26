@@ -14,7 +14,6 @@ typedef struct KboForeignRetentionOpportunity {
     uint32_t team_id;
     uint32_t today;
     uint32_t best_player_id;
-    uint32_t best_retained_on_yyyymmdd;
     int32_t best_score;
     uint8_t best_asian;
     uint32_t active_rights;
@@ -114,7 +113,6 @@ static int kbo_retention_opportunity_cache_get(
     kbo_retention_opportunity_cache_unlock();
 
     uint32_t player_ids[KBO_RETENTION_OPPORTUNITY_SCAN_MAX] = {0};
-    uint32_t retained_on_dates[KBO_RETENTION_OPPORTUNITY_SCAN_MAX] = {0};
     int player_count = 0;
     KboForeignRetentionOpportunity opportunity = {
         .team_id = team_id,
@@ -127,7 +125,6 @@ static int kbo_retention_opportunity_cache_get(
             && player_count < KBO_RETENTION_OPPORTUNITY_SCAN_MAX; i++) {
         const KboForeignWaiverRetention* rec = &g_kbo_foreign_waiver_rights[i];
         if (rec->team_id == team_id && kbo_is_foreign_waiver_right_active(rec, today)) {
-            retained_on_dates[player_count] = rec->retained_on_yyyymmdd;
             player_ids[player_count++] = rec->player_id;
             opportunity.active_rights++;
         }
@@ -157,7 +154,6 @@ static int kbo_retention_opportunity_cache_get(
         }
         if (opportunity.best_player_id == 0u || score > opportunity.best_score) {
             opportunity.best_player_id = player_id;
-            opportunity.best_retained_on_yyyymmdd = retained_on_dates[i];
             opportunity.best_score = score;
             opportunity.best_asian = asian;
         }
@@ -213,7 +209,6 @@ int kbo_retention_opportunity_get_summary(
         .team_id = opportunity.team_id,
         .today = opportunity.today,
         .best_player_id = opportunity.best_player_id,
-        .best_retained_on_yyyymmdd = opportunity.best_retained_on_yyyymmdd,
         .best_score = opportunity.best_score,
         .best_asian = opportunity.best_asian,
         .active_rights = opportunity.active_rights,
@@ -277,10 +272,6 @@ int kbo_retention_opportunity_probe_should_block(
     }
 
     int32_t candidate_score = kbo_foreign_waiver_value_score(candidate);
-    int reserve_active = kbo_retention_candidate_slot_reservation_active(
-        opportunity.best_retained_on_yyyymmdd,
-        today,
-        (uint32_t)kbo_foreign_player_policy()->retention_slot_reserve_days);
     uint8_t candidate_asian = kbo_player_is_asian_quota_slot_candidate(candidate) ? 1u : 0u;
     uint8_t candidate_pos_group = *(uint8_t*)(candidate + OOTP27_PLAYER_POSITION_GROUP_OFFSET);
     uint32_t reserve_asian = opportunity.protectable_asian;
@@ -307,10 +298,6 @@ int kbo_retention_opportunity_probe_should_block(
         reason = "quota_blocked";
     } else if (opportunity.best_player_id == 0u) {
         reason = "no_retained_candidate";
-    } else if (!reserve_active) {
-        reason = "retention_reserve_expired";
-    } else if (!kbo_retention_candidate_consumes_last_effective_slot(effective_after, effective_limit)) {
-        reason = "slot_open_after_candidate";
     } else if (reserved_after <= effective_limit) {
         reason = "slot_available_after_reserve";
     } else if (kbo_retention_candidate_score_clears_best(candidate_score, opportunity.best_score)) {
@@ -326,7 +313,7 @@ int kbo_retention_opportunity_probe_should_block(
     if (would_block || retained_by_team || verbose || slot <= 300) {
         if (verbose || slot <= 800) {
             kbo_log_runtimef(
-                "foreign ai controller retention gate team=%u player=%u retained=%d candidate_score=%d candidate_pos=%u candidate_asian=%u allowed=%d would_block=%d reason=%s effective_before=%u effective_after=%u limit=%u reserved_after=%u count_asian=%u count_non_asian=%u pending_asian=%u pending_non_asian=%u candidate_pending=%d already_in_org=%d best_retained=%u best_retained_on=%u reserve_active=%d best_score=%d best_asian=%u active_rights=%u protectable=%u protectable_asian=%u protectable_non_asian=%u margin=%d today=%u",
+                "foreign ai controller retention gate team=%u player=%u retained=%d candidate_score=%d candidate_pos=%u candidate_asian=%u allowed=%d would_block=%d reason=%s effective_before=%u effective_after=%u limit=%u reserved_after=%u count_asian=%u count_non_asian=%u pending_asian=%u pending_non_asian=%u candidate_pending=%d already_in_org=%d best_retained=%u best_score=%d best_asian=%u active_rights=%u protectable=%u protectable_asian=%u protectable_non_asian=%u margin=%d today=%u",
                 team_id,
                 candidate_id,
                 retained_by_team,
@@ -347,8 +334,6 @@ int kbo_retention_opportunity_probe_should_block(
                 candidate_pending,
                 already_in_org,
                 opportunity.best_player_id,
-                opportunity.best_retained_on_yyyymmdd,
-                reserve_active,
                 opportunity.best_score,
                 (uint32_t)opportunity.best_asian,
                 opportunity.active_rights,

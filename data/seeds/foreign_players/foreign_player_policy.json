@@ -31,7 +31,6 @@
   "retention_margin_divisor": 10,
   "retention_margin_min": 10000,
   "retention_margin_max": 25000,
-  "retention_slot_reserve_days": 60,
   "reserve_demand_discount_percent": 85,
   "reserve_demand_score_index_1": 25000,
   "reserve_demand_score_index_2": 40000,

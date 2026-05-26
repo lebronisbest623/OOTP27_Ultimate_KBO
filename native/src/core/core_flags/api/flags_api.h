@@ -14,7 +14,6 @@ int32_t kbo_clamp_foreign_fa_demand_baseline_value(int32_t value);
 int32_t kbo_get_foreign_fa_demand_baseline_value(int index);
 int32_t kbo_get_asian_quota_fa_demand_baseline_value(int index);
 int32_t kbo_get_foreign_fa_demand_baseline_value_for_player(int index, int asian_quota);
-void kbo_invalidate_foreign_fa_demand_baseline_cache(void);
 int kbo_set_foreign_fa_demand_baseline_value(int index, int32_t value);
 int kbo_set_asian_quota_fa_demand_baseline_value(int index, int32_t value);
 int32_t kbo_clamp_asian_quota_salary_limit_value(int32_t value);

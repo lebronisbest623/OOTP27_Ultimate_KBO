@@ -70,7 +70,6 @@ static BOOL CALLBACK kbo_foreign_player_policy_init_once(PINIT_ONCE init_once, P
     p->retention_margin_divisor = kbo_foreign_player_policy_int("retention_margin_divisor", 10, 1, 1000);
     p->retention_margin_min = kbo_foreign_player_policy_int("retention_margin_min", 10000, 0, 10000000);
     p->retention_margin_max = kbo_foreign_player_policy_int("retention_margin_max", 25000, 0, 10000000);
-    p->retention_slot_reserve_days = kbo_foreign_player_policy_int("retention_slot_reserve_days", 60, 0, 3660);
     p->reserve_demand_discount_percent = kbo_foreign_player_policy_int("reserve_demand_discount_percent", 85, 0, 1000);
 
     static const int32_t default_thresholds[KBO_FOREIGN_POLICY_RESERVE_DEMAND_INDEX_COUNT] = {

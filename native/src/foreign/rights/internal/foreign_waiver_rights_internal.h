@@ -32,7 +32,6 @@ int kbo_set_foreign_waiver_right(
 int kbo_clear_foreign_waiver_right(uint32_t team_id, uint32_t player_id);
 int kbo_consume_foreign_waiver_right_after_holder_signing(uint32_t team_id, uint32_t player_id);
 void kbo_ensure_foreign_waiver_rights_loaded_for_lookup(void);
-int kbo_foreign_waiver_rights_lookup_context_ready(void);
 int kbo_has_active_foreign_waiver_right(uint32_t team_id, uint32_t player_id, uint32_t today_yyyymmdd);
 int kbo_get_active_foreign_waiver_right_dates(
     uint32_t team_id,

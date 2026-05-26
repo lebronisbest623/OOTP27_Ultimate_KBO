@@ -3,26 +3,18 @@ $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
 $TestSrc = Join-Path $PSScriptRoot "test_main.c"
 $TestExe = Join-Path $PSScriptRoot "tests.exe"
-$AllstarSafeReadTestSrc = Join-Path $PSScriptRoot "test_allstar_safe_read.c"
-$AllstarSafeReadTestExe = Join-Path $PSScriptRoot "test_allstar_safe_read.exe"
 $FaCompensationSelectionTestSrc = Join-Path $PSScriptRoot "test_fa_compensation_selection.c"
 $FaCompensationSelectionTestExe = Join-Path $PSScriptRoot "test_fa_compensation_selection.exe"
 $ForeignRetentionCandidateGateTestSrc = Join-Path $PSScriptRoot "test_foreign_retention_candidate_gate.c"
 $ForeignRetentionCandidateGateTestExe = Join-Path $PSScriptRoot "test_foreign_retention_candidate_gate.exe"
 $ForeignRetentionScoreGateTestSrc = Join-Path $PSScriptRoot "test_foreign_retention_score_gate.c"
 $ForeignRetentionScoreGateTestExe = Join-Path $PSScriptRoot "test_foreign_retention_score_gate.exe"
-$ForeignWaiverRightsLookupReloadTestSrc = Join-Path $PSScriptRoot "test_foreign_waiver_rights_lookup_reload.c"
-$ForeignWaiverRightsLookupReloadTestExe = Join-Path $PSScriptRoot "test_foreign_waiver_rights_lookup_reload.exe"
 $ForeignOfferAttachHookPolicyTestSrc = Join-Path $PSScriptRoot "test_foreign_offer_attach_hook_policy.c"
 $ForeignOfferAttachHookPolicyTestExe = Join-Path $PSScriptRoot "test_foreign_offer_attach_hook_policy.exe"
 $ForeignAiOfferContractTypeTestSrc = Join-Path $PSScriptRoot "test_foreign_ai_offer_contract_type.c"
 $ForeignAiOfferContractTypeTestExe = Join-Path $PSScriptRoot "test_foreign_ai_offer_contract_type.exe"
-$TeamAddFormerOrgPolicyTestSrc = Join-Path $PSScriptRoot "test_team_add_former_org_policy.c"
-$TeamAddFormerOrgPolicyTestExe = Join-Path $PSScriptRoot "test_team_add_former_org_policy.exe"
 $ForeignFaFinancialsWriteTestSrc = Join-Path $PSScriptRoot "test_foreign_fa_financials_write.c"
 $ForeignFaFinancialsWriteTestExe = Join-Path $PSScriptRoot "test_foreign_fa_financials_write.exe"
-$ForeignDemandBaselineCacheTestSrc = Join-Path $PSScriptRoot "test_foreign_demand_baseline_cache.c"
-$ForeignDemandBaselineCacheTestExe = Join-Path $PSScriptRoot "test_foreign_demand_baseline_cache.exe"
 $OfferCandidateReplacementDispatcherTestSrc = Join-Path $PSScriptRoot "test_offer_candidate_replacement_dispatcher.c"
 $OfferCandidateReplacementDispatcherTestExe = Join-Path $PSScriptRoot "test_offer_candidate_replacement_dispatcher.exe"
 $DomesticFaOrphanRescuePolicyTestSrc = Join-Path $PSScriptRoot "test_domestic_fa_orphan_rescue_policy.c"
@@ -118,21 +110,6 @@ if ($LASTEXITCODE -ne 0) {
 & $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
     -I $Root `
     -I (Join-Path $Root "src") `
-    -o $AllstarSafeReadTestExe `
-    $AllstarSafeReadTestSrc `
-    (Join-Path $Root "src\allstar\allstar_league_context\memory\memory_plausibility.c")
-if ($LASTEXITCODE -ne 0) {
-    throw "All-star safe read test build failed"
-}
-
-& $AllstarSafeReadTestExe
-if ($LASTEXITCODE -ne 0) {
-    throw "All-star safe read tests failed"
-}
-
-& $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
-    -I $Root `
-    -I (Join-Path $Root "src") `
     -o $FaCompensationSelectionTestExe `
     $FaCompensationSelectionTestSrc `
     (Join-Path $Root "src\fa_compensation\selection\fa_compensation_selection.c")
@@ -165,8 +142,7 @@ if ($LASTEXITCODE -ne 0) {
     -I (Join-Path $Root "src") `
     -o $ForeignRetentionScoreGateTestExe `
     $ForeignRetentionScoreGateTestSrc `
-    (Join-Path $Root "src\foreign\quota\candidates\retention_score\foreign_quota_retention_score_gate.c") `
-    (Join-Path $Root "src\core\dates\core_text_date.c")
+    (Join-Path $Root "src\foreign\quota\candidates\retention_score\foreign_quota_retention_score_gate.c")
 if ($LASTEXITCODE -ne 0) {
     throw "Foreign retention score gate test build failed"
 }
@@ -174,22 +150,6 @@ if ($LASTEXITCODE -ne 0) {
 & $ForeignRetentionScoreGateTestExe
 if ($LASTEXITCODE -ne 0) {
     throw "Foreign retention score gate tests failed"
-}
-
-& $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
-    -I $Root `
-    -I (Join-Path $Root "src") `
-    -o $ForeignWaiverRightsLookupReloadTestExe `
-    $ForeignWaiverRightsLookupReloadTestSrc `
-    (Join-Path $Root "src\foreign\rights\query\foreign_waiver_rights_foreign_waiver_rights_query.c") `
-    (Join-Path $Root "src\foreign\rights\active\foreign_waiver_rights_foreign_waiver_rights_active.c")
-if ($LASTEXITCODE -ne 0) {
-    throw "Foreign waiver rights lookup reload test build failed"
-}
-
-& $ForeignWaiverRightsLookupReloadTestExe
-if ($LASTEXITCODE -ne 0) {
-    throw "Foreign waiver rights lookup reload tests failed"
 }
 
 & $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
@@ -225,21 +185,6 @@ if ($LASTEXITCODE -ne 0) {
 & $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
     -I $Root `
     -I (Join-Path $Root "src") `
-    -o $TeamAddFormerOrgPolicyTestExe `
-    $TeamAddFormerOrgPolicyTestSrc `
-    (Join-Path $Root "src\team\add_player_guard\foreign_policy\team_add_player_guard_former_org_policy.c")
-if ($LASTEXITCODE -ne 0) {
-    throw "Team-add former-org policy test build failed"
-}
-
-& $TeamAddFormerOrgPolicyTestExe
-if ($LASTEXITCODE -ne 0) {
-    throw "Team-add former-org policy tests failed"
-}
-
-& $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
-    -I $Root `
-    -I (Join-Path $Root "src") `
     -o $ForeignFaFinancialsWriteTestExe `
     $ForeignFaFinancialsWriteTestSrc `
     (Join-Path $Root "src\foreign\signability\submit_offer_probe\demand\submit_offer_probe_foreign_fa_demand_restore.c")
@@ -250,21 +195,6 @@ if ($LASTEXITCODE -ne 0) {
 & $ForeignFaFinancialsWriteTestExe
 if ($LASTEXITCODE -ne 0) {
     throw "Foreign FA financials write tests failed"
-}
-
-& $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
-    -I $Root `
-    -I (Join-Path $Root "src") `
-    -o $ForeignDemandBaselineCacheTestExe `
-    $ForeignDemandBaselineCacheTestSrc `
-    (Join-Path $Root "src\core\core_flags\api\settings\foreign\foreign_demand_baselines.c")
-if ($LASTEXITCODE -ne 0) {
-    throw "Foreign demand baseline cache test build failed"
-}
-
-& $ForeignDemandBaselineCacheTestExe
-if ($LASTEXITCODE -ne 0) {
-    throw "Foreign demand baseline cache tests failed"
 }
 
 & $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `

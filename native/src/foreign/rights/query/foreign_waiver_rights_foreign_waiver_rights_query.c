@@ -2,53 +2,19 @@
 
 /* Foreign reserve-right lookup helpers. */
 
-static volatile LONG g_kbo_foreign_waiver_rights_lookup_loaded = 0;
-static char g_kbo_foreign_waiver_rights_lookup_loaded_path[MAX_PATH] = {0};
-
-static int kbo_current_foreign_waiver_rights_lookup_path(char* out, size_t out_size)
-{
-    if (out == NULL || out_size == 0u) {
-        return 0;
-    }
-    out[0] = '\0';
-    if (!kbo_get_foreign_waiver_rights_path(out, out_size)) {
-        out[0] = '\0';
-        return 0;
-    }
-    return out[0] != '\0';
-}
-
-int kbo_foreign_waiver_rights_lookup_context_ready(void)
-{
-    char current_path[MAX_PATH] = {0};
-    if (!kbo_current_foreign_waiver_rights_lookup_path(current_path, sizeof(current_path))) {
-        return 0;
-    }
-    return InterlockedCompareExchange(&g_kbo_foreign_waiver_rights_lookup_loaded, 0, 0) == 1
-        && strcmp(g_kbo_foreign_waiver_rights_lookup_loaded_path, current_path) == 0;
-}
-
 void kbo_ensure_foreign_waiver_rights_loaded_for_lookup(void)
 {
+    static volatile LONG rights_loaded = 0;
     static volatile LONG load_in_progress = 0;
     static volatile LONG last_attempt_tick = 0;
-    static char last_attempt_path[MAX_PATH] = {0};
 
-    char current_path[MAX_PATH] = {0};
-    int current_path_ready = kbo_current_foreign_waiver_rights_lookup_path(
-        current_path,
-        sizeof(current_path));
-
-    if (current_path_ready && kbo_foreign_waiver_rights_lookup_context_ready()) {
+    if (InterlockedCompareExchange(&rights_loaded, 0, 0) == 1) {
         return;
     }
 
     DWORD now = GetTickCount();
     LONG last = InterlockedCompareExchange(&last_attempt_tick, 0, 0);
-    if (last != 0
-            && now - (DWORD)last < 1000u
-            && ((!current_path_ready && last_attempt_path[0] == '\0')
-                || (current_path_ready && strcmp(last_attempt_path, current_path) == 0))) {
+    if (last != 0 && now - (DWORD)last < 1000u) {
         return;
     }
 
@@ -57,19 +23,8 @@ void kbo_ensure_foreign_waiver_rights_loaded_for_lookup(void)
     }
 
     InterlockedExchange(&last_attempt_tick, (LONG)now);
-    snprintf(last_attempt_path, sizeof(last_attempt_path), "%s", current_path_ready ? current_path : "");
     if (kbo_load_foreign_waiver_rights()) {
-        if (current_path_ready) {
-            snprintf(
-                g_kbo_foreign_waiver_rights_lookup_loaded_path,
-                sizeof(g_kbo_foreign_waiver_rights_lookup_loaded_path),
-                "%s",
-                current_path);
-            InterlockedExchange(&g_kbo_foreign_waiver_rights_lookup_loaded, 1);
-        } else {
-            g_kbo_foreign_waiver_rights_lookup_loaded_path[0] = '\0';
-            InterlockedExchange(&g_kbo_foreign_waiver_rights_lookup_loaded, 0);
-        }
+        InterlockedExchange(&rights_loaded, 1);
     }
     InterlockedExchange(&load_in_progress, 0);
 }

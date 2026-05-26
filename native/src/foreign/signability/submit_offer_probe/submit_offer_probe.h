@@ -45,13 +45,11 @@ typedef struct KboFinancialSalaryLadderSnapshot {
     uint32_t reserve_right;
     uint32_t holder_team_id;
     uint32_t today;
-    LONG generation;
     LONG active;
 } KboFinancialSalaryLadderSnapshot;
 extern LONG g_kbo_no_minor_contract_demand_floor_enabled;
 extern KboFinancialSalaryLadderSnapshot g_kbo_foreign_fa_demand_ladder_snapshot;
 extern KboLock g_kbo_foreign_fa_demand_ladder_snapshot_lock;
-extern volatile LONG g_kbo_foreign_fa_demand_ladder_snapshot_generation;
 extern volatile LONG g_kbo_foreign_fa_demand_restore_timer_pending;
 extern const uint32_t KBO_FINANCIALS_SALARY_LADDER_OFFSETS[9];
 extern volatile LONG g_kbo_no_minor_contract_demand_floor_scanner_started;
