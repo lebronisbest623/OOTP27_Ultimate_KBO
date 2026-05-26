@@ -9,12 +9,23 @@
 #include <string.h>
 
 typedef int (*KboLocalappdataJsonParseFn)(const char* json, DWORD json_size, void* context);
+typedef int (*KboLocalappdataJsonValueParseFn)(const char* value, const char* end, void* context);
+
+typedef struct KboLocalappdataJsonValueSpan {
+    DWORD key_start;
+    DWORD key_size;
+    DWORD value_start;
+    DWORD value_size;
+} KboLocalappdataJsonValueSpan;
 
 typedef struct KboLocalappdataJsonCacheEntry {
     WCHAR path[KBO_WIDE_PATH_CHARS];
     FILETIME last_write_time;
     DWORD size;
     char* buffer;
+    KboLocalappdataJsonValueSpan values[256];
+    DWORD value_count;
+    uint8_t values_valid;
     uint8_t valid;
 } KboLocalappdataJsonCacheEntry;
 
@@ -95,6 +106,207 @@ static int kbo_localappdata_json_cache_entry_matches(
         && kbo_filetime_equal(entry->last_write_time, last_write_time);
 }
 
+static int kbo_localappdata_json_find_span_in_table(
+    const char* buffer,
+    DWORD size,
+    const KboLocalappdataJsonValueSpan* spans,
+    DWORD span_count,
+    const char* key,
+    const char** out_value,
+    const char** out_end)
+{
+    if (out_value != NULL) { *out_value = NULL; }
+    if (out_end != NULL) { *out_end = NULL; }
+    if (buffer == NULL
+            || spans == NULL
+            || key == NULL
+            || key[0] == '\0') {
+        return 0;
+    }
+
+    size_t key_len = strlen(key);
+    for (DWORD i = 0; i < span_count; i++) {
+        const KboLocalappdataJsonValueSpan* span = &spans[i];
+        if (span->key_size == key_len
+                && span->key_start + span->key_size <= size
+                && span->value_start + span->value_size <= size
+                && memcmp(buffer + span->key_start, key, key_len) == 0) {
+            if (out_value != NULL) { *out_value = buffer + span->value_start; }
+            if (out_end != NULL) { *out_end = buffer + span->value_start + span->value_size; }
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static int kbo_localappdata_json_find_cached_span(
+    const KboLocalappdataJsonCacheEntry* entry,
+    const char* key,
+    const char** out_value,
+    const char** out_end)
+{
+    if (entry == NULL || !entry->values_valid) {
+        if (out_value != NULL) { *out_value = NULL; }
+        if (out_end != NULL) { *out_end = NULL; }
+        return 0;
+    }
+    return kbo_localappdata_json_find_span_in_table(
+        entry->buffer,
+        entry->size,
+        entry->values,
+        entry->value_count,
+        key,
+        out_value,
+        out_end);
+}
+
+static const char* kbo_localappdata_json_skip_nested_value(const char* p, const char* end)
+{
+    if (p == NULL || p >= end || (*p != '{' && *p != '[')) {
+        return NULL;
+    }
+
+    int object_depth = 0;
+    int array_depth = 0;
+    for (; p < end; p++) {
+        if (*p == '"') {
+            const char* stop = kbo_json_find_string_end(p, end);
+            if (stop == NULL) {
+                return NULL;
+            }
+            p = stop;
+            continue;
+        }
+        if (*p == '{') {
+            object_depth++;
+        } else if (*p == '[') {
+            array_depth++;
+        } else if (*p == '}') {
+            object_depth--;
+            if (object_depth < 0) {
+                return NULL;
+            }
+        } else if (*p == ']') {
+            array_depth--;
+            if (array_depth < 0) {
+                return NULL;
+            }
+        }
+        if (object_depth == 0 && array_depth == 0) {
+            return p + 1;
+        }
+    }
+    return NULL;
+}
+
+static const char* kbo_localappdata_json_value_end(const char* value, const char* end)
+{
+    value = kbo_json_skip_ws(value, end);
+    if (value == NULL || value >= end) {
+        return NULL;
+    }
+
+    if (*value == '"') {
+        const char* stop = kbo_json_find_string_end(value, end);
+        return stop != NULL ? stop + 1 : NULL;
+    }
+    if (*value == '{' || *value == '[') {
+        return kbo_localappdata_json_skip_nested_value(value, end);
+    }
+
+    const char* p = value;
+    while (p < end && *p != ',' && *p != '}') {
+        p++;
+    }
+    const char* stop = p;
+    while (stop > value
+            && (stop[-1] == ' ' || stop[-1] == '\t' || stop[-1] == '\r' || stop[-1] == '\n')) {
+        stop--;
+    }
+    return stop > value ? stop : NULL;
+}
+
+static int kbo_localappdata_json_parse_value_spans(
+    const char* json,
+    DWORD size,
+    KboLocalappdataJsonValueSpan* out_values,
+    DWORD* out_count)
+{
+    if (out_count != NULL) { *out_count = 0u; }
+    if (json == NULL || out_values == NULL || out_count == NULL || size == 0u || size > KBO_FLAGS_JSON_MAX_BYTES) {
+        return 0;
+    }
+
+    const char* base = json;
+    const char* end = json + size;
+    const char* p = json;
+    if (size >= 3u
+            && (unsigned char)p[0] == 0xEFu
+            && (unsigned char)p[1] == 0xBBu
+            && (unsigned char)p[2] == 0xBFu) {
+        p += 3;
+    }
+    p = kbo_json_skip_ws(p, end);
+    if (p >= end || *p != '{') {
+        return 0;
+    }
+    p++;
+
+    DWORD count = 0u;
+    for (;;) {
+        p = kbo_json_skip_ws(p, end);
+        if (p >= end) {
+            return 0;
+        }
+        if (*p == '}') {
+            *out_count = count;
+            return 1;
+        }
+        if (*p != '"') {
+            return 0;
+        }
+
+        const char* key_start = p + 1;
+        const char* key_stop = kbo_json_find_string_end(p, end);
+        if (key_stop == NULL) {
+            return 0;
+        }
+        p = kbo_json_skip_ws(key_stop + 1, end);
+        if (p >= end || *p != ':') {
+            return 0;
+        }
+
+        const char* value_start = kbo_json_skip_ws(p + 1, end);
+        const char* value_stop = kbo_localappdata_json_value_end(value_start, end);
+        if (value_start == NULL || value_stop == NULL || value_stop < value_start) {
+            return 0;
+        }
+        if (count >= 256u) {
+            return 0;
+        }
+
+        out_values[count].key_start = (DWORD)(key_start - base);
+        out_values[count].key_size = (DWORD)(key_stop - key_start);
+        out_values[count].value_start = (DWORD)(value_start - base);
+        out_values[count].value_size = (DWORD)(value_stop - value_start);
+        count++;
+
+        p = kbo_json_skip_ws(value_stop, end);
+        if (p >= end) {
+            return 0;
+        }
+        if (*p == ',') {
+            p++;
+            continue;
+        }
+        if (*p == '}') {
+            *out_count = count;
+            return 1;
+        }
+        return 0;
+    }
+}
+
 static void kbo_invalidate_localappdata_named_json_cache_path(const WCHAR* path)
 {
     if (path == NULL || path[0] == L'\0') {
@@ -150,7 +362,9 @@ static int kbo_create_parent_directory_w(const WCHAR* path)
 
 static int kbo_read_localappdata_named_json_cached(
     const char* file_name,
+    const char* key,
     KboLocalappdataJsonParseFn parse,
+    KboLocalappdataJsonValueParseFn parse_value,
     void* context)
 {
     if (file_name == NULL || file_name[0] == '\0' || parse == NULL) {
@@ -177,7 +391,14 @@ static int kbo_read_localappdata_named_json_cached(
             cached,
             attrs.nFileSizeLow,
             attrs.ftLastWriteTime)) {
-        int found = parse(cached->buffer, cached->size, context);
+        const char* value = NULL;
+        const char* value_end = NULL;
+        int found = parse_value != NULL
+            && kbo_localappdata_json_find_cached_span(cached, key, &value, &value_end)
+            && parse_value(value, value_end, context);
+        if (!found) {
+            found = parse(cached->buffer, cached->size, context);
+        }
         ReleaseSRWLockShared(&g_kbo_localappdata_json_cache_lock);
         return found;
     }
@@ -213,7 +434,27 @@ static int kbo_read_localappdata_named_json_cached(
         return 0;
     }
 
-    int found = parse(buffer, read, context);
+    KboLocalappdataJsonValueSpan spans[256];
+    DWORD span_count = 0u;
+    int spans_valid = kbo_localappdata_json_parse_value_spans(buffer, read, spans, &span_count);
+
+    int found = 0;
+    if (spans_valid && parse_value != NULL && key != NULL && key[0] != '\0') {
+        const char* value = NULL;
+        const char* value_end = NULL;
+        found = kbo_localappdata_json_find_span_in_table(
+                buffer,
+                read,
+                spans,
+                span_count,
+                key,
+                &value,
+                &value_end)
+            && parse_value(value, value_end, context);
+    }
+    if (!found) {
+        found = parse(buffer, read, context);
+    }
 
     AcquireSRWLockExclusive(&g_kbo_localappdata_json_cache_lock);
     KboLocalappdataJsonCacheEntry* entry = kbo_localappdata_json_cache_slot_locked(path);
@@ -221,6 +462,11 @@ static int kbo_read_localappdata_named_json_cached(
     _snwprintf(entry->path, KBO_WIDE_PATH_CHARS, L"%ls", path);
     entry->last_write_time = info.ftLastWriteTime;
     entry->size = read;
+    if (spans_valid) {
+        memcpy(entry->values, spans, sizeof(spans[0]) * span_count);
+        entry->value_count = span_count;
+        entry->values_valid = 1u;
+    }
     entry->buffer = buffer;
     entry->valid = 1u;
     buffer = NULL;
@@ -249,6 +495,15 @@ static int kbo_parse_localappdata_json_flag(const char* json, DWORD json_size, v
     return kbo_find_flag_value_in_json(json, json_size, ctx->key, ctx->out_value);
 }
 
+static int kbo_parse_localappdata_json_flag_value_at(const char* value, const char* end, void* context)
+{
+    KboLocalappdataJsonIntContext* ctx = (KboLocalappdataJsonIntContext*)context;
+    if (ctx == NULL) {
+        return 0;
+    }
+    return kbo_json_bool_value_at(value, end, ctx->out_value);
+}
+
 static int kbo_parse_localappdata_json_int(const char* json, DWORD json_size, void* context)
 {
     KboLocalappdataJsonIntContext* ctx = (KboLocalappdataJsonIntContext*)context;
@@ -256,6 +511,15 @@ static int kbo_parse_localappdata_json_int(const char* json, DWORD json_size, vo
         return 0;
     }
     return kbo_find_int_value_in_json(json, json_size, ctx->key, ctx->out_value);
+}
+
+static int kbo_parse_localappdata_json_int_value_at(const char* value, const char* end, void* context)
+{
+    KboLocalappdataJsonIntContext* ctx = (KboLocalappdataJsonIntContext*)context;
+    if (ctx == NULL) {
+        return 0;
+    }
+    return kbo_json_int_value_at(value, end, ctx->out_value);
 }
 
 static int kbo_parse_localappdata_json_string(const char* json, DWORD json_size, void* context)
@@ -267,6 +531,15 @@ static int kbo_parse_localappdata_json_string(const char* json, DWORD json_size,
     return kbo_find_string_value_in_json(json, json_size, ctx->key, ctx->out, ctx->out_size);
 }
 
+static int kbo_parse_localappdata_json_string_value_at(const char* value, const char* end, void* context)
+{
+    KboLocalappdataJsonStringContext* ctx = (KboLocalappdataJsonStringContext*)context;
+    if (ctx == NULL) {
+        return 0;
+    }
+    return kbo_json_string_value_at(value, end, ctx->out, ctx->out_size);
+}
+
 int kbo_read_localappdata_named_json_flag_value(const char* file_name, const char* key, int* out_value)
 {
     if (key == NULL || key[0] == '\0' || out_value == NULL) {
@@ -275,7 +548,9 @@ int kbo_read_localappdata_named_json_flag_value(const char* file_name, const cha
     KboLocalappdataJsonIntContext context = { key, out_value };
     return kbo_read_localappdata_named_json_cached(
         file_name,
+        key,
         kbo_parse_localappdata_json_flag,
+        kbo_parse_localappdata_json_flag_value_at,
         &context);
 }
 
@@ -300,7 +575,9 @@ int kbo_read_localappdata_named_json_int_value(const char* file_name, const char
     KboLocalappdataJsonIntContext context = { key, out_value };
     return kbo_read_localappdata_named_json_cached(
         file_name,
+        key,
         kbo_parse_localappdata_json_int,
+        kbo_parse_localappdata_json_int_value_at,
         &context);
 }
 
@@ -328,7 +605,9 @@ int kbo_read_localappdata_named_json_string_value(const char* file_name, const c
     KboLocalappdataJsonStringContext context = { key, out, out_size };
     return kbo_read_localappdata_named_json_cached(
         file_name,
+        key,
         kbo_parse_localappdata_json_string,
+        kbo_parse_localappdata_json_string_value_at,
         &context);
 }
 

@@ -186,7 +186,10 @@ __declspec(noinline) uint8_t ootp_kbo_player_offer_eligibility_wrapper(
         KBO_HOOK_PROFILE_RETURN(profile_hook, "foreign.offer_eligibility", save_result);
     }
 
-    if (!kbo_offer_eligibility_player_is_foreign(player_ptr)) {
+    KBO_PROFILE_BEGIN(profile_offer_player_is_foreign);
+    int player_is_foreign = kbo_offer_eligibility_player_is_foreign(player_ptr);
+    KBO_PROFILE_END(profile_offer_player_is_foreign, "foreign_policy.offer_eligibility.player_is_foreign");
+    if (!player_is_foreign) {
         uint8_t non_foreign_result = 0u;
         KBO_HOOK_PROFILE_PAUSE(profile_hook);
         KBO_PROFILE_BEGIN(profile_foreign_offer_original);
@@ -198,7 +201,13 @@ __declspec(noinline) uint8_t ootp_kbo_player_offer_eligibility_wrapper(
         KBO_HOOK_PROFILE_RETURN(profile_hook, "foreign.offer_eligibility", non_foreign_result);
     }
 
-    if (team_id > 0 && !kbo_offer_eligibility_requester_in_kbo_scope((uint32_t)team_id)) {
+    int requester_in_scope = 1;
+    if (team_id > 0) {
+        KBO_PROFILE_BEGIN(profile_offer_team_scope);
+        requester_in_scope = kbo_offer_eligibility_requester_in_kbo_scope((uint32_t)team_id);
+        KBO_PROFILE_END(profile_offer_team_scope, "foreign_policy.offer_eligibility.team_scope");
+    }
+    if (team_id > 0 && !requester_in_scope) {
         uint8_t out_of_scope_result = 0u;
         KBO_HOOK_PROFILE_PAUSE(profile_hook);
         if (original_func != NULL) {
@@ -208,7 +217,10 @@ __declspec(noinline) uint8_t ootp_kbo_player_offer_eligibility_wrapper(
         KBO_HOOK_PROFILE_RETURN(profile_hook, "foreign.offer_eligibility.out_of_scope", out_of_scope_result);
     }
 
-    if (kbo_fast_block_fa_candidate_before_original(player_ptr, team_id, "offer_eligibility", NULL)) {
+    KBO_PROFILE_BEGIN(profile_offer_fast_block);
+    int fast_blocked = kbo_fast_block_fa_candidate_before_original(player_ptr, team_id, "offer_eligibility", NULL);
+    KBO_PROFILE_END(profile_offer_fast_block, "foreign_policy.offer_eligibility.fast_block");
+    if (fast_blocked) {
         KBO_HOOK_PROFILE_RETURN(profile_hook, "foreign.offer_eligibility", 0u);
     }
 
@@ -233,12 +245,15 @@ __declspec(noinline) uint8_t ootp_kbo_player_offer_eligibility_wrapper(
         uint32_t holder_team_id = 0u;
         int32_t score = 0;
         int32_t threshold = 0;
-        if (player_id != 0u
+        KBO_PROFILE_BEGIN(profile_offer_generic_holder_probe);
+        int generic_holder_visible = player_id != 0u
                 && kbo_foreign_waiver_ai_enabled()
                 && kbo_get_foreign_waiver_current_yyyymmdd(&today)
                 && kbo_find_active_foreign_waiver_holder(player_id, today, &holder_team_id)
                 && holder_team_id != 0u
-                && kbo_foreign_reserve_high_value_offer_visible_to_ai(player, &score, &threshold)) {
+                && kbo_foreign_reserve_high_value_offer_visible_to_ai(player, &score, &threshold);
+        KBO_PROFILE_END(profile_offer_generic_holder_probe, "foreign_policy.offer_eligibility.generic_holder_probe");
+        if (generic_holder_visible) {
             kbo_sync_active_foreign_waiver_right_to_memory(player, player_id, holder_team_id, today);
             kbo_record_recent_foreign_offer_allow(player_id, holder_team_id, today);
             uint8_t adjusted = kbo_foreign_reserve_holder_offer_eligibility(original_result);
@@ -265,13 +280,24 @@ __declspec(noinline) uint8_t ootp_kbo_player_offer_eligibility_wrapper(
 
     uint32_t today = 0u;
     uint32_t holder_team_id = 0u;
-    if (player_id == 0u || !kbo_get_foreign_waiver_current_yyyymmdd(&today)) {
+    int has_today = 0;
+    if (player_id != 0u) {
+        KBO_PROFILE_BEGIN(profile_offer_current_date);
+        has_today = kbo_get_foreign_waiver_current_yyyymmdd(&today);
+        KBO_PROFILE_END(profile_offer_current_date, "foreign_policy.offer_eligibility.current_date");
+    }
+    if (player_id == 0u || !has_today) {
         KBO_HOOK_PROFILE_RETURN(profile_hook, "foreign.offer_eligibility", original_result);
     }
 
-    if (kbo_foreign_waiver_ai_enabled()
-            && kbo_find_active_foreign_waiver_holder(player_id, today, &holder_team_id)
-            && holder_team_id != 0u) {
+    int has_active_holder = 0;
+    if (kbo_foreign_waiver_ai_enabled()) {
+        KBO_PROFILE_BEGIN(profile_offer_holder_lookup);
+        has_active_holder = kbo_find_active_foreign_waiver_holder(player_id, today, &holder_team_id)
+            && holder_team_id != 0u;
+        KBO_PROFILE_END(profile_offer_holder_lookup, "foreign_policy.offer_eligibility.holder_lookup");
+    }
+    if (has_active_holder) {
         kbo_sync_active_foreign_waiver_right_to_memory(player, player_id, holder_team_id, today);
         if (holder_team_id == (uint32_t)team_id) {
             kbo_record_recent_foreign_offer_allow(player_id, (uint32_t)team_id, today);
@@ -316,6 +342,7 @@ __declspec(noinline) uint8_t ootp_kbo_player_offer_eligibility_wrapper(
         uint32_t effective_limit = KBO_CUSTOM_FOREIGN_BASE_EFFECTIVE_LIMIT;
         uint8_t slot_type = 0u;
         uint32_t injured_player_id = 0u;
+        KBO_PROFILE_BEGIN(profile_offer_custom_allows);
         int allowed = kbo_custom_foreign_policy_team_allows_candidate(
             (uint32_t)team_id,
             player,
@@ -324,7 +351,10 @@ __declspec(noinline) uint8_t ootp_kbo_player_offer_eligibility_wrapper(
             &effective_limit,
             &slot_type,
             &injured_player_id);
+        KBO_PROFILE_END(profile_offer_custom_allows, "foreign_policy.offer_eligibility.custom_policy_allows");
+        KBO_PROFILE_BEGIN(profile_offer_custom_override);
         int override_original_block = kbo_custom_foreign_policy_can_override_original_block(player, (uint32_t)team_id);
+        KBO_PROFILE_END(profile_offer_custom_override, "foreign_policy.offer_eligibility.custom_policy_override");
         uint8_t adjusted = allowed ? original_result : 0u;
         if (allowed && original_result == 0u && override_original_block) {
             adjusted = 4u;
@@ -376,13 +406,16 @@ __declspec(noinline) uint8_t ootp_kbo_player_offer_eligibility_wrapper(
     uint32_t injured_player_id = 0u;
     uint32_t effective_count = 0u;
     uint32_t effective_limit = 0u;
-    if (kbo_foreign_injury_replacement_signing_exception_available(
+    KBO_PROFILE_BEGIN(profile_offer_injury_exception);
+    int injury_exception_available = kbo_foreign_injury_replacement_signing_exception_available(
             (uint32_t)team_id,
             player,
             &injury_slot_type,
             &injured_player_id,
             &effective_count,
-            &effective_limit)) {
+            &effective_limit);
+    KBO_PROFILE_END(profile_offer_injury_exception, "foreign_policy.offer_eligibility.injury_exception");
+    if (injury_exception_available) {
         static volatile LONG injury_offer_log_count = 0;
         LONG slot = InterlockedIncrement(&injury_offer_log_count);
         uint8_t adjusted = original_result != 0u ? original_result : 4u;
