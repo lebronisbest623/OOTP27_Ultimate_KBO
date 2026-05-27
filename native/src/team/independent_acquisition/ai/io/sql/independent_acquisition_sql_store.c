@@ -49,6 +49,12 @@ typedef struct KboIndependentAcquisitionSqlDecisionLoadContext {
     int count;
 } KboIndependentAcquisitionSqlDecisionLoadContext;
 
+typedef struct KboIndependentAcquisitionSqlTransferSummaryLoadContext {
+    KboIndependentAcquisitionTransferSummary* rows;
+    int max_count;
+    int count;
+} KboIndependentAcquisitionSqlTransferSummaryLoadContext;
+
 static KboLock g_kbo_independent_acquisition_sql_schema_lock = KBO_LOCK_INIT;
 static char g_kbo_independent_acquisition_sql_schema_path[MAX_PATH];
 static int g_kbo_independent_acquisition_sql_schema_ready = 0;
@@ -214,6 +220,30 @@ static void kbo_independent_acquisition_sql_text(char** vals, int index, char* o
     if (vals != NULL && vals[index] != NULL) {
         snprintf(out, out_size, "%s", vals[index]);
     }
+}
+
+static int kbo_independent_acquisition_sql_transfer_summary_cb(
+    void* user_data,
+    int ncols,
+    char** vals,
+    char** names)
+{
+    (void)names;
+    KboIndependentAcquisitionSqlTransferSummaryLoadContext* ctx =
+        (KboIndependentAcquisitionSqlTransferSummaryLoadContext*)user_data;
+    if (ctx == NULL || ctx->rows == NULL || vals == NULL || ncols < 3 || ctx->count >= ctx->max_count) {
+        return 0;
+    }
+
+    KboIndependentAcquisitionTransferSummary row;
+    memset(&row, 0, sizeof(row));
+    row.team_id = kbo_independent_acquisition_sql_u32(vals, 0);
+    row.transferred_count = kbo_independent_acquisition_sql_i32(vals, 1);
+    row.last_transfer_date = kbo_independent_acquisition_sql_u32(vals, 2);
+    if (row.team_id != 0u && row.transferred_count > 0) {
+        ctx->rows[ctx->count++] = row;
+    }
+    return 0;
 }
 
 static int kbo_independent_acquisition_sql_append_text(
@@ -558,6 +588,66 @@ int kbo_independent_acquisition_sql_load_decision_keys(
         season);
     KboIndependentAcquisitionSqlDecisionKeyLoadContext ctx = {out, max_count, 0};
     if (!kbo_save_state_query(sql, kbo_independent_acquisition_sql_decision_key_cb, &ctx, "independent_acquisition_decision_keys")) {
+        return -1;
+    }
+    return ctx.count;
+}
+
+int kbo_independent_acquisition_sql_load_seller_transfer_summaries(
+    uint32_t season,
+    KboIndependentAcquisitionTransferSummary* out,
+    int max_count)
+{
+    if (season == 0u || out == NULL || max_count <= 0
+            || !kbo_independent_acquisition_sql_ensure_schema("independent_acquisition_seller_summary_schema")) {
+        return -1;
+    }
+
+    char sql[512] = {0};
+    snprintf(
+        sql,
+        sizeof(sql),
+        "SELECT seller_team_id, COUNT(*), MAX(date) "
+        "FROM independent_acquisition_decisions "
+        "WHERE season=%u AND transferred<>0 "
+        "GROUP BY seller_team_id;",
+        season);
+    KboIndependentAcquisitionSqlTransferSummaryLoadContext ctx = {out, max_count, 0};
+    if (!kbo_save_state_query(
+            sql,
+            kbo_independent_acquisition_sql_transfer_summary_cb,
+            &ctx,
+            "independent_acquisition_seller_summary")) {
+        return -1;
+    }
+    return ctx.count;
+}
+
+int kbo_independent_acquisition_sql_load_buyer_transfer_summaries(
+    uint32_t season,
+    KboIndependentAcquisitionTransferSummary* out,
+    int max_count)
+{
+    if (season == 0u || out == NULL || max_count <= 0
+            || !kbo_independent_acquisition_sql_ensure_schema("independent_acquisition_buyer_summary_schema")) {
+        return -1;
+    }
+
+    char sql[512] = {0};
+    snprintf(
+        sql,
+        sizeof(sql),
+        "SELECT buyer_team_id, COUNT(*), 0 "
+        "FROM independent_acquisition_decisions "
+        "WHERE season=%u AND transferred<>0 "
+        "GROUP BY buyer_team_id;",
+        season);
+    KboIndependentAcquisitionSqlTransferSummaryLoadContext ctx = {out, max_count, 0};
+    if (!kbo_save_state_query(
+            sql,
+            kbo_independent_acquisition_sql_transfer_summary_cb,
+            &ctx,
+            "independent_acquisition_buyer_summary")) {
         return -1;
     }
     return ctx.count;

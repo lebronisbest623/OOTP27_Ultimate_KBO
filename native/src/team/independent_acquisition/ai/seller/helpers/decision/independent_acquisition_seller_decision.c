@@ -6,6 +6,7 @@
 #include <inttypes.h>
 #include <stdio.h>
 
+#include "../../../../../../bootstrap/profiling/profiler.h"
 #include "../../../../../../core/logging/core_log.h"
 
 int kbo_independent_acquisition_seller_append_decision_and_log(
@@ -31,11 +32,16 @@ int kbo_independent_acquisition_seller_append_decision_and_log(
     int seller_transfer_limit,
     const char* source)
 {
+    KBO_PROFILE_BEGIN(profile_independent_seller_append_decision_and_log);
     if (selected == NULL) {
+        KBO_PROFILE_END(
+            profile_independent_seller_append_decision_and_log,
+            "independent_acquisition.seller_ai.append_decision_and_log.invalid");
         return 0;
     }
 
-    if (!kbo_independent_acquisition_append_decision(
+    KBO_PROFILE_BEGIN(profile_independent_seller_append_decision_store);
+    int appended = kbo_independent_acquisition_append_decision(
             today,
             selected,
             moved,
@@ -44,12 +50,22 @@ int kbo_independent_acquisition_seller_append_decision_and_log(
             seller_transfer_fee,
             seller_old_cash,
             seller_new_cash,
-            source)) {
+            source);
+    KBO_PROFILE_END(
+        profile_independent_seller_append_decision_store,
+        appended
+            ? "independent_acquisition.seller_ai.append_decision_store.ok"
+            : "independent_acquisition.seller_ai.append_decision_store.failed");
+    if (!appended) {
+        KBO_PROFILE_END(
+            profile_independent_seller_append_decision_and_log,
+            "independent_acquisition.seller_ai.append_decision_and_log.failed");
         return 0;
     }
 
     char request_score_text[32] = {0};
     snprintf(request_score_text, sizeof(request_score_text), "%" PRId64, request_score);
+    KBO_PROFILE_BEGIN(profile_independent_seller_append_decision_log);
     kbo_log_runtimef(
         "independent acquisition seller AI decision source=%s seller=%u player=%u buyer=%u score=%s adjusted_fit=%lld reservation=%lld hold_value=%lld second_best=%lld market_offers=%d buyer_transfers=%d tiebreaker=%u cash_cost=%d old_cash=%d new_cash=%d seller_transfer_fee=%d seller_old_cash=%d seller_new_cash=%d seller_cash_credited=%d transferred=%d seller_transfers=%d seller_transfer_limit=%d",
         source != NULL ? source : "",
@@ -74,5 +90,11 @@ int kbo_independent_acquisition_seller_append_decision_and_log(
         moved,
         seller_transfers,
         seller_transfer_limit);
+    KBO_PROFILE_END(
+        profile_independent_seller_append_decision_log,
+        "independent_acquisition.seller_ai.append_decision_log");
+    KBO_PROFILE_END(
+        profile_independent_seller_append_decision_and_log,
+        "independent_acquisition.seller_ai.append_decision_and_log.ok");
     return 1;
 }

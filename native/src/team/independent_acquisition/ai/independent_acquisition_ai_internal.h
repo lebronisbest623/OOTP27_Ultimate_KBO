@@ -83,6 +83,12 @@ typedef struct KboIndependentAcquisitionDecisionKey {
     uint32_t transferred;
 } KboIndependentAcquisitionDecisionKey;
 
+typedef struct KboIndependentAcquisitionTransferSummary {
+    uint32_t team_id;
+    int transferred_count;
+    uint32_t last_transfer_date;
+} KboIndependentAcquisitionTransferSummary;
+
 int32_t* kbo_independent_acquisition_team_cash_ptr(uint8_t* team);
 int32_t kbo_independent_acquisition_cash_cost_for_player(uint8_t* player);
 int32_t kbo_independent_acquisition_seller_transfer_fee_for_player(uint8_t* player);
@@ -166,6 +172,14 @@ int kbo_independent_acquisition_decision_exists(
 int kbo_independent_acquisition_load_decision_keys(
     uint32_t season,
     KboIndependentAcquisitionDecisionKey* out,
+    int max_count);
+int kbo_independent_acquisition_load_seller_transfer_summaries(
+    uint32_t season,
+    KboIndependentAcquisitionTransferSummary* out,
+    int max_count);
+int kbo_independent_acquisition_load_buyer_transfer_summaries(
+    uint32_t season,
+    KboIndependentAcquisitionTransferSummary* out,
     int max_count);
 int kbo_independent_acquisition_transferred_count(
     uint32_t season,

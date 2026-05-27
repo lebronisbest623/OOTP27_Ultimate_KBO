@@ -78,6 +78,14 @@ int kbo_independent_acquisition_sql_load_decision_keys(
     uint32_t season,
     KboIndependentAcquisitionDecisionKey* out,
     int max_count);
+int kbo_independent_acquisition_sql_load_seller_transfer_summaries(
+    uint32_t season,
+    KboIndependentAcquisitionTransferSummary* out,
+    int max_count);
+int kbo_independent_acquisition_sql_load_buyer_transfer_summaries(
+    uint32_t season,
+    KboIndependentAcquisitionTransferSummary* out,
+    int max_count);
 int kbo_independent_acquisition_sql_transferred_count(
     uint32_t season,
     uint32_t team_id,

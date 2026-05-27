@@ -3,6 +3,7 @@
 
 #include "../independent_acquisition_ai_internal.h"
 
+#include "../../../../bootstrap/profiling/profiler.h"
 #include "../../../../core/logging/core_log.h"
 #include "../../../../foreign/common/player_eval/foreign_waiver_player_eval.h"
 #include "../../../../foreign/injury/api/foreign_injury_labels.h"
@@ -35,11 +36,18 @@ int kbo_independent_acquisition_request_exists(
     if (season == 0u || buyer_team_id == 0u || seller_team_id == 0u || player_id == 0u) {
         return 0;
     }
-    return kbo_independent_acquisition_sql_request_exists(
+    KBO_PROFILE_BEGIN(profile_independent_request_exists);
+    int exists = kbo_independent_acquisition_sql_request_exists(
         season,
         buyer_team_id,
         seller_team_id,
         player_id);
+    KBO_PROFILE_END(
+        profile_independent_request_exists,
+        exists
+            ? "independent_acquisition.request.exists.hit"
+            : "independent_acquisition.request.exists.miss");
+    return exists;
 }
 
 int kbo_independent_acquisition_cancel_request(
@@ -80,7 +88,11 @@ int kbo_independent_acquisition_append_request(
     const KboIndependentFuturesTeamLeague* seller,
     const char* source)
 {
+    KBO_PROFILE_BEGIN(profile_independent_append_request);
     if (today == 0u || candidate == NULL || buyer == NULL || seller == NULL) {
+        KBO_PROFILE_END(
+            profile_independent_append_request,
+            "independent_acquisition.request.append.invalid");
         return 0;
     }
     if (kbo_independent_acquisition_request_exists(
@@ -88,11 +100,14 @@ int kbo_independent_acquisition_append_request(
             buyer->team_id,
             candidate->seller_team_id,
             candidate->player_id)) {
+        KBO_PROFILE_END(
+            profile_independent_append_request,
+            "independent_acquisition.request.append.duplicate");
         return 0;
     }
 
     int32_t cash_cost = kbo_independent_acquisition_cash_cost_for_player((uint8_t*)candidate->player_ptr);
-    return kbo_independent_acquisition_sql_append_request(
+    int appended = kbo_independent_acquisition_sql_append_request(
         today,
         candidate,
         buyer,
@@ -100,6 +115,12 @@ int kbo_independent_acquisition_append_request(
         cash_cost,
         kbo_independent_acquisition_candidate_slot_label(candidate),
         source);
+    KBO_PROFILE_END(
+        profile_independent_append_request,
+        appended
+            ? "independent_acquisition.request.append.ok"
+            : "independent_acquisition.request.append.failed");
+    return appended;
 }
 
 int kbo_independent_acquisition_load_requests(
@@ -111,5 +132,12 @@ int kbo_independent_acquisition_load_requests(
         return 0;
     }
 
-    return kbo_independent_acquisition_sql_load_pending_requests(season, out, max_count);
+    KBO_PROFILE_BEGIN(profile_independent_load_requests);
+    int count = kbo_independent_acquisition_sql_load_pending_requests(season, out, max_count);
+    KBO_PROFILE_END(
+        profile_independent_load_requests,
+        count > 0
+            ? "independent_acquisition.request.load.hit"
+            : "independent_acquisition.request.load.empty");
+    return count;
 }

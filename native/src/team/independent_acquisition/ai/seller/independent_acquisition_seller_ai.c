@@ -8,8 +8,10 @@
 #include "helpers/transfer/independent_acquisition_seller_transfer.h"
 
 #include <stdint.h>
+#include <string.h>
 
 #include "../../../../bootstrap/abi/ootp_offsets.h"
+#include "../../../../bootstrap/profiling/profiler.h"
 #include "../../../../core/core_flags/api/flags_api.h"
 #include "../../../../core/dates/core_text_date.h"
 #include "../../../../core/logging/core_log.h"
@@ -20,6 +22,110 @@
 #include "../../../assignment/assignment/team_assignment.h"
 #include "../../../assignment/org_query/team_org_assignment_query.h"
 #include "../../../lookup/team_lookup.h"
+
+static KboIndependentAcquisitionTransferSummary*
+kbo_independent_acquisition_transfer_summary_for_team(
+    KboIndependentAcquisitionTransferSummary* summaries,
+    int count,
+    uint32_t team_id)
+{
+    if (summaries == NULL || count <= 0 || team_id == 0u) {
+        return NULL;
+    }
+    for (int i = 0; i < count; i++) {
+        if (summaries[i].team_id == team_id) {
+            return &summaries[i];
+        }
+    }
+    return NULL;
+}
+
+static int kbo_independent_acquisition_seller_transfer_count_for_ai(
+    uint32_t season,
+    uint32_t seller_team_id,
+    KboIndependentAcquisitionTransferSummary* summaries,
+    int summary_count)
+{
+    if (summary_count >= 0) {
+        KboIndependentAcquisitionTransferSummary* summary =
+            kbo_independent_acquisition_transfer_summary_for_team(
+                summaries,
+                summary_count,
+                seller_team_id);
+        return summary != NULL ? summary->transferred_count : 0;
+    }
+    return kbo_independent_acquisition_transferred_count(season, seller_team_id);
+}
+
+static int kbo_independent_acquisition_buyer_transfer_count_for_ai(
+    uint32_t season,
+    uint32_t buyer_team_id,
+    KboIndependentAcquisitionTransferSummary* summaries,
+    int summary_count)
+{
+    if (summary_count >= 0) {
+        KboIndependentAcquisitionTransferSummary* summary =
+            kbo_independent_acquisition_transfer_summary_for_team(
+                summaries,
+                summary_count,
+                buyer_team_id);
+        return summary != NULL ? summary->transferred_count : 0;
+    }
+    return kbo_independent_acquisition_buyer_transferred_count(season, buyer_team_id);
+}
+
+static uint32_t kbo_independent_acquisition_last_transfer_date_for_ai(
+    uint32_t season,
+    uint32_t seller_team_id,
+    KboIndependentAcquisitionTransferSummary* summaries,
+    int summary_count)
+{
+    if (summary_count >= 0) {
+        KboIndependentAcquisitionTransferSummary* summary =
+            kbo_independent_acquisition_transfer_summary_for_team(
+                summaries,
+                summary_count,
+                seller_team_id);
+        return summary != NULL ? summary->last_transfer_date : 0u;
+    }
+    return kbo_independent_acquisition_last_transfer_date(season, seller_team_id);
+}
+
+static void kbo_independent_acquisition_record_transfer_summary_for_ai(
+    KboIndependentAcquisitionTransferSummary* summaries,
+    int* summary_count,
+    int max_count,
+    uint32_t team_id,
+    uint32_t today,
+    int update_last_transfer_date)
+{
+    if (summaries == NULL || summary_count == NULL || *summary_count < 0 || team_id == 0u) {
+        return;
+    }
+    KboIndependentAcquisitionTransferSummary* summary =
+        kbo_independent_acquisition_transfer_summary_for_team(
+            summaries,
+            *summary_count,
+            team_id);
+    if (summary != NULL) {
+        summary->transferred_count++;
+        if (update_last_transfer_date && today > summary->last_transfer_date) {
+            summary->last_transfer_date = today;
+        }
+        return;
+    }
+    if (*summary_count >= max_count) {
+        *summary_count = -1;
+        return;
+    }
+
+    summary = &summaries[*summary_count];
+    memset(summary, 0, sizeof(*summary));
+    summary->team_id = team_id;
+    summary->transferred_count = 1;
+    summary->last_transfer_date = update_last_transfer_date ? today : 0u;
+    (*summary_count)++;
+}
 
 int kbo_run_independent_team_acquisition_seller_ai(
     uint32_t today,
@@ -36,21 +142,47 @@ int kbo_run_independent_team_acquisition_seller_ai(
         return 0;
     }
 
+    KBO_PROFILE_BEGIN(profile_independent_seller_ai_total);
     if (kbo_independent_acquisition_seller_abort_if_save(source, "after_lock", today)) {
         InterlockedExchange(&seller_ai_running, 0);
+        KBO_PROFILE_END(
+            profile_independent_seller_ai_total,
+            "independent_acquisition.seller_ai.save_abort.after_lock");
         return 0;
     }
 
     KboIndependentAcquisitionQueuedRequest queue[KBO_INDEPENDENT_ACQUISITION_MAX_QUEUE];
     uint32_t season = kbo_independent_acquisition_seller_effective_season(today);
+    KBO_PROFILE_BEGIN(profile_independent_seller_ai_load_requests);
     int request_count = kbo_independent_acquisition_load_requests(
         season,
         queue,
         KBO_INDEPENDENT_ACQUISITION_MAX_QUEUE);
+    KBO_PROFILE_END(
+        profile_independent_seller_ai_load_requests,
+        request_count > 0
+            ? "independent_acquisition.seller_ai.load_requests.hit"
+            : "independent_acquisition.seller_ai.load_requests.empty");
     if (request_count <= 0) {
         InterlockedExchange(&seller_ai_running, 0);
+        KBO_PROFILE_END(
+            profile_independent_seller_ai_total,
+            "independent_acquisition.seller_ai.no_requests");
         return 0;
     }
+
+    KboIndependentAcquisitionTransferSummary seller_summaries[KBO_INDEPENDENT_ACQUISITION_MAX_QUEUE];
+    KboIndependentAcquisitionTransferSummary buyer_summaries[KBO_INDEPENDENT_ACQUISITION_MAX_QUEUE];
+    memset(seller_summaries, 0, sizeof(seller_summaries));
+    memset(buyer_summaries, 0, sizeof(buyer_summaries));
+    int seller_summary_count = kbo_independent_acquisition_load_seller_transfer_summaries(
+        season,
+        seller_summaries,
+        KBO_INDEPENDENT_ACQUISITION_MAX_QUEUE);
+    int buyer_summary_count = kbo_independent_acquisition_load_buyer_transfer_summaries(
+        season,
+        buyer_summaries,
+        KBO_INDEPENDENT_ACQUISITION_MAX_QUEUE);
 
     int32_t seller_transfer_limit =
         kbo_foreign_player_policy()->independent_acquisition_seller_transfer_limit;
@@ -65,6 +197,7 @@ int kbo_run_independent_team_acquisition_seller_ai(
     uint32_t daily_seller_ids[KBO_INDEPENDENT_ACQUISITION_MAX_SELLERS] = {0};
     int daily_seller_transfer_counts[KBO_INDEPENDENT_ACQUISITION_MAX_SELLERS] = {0};
     int daily_seller_count = 0;
+    KBO_PROFILE_BEGIN(profile_independent_seller_ai_request_loop);
     for (int i = 0; i < request_count; i++) {
         if (kbo_independent_acquisition_seller_abort_if_save(source, "request_loop", today)) {
             abort_for_save = 1;
@@ -74,16 +207,20 @@ int kbo_run_independent_team_acquisition_seller_ai(
         if (group->player_id == 0u) {
             continue;
         }
-        int seller_transfers = kbo_independent_acquisition_transferred_count(
+        int seller_transfers = kbo_independent_acquisition_seller_transfer_count_for_ai(
             group->season,
-            group->seller_team_id);
+            group->seller_team_id,
+            seller_summaries,
+            seller_summary_count);
         int seller_limit_reached = seller_transfers >= seller_transfer_limit;
         if (seller_limit_reached) {
             limit_blocked++;
         }
-        uint32_t last_transfer_date = kbo_independent_acquisition_last_transfer_date(
+        uint32_t last_transfer_date = kbo_independent_acquisition_last_transfer_date_for_ai(
             group->season,
-            group->seller_team_id);
+            group->seller_team_id,
+            seller_summaries,
+            seller_summary_count);
         uint32_t days_since_transfer = 0u;
         int cooldown_blocked = !seller_limit_reached
             && kbo_independent_acquisition_seller_cooldown_deferred(
@@ -144,6 +281,7 @@ int kbo_run_independent_team_acquisition_seller_ai(
         uint32_t target_day = 0u;
         uint32_t request_age_days = 0u;
         uint32_t days_remaining = 0u;
+        KBO_PROFILE_BEGIN(profile_independent_seller_ai_pacing_check);
         int pacing_blocked = !seller_limit_reached
             && kbo_independent_acquisition_seller_pacing_deferred(
                 today,
@@ -154,6 +292,11 @@ int kbo_run_independent_team_acquisition_seller_ai(
                 &target_day,
                 &request_age_days,
                 &days_remaining);
+        KBO_PROFILE_END(
+            profile_independent_seller_ai_pacing_check,
+            pacing_blocked
+                ? "independent_acquisition.seller_ai.pacing_check.blocked"
+                : "independent_acquisition.seller_ai.pacing_check.allowed");
         if (pacing_blocked) {
             pacing_deferred++;
             kbo_log_runtimef(
@@ -176,10 +319,16 @@ int kbo_run_independent_team_acquisition_seller_ai(
             }
             continue;
         }
+        KBO_PROFILE_BEGIN(profile_independent_seller_ai_find_player);
         uintptr_t player_ptr = kbo_independent_acquisition_find_player_snapshot(
             player_snapshot,
             player_count,
             group->player_id);
+        KBO_PROFILE_END(
+            profile_independent_seller_ai_find_player,
+            player_ptr != 0u
+                ? "independent_acquisition.seller_ai.find_player.hit"
+                : "independent_acquisition.seller_ai.find_player.miss");
         uint8_t* player = (uint8_t*)player_ptr;
         KboIndependentAcquisitionQueuedRequest* best = group;
         int64_t best_fit_score = INT64_MIN;
@@ -188,6 +337,7 @@ int kbo_run_independent_team_acquisition_seller_ai(
         int best_buyer_transfers = 0;
         uint32_t best_tiebreaker = 0u;
         int market_offer_count = 0;
+        KBO_PROFILE_BEGIN(profile_independent_seller_ai_buyer_fit_loop);
         for (int j = i; j < request_count; j++) {
             if ((j & 7) == 0
                     && kbo_independent_acquisition_seller_abort_if_save(source, "buyer_fit_loop", today)) {
@@ -205,20 +355,38 @@ int kbo_run_independent_team_acquisition_seller_ai(
             } else if (queue[j].request_score > second_best_request_score) {
                 second_best_request_score = queue[j].request_score;
             }
+            KBO_PROFILE_BEGIN(profile_independent_seller_ai_find_buyer_team);
             uint8_t* candidate_team = find_kbo_team_by_numeric_id_any_league(queue[j].buyer_team_id, 1);
+            KBO_PROFILE_END(
+                profile_independent_seller_ai_find_buyer_team,
+                candidate_team != NULL
+                    ? "independent_acquisition.seller_ai.find_buyer_team.hit"
+                    : "independent_acquisition.seller_ai.find_buyer_team.miss");
             int32_t candidate_cash_cost = queue[j].cash_cost;
             if (candidate_cash_cost <= 0 && player != NULL) {
                 candidate_cash_cost = kbo_independent_acquisition_cash_cost_for_player(player);
                 queue[j].cash_cost = candidate_cash_cost;
             }
+            KBO_PROFILE_BEGIN(profile_independent_seller_ai_fit_score);
             int64_t fit_score = kbo_independent_acquisition_seller_fit_score(
                 &queue[j],
                 player,
                 candidate_team,
                 candidate_cash_cost);
-            int buyer_transfers = kbo_independent_acquisition_buyer_transferred_count(
+            KBO_PROFILE_END(
+                profile_independent_seller_ai_fit_score,
+                fit_score == INT64_MIN
+                    ? "independent_acquisition.seller_ai.fit_score.rejected"
+                    : "independent_acquisition.seller_ai.fit_score.scored");
+            KBO_PROFILE_BEGIN(profile_independent_seller_ai_buyer_transfer_count);
+            int buyer_transfers = kbo_independent_acquisition_buyer_transfer_count_for_ai(
                 queue[j].season,
-                queue[j].buyer_team_id);
+                queue[j].buyer_team_id,
+                buyer_summaries,
+                buyer_summary_count);
+            KBO_PROFILE_END(
+                profile_independent_seller_ai_buyer_transfer_count,
+                "independent_acquisition.seller_ai.buyer_transferred_count");
             int64_t adjusted_fit_score = fit_score == INT64_MIN
                 ? INT64_MIN
                 : fit_score - ((int64_t)buyer_transfers * 1000000ll);
@@ -256,6 +424,11 @@ int kbo_run_independent_team_acquisition_seller_ai(
                 best_tiebreaker = tiebreaker;
             }
         }
+        KBO_PROFILE_END(
+            profile_independent_seller_ai_buyer_fit_loop,
+            abort_for_save
+                ? "independent_acquisition.seller_ai.buyer_fit_loop.aborted"
+                : "independent_acquisition.seller_ai.buyer_fit_loop.total");
         if (abort_for_save) {
             break;
         }
@@ -265,6 +438,7 @@ int kbo_run_independent_team_acquisition_seller_ai(
         uint32_t strategic_window_age_days = 0u;
         uint32_t strategic_request_age_days = 0u;
         uint32_t strategic_days_remaining = 0u;
+        KBO_PROFILE_BEGIN(profile_independent_seller_ai_strategy_check);
         int strategy_blocked = !seller_limit_reached
             && kbo_independent_acquisition_seller_strategy_deferred(
                 today,
@@ -280,6 +454,11 @@ int kbo_run_independent_team_acquisition_seller_ai(
                 &strategic_window_age_days,
                 &strategic_request_age_days,
                 &strategic_days_remaining);
+        KBO_PROFILE_END(
+            profile_independent_seller_ai_strategy_check,
+            strategy_blocked
+                ? "independent_acquisition.seller_ai.strategy_check.blocked"
+                : "independent_acquisition.seller_ai.strategy_check.allowed");
         if (strategy_blocked) {
             strategy_deferred++;
             kbo_log_runtimef(
@@ -326,6 +505,7 @@ int kbo_run_independent_team_acquisition_seller_ai(
             abort_for_save = 1;
             break;
         }
+        KBO_PROFILE_BEGIN(profile_independent_seller_ai_apply_transfer);
         int moved = kbo_independent_acquisition_seller_apply_transfer(
             today,
             &selected,
@@ -341,12 +521,18 @@ int kbo_run_independent_team_acquisition_seller_ai(
             &seller_new_cash,
             &seller_transfer_fee,
             &cash_cost);
+        KBO_PROFILE_END(
+            profile_independent_seller_ai_apply_transfer,
+            moved
+                ? "independent_acquisition.seller_ai.apply_transfer.moved"
+                : "independent_acquisition.seller_ai.apply_transfer.not_moved");
 
         if (kbo_independent_acquisition_seller_abort_if_save(source, "before_append_decision", today)) {
             abort_for_save = 1;
             break;
         }
-        if (kbo_independent_acquisition_seller_append_decision_and_log(
+        KBO_PROFILE_BEGIN(profile_independent_seller_ai_append_decision);
+        int appended_decision = kbo_independent_acquisition_seller_append_decision_and_log(
                 today,
                 &selected,
                 moved,
@@ -367,16 +553,41 @@ int kbo_run_independent_team_acquisition_seller_ai(
                 best_tiebreaker,
                 seller_transfers,
                 seller_transfer_limit,
-                source)) {
+                source);
+        KBO_PROFILE_END(
+            profile_independent_seller_ai_append_decision,
+            appended_decision
+                ? "independent_acquisition.seller_ai.append_decision.ok"
+                : "independent_acquisition.seller_ai.append_decision.failed");
+        if (appended_decision) {
             decided++;
             if (moved) {
                 transferred++;
+                kbo_independent_acquisition_record_transfer_summary_for_ai(
+                    seller_summaries,
+                    &seller_summary_count,
+                    KBO_INDEPENDENT_ACQUISITION_MAX_QUEUE,
+                    selected.seller_team_id,
+                    today,
+                    1);
+                kbo_independent_acquisition_record_transfer_summary_for_ai(
+                    buyer_summaries,
+                    &buyer_summary_count,
+                    KBO_INDEPENDENT_ACQUISITION_MAX_QUEUE,
+                    selected.buyer_team_id,
+                    today,
+                    0);
                 if (daily_seller_index >= 0) {
                     daily_seller_transfer_counts[daily_seller_index]++;
                 }
             }
         }
     }
+    KBO_PROFILE_END(
+        profile_independent_seller_ai_request_loop,
+        abort_for_save
+            ? "independent_acquisition.seller_ai.request_loop.aborted"
+            : "independent_acquisition.seller_ai.request_loop.total");
 
     kbo_log_runtimef(
         "independent acquisition seller AI summary source=%s today=%u queued=%d decided=%d transferred=%d limit_blocked=%d pacing_deferred=%d strategy_deferred=%d cooldown_deferred=%d daily_cap_deferred=%d seller_transfer_limit=%d seller_daily_transfer_limit=%d seller_cooldown_days=%d aborted_for_save=%d",
@@ -395,5 +606,10 @@ int kbo_run_independent_team_acquisition_seller_ai(
         KBO_INDEPENDENT_ACQUISITION_SELLER_TRANSFER_COOLDOWN_DAYS,
         abort_for_save);
     InterlockedExchange(&seller_ai_running, 0);
+    KBO_PROFILE_END(
+        profile_independent_seller_ai_total,
+        abort_for_save
+            ? "independent_acquisition.seller_ai.total.aborted"
+            : "independent_acquisition.seller_ai.total");
     return transferred;
 }

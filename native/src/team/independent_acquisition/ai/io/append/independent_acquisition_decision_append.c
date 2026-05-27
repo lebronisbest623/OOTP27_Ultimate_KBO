@@ -2,6 +2,7 @@
 #include <windows.h>
 
 #include "../../independent_acquisition_ai_internal.h"
+#include "../../../../../bootstrap/profiling/profiler.h"
 #include "../sql/independent_acquisition_sql_store.h"
 
 int kbo_independent_acquisition_append_decision(
@@ -15,11 +16,15 @@ int kbo_independent_acquisition_append_decision(
     int32_t seller_new_cash,
     const char* source)
 {
+    KBO_PROFILE_BEGIN(profile_independent_append_decision);
     if (today == 0u || request == NULL) {
+        KBO_PROFILE_END(
+            profile_independent_append_decision,
+            "independent_acquisition.decision.append.invalid");
         return 0;
     }
 
-    return kbo_independent_acquisition_sql_append_decision(
+    int appended = kbo_independent_acquisition_sql_append_decision(
         today,
         request,
         transferred,
@@ -29,4 +34,10 @@ int kbo_independent_acquisition_append_decision(
         seller_old_cash,
         seller_new_cash,
         source);
+    KBO_PROFILE_END(
+        profile_independent_append_decision,
+        appended
+            ? "independent_acquisition.decision.append.ok"
+            : "independent_acquisition.decision.append.failed");
+    return appended;
 }
