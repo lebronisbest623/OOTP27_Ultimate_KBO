@@ -51,6 +51,8 @@ $FaDeclarationContractTestSrc = Join-Path $PSScriptRoot "test_fa_declaration_con
 $FaDeclarationContractTestExe = Join-Path $PSScriptRoot "test_fa_declaration_contract.exe"
 $WebViewCommandRouterTestSrc = Join-Path $PSScriptRoot "test_webview_command_router.c"
 $WebViewCommandRouterTestExe = Join-Path $PSScriptRoot "test_webview_command_router.exe"
+$OptimizerToolSelectionTestSrc = Join-Path $PSScriptRoot "test_optimizer_tool_selection.c"
+$OptimizerToolSelectionTestExe = Join-Path $PSScriptRoot "test_optimizer_tool_selection.exe"
 
 function Resolve-Gcc {
     $Candidates = @()
@@ -107,6 +109,20 @@ if ($LASTEXITCODE -ne 0) {
 & $WebViewCommandRouterTestExe
 if ($LASTEXITCODE -ne 0) {
     throw "WebView command router tests failed"
+}
+
+& $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
+    -I $Root `
+    -I (Join-Path $Root "src") `
+    -o $OptimizerToolSelectionTestExe `
+    $OptimizerToolSelectionTestSrc
+if ($LASTEXITCODE -ne 0) {
+    throw "Optimizer tool-selection test build failed"
+}
+
+& $OptimizerToolSelectionTestExe
+if ($LASTEXITCODE -ne 0) {
+    throw "Optimizer tool-selection tests failed"
 }
 
 & $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `

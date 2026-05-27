@@ -8,58 +8,6 @@
 
 static volatile LONG g_kbo_optimizer_result_temp_sequence = 0;
 
-static ULONGLONG kbo_optimizer_file_write_time_ull(const WIN32_FIND_DATAA* data)
-{
-    if (data == NULL) {
-        return 0u;
-    }
-    return (((ULONGLONG)data->ftLastWriteTime.dwHighDateTime) << 32)
-        | (ULONGLONG)data->ftLastWriteTime.dwLowDateTime;
-}
-
-static ULONGLONG kbo_optimizer_path_write_time_ull(const char* path)
-{
-    if (path == NULL || path[0] == '\0') {
-        return 0u;
-    }
-    WIN32_FIND_DATAA data;
-    HANDLE find = FindFirstFileA(path, &data);
-    if (find == INVALID_HANDLE_VALUE) {
-        return 0u;
-    }
-    FindClose(find);
-    return kbo_optimizer_file_write_time_ull(&data);
-}
-
-static ULONGLONG kbo_optimizer_newest_python_source_time(const char* module_path)
-{
-    if (module_path == NULL || module_path[0] == '\0') {
-        return 0u;
-    }
-
-    char path[MAX_PATH * 3] = {0};
-    snprintf(path, sizeof(path), "%stools\\kbo_optimizer.py", module_path);
-    ULONGLONG newest = kbo_optimizer_path_write_time_ull(path);
-
-    char pattern[MAX_PATH * 3] = {0};
-    snprintf(pattern, sizeof(pattern), "%stools\\kbo_optimizer_lib\\*.py", module_path);
-    WIN32_FIND_DATAA data;
-    HANDLE find = FindFirstFileA(pattern, &data);
-    if (find == INVALID_HANDLE_VALUE) {
-        return newest;
-    }
-    do {
-        if ((data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0u) {
-            ULONGLONG write_time = kbo_optimizer_file_write_time_ull(&data);
-            if (write_time > newest) {
-                newest = write_time;
-            }
-        }
-    } while (FindNextFileA(find, &data));
-    FindClose(find);
-    return newest;
-}
-
 static int kbo_optimizer_make_temp_result_path(const char* result_path, char* out, size_t out_size)
 {
     if (result_path == NULL || result_path[0] == '\0' || out == NULL || out_size == 0) {
@@ -112,28 +60,12 @@ static int kbo_optimizer_get_tool_path(char* out, size_t out_size, int* out_is_p
 
     DWORD exe_attrs = GetFileAttributesA(exe_path);
     DWORD script_attrs = GetFileAttributesA(script_path);
-    ULONGLONG exe_time = exe_attrs != INVALID_FILE_ATTRIBUTES
-        ? kbo_optimizer_path_write_time_ull(exe_path)
-        : 0u;
-    ULONGLONG script_time = script_attrs != INVALID_FILE_ATTRIBUTES
-        ? kbo_optimizer_newest_python_source_time(module_path)
-        : 0u;
-
-    if (script_attrs != INVALID_FILE_ATTRIBUTES
-            && (exe_attrs == INVALID_FILE_ATTRIBUTES || script_time > exe_time)) {
-        snprintf(out, out_size, "%s", script_path);
-        if (out_is_python_script != NULL) {
-            *out_is_python_script = 1;
-        }
-        return 1;
-    }
-
     if (exe_attrs != INVALID_FILE_ATTRIBUTES) {
         snprintf(out, out_size, "%s", exe_path);
         return 1;
     }
 
-    if (script_attrs != INVALID_FILE_ATTRIBUTES) {
+    if (kbo_optimizer_should_use_python_script(exe_attrs, script_attrs)) {
         snprintf(out, out_size, "%s", script_path);
         if (out_is_python_script != NULL) {
             *out_is_python_script = 1;
