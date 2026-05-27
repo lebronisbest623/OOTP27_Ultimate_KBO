@@ -38,7 +38,14 @@ int kbo_hub_language(void)
 
 void kbo_hub_set_language(int language)
 {
-    g_kbo_hub_language = language == KBO_HUB_LANG_EN ? KBO_HUB_LANG_EN : KBO_HUB_LANG_KO;
+    int normalized = language == KBO_HUB_LANG_EN ? KBO_HUB_LANG_EN : KBO_HUB_LANG_KO;
+    if (g_kbo_hub_language == normalized) {
+        return;
+    }
+    g_kbo_hub_language = normalized;
+    kbo_lock_enter(&g_kbo_hub_text_cache_lock);
+    g_kbo_hub_text_cache_count = 0;
+    kbo_lock_leave(&g_kbo_hub_text_cache_lock);
 }
 
 static const char* kbo_hub_language_dir(void)
@@ -119,6 +126,7 @@ const char* kbo_hub_text_key(const char* key, const char* ko, const char* en)
     }
 
     snprintf(slot, KBO_HUB_TEXT_VALUE_MAX, "%s", fallback);
+    kbo_hub_text_cache_put(language, key, slot);
     return slot;
 }
 
@@ -140,6 +148,9 @@ static void kbo_hub_language_file_path(char* out, size_t out_size)
 void kbo_hub_load_language_setting(void)
 {
     g_kbo_hub_language = KBO_HUB_LANG_KO;
+    kbo_lock_enter(&g_kbo_hub_text_cache_lock);
+    g_kbo_hub_text_cache_count = 0;
+    kbo_lock_leave(&g_kbo_hub_text_cache_lock);
 
     char path[MAX_PATH] = {0};
     kbo_hub_language_file_path(path, sizeof(path));
@@ -159,6 +170,9 @@ void kbo_hub_load_language_setting(void)
 
     if (ascii_equals_ignore_case(buffer, "en") || ascii_equals_ignore_case(buffer, "english")) {
         g_kbo_hub_language = KBO_HUB_LANG_EN;
+        kbo_lock_enter(&g_kbo_hub_text_cache_lock);
+        g_kbo_hub_text_cache_count = 0;
+        kbo_lock_leave(&g_kbo_hub_text_cache_lock);
     }
 }
 

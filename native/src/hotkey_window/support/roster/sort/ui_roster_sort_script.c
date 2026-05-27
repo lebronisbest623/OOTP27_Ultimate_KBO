@@ -3,7 +3,7 @@
 #include "ui_roster_sort_script.h"
 #include "../../text/buffer/ui_text_buffer.h"
 
-void kbo_webview_append_roster_sort_script(KboWindowTextBuffer* buffer)
+void kbo_webview_append_roster_sort_script_body(KboWindowTextBuffer* buffer)
 {
     if (buffer == NULL) {
         return;
@@ -17,10 +17,9 @@ void kbo_webview_append_roster_sort_script(KboWindowTextBuffer* buffer)
     const char* confirm_ok = kbo_hub_text("\xed\x99\x95\xec\x9d\xb8", "OK");
     kbo_window_text_appendf(
         buffer,
-        "<script>"
         "(function(){"
         "function isEditableTarget(node){while(node&&node!==document){var tag=(node.tagName||'').toLowerCase();if(tag==='input'||tag==='textarea'||tag==='select'||node.isContentEditable){return true;}node=node.parentNode;}return false;}"
-        "function installGameSurfaceGuards(){document.addEventListener('selectstart',function(e){if(!isEditableTarget(e.target)){e.preventDefault();}},true);document.addEventListener('dragstart',function(e){e.preventDefault();},true);document.addEventListener('mousedown',function(e){if(e.detail>1&&!isEditableTarget(e.target)){e.preventDefault();}},true);var images=document.querySelectorAll('img');for(var i=0;i<images.length;i++){images[i].setAttribute('draggable','false');}}"
+        "function installGameSurfaceGuards(){if(!window.__kboGameSurfaceGuardsInstalled){window.__kboGameSurfaceGuardsInstalled=1;document.addEventListener('selectstart',function(e){if(!isEditableTarget(e.target)){e.preventDefault();}},true);document.addEventListener('dragstart',function(e){e.preventDefault();},true);document.addEventListener('mousedown',function(e){if(e.detail>1&&!isEditableTarget(e.target)){e.preventDefault();}},true);}var images=document.querySelectorAll('img');for(var i=0;i<images.length;i++){images[i].setAttribute('draggable','false');}}"
         "function textOf(cell){return (cell&&cell.textContent?cell.textContent:'').trim();}"
         "function numericValue(text){var clean='';for(var i=0;i<text.length;i++){var ch=text.charAt(i);if((ch>='0'&&ch<='9')||ch==='.'||ch==='-'){clean+=ch;}}var value=parseFloat(clean);return isNaN(value)?null:value;}"
         "function comparable(cell,type){var raw=(cell&&cell.getAttribute)?cell.getAttribute('data-sort-value'):null;var text=(raw!==null&&raw!=='')?raw:textOf(cell);if(type==='number'){var value=numericValue(text);return {empty:value===null,value:value===null?0:value};}return {empty:text.length===0,value:text.toLowerCase()};}"
@@ -47,7 +46,7 @@ void kbo_webview_append_roster_sort_script(KboWindowTextBuffer* buffer)
     kbo_webview_append_js_string(buffer, confirm_message);
     kbo_window_text_appendf(
         buffer,
-        ";var overlay=document.createElement('div');overlay.className='ootpConfirmOverlay';var dialog=document.createElement('div');dialog.className='ootpConfirmDialog';var title=document.createElement('div');title.className='ootpConfirmTitle';var question=document.createElement('span');question.className='ootpConfirmQuestion';question.textContent='?';var titleText=document.createElement('span');titleText.className='ootpConfirmTitleText';titleText.textContent=");
+        ";if(document.getElementById('kboRightsConfirmOverlay')){return;}var overlay=document.createElement('div');overlay.id='kboRightsConfirmOverlay';overlay.className='ootpConfirmOverlay';var dialog=document.createElement('div');dialog.className='ootpConfirmDialog';var title=document.createElement('div');title.className='ootpConfirmTitle';var question=document.createElement('span');question.className='ootpConfirmQuestion';question.textContent='?';var titleText=document.createElement('span');titleText.className='ootpConfirmTitleText';titleText.textContent=");
     kbo_webview_append_js_string(buffer, confirm_title);
     kbo_window_text_appendf(
         buffer,
@@ -70,12 +69,23 @@ void kbo_webview_append_roster_sort_script(KboWindowTextBuffer* buffer)
         "cancel.addEventListener('click',function(){close();});overlay.addEventListener('click',function(e){if(e.target===overlay){close();}});ok.addEventListener('click',function(){var href=pendingHref;close();if(href){window.location.href=href;}});document.addEventListener('keydown',function(e){if(e.key==='Escape'&&overlay.classList.contains('show')){close();}});}"
         "function closestPlayerHover(node){while(node&&node!==document){if(node.getAttribute&&node.getAttribute('data-kbo-player-hover')==='1'&&node.getAttribute('data-player-id')){return node;}node=node.parentNode;}return null;}"
         "function sendKboCommand(href){try{if(window.chrome&&window.chrome.webview&&window.chrome.webview.postMessage){window.chrome.webview.postMessage(href);return;}}catch(_){}try{window.location.href=href;}catch(_){}}"
-        "function installPlayerHoverBridge(){var active=null;var hoverTimer=0;var hideTimer=0;var lastHref='';var shownAt=0;var seq=0;window.__kboPlayerHoverSeq=0;function clearHoverTimer(){if(hoverTimer){clearTimeout(hoverTimer);hoverTimer=0;}}function clearHideTimer(){if(hideTimer){clearTimeout(hideTimer);hideTimer=0;}}function coordsFor(el){var r=el.getBoundingClientRect();var x=Math.round(r.left+Math.min(r.width,18));var y=Math.round(r.top+Math.min(r.height,18));return {x:Math.max(0,x),y:Math.max(0,y)};}function send(href){if(href===lastHref){return;}lastHref=href;sendKboCommand(href);}function show(el){if(!el||el!==active){return;}var id=el.getAttribute('data-player-id');if(!id){return;}var pt=coordsFor(el);shownAt=Date.now();seq++;window.__kboPlayerHoverSeq=seq;send('kbo://player-hover/show/'+encodeURIComponent(id)+'/'+pt.x+'/'+pt.y+'/'+seq);}function hideNow(el){clearHoverTimer();clearHideTimer();seq++;window.__kboPlayerHoverSeq=seq;if(!el){return;}var id=el.getAttribute('data-player-id');if(id){send('kbo://player-hover/hide/'+encodeURIComponent(id)+'/'+seq);}}function scheduleHide(el){clearHoverTimer();clearHideTimer();var wait=Math.max(180,520-(Date.now()-shownAt));hideTimer=setTimeout(function(){if(active===el){active=null;}hideNow(el);},wait);}document.addEventListener('mouseover',function(e){var el=closestPlayerHover(e.target);if(!el){return;}clearHideTimer();if(el===active){return;}if(active){hideNow(active);}active=el;clearHoverTimer();hoverTimer=setTimeout(function(){show(el);},180);},true);document.addEventListener('mouseout',function(e){var el=closestPlayerHover(e.target);if(!el||el!==active){return;}var to=e.relatedTarget;if(to&&el.contains(to)){return;}scheduleHide(el);},true);window.addEventListener('blur',function(){hideNow(active);active=null;});}"
+        "function installPlayerHoverBridge(){if(window.__kboPlayerHoverBridgeInstalled){return;}window.__kboPlayerHoverBridgeInstalled=1;var active=null;var hoverTimer=0;var hideTimer=0;var lastHref='';var shownAt=0;var seq=0;window.__kboPlayerHoverSeq=0;function clearHoverTimer(){if(hoverTimer){clearTimeout(hoverTimer);hoverTimer=0;}}function clearHideTimer(){if(hideTimer){clearTimeout(hideTimer);hideTimer=0;}}function coordsFor(el){var r=el.getBoundingClientRect();var x=Math.round(r.left+Math.min(r.width,18));var y=Math.round(r.top+Math.min(r.height,18));return {x:Math.max(0,x),y:Math.max(0,y)};}function send(href){if(href===lastHref){return;}lastHref=href;sendKboCommand(href);}function show(el){if(!el||el!==active){return;}var id=el.getAttribute('data-player-id');if(!id){return;}var pt=coordsFor(el);shownAt=Date.now();seq++;window.__kboPlayerHoverSeq=seq;send('kbo://player-hover/show/'+encodeURIComponent(id)+'/'+pt.x+'/'+pt.y+'/'+seq);}function hideNow(el){clearHoverTimer();clearHideTimer();seq++;window.__kboPlayerHoverSeq=seq;if(!el){return;}var id=el.getAttribute('data-player-id');if(id){send('kbo://player-hover/hide/'+encodeURIComponent(id)+'/'+seq);}}function scheduleHide(el){clearHoverTimer();clearHideTimer();var wait=Math.max(180,520-(Date.now()-shownAt));hideTimer=setTimeout(function(){if(active===el){active=null;}hideNow(el);},wait);}document.addEventListener('mouseover',function(e){var el=closestPlayerHover(e.target);if(!el){return;}clearHideTimer();if(el===active){return;}if(active){hideNow(active);}active=el;clearHoverTimer();hoverTimer=setTimeout(function(){show(el);},180);},true);document.addEventListener('mouseout',function(e){var el=closestPlayerHover(e.target);if(!el||el!==active){return;}var to=e.relatedTarget;if(to&&el.contains(to)){return;}scheduleHide(el);},true);window.addEventListener('blur',function(){hideNow(active);active=null;});}"
         "installGameSurfaceGuards();"
-        "var headers=document.querySelectorAll('.ootpRosterTable th[data-sort-type]');for(var i=0;i<headers.length;i++){headers[i].addEventListener('click',function(){sortTable(this);});}"
-        "var customScrollers=document.querySelectorAll('.content,.card,.rosterTableWrap,.settingsCard,.modBuildCard,.dropdown,.faFilterMenu,.ootpChoiceMenu');for(var r=0;r<customScrollers.length;r++){installOotpScrollbar(customScrollers[r]);}"
         "installRightsConfirm();"
         "installPlayerHoverBridge();"
+        "function installRenderEnhancements(){var headers=document.querySelectorAll('.ootpRosterTable th[data-sort-type]');for(var i=0;i<headers.length;i++){if(headers[i].getAttribute('data-kbo-sort-installed')==='1'){continue;}headers[i].setAttribute('data-kbo-sort-installed','1');headers[i].addEventListener('click',function(){sortTable(this);});}var customScrollers=document.querySelectorAll('.content,.card,.rosterTableWrap,.settingsCard,.modBuildCard,.dropdown,.faFilterMenu,.ootpChoiceMenu');for(var r=0;r<customScrollers.length;r++){installOotpScrollbar(customScrollers[r]);}}"
+        "window.__kboHubAfterRender=installRenderEnhancements;"
+        "installRenderEnhancements();"
         "})();"
-        "</script>");
+    );
+}
+
+void kbo_webview_append_roster_sort_script(KboWindowTextBuffer* buffer)
+{
+    if (buffer == NULL) {
+        return;
+    }
+    kbo_window_text_appendf(buffer, "<script>");
+    kbo_webview_append_roster_sort_script_body(buffer);
+    kbo_window_text_appendf(buffer, "</script>");
 }
