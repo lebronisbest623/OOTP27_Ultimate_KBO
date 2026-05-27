@@ -128,6 +128,7 @@
 #include "src/custom_events/diagnostics/nation_id_scan/nation_id_scan.h"
 #include "src/custom_events/schedules/offseason/offseason_transition_schedule.h"
 #include "src/custom_events/runtime/monitor/custom_event_monitor.h"
+#include "src/custom_events/secondary_draft/secondary_draft.h"
 #include "src/allstar/allstar_league_context/allstar_league_context.h"
 #include "src/allstar/csv/allstar_csv_parse.h"
 #include "src/allstar/team_patch/allstar_team_patch.h"

@@ -8,5 +8,6 @@
   "custom_event.cbt.exception_deadline.title": "경쟁균형세 예외 선수 지정 마감",
   "custom_event.cbt.announcement.title": "경쟁균형세 집계 발표",
   "custom_event.fa.declaration.title": "FA 선언 마감",
-  "custom_event.intl_established_fa.title": "국제 FA 명단 공개"
+  "custom_event.intl_established_fa.title": "국제 FA 명단 공개",
+  "custom_event.secondary_draft.title": "KBO 2차 드래프트"
 }
