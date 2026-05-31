@@ -59,6 +59,7 @@ void kbo_foreign_org_count_cache_invalidate_team(uint32_t team_id);
 void kbo_foreign_org_count_cache_store(uint32_t team_id, uint32_t foreign_count, uint32_t asian_count, uint32_t non_asian_count, DWORD now);
 int kbo_foreign_org_count_cache_hit(uint32_t team_id, uint32_t* out_foreign_count, uint32_t* out_asian_quota_count, uint32_t* out_non_asian_foreign_count);
 LONG kbo_foreign_org_snapshot_note_mutation(void);
+int kbo_foreign_org_snapshot_rebuild_into(KboForeignOrgSnapshotEntry* entries, int* out_entry_count);
 int kbo_foreign_org_snapshot_get(uint32_t team_id, DWORD now, uint32_t* out_foreign_count, uint32_t* out_asian_quota_count, uint32_t* out_non_asian_foreign_count, int* out_rebuilt);
 
 #endif

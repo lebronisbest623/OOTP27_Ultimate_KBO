@@ -17,5 +17,8 @@ void kbo_webview_append_fa_market_filter_bar(
     KboWindowTextBuffer* buffer,
     int filtered_rows,
     int total_rows);
+void kbo_webview_fa_market_add_nation_id(uint32_t* nation_ids, int* nation_count, uint32_t nation_id);
+void kbo_webview_append_fa_market_flag_src(KboWindowTextBuffer* buffer, uint32_t nation_id);
+void kbo_webview_append_fa_market_flag_map(KboWindowTextBuffer* buffer, const uint32_t* nation_ids, int nation_count);
 
 #endif

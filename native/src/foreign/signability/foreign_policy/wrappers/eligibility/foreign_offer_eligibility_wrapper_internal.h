@@ -1,0 +1,10 @@
+#ifndef KBOFIX_SRC_FOREIGN_SIGNABILITY_FOREIGN_POLICY_WRAPPERS_ELIGIBILITY_FOREIGN_OFFER_ELIGIBILITY_WRAPPER_INTERNAL_H_
+#define KBOFIX_SRC_FOREIGN_SIGNABILITY_FOREIGN_POLICY_WRAPPERS_ELIGIBILITY_FOREIGN_OFFER_ELIGIBILITY_WRAPPER_INTERNAL_H_
+
+#include <stdint.h>
+
+int kbo_foreign_reserve_high_value_offer_visible_to_ai(uint8_t* player, int32_t* out_score, int32_t* out_threshold);
+int kbo_offer_eligibility_player_is_foreign(uintptr_t player_ptr);
+int kbo_offer_eligibility_requester_in_kbo_scope(uint32_t team_id);
+
+#endif

@@ -341,7 +341,8 @@ if ($LASTEXITCODE -ne 0) {
     -I (Join-Path $Root "src") `
     -o $ForeignInjuryExistingReplacementsTestExe `
     $ForeignInjuryExistingReplacementsTestSrc `
-    (Join-Path $Root "src\foreign\injury\scanner\lifecycle\foreign_injury_existing_replacements.c")
+    (Join-Path $Root "src\foreign\injury\scanner\lifecycle\foreign_injury_existing_replacements.c") `
+    (Join-Path $Root "src\foreign\injury\scanner\lifecycle\repair\foreign_injury_existing_replacements_repair.c")
 if ($LASTEXITCODE -ne 0) {
     throw "Foreign injury existing replacements test build failed"
 }
@@ -498,6 +499,7 @@ if ($LASTEXITCODE -ne 0) {
     (Join-Path $Root "src\military_service\players\team_policy\military_service_team_policy_parse.c") `
     (Join-Path $Root "src\team\classification\parse\team_classification_seed_parse.c") `
     (Join-Path $Root "src\fa_market_classification\policy\fa_market_row_policy.c") `
+    (Join-Path $Root "src\fa_market_classification\policy\salary\fa_market_salary_grade_policy.c") `
     (Join-Path $Root "src\team\names\team_string.c") `
     (Join-Path $Root "src\core\dates\boundary\current_date_boundary.c") `
     (Join-Path $Root "src\core\dates\tick\current_date_tick_capture.c") `
@@ -543,9 +545,12 @@ if ($LASTEXITCODE -ne 0) {
     (Join-Path $Root "src\foreign\quota\counts\org\foreign_quota_count_state.c") `
     (Join-Path $Root "src\foreign\quota\counts\org\foreign_quota_count_cache.c") `
     (Join-Path $Root "src\foreign\quota\counts\org\foreign_quota_count_snapshot.c") `
+    (Join-Path $Root "src\foreign\quota\counts\org\rebuild\foreign_quota_org_snapshot_rebuild.c") `
+    (Join-Path $Root "src\foreign\quota\counts\org\mutation\foreign_quota_org_snapshot_mutation.c") `
     (Join-Path $Root "src\foreign\quota\counts\foreign_quota_counts.c") `
     (Join-Path $Root "src\foreign\injury\state\foreign_injury_duration_text.c") `
     (Join-Path $Root "src\foreign\injury\state\foreign_injury_state.c") `
+    (Join-Path $Root "src\foreign\injury\state\live_memory\foreign_injury_live_memory.c") `
     (Join-Path $Root "src\foreign\injury\season\foreign_injury_offseason_reset.c") `
     (Join-Path $Root "src\team\independent_acquisition\ai\independent_acquisition_score.c") `
     (Join-Path $Root "src\custom_events\asian_games\policy\asian_games_roster_policy.c") `
