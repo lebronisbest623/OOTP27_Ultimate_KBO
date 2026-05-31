@@ -1,4 +1,4 @@
-#include "submit_offer_probe_no_minor_demand_internal.h"
+#include "../submit_offer_probe_no_minor_demand_internal.h"
 
 volatile LONG g_kbo_no_minor_contract_demand_floor_scanner_started = 0;
 

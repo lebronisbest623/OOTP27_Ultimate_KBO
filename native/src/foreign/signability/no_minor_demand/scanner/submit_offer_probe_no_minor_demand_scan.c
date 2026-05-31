@@ -1,5 +1,5 @@
-#include "submit_offer_probe_no_minor_demand_internal.h"
-#include "../../../core/dates/tick/current_date_tick_capture.h"
+#include "../submit_offer_probe_no_minor_demand_internal.h"
+#include "../../../../core/dates/tick/current_date_tick_capture.h"
 
 static volatile LONG g_kbo_no_minor_background_scan_date = 0;
 static volatile LONG g_kbo_no_minor_background_scan_player_count = 0;

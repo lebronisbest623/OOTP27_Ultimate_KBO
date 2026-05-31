@@ -1,7 +1,7 @@
-#include "../current_date_tick_capture.h"
+#include "../../current_date_tick_capture.h"
 
-#include "../../core_current_date.h"
-#include "../../core_text_date.h"
+#include "../../../core_current_date.h"
+#include "../../../core_text_date.h"
 
 int kbo_current_date_tick_latest_published_date(uint32_t* out_date)
 {

@@ -190,7 +190,7 @@ if ($LASTEXITCODE -ne 0) {
     -I (Join-Path $Root "src") `
     -o $ForeignAiOfferContractTypeTestExe `
     $ForeignAiOfferContractTypeTestSrc `
-    (Join-Path $Root "src\foreign\signability\foreign_policy\wrappers\offer_attach\foreign_ai_offer_contract_type.c")
+    (Join-Path $Root "src\foreign\signability\foreign_policy\wrappers\offer_attach\contract_type\foreign_ai_offer_contract_type.c")
 if ($LASTEXITCODE -ne 0) {
     throw "Foreign AI offer contract type test build failed"
 }
@@ -501,9 +501,10 @@ if ($LASTEXITCODE -ne 0) {
     (Join-Path $Root "src\team\names\team_string.c") `
     (Join-Path $Root "src\core\dates\boundary\current_date_boundary.c") `
     (Join-Path $Root "src\core\dates\tick\current_date_tick_capture.c") `
-    (Join-Path $Root "src\core\dates\tick\capture\current_date_tick_consumer.c") `
-    (Join-Path $Root "src\core\dates\tick\capture\current_date_tick_latest.c") `
-    (Join-Path $Root "src\core\dates\tick\capture\current_date_tick_sync_consumers.c") `
+    (Join-Path $Root "src\core\dates\tick\capture\cursor\current_date_tick_cursor.c") `
+    (Join-Path $Root "src\core\dates\tick\capture\consumer\current_date_tick_consumer.c") `
+    (Join-Path $Root "src\core\dates\tick\capture\latest\current_date_tick_latest.c") `
+    (Join-Path $Root "src\core\dates\tick\capture\sync\current_date_tick_sync_consumers.c") `
     (Join-Path $Root "src\core\dates\core_text_date.c") `
     (Join-Path $Root "src\core\sql\escape\core_sql_escape.c") `
     (Join-Path $Root "src\core\core_flags\keys\flag_key.c") `
@@ -514,6 +515,10 @@ if ($LASTEXITCODE -ne 0) {
     (Join-Path $Root "src\core\news\links\core_news_links.c") `
     (Join-Path $Root "src\core\core_flags\api\settings\custom_news_language.c") `
     (Join-Path $Root "src\core\core_flags\localappdata\localappdata_reader.c") `
+    (Join-Path $Root "src\core\core_flags\localappdata\impl\localappdata_json_cache.c") `
+    (Join-Path $Root "src\core\core_flags\localappdata\impl\localappdata_json_parser.c") `
+    (Join-Path $Root "src\core\core_flags\localappdata\impl\localappdata_json_read.c") `
+    (Join-Path $Root "src\core\core_flags\localappdata\impl\localappdata_paths.c") `
     (Join-Path $Root "src\core\core_flags\api\settings\economic\economic_defaults.c") `
     (Join-Path $Root "src\core\core_flags\api\settings\foreign\foreign_demand_baselines.c") `
     (Join-Path $Root "src\amateur_player_quality\assignment\policy\amateur_assignment_policy_values.c") `
@@ -524,6 +529,7 @@ if ($LASTEXITCODE -ne 0) {
     (Join-Path $Root "src\core\files\atomic\core_atomic_file.c") `
     (Join-Path $Root "src\core\files\save_paths\platform\windows_path.c") `
     (Join-Path $Root "src\core\logging\event\log_event.c") `
+    (Join-Path $Root "src\core\logging\event\impl\log_event_sink.c") `
     (Join-Path $Root "src\core\logging\rule_audit.c") `
     (Join-Path $Root "src\core\policy\core_policy.c") `
     (Join-Path $Root "src\core\league_roles\kbo_league_roles.c") `

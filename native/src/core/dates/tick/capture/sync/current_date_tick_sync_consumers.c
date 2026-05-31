@@ -1,13 +1,13 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-#include "current_date_tick_capture_internal.h"
+#include "../current_date_tick_capture_internal.h"
 
 #include <stdio.h>
 #include <string.h>
 
-#include "../../core_text_date.h"
-#include "../../../logging/core_log.h"
+#include "../../../core_text_date.h"
+#include "../../../../logging/core_log.h"
 
 #define KBO_CURRENT_DATE_TICK_SYNC_CONSUMER_MAX 16u
 

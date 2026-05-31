@@ -1,6 +1,6 @@
 #include "foreign_ai_offer_contract_type.h"
-#include "foreign_signability_offer_attach_probe_utils.h"
-#include "../../../../../core/core_league_context_parts/api/league_context_lookup.h"
+#include "../foreign_signability_offer_attach_probe_utils.h"
+#include "../../../../../../core/core_league_context_parts/api/league_context_lookup.h"
 
 #include <string.h>
 

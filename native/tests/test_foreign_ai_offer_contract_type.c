@@ -8,7 +8,7 @@
 #include <windows.h>
 
 #include "../src/bootstrap/abi/ootp_offsets.h"
-#include "../src/foreign/signability/foreign_policy/wrappers/offer_attach/foreign_ai_offer_contract_type.h"
+#include "../src/foreign/signability/foreign_policy/wrappers/offer_attach/contract_type/foreign_ai_offer_contract_type.h"
 #include "../src/foreign/signability/foreign_policy/wrappers/offer_attach/foreign_signability_offer_attach_probe_utils.h"
 
 static uint8_t g_team_9[OOTP27_KBO_TEAM_READABLE_BYTES];

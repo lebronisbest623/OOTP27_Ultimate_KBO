@@ -1,5 +1,5 @@
 #include "../../internal/foreign_signability_internal.h"
-#include "foreign_ai_offer_contract_type.h"
+#include "contract_type/foreign_ai_offer_contract_type.h"
 #include "foreign_signability_offer_attach_probe_utils.h"
 #include "log/foreign_signability_foreign_ai_offer_attach_probe_log.h"
 #include "../../../../../build_verify/build_verify.h"
