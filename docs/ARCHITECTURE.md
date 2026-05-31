@@ -74,6 +74,7 @@ native/
     team/                          team lookup, names, roster-array mutation
     foreign/                       foreign-player policy subsystem
     military_service/              military-service loan subsystem
+    service_time_guard/            service-time accrual exclusions
     custom_events/                 event scheduling, scanning, dispatch
     allstar/                       single-division All-Star support
     fa_*                           FA rules, filing, market, compensation
@@ -234,7 +235,8 @@ Key subfolders:
 - `signability/`: signability, offer, FA candidate, and no-minor-contract probes
 - `replacement_seed/`: replacement-player seed parsing and resolution
 - `injury/`: injury replacement slot lifecycle
-- `quota/`: Asian quota, active count, and call-up limit policy
+- `quota/`: Asian quota, active count, call-up limit policy, and team-specific
+  foreign ownership limits for service and Futures independent clubs
 - `roster_audit/`: read-only roster diagnostics and snapshots
 - `waiver_core/`: waiver scanner, AI candidate logic, CSV candidate writing,
   and top-candidate selection
@@ -274,6 +276,14 @@ The military subsystem uses the following internal grouping:
 - `calendar/`: service-day and current-date helpers
 
 The root folder keeps `military_service.h` as the public facade.
+
+### Service-Time Guard
+
+`native/src/service_time_guard/` owns service-time accrual blocking for players
+whose current or loan club should not count toward KBO FA service time.
+It is intentionally separate from `military_service/`: the same guard covers
+military/police service clubs and Futures independent clubs such as Ulsan
+Whales, using the existing service-team policy and team-classification seed.
 
 ### Custom Events
 

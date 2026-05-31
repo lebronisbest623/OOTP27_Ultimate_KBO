@@ -35,7 +35,7 @@ public sealed class NativeForeignFaBaselineRegressionTests
         var offerProbeText = File.ReadAllText(Path.Combine(repoRoot, "native", "src", "foreign", "signability", "foreign_policy", "wrappers", "offer_attach", "foreign_signability_foreign_ai_offer_attach_probe.c"));
         var offerCallbackText = File.ReadAllText(Path.Combine(repoRoot, "native", "src", "foreign", "signability", "submit_offer_probe", "callbacks", "submit_offer_probe_offer_callback_wrappers.c"));
         var hookStubsText = File.ReadAllText(Path.Combine(repoRoot, "native", "src", "hook_stubs", "foreign", "ai_status", "hook_stubs_foreign_ai_status.c"));
-        var patchInstallerText = File.ReadAllText(Path.Combine(repoRoot, "native", "src", "patch_installers", "foreign", "ai_fa", "patch_installers_foreign_ai_fa_status.c"));
+        var patchInstallerText = File.ReadAllText(Path.Combine(repoRoot, "native", "src", "patch_installers", "foreign", "ai_fa", "offer_gate", "patch_installers_foreign_ai_fa_offer_attach.c"));
         var demandRemapPath = Path.Combine(repoRoot, "native", "src", "foreign", "signability", "submit_offer_probe", "demand", "submit_offer_probe_foreign_fa_demand_remap.c");
         var noMinorClassifyText = File.ReadAllText(Path.Combine(repoRoot, "native", "src", "foreign", "signability", "no_minor_demand", "submit_offer_probe_no_minor_demand_classify.c"));
         var teamAddText = File.ReadAllText(Path.Combine(repoRoot, "native", "src", "team", "add_player_guard", "team_add_player_guard.c"));

@@ -25,9 +25,10 @@ int kbo_custom_foreign_policy_team_allows_candidate(
     uint8_t* out_slot_type,
     uint32_t* out_injured_player_id)
 {
+    uint32_t team_base_limit = kbo_foreign_quota_base_effective_limit_for_team(team_id);
     if (out_effective_before != NULL) { *out_effective_before = 0u; }
     if (out_effective_after != NULL) { *out_effective_after = 0u; }
-    if (out_effective_limit != NULL) { *out_effective_limit = KBO_CUSTOM_FOREIGN_BASE_EFFECTIVE_LIMIT; }
+    if (out_effective_limit != NULL) { *out_effective_limit = team_base_limit; }
     if (out_slot_type != NULL) { *out_slot_type = 0u; }
     if (out_injured_player_id != NULL) { *out_injured_player_id = 0u; }
 
@@ -39,6 +40,12 @@ int kbo_custom_foreign_policy_team_allows_candidate(
         KBO_PROFILE_END(profile_custom_candidate, "foreign_policy.candidate.invalid");
         return 0;
     }
+    if (kbo_foreign_quota_team_blocks_foreign_ownership(team_id)) {
+        KBO_PROFILE_END(profile_custom_candidate, "foreign_policy.candidate.team_blocks_foreign");
+        return 0;
+    }
+
+    int use_candidate_cache = !kbo_foreign_quota_team_is_futures_independent(team_id);
 
     uint32_t today = 0u;
     uint32_t candidate_id = *(uint32_t*)(candidate + OOTP27_PLAYER_ID_OFFSET);
@@ -49,11 +56,12 @@ int kbo_custom_foreign_policy_team_allows_candidate(
 
     uint32_t cached_effective_before = 0u;
     uint32_t cached_effective_after = 0u;
-    uint32_t cached_effective_limit = KBO_CUSTOM_FOREIGN_BASE_EFFECTIVE_LIMIT;
+    uint32_t cached_effective_limit = team_base_limit;
     uint8_t cached_slot_type = 0u;
     uint32_t cached_injured_player_id = 0u;
     int cached_allowed = 0;
-    if (candidate_id != 0u
+    if (use_candidate_cache
+            && candidate_id != 0u
             && kbo_custom_foreign_candidate_cache_hit(
                 team_id,
                 candidate,
@@ -107,7 +115,10 @@ int kbo_custom_foreign_policy_team_allows_candidate(
     asian_count += pending_asian_count;
     non_asian_count += pending_non_asian_count;
 
-    uint32_t effective_before = kbo_effective_foreign_count_with_asian_quota(asian_count, non_asian_count);
+    uint32_t effective_before = kbo_foreign_quota_effective_count_for_team(
+        team_id,
+        asian_count,
+        non_asian_count);
     uint32_t asian_after = asian_count;
     uint32_t non_asian_after = non_asian_count;
     uint8_t candidate_asian = kbo_player_is_asian_quota_slot_candidate(candidate) ? 1u : 0u;
@@ -126,11 +137,16 @@ int kbo_custom_foreign_policy_team_allows_candidate(
 
     uint8_t slot_type = 0u;
     uint32_t injured_player_id = 0u;
-    uint32_t effective_after = kbo_effective_foreign_count_with_asian_quota(asian_after, non_asian_after);
+    uint32_t effective_after = kbo_foreign_quota_effective_count_for_team(
+        team_id,
+        asian_after,
+        non_asian_after);
     int details_requested = out_effective_limit != NULL
         || out_slot_type != NULL
         || out_injured_player_id != NULL;
-    int need_extra_slots = details_requested || (!counts_as_existing_candidate && effective_after > KBO_CUSTOM_FOREIGN_BASE_EFFECTIVE_LIMIT);
+    int allow_injury_extra_slots = kbo_foreign_quota_team_allows_injury_extra_slots(team_id);
+    int need_extra_slots = allow_injury_extra_slots
+        && (details_requested || (!counts_as_existing_candidate && effective_after > team_base_limit));
     if (!need_extra_slots && kbo_foreign_ai_controller_enabled()) {
         KboForeignRetentionOpportunitySummary opportunity;
         memset(&opportunity, 0, sizeof(opportunity));
@@ -144,10 +160,11 @@ int kbo_custom_foreign_policy_team_allows_candidate(
                     reserve_non_asian--;
                 }
             }
-            uint32_t reserved_after = kbo_effective_foreign_count_with_asian_quota(
+            uint32_t reserved_after = kbo_foreign_quota_effective_count_for_team(
+                team_id,
                 asian_after + reserve_asian,
                 non_asian_after + reserve_non_asian);
-            need_extra_slots = reserved_after > KBO_CUSTOM_FOREIGN_BASE_EFFECTIVE_LIMIT;
+            need_extra_slots = allow_injury_extra_slots && reserved_after > team_base_limit;
         }
     }
     uint32_t extra_slots = 0u;
@@ -163,7 +180,7 @@ int kbo_custom_foreign_policy_team_allows_candidate(
         KBO_PROFILE_BEGIN(profile_custom_candidate_extra_skipped);
         KBO_PROFILE_END(profile_custom_candidate_extra_skipped, "foreign_policy.candidate.extra_slots_skipped");
     }
-    uint32_t effective_limit = KBO_CUSTOM_FOREIGN_BASE_EFFECTIVE_LIMIT + extra_slots;
+    uint32_t effective_limit = team_base_limit + extra_slots;
 
     if (out_effective_before != NULL) { *out_effective_before = effective_before; }
     if (out_effective_after != NULL) { *out_effective_after = effective_after; }
@@ -200,7 +217,8 @@ int kbo_custom_foreign_policy_team_allows_candidate(
     if (allowed && opportunity_block) {
         allowed = 0;
     }
-    if (candidate_id != 0u
+    if (use_candidate_cache
+            && candidate_id != 0u
             && org_count_generation_before == org_count_generation_after
             && org_count_generation_after == kbo_foreign_org_count_cache_generation_for_team(team_id)
             && pending_generation_before == pending_generation_after
@@ -237,9 +255,10 @@ int kbo_custom_foreign_policy_team_allows_final_signing(
     uint8_t* out_slot_type,
     uint32_t* out_injured_player_id)
 {
+    uint32_t team_base_limit = kbo_foreign_quota_base_effective_limit_for_team(team_id);
     if (out_effective_before != NULL) { *out_effective_before = 0u; }
     if (out_effective_after != NULL) { *out_effective_after = 0u; }
-    if (out_effective_limit != NULL) { *out_effective_limit = KBO_CUSTOM_FOREIGN_BASE_EFFECTIVE_LIMIT; }
+    if (out_effective_limit != NULL) { *out_effective_limit = team_base_limit; }
     if (out_slot_type != NULL) { *out_slot_type = 0u; }
     if (out_injured_player_id != NULL) { *out_injured_player_id = 0u; }
 
@@ -249,6 +268,9 @@ int kbo_custom_foreign_policy_team_allows_final_signing(
             || !kbo_player_is_foreign_for_kbo_rights(candidate)) {
         return 0;
     }
+    if (kbo_foreign_quota_team_blocks_foreign_ownership(team_id)) {
+        return 0;
+    }
 
     uint32_t foreign_count = 0u;
     uint32_t asian_count = 0u;
@@ -256,7 +278,10 @@ int kbo_custom_foreign_policy_team_allows_final_signing(
     kbo_count_team_asian_quota_probe_fresh(team_id, &foreign_count, &asian_count, &non_asian_count);
     (void)foreign_count;
 
-    uint32_t effective_before = kbo_effective_foreign_count_with_asian_quota(asian_count, non_asian_count);
+    uint32_t effective_before = kbo_foreign_quota_effective_count_for_team(
+        team_id,
+        asian_count,
+        non_asian_count);
     uint32_t asian_after = asian_count;
     uint32_t non_asian_after = non_asian_count;
     uint8_t candidate_asian = kbo_player_is_asian_quota_slot_candidate(candidate) ? 1u : 0u;
@@ -269,18 +294,23 @@ int kbo_custom_foreign_policy_team_allows_final_signing(
         }
     }
 
-    uint32_t effective_after = kbo_effective_foreign_count_with_asian_quota(asian_after, non_asian_after);
+    uint32_t effective_after = kbo_foreign_quota_effective_count_for_team(
+        team_id,
+        asian_after,
+        non_asian_after);
     uint8_t slot_type = 0u;
     uint32_t injured_player_id = 0u;
     uint32_t extra_slots = 0u;
-    if (!already_in_org && effective_after > KBO_CUSTOM_FOREIGN_BASE_EFFECTIVE_LIMIT) {
+    if (!already_in_org
+            && effective_after > team_base_limit
+            && kbo_foreign_quota_team_allows_injury_extra_slots(team_id)) {
         extra_slots = kbo_custom_foreign_policy_extra_slots_for_candidate(
             team_id,
             candidate,
             &slot_type,
             &injured_player_id);
     }
-    uint32_t effective_limit = KBO_CUSTOM_FOREIGN_BASE_EFFECTIVE_LIMIT + extra_slots;
+    uint32_t effective_limit = team_base_limit + extra_slots;
 
     if (out_effective_before != NULL) { *out_effective_before = effective_before; }
     if (out_effective_after != NULL) { *out_effective_after = effective_after; }

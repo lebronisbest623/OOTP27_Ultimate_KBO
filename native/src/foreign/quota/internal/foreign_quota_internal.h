@@ -24,6 +24,7 @@
 #include "../../injury/api/foreign_injury.h"
 #include "../../replacement_seed/api/foreign_replacement_seed.h"
 #include "../counts/foreign_quota_counts.h"
+#include "../team_policy/foreign_quota_team_policy.h"
 
 
 

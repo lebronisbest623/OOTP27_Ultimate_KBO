@@ -294,6 +294,7 @@ void install_kbo_full_runtime_after_roster_marker(HINSTANCE instance)
     start_kbo_amateur_reputation_update_thread();
     start_kbo_military_seed_bootstrap_thread();
     start_kbo_military_days_tick_thread();
+    start_kbo_service_time_guard_thread();
     start_kbo_cbt_event_scheduler_thread();
     start_kbo_custom_event_monitor();
     if (read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_KBO_CBT_SERVICE_TIME_PROBE_FILE)) {

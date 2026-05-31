@@ -14,6 +14,7 @@
 #include "../../runtime_memory/runtime_memory.h"
 #include "../../foreign/common/player_eval/foreign_waiver_player_eval.h"
 #include "../../foreign/quota/counts/foreign_quota_counts.h"
+#include "../../foreign/quota/team_policy/foreign_quota_team_policy.h"
 #include "../assignment/org_query/team_org_assignment_query.h"
 #include "../lookup/team_lookup.h"
 #include "foreign_policy/purchase_restore/team_add_player_guard_foreign_purchase_restore.h"
@@ -57,6 +58,8 @@ __declspec(noinline) uint8_t ootp_kbo_team_add_player_guard_wrapper(
         ? *(uint32_t*)(team + OOTP27_KBO_TEAM_ID_OFFSET)
         : 0u;
     int is_military_team = team_id != 0u && kbo_team_id_is_military_service_team(team_id);
+    int foreign_ownership_blocked_team = team_id != 0u
+        && kbo_foreign_quota_team_blocks_foreign_ownership(team_id);
     int amateur_generation_call = kbo_amateur_generation_team_add_caller(caller_rva);
 
     if (!original_args_readable) {
@@ -110,6 +113,37 @@ __declspec(noinline) uint8_t ootp_kbo_team_add_player_guard_wrapper(
             before_active_team_id,
             before_original_team_id);
         KBO_PROFILE_END(profile_team_add_guard_wrapper, "team_add_guard.blocked");
+        KBO_HOOK_PROFILE_RETURN(profile_hook, "team.add_player_guard", 0u);
+    }
+
+    if (foreign_ownership_blocked_team
+            && player != NULL
+            && kbo_player_is_foreign_for_kbo_rights(player)) {
+        if (before_current_team_id == 0u
+                && before_active_team_id == 0u
+                && before_original_team_id != 0u) {
+            kbo_team_add_restore_source_team_after_blocked_foreign_purchase(
+                player,
+                before_original_team_id,
+                team_id,
+                caller_rva);
+        }
+        kbo_log_foreign_team_add_trace(
+            caller_rva,
+            "foreign_ownership_blocked_team",
+            0u,
+            team_ptr,
+            player_ptr,
+            arg3,
+            arg4,
+            arg5,
+            arg6,
+            arg7,
+            arg8,
+            before_current_team_id,
+            before_active_team_id,
+            before_original_team_id);
+        KBO_PROFILE_END(profile_team_add_guard_wrapper, "team_add_guard.foreign_ownership_blocked_team");
         KBO_HOOK_PROFILE_RETURN(profile_hook, "team.add_player_guard", 0u);
     }
 

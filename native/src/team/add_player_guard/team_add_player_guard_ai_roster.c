@@ -10,6 +10,7 @@
 #include "../../core/logging/core_log.h"
 #include "../../foreign/common/policy/foreign_waiver_policy.h"
 #include "../../foreign/common/player_eval/foreign_waiver_player_eval.h"
+#include "../../foreign/quota/team_policy/foreign_quota_team_policy.h"
 #include "../../runtime_memory/runtime_memory.h"
 #include "../lookup/team_lookup.h"
 #include "ai_roster/internal/team_add_player_guard_ai_roster_internal.h"
@@ -81,9 +82,13 @@ static int kbo_ai_roster_foreign_release_pressure_allows_native_replace(
     uint32_t non_asian_count = 0u;
     kbo_count_team_asian_quota_probe(team_id, &foreign_count, &asian_count, &non_asian_count);
     (void)foreign_count;
-    uint32_t effective_count = kbo_effective_foreign_count_with_asian_quota(asian_count, non_asian_count);
+    uint32_t effective_count = kbo_foreign_quota_effective_count_for_team(
+        team_id,
+        asian_count,
+        non_asian_count);
+    uint32_t effective_limit = kbo_foreign_quota_base_effective_limit_for_team(team_id);
     if (out_effective_count != NULL) { *out_effective_count = effective_count; }
-    if (effective_count < KBO_CUSTOM_FOREIGN_BASE_EFFECTIVE_LIMIT) {
+    if (effective_count < effective_limit) {
         return 0;
     }
 
@@ -106,7 +111,7 @@ static int kbo_ai_roster_foreign_release_pressure_allows_native_replace(
             target_slot,
             roster_code,
             effective_count,
-            KBO_CUSTOM_FOREIGN_BASE_EFFECTIVE_LIMIT,
+            effective_limit,
             outgoing_score,
             threshold);
     }

@@ -31,6 +31,11 @@ int kbo_custom_foreign_policy_team_in_trade_scope(uint32_t team_id)
         return 0;
     }
 
+    if (kbo_foreign_quota_team_blocks_foreign_ownership(team_id)
+            || kbo_foreign_quota_team_is_futures_independent(team_id)) {
+        return 1;
+    }
+
     uint32_t team_league_id = *(uint32_t*)(team + OOTP27_KBO_TEAM_LEAGUE_ID_OFFSET);
     uint32_t kbo_league_id = kbo_resolve_kbo_league_id();
     if (kbo_league_id != 0u) {
@@ -197,7 +202,11 @@ static int kbo_custom_foreign_policy_trade_allows_uncached(
         kbo_count_team_asian_quota_probe_fresh(team_id, &foreign_count, &asian_count, &non_asian_count);
         (void)foreign_count;
 
-        uint32_t effective_before = kbo_effective_foreign_count_with_asian_quota(asian_count, non_asian_count);
+        uint32_t team_base_limit = kbo_foreign_quota_base_effective_limit_for_team(team_id);
+        uint32_t effective_before = kbo_foreign_quota_effective_count_for_team(
+            team_id,
+            asian_count,
+            non_asian_count);
         uint32_t asian_after = asian_count;
         uint32_t non_asian_after = non_asian_count;
         uint32_t incoming_foreign_count = 0u;
@@ -228,9 +237,17 @@ static int kbo_custom_foreign_policy_trade_allows_uncached(
                 &first_incoming_player_id);
         }
 
-        uint32_t effective_after = kbo_effective_foreign_count_with_asian_quota(asian_after, non_asian_after);
-        uint32_t effective_limit = KBO_CUSTOM_FOREIGN_BASE_EFFECTIVE_LIMIT
-            + kbo_custom_foreign_policy_trade_extra_slots(trade_ptr, incoming_side, team_id);
+        uint32_t effective_after = kbo_foreign_quota_effective_count_for_team(
+            team_id,
+            asian_after,
+            non_asian_after);
+        uint32_t effective_limit = team_base_limit;
+        if (kbo_foreign_quota_team_allows_injury_extra_slots(team_id)) {
+            effective_limit += kbo_custom_foreign_policy_trade_extra_slots(
+                trade_ptr,
+                incoming_side,
+                team_id);
+        }
         if (incoming_foreign_count > 0u
                 && (effective_after > effective_limit
                     || (incoming_asian_count > 0u && asian_after > 1u))) {

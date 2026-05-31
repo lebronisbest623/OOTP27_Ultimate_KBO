@@ -184,4 +184,5 @@
 #include "src/patch_installers/allstar/settings/patch_installers_allstar_settings.h"
 #include "src/patch_installers/season_phase/patch_installers_season_phase_probe.h"
 #include "src/hotkey_window/hotkey_window.h"
+#include "src/service_time_guard/service_time_guard.h"
 #include "src/entrypoint/entrypoint.h"

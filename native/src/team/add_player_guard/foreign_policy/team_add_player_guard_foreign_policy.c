@@ -12,6 +12,7 @@
 #include "../../../foreign/common/policy/foreign_waiver_policy.h"
 #include "../../../foreign/common/player_eval/foreign_waiver_player_eval.h"
 #include "../../../foreign/injury/api/foreign_injury.h"
+#include "../../../foreign/quota/team_policy/foreign_quota_team_policy.h"
 #include "../../../foreign/rights/query/foreign_waiver_rights_query.h"
 #include "../../../runtime_memory/runtime_memory.h"
 #include "../../assignment/org_query/team_org_assignment_query.h"
@@ -125,23 +126,31 @@ int kbo_team_add_foreign_policy_should_block(
     if (kbo_player_current_assignment_matches_team_or_affiliate(player, team_id)) {
         return 0;
     }
+    if (kbo_foreign_quota_team_blocks_foreign_ownership(team_id)) {
+        return 1;
+    }
 
     uint32_t team_league_id = *(uint32_t*)((uint8_t*)team_ptr + OOTP27_KBO_TEAM_LEAGUE_ID_OFFSET);
     uint32_t kbo_league_id = kbo_resolve_kbo_league_id();
     uint32_t parent_team_id = 0u;
     int non_kbo_league = team_league_id != 0u && kbo_league_id != 0u && team_league_id != kbo_league_id;
     int known_market_minor_caller = kbo_team_add_known_foreign_market_minor_caller(caller_rva);
+    int futures_independent_quota_team = kbo_foreign_quota_team_is_futures_independent(team_id);
     int kbo_affiliate_league = kbo_team_add_target_is_kbo_affiliate_league(
         (uint8_t*)team_ptr,
         kbo_league_id,
         &parent_team_id);
-    if (non_kbo_league && !kbo_affiliate_league && !known_market_minor_caller) {
+    if (non_kbo_league
+            && !kbo_affiliate_league
+            && !known_market_minor_caller
+            && !futures_independent_quota_team) {
         return 0;
     }
     if (before_current_team_id == 0u
             && before_active_team_id == 0u
             && non_kbo_league
-            && kbo_affiliate_league) {
+            && kbo_affiliate_league
+            && !futures_independent_quota_team) {
         static volatile LONG minor_market_block_log_count = 0;
         LONG minor_slot = InterlockedIncrement(&minor_market_block_log_count);
         if (minor_slot <= 200) {

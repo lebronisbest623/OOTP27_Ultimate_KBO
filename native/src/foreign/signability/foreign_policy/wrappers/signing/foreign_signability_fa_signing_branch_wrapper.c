@@ -16,6 +16,7 @@
 #include "../../../../common/player_eval/foreign_waiver_player_eval.h"
 #include "../../../../common/policy/foreign_waiver_policy.h"
 #include "../../../../injury/api/foreign_injury.h"
+#include "../../../../quota/team_policy/foreign_quota_team_policy.h"
 #include "../../../state/foreign_fa_block_state.h"
 
 static volatile LONG g_kbo_fa_signing_branch_skip_log_count = 0;
@@ -81,7 +82,21 @@ __declspec(noinline) int ootp_kbo_fa_signing_branch_wrapper(uintptr_t player_ptr
     }
 
     int is_kbo_team = kbo_fa_signing_team_ptr_is_kbo(team_ptr, &team_id, &league_id);
+    int player_readable = memory_range_readable(player, OOTP27_PLAYER_SCAN_BYTES);
+    int foreign_player = player_readable && kbo_player_is_foreign_for_kbo_rights(player);
 
+    if (foreign_player && kbo_foreign_quota_team_blocks_foreign_ownership(team_id)) {
+        static volatile LONG ownership_block_log_count = 0;
+        LONG slot = InterlockedIncrement(&ownership_block_log_count);
+        if (slot <= 200) {
+            kbo_log_runtimef(
+                "foreign ownership blocked team FA signing player=%u team=%u league=%u",
+                player_id,
+                team_id,
+                league_id);
+        }
+        KBO_HOOK_PROFILE_RETURN(profile_hook, "foreign.fa_signing_branch", 0);
+    }
     if (kbo_team_id_is_military_service_team(team_id)) {
         static volatile LONG military_fa_signing_block_log_count = 0;
         LONG slot = InterlockedIncrement(&military_fa_signing_block_log_count);
@@ -95,7 +110,8 @@ __declspec(noinline) int ootp_kbo_fa_signing_branch_wrapper(uintptr_t player_ptr
         KBO_HOOK_PROFILE_RETURN(profile_hook, "foreign.fa_signing_branch", 0);
     }
 
-    if (!is_kbo_team) {
+    int futures_independent_quota_team = kbo_foreign_quota_team_is_futures_independent(team_id);
+    if (!is_kbo_team && !futures_independent_quota_team) {
         LONG slot = InterlockedIncrement(&g_kbo_fa_signing_branch_skip_log_count);
         if (slot <= 20) {
             kbo_log_runtimef("KBO FA signing branch skipped reason=non_kbo_team player=%u team_ptr=%p team=%u league=%u", player_id, (void*)team_ptr, team_id, league_id);
@@ -104,8 +120,7 @@ __declspec(noinline) int ootp_kbo_fa_signing_branch_wrapper(uintptr_t player_ptr
     }
 
     if (kbo_custom_foreign_policy_enabled()
-            && memory_range_readable(player, OOTP27_PLAYER_SCAN_BYTES)
-            && kbo_player_is_foreign_for_kbo_rights(player)) {
+            && foreign_player) {
         uint32_t effective_before = 0u;
         uint32_t effective_after = 0u;
         uint32_t effective_limit = 0u;

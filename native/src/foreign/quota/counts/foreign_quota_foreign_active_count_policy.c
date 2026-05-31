@@ -65,17 +65,18 @@ int32_t kbo_custom_foreign_policy_neutralized_count(
         &non_asian_hitters,
         &non_asian_pitchers);
 
-    uint32_t effective = kbo_effective_foreign_count_with_asian_quota(
+    uint32_t team_id = 0u;
+    if (memory_range_readable((void*)team_ptr, OOTP27_KBO_TEAM_READABLE_BYTES)) {
+        team_id = *(uint32_t*)(team_ptr + OOTP27_KBO_TEAM_ID_OFFSET);
+    }
+    uint32_t effective = kbo_foreign_quota_effective_count_for_team(
+        team_id,
         asian_hitters + asian_pitchers,
         non_asian_hitters + non_asian_pitchers);
 
     static volatile LONG log_count = 0;
     LONG slot = InterlockedIncrement(&log_count);
     if (slot <= 160) {
-        uint32_t team_id = 0u;
-        if (memory_range_readable((void*)team_ptr, OOTP27_KBO_TEAM_READABLE_BYTES)) {
-            team_id = *(uint32_t*)(team_ptr + OOTP27_KBO_TEAM_ID_OFFSET);
-        }
         kbo_log_runtimef(
             "custom foreign policy neutralized OOTP active count team=%u type=%s original=%d adjusted=0 active_effective=%u active_asian_h=%u active_asian_p=%u active_non_asian_h=%u active_non_asian_p=%u",
             team_id,

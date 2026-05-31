@@ -15,6 +15,8 @@ $ForeignAiOfferContractTypeTestSrc = Join-Path $PSScriptRoot "test_foreign_ai_of
 $ForeignAiOfferContractTypeTestExe = Join-Path $PSScriptRoot "test_foreign_ai_offer_contract_type.exe"
 $ForeignCandidateLimitCacheTestSrc = Join-Path $PSScriptRoot "test_foreign_candidate_limit_cache.c"
 $ForeignCandidateLimitCacheTestExe = Join-Path $PSScriptRoot "test_foreign_candidate_limit_cache.exe"
+$ForeignQuotaTeamPolicyTestSrc = Join-Path $PSScriptRoot "test_foreign_quota_team_policy.c"
+$ForeignQuotaTeamPolicyTestExe = Join-Path $PSScriptRoot "test_foreign_quota_team_policy.exe"
 $ForeignFaFinancialsWriteTestSrc = Join-Path $PSScriptRoot "test_foreign_fa_financials_write.c"
 $ForeignFaFinancialsWriteTestExe = Join-Path $PSScriptRoot "test_foreign_fa_financials_write.exe"
 $OfferCandidateReplacementDispatcherTestSrc = Join-Path $PSScriptRoot "test_offer_candidate_replacement_dispatcher.c"
@@ -43,6 +45,8 @@ $AsianGamesHandlerSaveContextTestSrc = Join-Path $PSScriptRoot "test_asian_games
 $AsianGamesHandlerSaveContextTestExe = Join-Path $PSScriptRoot "test_asian_games_handler_save_context.exe"
 $AsianGamesPlayerEligibilityTestSrc = Join-Path $PSScriptRoot "test_asian_games_player_eligibility.c"
 $AsianGamesPlayerEligibilityTestExe = Join-Path $PSScriptRoot "test_asian_games_player_eligibility.exe"
+$ServiceTimeGuardTestSrc = Join-Path $PSScriptRoot "test_service_time_guard.c"
+$ServiceTimeGuardTestExe = Join-Path $PSScriptRoot "test_service_time_guard.exe"
 $AsianGamesRestrictedMaintenancePolicyTestSrc = Join-Path $PSScriptRoot "test_asian_games_restricted_maintenance_policy.c"
 $AsianGamesRestrictedMaintenancePolicyTestExe = Join-Path $PSScriptRoot "test_asian_games_restricted_maintenance_policy.exe"
 $FaDeclarationRepairTestSrc = Join-Path $PSScriptRoot "test_fa_declaration_repair.c"
@@ -213,6 +217,21 @@ if ($LASTEXITCODE -ne 0) {
 & $ForeignCandidateLimitCacheTestExe
 if ($LASTEXITCODE -ne 0) {
     throw "Foreign candidate limit cache tests failed"
+}
+
+& $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
+    -I $Root `
+    -I (Join-Path $Root "src") `
+    -o $ForeignQuotaTeamPolicyTestExe `
+    $ForeignQuotaTeamPolicyTestSrc `
+    (Join-Path $Root "src\foreign\quota\team_policy\foreign_quota_team_policy.c")
+if ($LASTEXITCODE -ne 0) {
+    throw "Foreign quota team-policy test build failed"
+}
+
+& $ForeignQuotaTeamPolicyTestExe
+if ($LASTEXITCODE -ne 0) {
+    throw "Foreign quota team-policy tests failed"
 }
 
 & $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
@@ -429,6 +448,21 @@ if ($LASTEXITCODE -ne 0) {
 & $AsianGamesPlayerEligibilityTestExe
 if ($LASTEXITCODE -ne 0) {
     throw "Asian Games player eligibility tests failed"
+}
+
+& $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
+    -I $Root `
+    -I (Join-Path $Root "src") `
+    -o $ServiceTimeGuardTestExe `
+    $ServiceTimeGuardTestSrc `
+    (Join-Path $Root "src\service_time_guard\service_time_guard.c")
+if ($LASTEXITCODE -ne 0) {
+    throw "Service-time guard test build failed"
+}
+
+& $ServiceTimeGuardTestExe
+if ($LASTEXITCODE -ne 0) {
+    throw "Service-time guard tests failed"
 }
 
 & $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `

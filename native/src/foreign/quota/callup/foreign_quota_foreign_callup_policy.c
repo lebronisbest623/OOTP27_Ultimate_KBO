@@ -37,6 +37,9 @@ uint8_t kbo_custom_foreign_policy_callup_allows(
     if (team_id == 0u || player_id == 0u) {
         return 0u;
     }
+    if (kbo_foreign_quota_team_blocks_foreign_ownership(team_id)) {
+        return 0u;
+    }
     if (kbo_team_active_roster_contains_player(team_ptr, player_id)) {
         return 1u;
     }
@@ -65,14 +68,23 @@ uint8_t kbo_custom_foreign_policy_callup_allows(
 
     uint8_t slot_type = 0u;
     uint32_t injured_player_id = 0u;
-    uint32_t extra_slots = kbo_custom_foreign_policy_extra_slots_for_candidate(
+    uint32_t extra_slots = 0u;
+    if (kbo_foreign_quota_team_allows_injury_extra_slots(team_id)) {
+        extra_slots = kbo_custom_foreign_policy_extra_slots_for_candidate(
+            team_id,
+            player,
+            &slot_type,
+            &injured_player_id);
+    }
+    uint32_t effective_before = kbo_foreign_quota_effective_count_for_team(
         team_id,
-        player,
-        &slot_type,
-        &injured_player_id);
-    uint32_t effective_before = kbo_effective_foreign_count_with_asian_quota(asian_before, non_asian_before);
-    uint32_t effective_after = kbo_effective_foreign_count_with_asian_quota(asian_after, non_asian_after);
-    uint32_t effective_limit = KBO_CUSTOM_FOREIGN_BASE_EFFECTIVE_LIMIT + extra_slots;
+        asian_before,
+        non_asian_before);
+    uint32_t effective_after = kbo_foreign_quota_effective_count_for_team(
+        team_id,
+        asian_after,
+        non_asian_after);
+    uint32_t effective_limit = kbo_foreign_quota_base_effective_limit_for_team(team_id) + extra_slots;
     uint8_t allowed = effective_after <= effective_limit ? 1u : 0u;
     if (allowed && candidate_asian && asian_before > 0u) {
         allowed = 0u;
@@ -111,6 +123,18 @@ uint8_t kbo_callup_foreign_limit_allows_with_asian_quota(
 {
     if (kbo_custom_foreign_policy_enabled()) {
         return kbo_custom_foreign_policy_callup_allows(team_ptr, player_ptr, active_count, limit, check_type);
+    }
+    if (team_ptr != 0
+            && player_ptr != 0
+            && kbo_player_pointer_plausible(player_ptr)
+            && memory_range_readable((void*)team_ptr, OOTP27_KBO_TEAM_READABLE_BYTES)
+            && memory_range_readable((void*)player_ptr, OOTP27_PLAYER_SCAN_BYTES)) {
+        uint8_t* probe_player = (uint8_t*)player_ptr;
+        uint32_t team_id = *(uint32_t*)(team_ptr + OOTP27_KBO_TEAM_ID_OFFSET);
+        if (kbo_player_is_foreign_for_kbo_rights(probe_player)
+                && kbo_foreign_quota_team_blocks_foreign_ownership(team_id)) {
+            return 0u;
+        }
     }
     if (active_count < limit) {
         return 1u;

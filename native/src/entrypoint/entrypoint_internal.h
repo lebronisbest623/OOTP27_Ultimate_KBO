@@ -64,6 +64,7 @@
 #include "../patch_installers/season_phase/patch_installers_season_phase_probe.h"
 #include "../awards/schedule/award_schedule_probe.h"
 #include "../season_phase_monitor/season_phase_monitor.h"
+#include "../service_time_guard/service_time_guard.h"
 typedef struct KboSangmuFaHookInstallRequest {
     int enable_signability;
     int enable_offer;

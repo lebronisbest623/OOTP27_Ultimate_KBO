@@ -284,7 +284,8 @@ int kbo_retention_opportunity_probe_should_block(
         }
     }
 
-    uint32_t reserved_after = kbo_effective_foreign_count_with_asian_quota(
+    uint32_t reserved_after = kbo_foreign_quota_effective_count_for_team(
+        team_id,
         asian_after + reserve_asian,
         non_asian_after + reserve_non_asian);
     int32_t margin = kbo_retention_opportunity_score_margin(opportunity.best_score);
