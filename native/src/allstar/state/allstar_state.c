@@ -16,7 +16,7 @@ volatile uintptr_t g_allstar_make_events_ptr = 0;
 KboAllstarLayout kbo_get_allstar_layout(void)
 {
     OotpBuildInfo info = read_ootp_build_info();
-    if (kbo_ootp_build_is_steam_2026_05_04(info)) {
+    if (kbo_ootp_build_uses_steam_2026_05_04_layout(info)) {
         KboAllstarLayout may_layout = {
             0x242u, 0x45f0u, 0x45f1u, 0x45f8u, 0x45fcu,
             0x4a38u, 0x4a44u, 0x4cc8u, 0x4cc0u

@@ -12,7 +12,7 @@
       "label": "2026-06-09 Steam",
       "timestamp": "0x6A285052",
       "sizeOfImage": "0x03920000",
-      "nativePatchesSupported": false
+      "nativePatchesSupported": true
     }
   ]
 }

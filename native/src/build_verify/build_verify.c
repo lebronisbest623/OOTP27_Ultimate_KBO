@@ -76,6 +76,14 @@ int kbo_ootp_build_is_steam_2026_05_04(OotpBuildInfo info)
         && info.size_of_image == KBO_SUPPORTED_OOTP_BUILD_STEAM_2026_05_04_SIZE_OF_IMAGE;
 }
 
+int kbo_ootp_build_uses_steam_2026_05_04_layout(OotpBuildInfo info)
+{
+    return kbo_ootp_build_is_steam_2026_05_04(info)
+        || (info.ok
+            && info.timestamp == KBO_SUPPORTED_OOTP_BUILD_STEAM_2026_06_09_TIMESTAMP
+            && info.size_of_image == KBO_SUPPORTED_OOTP_BUILD_STEAM_2026_06_09_SIZE_OF_IMAGE);
+}
+
 static const OotpBuildRva* kbo_find_build_rva(OotpBuildInfo info, uint32_t canonical_rva)
 {
     if (!info.ok) {

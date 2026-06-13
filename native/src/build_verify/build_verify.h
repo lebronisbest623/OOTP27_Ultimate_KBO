@@ -35,6 +35,7 @@ int verify_ootp_build(void);
 size_t kbo_supported_ootp_build_count(void);
 const OotpSupportedBuild* kbo_supported_ootp_build_at(size_t index);
 int kbo_ootp_build_is_steam_2026_05_04(OotpBuildInfo info);
+int kbo_ootp_build_uses_steam_2026_05_04_layout(OotpBuildInfo info);
 int kbo_resolve_build_specific_rva(uint32_t canonical_rva, uint32_t* out_rva);
 void* kbo_resolve_build_specific_rva_ptr(HMODULE exe, uint32_t canonical_rva);
 int kbo_resolve_build_specific_rva_delta(

@@ -5,1274 +5,1456 @@
       "name": "OOTP27_CREATE_LEAGUE_EVENT_RVA",
       "canonicalRva": "0x00B75060",
       "builds": {
-        "steam_2026_05_04": "0x00B75060"
+        "steam_2026_05_04": "0x00B75060",
+        "steam_2026_06_09": "0x00B77C10"
       }
     },
     {
       "name": "OOTP27_PISD_STRING_ASSIGN_RVA",
       "canonicalRva": "0x01CB8000",
       "builds": {
-        "steam_2026_05_04": "0x01CB8000"
+        "steam_2026_05_04": "0x01CB8000",
+        "steam_2026_06_09": "0x01CBF170"
       }
     },
     {
       "name": "OOTP27_LEAGUE_NEWS_REAL_ADD_RVA",
       "canonicalRva": "0x004CB0D0",
       "builds": {
-        "steam_2026_05_04": "0x004CB0D0"
+        "steam_2026_05_04": "0x004CB0D0",
+        "steam_2026_06_09": "0x004CB0B0"
       }
     },
     {
       "name": "OOTP27_NEWS_OBJECT_CTOR_RVA",
       "canonicalRva": "0x006ECD50",
       "builds": {
-        "steam_2026_05_04": "0x006ECD50"
+        "steam_2026_05_04": "0x006ECD50",
+        "steam_2026_06_09": "0x006ED550"
       }
     },
     {
       "name": "OOTP27_NEWS_STRING_ENSURE_RVA",
       "canonicalRva": "0x006EF7C0",
       "builds": {
-        "steam_2026_05_04": "0x006EF7C0"
+        "steam_2026_05_04": "0x006EF7C0",
+        "steam_2026_06_09": "0x006EFFC0"
       }
     },
     {
       "name": "OOTP27_NEWS_ADD_RELATED_PLAYER_RVA",
       "canonicalRva": "0x006F4C60",
       "builds": {
-        "steam_2026_05_04": "0x006F4C60"
+        "steam_2026_05_04": "0x006F4C60",
+        "steam_2026_06_09": "0x006F5460"
       }
     },
     {
       "name": "OOTP27_NEWS_ADD_RELATED_TEAM_RVA",
       "canonicalRva": "0x006F4EE0",
       "builds": {
-        "steam_2026_05_04": "0x006F4EE0"
+        "steam_2026_05_04": "0x006F4EE0",
+        "steam_2026_06_09": "0x006F56E0"
       }
     },
     {
       "name": "OOTP27_CREATE_NEWS_ITEM_RVA",
       "canonicalRva": "0x012B8BF0",
       "builds": {
-        "steam_2026_05_04": "0x012B8BF0"
+        "steam_2026_05_04": "0x012B8BF0",
+        "steam_2026_06_09": "0x012BBC40"
       }
     },
     {
       "name": "OOTP27_CREATE_MESSAGE_CORE_RVA",
       "canonicalRva": "0x012F80C0",
       "builds": {
-        "steam_2026_05_04": "0x012F80C0"
+        "steam_2026_05_04": "0x012F80C0",
+        "steam_2026_06_09": "0x012FB110"
       }
     },
     {
       "name": "OOTP27_SQL_EXEC_RVA",
       "canonicalRva": "0x0122FDD0",
       "builds": {
-        "steam_2026_05_04": "0x0122FDD0"
+        "steam_2026_05_04": "0x0122FDD0",
+        "steam_2026_06_09": "0x01232E20"
       }
     },
     {
       "name": "OOTP27_SQL_EXEC_DIRECT_RVA",
       "canonicalRva": "0x012310A0",
       "builds": {
-        "steam_2026_05_04": "0x012310A0"
+        "steam_2026_05_04": "0x012310A0",
+        "steam_2026_06_09": "0x012340F0"
       }
     },
     {
       "name": "OOTP27_UI_OPERATOR_NEW_RVA",
       "canonicalRva": "0x0277E9DC",
       "builds": {
-        "steam_2026_05_04": "0x0277E9DC"
+        "steam_2026_05_04": "0x0277E9DC",
+        "steam_2026_06_09": "0x02785BAC"
       }
     },
     {
       "name": "OOTP27_PLAYER_TOOLTIP_HOVER_MANAGER_RVA",
       "canonicalRva": "0x01067D40",
       "builds": {
-        "steam_2026_05_04": "0x01067D40"
+        "steam_2026_05_04": "0x01067D40",
+        "steam_2026_06_09": "0x0106C050"
       }
     },
     {
       "name": "OOTP27_PLAYER_TOOLTIP_FACTORY_RVA",
       "canonicalRva": "0x01B12D20",
       "builds": {
-        "steam_2026_05_04": "0x01B12D20"
+        "steam_2026_05_04": "0x01B12D20",
+        "steam_2026_06_09": "0x01B19C30"
       }
     },
     {
       "name": "OOTP27_PLAYER_TOOLTIP_RENDER_RVA",
       "canonicalRva": "0x01B17130",
       "builds": {
-        "steam_2026_05_04": "0x01B17130"
+        "steam_2026_05_04": "0x01B17130",
+        "steam_2026_06_09": "0x01B1E180"
       }
     },
     {
       "name": "OOTP27_PLAYER_TOOLTIP_TEXT_APPEND_RVA",
       "canonicalRva": "0x01CC3EA0",
       "builds": {
-        "steam_2026_05_04": "0x01CC3EA0"
+        "steam_2026_05_04": "0x01CC3EA0",
+        "steam_2026_06_09": "0x01CCB010"
       }
     },
     {
       "name": "OOTP27_PLAYER_TOOLTIP_STRING_FORMAT_RVA",
       "canonicalRva": "0x01CB8240",
       "builds": {
-        "steam_2026_05_04": "0x01CB8240"
+        "steam_2026_05_04": "0x01CB8240",
+        "steam_2026_06_09": "0x01CBF3B0"
       }
     },
     {
       "name": "OOTP27_PLAYER_TOOLTIP_RATING_COMMON_RVA",
       "canonicalRva": "0x00F45350",
       "builds": {
-        "steam_2026_05_04": "0x00F45350"
+        "steam_2026_05_04": "0x00F45350",
+        "steam_2026_06_09": "0x00F49340"
       }
     },
     {
       "name": "OOTP27_PLAYER_TOOLTIP_RATING_PANEL_CTOR_RVA",
       "canonicalRva": "0x01B1BAA0",
       "builds": {
-        "steam_2026_05_04": "0x01B1BAA0"
+        "steam_2026_05_04": "0x01B1BAA0",
+        "steam_2026_06_09": "0x01B22AF0"
       }
     },
     {
       "name": "OOTP27_PLAYER_TOOLTIP_CURRENT_GLOBAL_RVA",
       "canonicalRva": "0x031EA778",
       "builds": {
-        "steam_2026_05_04": "0x031EA778"
+        "steam_2026_05_04": "0x031EA778",
+        "steam_2026_06_09": "0x031F1778"
       }
     },
     {
       "name": "OOTP27_PLAYER_TEAM_SIGNABILITY_RVA",
       "canonicalRva": "0x0085C340",
       "builds": {
-        "steam_2026_05_04": "0x0085C340"
+        "steam_2026_05_04": "0x0085C340",
+        "steam_2026_06_09": "0x0085DC40"
       }
     },
     {
       "name": "OOTP27_PLAYER_SIGNABILITY_BLOCK_849320_RVA",
       "canonicalRva": "0x00849320",
       "builds": {
-        "steam_2026_05_04": "0x00849320"
+        "steam_2026_05_04": "0x00849320",
+        "steam_2026_06_09": "0x0084AA20"
       }
     },
     {
       "name": "OOTP27_AI_FA_SIGNABILITY_RANDOM_FALLBACK_RVA",
       "canonicalRva": "0x00AF1D83",
       "builds": {
-        "steam_2026_05_04": "0x00AF1D83"
+        "steam_2026_05_04": "0x00AF1D83",
+        "steam_2026_06_09": "0x00AF31A3"
       }
     },
     {
       "name": "OOTP27_FOREIGN_SIGNABILITY_FA_LIST_DISPLAY_CALLER_RVA",
       "canonicalRva": "0x01B0E3E9",
       "builds": {
-        "steam_2026_05_04": "0x01B0E3E9"
+        "steam_2026_05_04": "0x01B0E3E9",
+        "steam_2026_06_09": "0x01B152F9"
       }
     },
     {
       "name": "OOTP27_PLAYER_CONTRACT_OFFER_ATTACH_RVA",
       "canonicalRva": "0x00852D10",
       "builds": {
-        "steam_2026_05_04": "0x00852D10"
+        "steam_2026_05_04": "0x00852D10",
+        "steam_2026_06_09": "0x00854410"
       }
     },
     {
       "name": "OOTP27_AI_FA_OFFER_BUILD_FUNC_RVA",
       "canonicalRva": "0x008537C0",
       "builds": {
-        "steam_2026_05_04": "0x008537C0"
+        "steam_2026_05_04": "0x008537C0",
+        "steam_2026_06_09": "0x00854EC0"
       }
     },
     {
       "name": "OOTP27_AI_FA_OFFER_TERMS_BUILD_FUNC_RVA",
       "canonicalRva": "0x00857ED0",
       "builds": {
-        "steam_2026_05_04": "0x00857ED0"
+        "steam_2026_05_04": "0x00857ED0",
+        "steam_2026_06_09": "0x008597D0"
       }
     },
     {
       "name": "OOTP27_AI_FA_OFFER_CANDIDATE_SELECTED_RVA",
       "canonicalRva": "0x00AA9741",
       "builds": {
-        "steam_2026_05_04": "0x00AA9741"
+        "steam_2026_05_04": "0x00AA9741",
+        "steam_2026_06_09": "0x00AAAB61"
       }
     },
     {
       "name": "OOTP27_AI_FA_OFFER_CANDIDATE_SKIP_RVA",
       "canonicalRva": "0x00AAA16B",
       "builds": {
-        "steam_2026_05_04": "0x00AAA16B"
+        "steam_2026_05_04": "0x00AAA16B",
+        "steam_2026_06_09": "0x00AAB58B"
       }
     },
     {
       "name": "OOTP27_AI_FA_OFFER_BUILD_PREP_RVA",
       "canonicalRva": "0x00AAA2CC",
       "builds": {
-        "steam_2026_05_04": "0x00AAA2CC"
+        "steam_2026_05_04": "0x00AAA2CC",
+        "steam_2026_06_09": "0x00AAB6EC"
       }
     },
     {
       "name": "OOTP27_AI_FA_OFFER_TERMS_BUILD_PREP_RVA",
       "canonicalRva": "0x00AAA2F0",
       "builds": {
-        "steam_2026_05_04": "0x00AAA2F0"
+        "steam_2026_05_04": "0x00AAA2F0",
+        "steam_2026_06_09": "0x00AAB710"
       }
     },
     {
       "name": "OOTP27_AI_FA_OFFER_TERMS_BUILD_PREP_FINAL_CREATE_RVA",
       "canonicalRva": "0x00AA10AF",
       "builds": {
-        "steam_2026_05_04": "0x00AA10AF"
+        "steam_2026_05_04": "0x00AA10AF",
+        "steam_2026_06_09": "0x00AA24CF"
       }
     },
     {
       "name": "OOTP27_AI_FA_OFFER_TERMS_BUILD_PREP_FINAL_CREATE_ALT_RVA",
       "canonicalRva": "0x00AAC755",
       "builds": {
-        "steam_2026_05_04": "0x00AAC755"
+        "steam_2026_05_04": "0x00AAC755",
+        "steam_2026_06_09": "0x00AADB75"
       }
     },
     {
       "name": "OOTP27_AI_FA_OFFER_FINAL_GATE_FUNC_RVA",
       "canonicalRva": "0x00AB2990",
       "builds": {
-        "steam_2026_05_04": "0x00AB2990"
+        "steam_2026_05_04": "0x00AB2990",
+        "steam_2026_06_09": "0x00AB3DB0"
       }
     },
     {
       "name": "OOTP27_AI_FA_OFFER_FINAL_GATE_RVA",
       "canonicalRva": "0x00AAB1B8",
       "builds": {
-        "steam_2026_05_04": "0x00AAB1B8"
+        "steam_2026_05_04": "0x00AAB1B8",
+        "steam_2026_06_09": "0x00AAC5D8"
       }
     },
     {
       "name": "OOTP27_AI_FA_OFFER_FINAL_GATE_FAILURE_RVA",
       "canonicalRva": "0x00AAA15A",
       "builds": {
-        "steam_2026_05_04": "0x00AAA15A"
+        "steam_2026_05_04": "0x00AAA15A",
+        "steam_2026_06_09": "0x00AAB57A"
       }
     },
     {
       "name": "OOTP27_FA_SUBMIT_OFFER_PROBE_RVA",
       "canonicalRva": "0x017A64B0",
       "builds": {
-        "steam_2026_05_04": "0x017A64B0"
+        "steam_2026_05_04": "0x017A64B0",
+        "steam_2026_06_09": "0x017AA2B0"
       }
     },
     {
       "name": "OOTP27_FA_OFFER_SCREEN_CALLBACK_PROBE_RVA",
       "canonicalRva": "0x017A7870",
       "builds": {
-        "steam_2026_05_04": "0x017A7870"
+        "steam_2026_05_04": "0x017A7870",
+        "steam_2026_06_09": "0x017AB670"
       }
     },
     {
       "name": "OOTP27_FA_CONTRACT_OFFER_CALLBACK_PROBE_RVA",
       "canonicalRva": "0x013B01D0",
       "builds": {
-        "steam_2026_05_04": "0x013B01D0"
+        "steam_2026_05_04": "0x013B01D0",
+        "steam_2026_06_09": "0x013B3290"
       }
     },
     {
       "name": "OOTP27_FA_FILING_OFFICIAL_TRANSITION_RETURN_RVA",
       "canonicalRva": "0x0067D11E",
       "builds": {
-        "steam_2026_05_04": "0x0067D11E"
+        "steam_2026_05_04": "0x0067D11E",
+        "steam_2026_06_09": "0x0067D58E"
       }
     },
     {
       "name": "OOTP27_DRAFT_ORDER_CREATE_RVA",
       "canonicalRva": "0x00D7B8A0",
       "builds": {
-        "steam_2026_05_04": "0x00D7B8A0"
+        "steam_2026_05_04": "0x00D7B8A0",
+        "steam_2026_06_09": "0x00D7E950"
       }
     },
     {
       "name": "OOTP27_LEAGUE_FINANCIALS_LOOKUP_RVA",
       "canonicalRva": "0x0053E490",
       "builds": {
-        "steam_2026_05_04": "0x0053E490"
+        "steam_2026_05_04": "0x0053E490",
+        "steam_2026_06_09": "0x0053E480"
       }
     },
     {
       "name": "OOTP27_TEAM_ADD_PLAYER_RVA",
       "canonicalRva": "0x00A49D80",
       "builds": {
-        "steam_2026_05_04": "0x00A49D80"
+        "steam_2026_05_04": "0x00A49D80",
+        "steam_2026_06_09": "0x00A4B580"
       }
     },
     {
       "name": "OOTP27_TEAM_ADD_PLAYER_FOREIGN_MARKET_MINOR_CALLER_PRIMARY_RVA",
       "canonicalRva": "0x008515F3",
       "builds": {
-        "steam_2026_05_04": "0x008515F3"
+        "steam_2026_05_04": "0x008515F3",
+        "steam_2026_06_09": "0x00852CF3"
       }
     },
     {
       "name": "OOTP27_TEAM_ADD_PLAYER_FOREIGN_MARKET_MINOR_CALLER_AI_RVA",
       "canonicalRva": "0x00AA638D",
       "builds": {
-        "steam_2026_05_04": "0x00AA638D"
+        "steam_2026_05_04": "0x00AA638D",
+        "steam_2026_06_09": "0x00AA77AD"
       }
     },
     {
       "name": "OOTP27_TEAM_ADD_PLAYER_FOREIGN_MARKET_MINOR_CALLER_DIRECT_RVA",
       "canonicalRva": "0x00A4A0CB",
       "builds": {
-        "steam_2026_05_04": "0x00A4A0CB"
+        "steam_2026_05_04": "0x00A4A0CB",
+        "steam_2026_06_09": "0x00A4B8CB"
       }
     },
     {
       "name": "OOTP27_AMATEUR_ASSIGNMENT_BATCH_PREP_RVA",
       "canonicalRva": "0x00A31ACF",
       "builds": {
-        "steam_2026_05_04": "0x00A31ACF"
+        "steam_2026_05_04": "0x00A31ACF",
+        "steam_2026_06_09": "0x00A332CF"
       }
     },
     {
       "name": "OOTP27_LEAGUE_TRADE_CHECK_RVA",
       "canonicalRva": "0x00B251F0",
       "builds": {
-        "steam_2026_05_04": "0x00B251F0"
+        "steam_2026_05_04": "0x00B251F0",
+        "steam_2026_06_09": "0x00B26670"
       }
     },
     {
       "name": "OOTP27_AI_FA_STATUS_CANDIDATE_INSERT_PRIMARY_RVA",
       "canonicalRva": "0x00AF1F8E",
       "builds": {
-        "steam_2026_05_04": "0x00AF1F8E"
+        "steam_2026_05_04": "0x00AF1F8E",
+        "steam_2026_06_09": "0x00AF33AE"
       }
     },
     {
       "name": "OOTP27_AI_FA_STATUS_CANDIDATE_INSERT_RVA",
       "canonicalRva": "0x00AF220B",
       "builds": {
-        "steam_2026_05_04": "0x00AF220B"
+        "steam_2026_05_04": "0x00AF220B",
+        "steam_2026_06_09": "0x00AF362B"
       }
     },
     {
       "name": "OOTP27_AI_FA_STATUS_CANDIDATE_INSERT_DIRECT_RVA",
       "canonicalRva": "0x00AF2219",
       "builds": {
-        "steam_2026_05_04": "0x00AF2219"
+        "steam_2026_05_04": "0x00AF2219",
+        "steam_2026_06_09": "0x00AF3639"
       }
     },
     {
       "name": "OOTP27_NO_MINOR_CONTRACT_WRITE_638D32_RVA",
       "canonicalRva": "0x00638D32",
       "builds": {
-        "steam_2026_05_04": "0x00638D32"
+        "steam_2026_05_04": "0x00638D32",
+        "steam_2026_06_09": "0x00638FF2"
       }
     },
     {
       "name": "OOTP27_NO_MINOR_CONTRACT_DYNAMIC_ZERO_6331F5_RVA",
       "canonicalRva": "0x006331F5",
       "builds": {
-        "steam_2026_05_04": "0x006331F5"
+        "steam_2026_05_04": "0x006331F5",
+        "steam_2026_06_09": "0x006334B5"
       }
     },
     {
       "name": "OOTP27_NO_MINOR_CONTRACT_DYNAMIC_RESET_633286_RVA",
       "canonicalRva": "0x00633286",
       "builds": {
-        "steam_2026_05_04": "0x00633286"
+        "steam_2026_05_04": "0x00633286",
+        "steam_2026_06_09": "0x00633546"
       }
     },
     {
       "name": "OOTP27_NO_MINOR_CONTRACT_OFFER_MAJOR_FLAG_COPY_13B0235_RVA",
       "canonicalRva": "0x013B0235",
       "builds": {
-        "steam_2026_05_04": "0x013B0235"
+        "steam_2026_05_04": "0x013B0235",
+        "steam_2026_06_09": "0x013B32F5"
       }
     },
     {
       "name": "OOTP27_NO_MINOR_CONTRACT_OFFER_MAJOR_FLAG_RESET_13B03CE_RVA",
       "canonicalRva": "0x013B03CE",
       "builds": {
-        "steam_2026_05_04": "0x013B03CE"
+        "steam_2026_05_04": "0x013B03CE",
+        "steam_2026_06_09": "0x013B348E"
       }
     },
     {
       "name": "OOTP27_NO_MINOR_CONTRACT_OPTION_TEXT_BRANCH_13E800B_RVA",
       "canonicalRva": "0x013E800B",
       "builds": {
-        "steam_2026_05_04": "0x013E800B"
+        "steam_2026_05_04": "0x013E800B",
+        "steam_2026_06_09": "0x013EB0CB"
       }
     },
     {
       "name": "OOTP27_NO_MINOR_CONTRACT_OFFER_UI_MINOR_ITEM_17A93DF_RVA",
       "canonicalRva": "0x017A93DF",
       "builds": {
-        "steam_2026_05_04": "0x017A93DF"
+        "steam_2026_05_04": "0x017A93DF",
+        "steam_2026_06_09": "0x017AD1DF"
       }
     },
     {
       "name": "OOTP27_NO_MINOR_CONTRACT_OFFER_UI_OPTION_ITEM_17A9467_RVA",
       "canonicalRva": "0x017A9467",
       "builds": {
-        "steam_2026_05_04": "0x017A9467"
+        "steam_2026_05_04": "0x017A9467",
+        "steam_2026_06_09": "0x017AD267"
       }
     },
     {
       "name": "OOTP27_NO_MINOR_CONTRACT_OFFER_UI_SELECTION_VALUE_17A94A0_RVA",
       "canonicalRva": "0x017A94A0",
       "builds": {
-        "steam_2026_05_04": "0x017A94A0"
+        "steam_2026_05_04": "0x017A94A0",
+        "steam_2026_06_09": "0x017AD2A0"
       }
     },
     {
       "name": "OOTP27_NO_MINOR_CONTRACT_OFFER_UI_SELECTION_BRANCH_17A94A5_RVA",
       "canonicalRva": "0x017A94A5",
       "builds": {
-        "steam_2026_05_04": "0x017A94A5"
+        "steam_2026_05_04": "0x017A94A5",
+        "steam_2026_06_09": "0x017AD2A5"
       }
     },
     {
       "name": "OOTP27_NO_MINOR_CONTRACT_OFFER_REPORT_MINOR_ITEM_17DA0EC_RVA",
       "canonicalRva": "0x017DA0EC",
       "builds": {
-        "steam_2026_05_04": "0x017DA0EC"
+        "steam_2026_05_04": "0x017DA0EC",
+        "steam_2026_06_09": "0x017DDF1C"
       }
     },
     {
       "name": "OOTP27_NO_MINOR_CONTRACT_OFFER_REPORT_OPTION_ITEM_17DA2C6_RVA",
       "canonicalRva": "0x017DA2C6",
       "builds": {
-        "steam_2026_05_04": "0x017DA2C6"
+        "steam_2026_05_04": "0x017DA2C6",
+        "steam_2026_06_09": "0x017DE0F6"
       }
     },
     {
       "name": "OOTP27_NO_MINOR_CONTRACT_CONTRACT_TYPE_MINOR_ITEM_182666A_RVA",
       "canonicalRva": "0x0182666A",
       "builds": {
-        "steam_2026_05_04": "0x0182666A"
+        "steam_2026_05_04": "0x0182666A",
+        "steam_2026_06_09": "0x0182A9FA"
       }
     },
     {
       "name": "OOTP27_NO_MINOR_CONTRACT_PLAYER_ACTION_ELIGIBILITY_RVA",
       "canonicalRva": "0x0106D220",
       "builds": {
-        "steam_2026_05_04": "0x0106D220"
+        "steam_2026_05_04": "0x0106D220",
+        "steam_2026_06_09": "0x01071530"
       }
     },
     {
       "name": "OOTP27_NO_MINOR_CONTRACT_MINOR_ACTION_CASE_1072DF6_RVA",
       "canonicalRva": "0x01072DF6",
       "builds": {
-        "steam_2026_05_04": "0x01072DF6"
+        "steam_2026_05_04": "0x01072DF6",
+        "steam_2026_06_09": "0x01077126"
       }
     },
     {
       "name": "OOTP27_NO_MINOR_CONTRACT_MINOR_EXTENSION_ACTION_CASE_1072F32_RVA",
       "canonicalRva": "0x01072F32",
       "builds": {
-        "steam_2026_05_04": "0x01072F32"
+        "steam_2026_05_04": "0x01072F32",
+        "steam_2026_06_09": "0x01077262"
       }
     },
     {
       "name": "OOTP27_NO_MINOR_CONTRACT_SUBMIT_SALARY_FLOOR_13B0712_RVA",
       "canonicalRva": "0x013B0712",
       "builds": {
-        "steam_2026_05_04": "0x013B0712"
+        "steam_2026_05_04": "0x013B0712",
+        "steam_2026_06_09": "0x013B37D2"
       }
     },
     {
       "name": "OOTP27_NO_MINOR_CONTRACT_SUBMIT_ZERO_ERROR_13B072C_RVA",
       "canonicalRva": "0x013B072C",
       "builds": {
-        "steam_2026_05_04": "0x013B072C"
+        "steam_2026_05_04": "0x013B072C",
+        "steam_2026_06_09": "0x013B37EC"
       }
     },
     {
       "name": "OOTP27_NO_MINOR_CONTRACT_SUBMIT_MIN_CHECK_13B07BB_RVA",
       "canonicalRva": "0x013B07BB",
       "builds": {
-        "steam_2026_05_04": "0x013B07BB"
+        "steam_2026_05_04": "0x013B07BB",
+        "steam_2026_06_09": "0x013B387B"
       }
     },
     {
       "name": "OOTP27_NO_MINOR_CONTRACT_SUBMIT_AFTER_MIN_CHECK_13B0860_RVA",
       "canonicalRva": "0x013B0860",
       "builds": {
-        "steam_2026_05_04": "0x013B0860"
+        "steam_2026_05_04": "0x013B0860",
+        "steam_2026_06_09": "0x013B3920"
       }
     },
     {
       "name": "OOTP27_NO_MINOR_CONTRACT_FA_OFFER_DEMAND_FLOOR_17A79BB_RVA",
       "canonicalRva": "0x017A79BB",
       "builds": {
-        "steam_2026_05_04": "0x017A79BB"
+        "steam_2026_05_04": "0x017A79BB",
+        "steam_2026_06_09": "0x017AB7BB"
       }
     },
     {
       "name": "OOTP27_NO_MINOR_CONTRACT_FA_OFFER_DEMAND_FLOOR_17B50B4_RVA",
       "canonicalRva": "0x017B50B4",
       "builds": {
-        "steam_2026_05_04": "0x017B50B4"
+        "steam_2026_05_04": "0x017B50B4",
+        "steam_2026_06_09": "0x017B8EB4"
       }
     },
     {
       "name": "OOTP27_NO_MINOR_CONTRACT_FA_DEMAND_WRITE_AAB739_RVA",
       "canonicalRva": "0x00AAB739",
       "builds": {
-        "steam_2026_05_04": "0x00AAB739"
+        "steam_2026_05_04": "0x00AAB739",
+        "steam_2026_06_09": "0x00AACB59"
       }
     },
     {
       "name": "OOTP27_NO_MINOR_CONTRACT_FA_DEMAND_WRITE_AAB739_NOTIFY_RVA",
       "canonicalRva": "0x01CBAA40",
       "builds": {
-        "steam_2026_05_04": "0x01CBAA40"
+        "steam_2026_05_04": "0x01CBAA40",
+        "steam_2026_06_09": "0x01CC1BB0"
       }
     },
     {
       "name": "OOTP27_NO_MINOR_CONTRACT_FA_DEMAND_WRITE_AAB739_DONE_RVA",
       "canonicalRva": "0x00AAB794",
       "builds": {
-        "steam_2026_05_04": "0x00AAB794"
+        "steam_2026_05_04": "0x00AAB794",
+        "steam_2026_06_09": "0x00AACBB4"
       }
     },
     {
       "name": "OOTP27_NO_MINOR_CONTRACT_FA_DEMAND_WRITE_1077952_RVA",
       "canonicalRva": "0x01077952",
       "builds": {
-        "steam_2026_05_04": "0x01077952"
+        "steam_2026_05_04": "0x01077952",
+        "steam_2026_06_09": "0x0107BC82"
       }
     },
     {
       "name": "OOTP27_FOREIGN_FA_DEMAND_BASELINE_PREPARE_AAB624_RVA",
       "canonicalRva": "0x00AAB624",
       "builds": {
-        "steam_2026_05_04": "0x00AAB624"
+        "steam_2026_05_04": "0x00AAB624",
+        "steam_2026_06_09": "0x00AACA44"
       }
     },
     {
       "name": "OOTP27_NO_MINOR_CONTRACT_WRITE_6393A3_RVA",
       "canonicalRva": "0x006393A3",
       "builds": {
-        "steam_2026_05_04": "0x006393A3"
+        "steam_2026_05_04": "0x006393A3",
+        "steam_2026_06_09": "0x00639663"
       }
     },
     {
       "name": "OOTP27_NO_MINOR_CONTRACT_WRITE_6396D4_RVA",
       "canonicalRva": "0x006396D4",
       "builds": {
-        "steam_2026_05_04": "0x006396D4"
+        "steam_2026_05_04": "0x006396D4",
+        "steam_2026_06_09": "0x00639994"
       }
     },
     {
       "name": "OOTP27_NO_MINOR_CONTRACT_WRITE_6DE7C1_RVA",
       "canonicalRva": "0x006DE7C1",
       "builds": {
-        "steam_2026_05_04": "0x006DE7C1"
+        "steam_2026_05_04": "0x006DE7C1",
+        "steam_2026_06_09": "0x006DEFC1"
       }
     },
     {
       "name": "OOTP27_NO_MINOR_CONTRACT_WRITE_6DDEA2_RVA",
       "canonicalRva": "0x006DDEA2",
       "builds": {
-        "steam_2026_05_04": "0x006DDEA2"
+        "steam_2026_05_04": "0x006DDEA2",
+        "steam_2026_06_09": "0x006DE6A2"
       }
     },
     {
       "name": "OOTP27_NO_MINOR_CONTRACT_WRITE_6DE33E_RVA",
       "canonicalRva": "0x006DE33E",
       "builds": {
-        "steam_2026_05_04": "0x006DE33E"
+        "steam_2026_05_04": "0x006DE33E",
+        "steam_2026_06_09": "0x006DEB3E"
       }
     },
     {
       "name": "OOTP27_NO_MINOR_CONTRACT_WRITE_6DE58C_RVA",
       "canonicalRva": "0x006DE58C",
       "builds": {
-        "steam_2026_05_04": "0x006DE58C"
+        "steam_2026_05_04": "0x006DE58C",
+        "steam_2026_06_09": "0x006DED8C"
       }
     },
     {
       "name": "OOTP27_NO_MINOR_CONTRACT_WRITE_6DE6BF_RVA",
       "canonicalRva": "0x006DE6BF",
       "builds": {
-        "steam_2026_05_04": "0x006DE6BF"
+        "steam_2026_05_04": "0x006DE6BF",
+        "steam_2026_06_09": "0x006DEEBF"
       }
     },
     {
       "name": "OOTP27_NO_MINOR_CONTRACT_WRITE_6DE96E_RVA",
       "canonicalRva": "0x006DE96E",
       "builds": {
-        "steam_2026_05_04": "0x006DE96E"
+        "steam_2026_05_04": "0x006DE96E",
+        "steam_2026_06_09": "0x006DF16E"
       }
     },
     {
       "name": "OOTP27_NO_MINOR_CONTRACT_WRITE_5568EF_RVA",
       "canonicalRva": "0x005568EF",
       "builds": {
-        "steam_2026_05_04": "0x005568EF"
+        "steam_2026_05_04": "0x005568EF",
+        "steam_2026_06_09": "0x005568DF"
       }
     },
     {
       "name": "OOTP27_NO_MINOR_CONTRACT_WRITE_A4BE04_RVA",
       "canonicalRva": "0x00A4BE04",
       "builds": {
-        "steam_2026_05_04": "0x00A4BE04"
+        "steam_2026_05_04": "0x00A4BE04",
+        "steam_2026_06_09": "0x00A4D604"
       }
     },
     {
       "name": "OOTP27_NO_MINOR_CONTRACT_WRITE_2184B61_RVA",
       "canonicalRva": "0x02184B61",
       "builds": {
-        "steam_2026_05_04": "0x02184B61"
+        "steam_2026_05_04": "0x02184B61",
+        "steam_2026_06_09": "0x0218BD31"
       }
     },
     {
       "name": "OOTP27_NO_MINOR_CONTRACT_WRITE_2185963_RVA",
       "canonicalRva": "0x02185963",
       "builds": {
-        "steam_2026_05_04": "0x02185963"
+        "steam_2026_05_04": "0x02185963",
+        "steam_2026_06_09": "0x0218CB33"
       }
     },
     {
       "name": "OOTP27_NO_MINOR_CONTRACT_WRITE_2185D00_RVA",
       "canonicalRva": "0x02185D00",
       "builds": {
-        "steam_2026_05_04": "0x02185D00"
+        "steam_2026_05_04": "0x02185D00",
+        "steam_2026_06_09": "0x0218CED0"
       }
     },
     {
       "name": "OOTP27_ARBITRATION_WITHDRAW_UI_HIDE_BRANCH_RVA",
       "canonicalRva": "0x01360332",
       "builds": {
-        "steam_2026_05_04": "0x01360332"
+        "steam_2026_05_04": "0x01360332",
+        "steam_2026_06_09": "0x01363382"
       }
     },
     {
       "name": "OOTP27_ARBITRATION_WITHDRAW_ACTION_GATE_RVA",
       "canonicalRva": "0x01360B58",
       "builds": {
-        "steam_2026_05_04": "0x01360B58"
+        "steam_2026_05_04": "0x01360B58",
+        "steam_2026_06_09": "0x01363BA8"
       }
     },
     {
       "name": "OOTP27_ARBITRATION_AI_FINAL_ZERO_TENDER_GATE_RVA",
       "canonicalRva": "0x00681B20",
       "builds": {
-        "steam_2026_05_04": "0x00681B20"
+        "steam_2026_05_04": "0x00681B20",
+        "steam_2026_06_09": "0x00681F90"
       }
     },
     {
       "name": "OOTP27_ARBITRATION_AI_OFFER_WRITE_681012_RVA",
       "canonicalRva": "0x00682012",
       "builds": {
-        "steam_2026_05_04": "0x00682012"
+        "steam_2026_05_04": "0x00682012",
+        "steam_2026_06_09": "0x00682482"
       }
     },
     {
       "name": "OOTP27_ARBITRATION_AI_ZERO_OFFER_CHECK_682089_RVA",
       "canonicalRva": "0x00682089",
       "builds": {
-        "steam_2026_05_04": "0x00682089"
+        "steam_2026_05_04": "0x00682089",
+        "steam_2026_06_09": "0x006824F9"
       }
     },
     {
       "name": "OOTP27_ARBITRATION_HIGH_LIMIT_SKIP_RSI_BRANCH_RVA",
       "canonicalRva": "0x00681DCF",
       "builds": {
-        "steam_2026_05_04": "0x00681DCF"
+        "steam_2026_05_04": "0x00681DCF",
+        "steam_2026_06_09": "0x0068223F"
       }
     },
     {
       "name": "OOTP27_ARBITRATION_HIGH_LIMIT_NON_TENDER_GATE_RVA",
       "canonicalRva": "0x006820AF",
       "builds": {
-        "steam_2026_05_04": "0x006820AF"
+        "steam_2026_05_04": "0x006820AF",
+        "steam_2026_06_09": "0x0068251F"
       }
     },
     {
       "name": "OOTP27_ARBITRATION_AI_OFFER_WRITE_6827CD_RVA",
       "canonicalRva": "0x006827CD",
       "builds": {
-        "steam_2026_05_04": "0x006827CD"
+        "steam_2026_05_04": "0x006827CD",
+        "steam_2026_06_09": "0x00682C3D"
       }
     },
     {
       "name": "OOTP27_ARBITRATION_NON_TENDER_FUNCTION_RVA",
       "canonicalRva": "0x00A55A70",
       "builds": {
-        "steam_2026_05_04": "0x00A55A70"
+        "steam_2026_05_04": "0x00A55A70",
+        "steam_2026_06_09": "0x00A57270"
       }
     },
     {
       "name": "OOTP27_INTL_ESTABLISHED_FA_COUNT_READY_RVA",
       "canonicalRva": "0x006B5478",
       "builds": {
-        "steam_2026_05_04": "0x006B5478"
+        "steam_2026_05_04": "0x006B5478",
+        "steam_2026_06_09": "0x006B5958"
       }
     },
     {
       "name": "OOTP27_INTL_ESTABLISHED_FA_REGISTER_GATE_RVA",
       "canonicalRva": "0x006B57DA",
       "builds": {
-        "steam_2026_05_04": "0x006B57DA"
+        "steam_2026_05_04": "0x006B57DA",
+        "steam_2026_06_09": "0x006B5CBA"
       }
     },
     {
       "name": "OOTP27_INTL_ESTABLISHED_FA_RETRY_LOOP_RVA",
       "canonicalRva": "0x006B5583",
       "builds": {
-        "steam_2026_05_04": "0x006B5583"
+        "steam_2026_05_04": "0x006B5583",
+        "steam_2026_06_09": "0x006B5A63"
       }
     },
     {
       "name": "OOTP27_INTL_ESTABLISHED_FA_PROGRESS_TITLE_RVA",
       "canonicalRva": "0x02ACECF8",
       "builds": {
-        "steam_2026_05_04": "0x02ACECF8"
+        "steam_2026_05_04": "0x02ACECF8",
+        "steam_2026_06_09": "0x02AD5E40"
       }
     },
     {
       "name": "OOTP27_ACTIVE_FOREIGN_HITTER_COUNT_RVA",
       "canonicalRva": "0x00A32B30",
       "builds": {
-        "steam_2026_05_04": "0x00A32B30"
+        "steam_2026_05_04": "0x00A32B30",
+        "steam_2026_06_09": "0x00A34330"
       }
     },
     {
       "name": "OOTP27_ACTIVE_FOREIGN_PITCHER_COUNT_RVA",
       "canonicalRva": "0x00A32BC0",
       "builds": {
-        "steam_2026_05_04": "0x00A32BC0"
+        "steam_2026_05_04": "0x00A32BC0",
+        "steam_2026_06_09": "0x00A343C0"
       }
     },
     {
       "name": "OOTP27_SECONDARY_FOREIGN_HITTER_COUNT_RVA",
       "canonicalRva": "0x00A32C50",
       "builds": {
-        "steam_2026_05_04": "0x00A32C50"
+        "steam_2026_05_04": "0x00A32C50",
+        "steam_2026_06_09": "0x00A34450"
       }
     },
     {
       "name": "OOTP27_SECONDARY_FOREIGN_PITCHER_COUNT_RVA",
       "canonicalRva": "0x00A32CE0",
       "builds": {
-        "steam_2026_05_04": "0x00A32CE0"
+        "steam_2026_05_04": "0x00A32CE0",
+        "steam_2026_06_09": "0x00A344E0"
       }
     },
     {
       "name": "OOTP27_POINTER_VECTOR_PUSH_BACK_RVA",
       "canonicalRva": "0x01CBAA40",
       "builds": {
-        "steam_2026_05_04": "0x01CBAA40"
+        "steam_2026_05_04": "0x01CBAA40",
+        "steam_2026_06_09": "0x01CC1BB0"
       }
     },
     {
       "name": "OOTP27_AI_ROSTER_SELECT_TRACE_RVA",
       "canonicalRva": "0x00DD86C0",
       "builds": {
-        "steam_2026_05_04": "0x00DD86C0"
+        "steam_2026_05_04": "0x00DD86C0",
+        "steam_2026_06_09": "0x00DDBD60"
       }
     },
     {
       "name": "OOTP27_AI_ROSTER_PRIMARY_APPLY_FLOW_TRACE_RVA",
       "canonicalRva": "0x00DD1B20",
       "builds": {
-        "steam_2026_05_04": "0x00DD1B20"
+        "steam_2026_05_04": "0x00DD1B20",
+        "steam_2026_06_09": "0x00DD51C0"
       }
     },
     {
       "name": "OOTP27_AI_ROSTER_APPLY_SELECTION_TRACE_RVA",
       "canonicalRva": "0x00DE6730",
       "builds": {
-        "steam_2026_05_04": "0x00DE6730"
+        "steam_2026_05_04": "0x00DE6730",
+        "steam_2026_06_09": "0x00DE9DD0"
       }
     },
     {
       "name": "OOTP27_CALLUP_FOREIGN_HITTER_LIMIT_BRANCH_RVA",
       "canonicalRva": "0x01079A85",
       "builds": {
-        "steam_2026_05_04": "0x01079A85"
+        "steam_2026_05_04": "0x01079A85",
+        "steam_2026_06_09": "0x0107DDB5"
       }
     },
     {
       "name": "OOTP27_CALLUP_FOREIGN_PITCHER_LIMIT_BRANCH_RVA",
       "canonicalRva": "0x01079B72",
       "builds": {
-        "steam_2026_05_04": "0x01079B72"
+        "steam_2026_05_04": "0x01079B72",
+        "steam_2026_06_09": "0x0107DEA2"
       }
     },
     {
       "name": "OOTP27_CALLUP_FOREIGN_TOTAL_LIMIT_BRANCH_RVA",
       "canonicalRva": "0x01079C22",
       "builds": {
-        "steam_2026_05_04": "0x01079C22"
+        "steam_2026_05_04": "0x01079C22",
+        "steam_2026_06_09": "0x0107DF52"
       }
     },
     {
       "name": "OOTP27_ALLSTAR_PREP_SINGLE_DIVISION_GATE_RVA",
       "canonicalRva": "0x0065C717",
       "builds": {
-        "steam_2026_05_04": "0x0065C717"
+        "steam_2026_05_04": "0x0065C717",
+        "steam_2026_06_09": "0x0065CB87"
       }
     },
     {
       "name": "OOTP27_ALLSTAR_ROSTER_SINGLE_DIVISION_GATE_RVA",
       "canonicalRva": "0x0065D713",
       "builds": {
-        "steam_2026_05_04": "0x0065D713"
+        "steam_2026_05_04": "0x0065D713",
+        "steam_2026_06_09": "0x0065DB83"
       }
     },
     {
       "name": "OOTP27_IMPORT_SCHEDULE_ALLSTAR_DAY_GATE_RVA",
       "canonicalRva": "0x008E6BA5",
       "builds": {
-        "steam_2026_05_04": "0x008E6BA5"
+        "steam_2026_05_04": "0x008E6BA5",
+        "steam_2026_06_09": "0x008E83A5"
       }
     },
     {
       "name": "OOTP27_ALLSTAR_SETTINGS_ENABLE_VALUE_SITE_RVA",
       "canonicalRva": "0x01544357",
       "builds": {
-        "steam_2026_05_04": "0x01544357"
+        "steam_2026_05_04": "0x01544357",
+        "steam_2026_06_09": "0x01547517"
       }
     },
     {
       "name": "OOTP27_ALLSTAR_SETTINGS_SINGLE_DIVISION_DISABLE_RVA",
       "canonicalRva": "0x01544377",
       "builds": {
-        "steam_2026_05_04": "0x01544377"
+        "steam_2026_05_04": "0x01544377",
+        "steam_2026_06_09": "0x01547537"
       }
     },
     {
       "name": "OOTP27_ALLSTAR_CANDIDATE_TEAM_SPLIT_SITE_RVA",
       "canonicalRva": "0x006D734A",
       "builds": {
-        "steam_2026_05_04": "0x006D734A"
+        "steam_2026_05_04": "0x006D734A",
+        "steam_2026_06_09": "0x006D7B4A"
       }
     },
     {
       "name": "OOTP27_ALLSTAR_CANDIDATE_TEAM_SPLIT_DONE_RVA",
       "canonicalRva": "0x006D74B8",
       "builds": {
-        "steam_2026_05_04": "0x006D74B8"
+        "steam_2026_05_04": "0x006D74B8",
+        "steam_2026_06_09": "0x006D7CB8"
       }
     },
     {
       "name": "OOTP27_ALLSTAR_CANDIDATE_TEAM_ROSTER_PUSH_SITE_RVA",
       "canonicalRva": "0x006D734E",
       "builds": {
-        "steam_2026_05_04": "0x006D734E"
+        "steam_2026_05_04": "0x006D734E",
+        "steam_2026_06_09": "0x006D7B4E"
       }
     },
     {
       "name": "OOTP27_ALLSTAR_CANDIDATE_PLAYER_PUSH_SITE_RVA",
       "canonicalRva": "0x006D7597",
       "builds": {
-        "steam_2026_05_04": "0x006D7597"
+        "steam_2026_05_04": "0x006D7597",
+        "steam_2026_06_09": "0x006D7D97"
       }
     },
     {
       "name": "OOTP27_ALLSTAR_CANDIDATE_RANKED_PLAYER_PUSH_SITE_1_RVA",
       "canonicalRva": "0x006D8CBE",
       "builds": {
-        "steam_2026_05_04": "0x006D8CBE"
+        "steam_2026_05_04": "0x006D8CBE",
+        "steam_2026_06_09": "0x006D94BE"
       }
     },
     {
       "name": "OOTP27_ALLSTAR_CANDIDATE_RANKED_PLAYER_PUSH_SITE_2_RVA",
       "canonicalRva": "0x006D8CFD",
       "builds": {
-        "steam_2026_05_04": "0x006D8CFD"
+        "steam_2026_05_04": "0x006D8CFD",
+        "steam_2026_06_09": "0x006D94FD"
       }
     },
     {
       "name": "OOTP27_ALLSTAR_CANDIDATE_RANKED_PLAYER_PUSH_SITE_3_RVA",
       "canonicalRva": "0x006D8D3C",
       "builds": {
-        "steam_2026_05_04": "0x006D8D3C"
+        "steam_2026_05_04": "0x006D8D3C",
+        "steam_2026_06_09": "0x006D953C"
       }
     },
     {
       "name": "OOTP27_ALLSTAR_CANDIDATE_RANKED_PLAYER_PUSH_SITE_4_RVA",
       "canonicalRva": "0x006D8DDE",
       "builds": {
-        "steam_2026_05_04": "0x006D8DDE"
+        "steam_2026_05_04": "0x006D8DDE",
+        "steam_2026_06_09": "0x006D95DE"
       }
     },
     {
       "name": "OOTP27_ALLSTAR_CANDIDATE_RANKED_PLAYER_PUSH_SITE_5_RVA",
       "canonicalRva": "0x006D8E17",
       "builds": {
-        "steam_2026_05_04": "0x006D8E17"
+        "steam_2026_05_04": "0x006D8E17",
+        "steam_2026_06_09": "0x006D9617"
       }
     },
     {
       "name": "OOTP27_ALLSTAR_CANDIDATE_RANKED_PLAYER_PUSH_SITE_6_RVA",
       "canonicalRva": "0x006D8EDA",
       "builds": {
-        "steam_2026_05_04": "0x006D8EDA"
+        "steam_2026_05_04": "0x006D8EDA",
+        "steam_2026_06_09": "0x006D96DA"
       }
     },
     {
       "name": "OOTP27_ALLSTAR_CANDIDATE_RANKED_PLAYER_PUSH_COMMON_SKIP_RVA",
       "canonicalRva": "0x006D8E41",
       "builds": {
-        "steam_2026_05_04": "0x006D8E41"
+        "steam_2026_05_04": "0x006D8E41",
+        "steam_2026_06_09": "0x006D9641"
       }
     },
     {
       "name": "OOTP27_ALLSTAR_CANDIDATE_RANKED_PLAYER_PUSH_FALLBACK_SKIP_RVA",
       "canonicalRva": "0x006D8F00",
       "builds": {
-        "steam_2026_05_04": "0x006D8F00"
+        "steam_2026_05_04": "0x006D8F00",
+        "steam_2026_06_09": "0x006D9700"
       }
     },
     {
       "name": "OOTP27_ALLSTAR_VOTING_BEGIN_PREP_SITE_RVA",
       "canonicalRva": "0x00763D5B",
       "builds": {
-        "steam_2026_05_04": "0x00763D5B"
+        "steam_2026_05_04": "0x00763D5B",
+        "steam_2026_06_09": "0x0076456B"
       }
     },
     {
       "name": "OOTP27_ALLSTAR_VOTING_BEGIN_NO_GAME_RVA",
       "canonicalRva": "0x00763F5E",
       "builds": {
-        "steam_2026_05_04": "0x00763F5E"
+        "steam_2026_05_04": "0x00763F5E",
+        "steam_2026_06_09": "0x0076476E"
       }
     },
     {
       "name": "OOTP27_ALLSTAR_TEAM_SETUP_FUNC_RVA",
       "canonicalRva": "0x00666A70",
       "builds": {
-        "steam_2026_05_04": "0x00666A70"
+        "steam_2026_05_04": "0x00666A70",
+        "steam_2026_06_09": "0x00666EE0"
       }
     },
     {
       "name": "OOTP27_ALLSTAR_CANDIDATE_REBUILD_FUNC_RVA",
       "canonicalRva": "0x00663090",
       "builds": {
-        "steam_2026_05_04": "0x00663090"
+        "steam_2026_05_04": "0x00663090",
+        "steam_2026_06_09": "0x00663500"
       }
     },
     {
       "name": "OOTP27_ALLSTAR_TEAM_SETUP_SINGLE_DIVISION_GATE_RVA",
       "canonicalRva": "0x00666B32",
       "builds": {
-        "steam_2026_05_04": "0x00666B32"
+        "steam_2026_05_04": "0x00666B32",
+        "steam_2026_06_09": "0x00666FA2"
       }
     },
     {
       "name": "OOTP27_MAKE_ALLSTAR_GAME_EVENTS_RVA",
       "canonicalRva": "0x006670B0",
       "builds": {
-        "steam_2026_05_04": "0x006670B0"
+        "steam_2026_05_04": "0x006670B0",
+        "steam_2026_06_09": "0x00667520"
       }
     },
     {
       "name": "OOTP27_MAKE_ALLSTAR_EVENTS_PREP_SITE_RVA",
       "canonicalRva": "0x00667624",
       "builds": {
-        "steam_2026_05_04": "0x00667624"
+        "steam_2026_05_04": "0x00667624",
+        "steam_2026_06_09": "0x00667A94"
       }
     },
     {
       "name": "OOTP27_ALLSTAR_TEAM_SETUP_SINGLE_DIVISION_BAIL_RVA",
       "canonicalRva": "0x00667056",
       "builds": {
-        "steam_2026_05_04": "0x00667056"
+        "steam_2026_05_04": "0x00667056",
+        "steam_2026_06_09": "0x006674C6"
       }
     },
     {
       "name": "OOTP27_SEASON_PHASE_WRITE_1_RVA",
       "canonicalRva": "0x00B6BF71",
       "builds": {
-        "steam_2026_05_04": "0x00B6BF71"
+        "steam_2026_05_04": "0x00B6BF71",
+        "steam_2026_06_09": "0x00B6EB11"
       }
     },
     {
       "name": "OOTP27_SEASON_PHASE_WRITE_0_RVA",
       "canonicalRva": "0x00B6C797",
       "builds": {
-        "steam_2026_05_04": "0x00B6C797"
+        "steam_2026_05_04": "0x00B6C797",
+        "steam_2026_06_09": "0x00B6F337"
       }
     },
     {
       "name": "OOTP27_SEASON_PHASE_WRITE_4_RVA",
       "canonicalRva": "0x00B6CC88",
       "builds": {
-        "steam_2026_05_04": "0x00B6CC88"
+        "steam_2026_05_04": "0x00B6CC88",
+        "steam_2026_06_09": "0x00B6F828"
       }
     },
     {
       "name": "OOTP27_SEASON_PHASE_WRITE_2A_RVA",
       "canonicalRva": "0x00B6E5D7",
       "builds": {
-        "steam_2026_05_04": "0x00B6E5D7"
+        "steam_2026_05_04": "0x00B6E5D7",
+        "steam_2026_06_09": "0x00B71177"
       }
     },
     {
       "name": "OOTP27_SEASON_PHASE_WRITE_2B_RVA",
       "canonicalRva": "0x00B714BB",
       "builds": {
-        "steam_2026_05_04": "0x00B714BB"
+        "steam_2026_05_04": "0x00B714BB",
+        "steam_2026_06_09": "0x00B7406A"
       }
     },
     {
       "name": "OOTP27_SEASON_PHASE_WRITE_2C_RVA",
       "canonicalRva": "0x00C87AE1",
       "builds": {
-        "steam_2026_05_04": "0x00C87AE1"
+        "steam_2026_05_04": "0x00C87AE1",
+        "steam_2026_06_09": "0x00C8AA61"
       }
     },
     {
       "name": "OOTP27_SEASON_PHASE_WRITE_3A_RVA",
       "canonicalRva": "0x0064DB32",
       "builds": {
-        "steam_2026_05_04": "0x0064DB32"
+        "steam_2026_05_04": "0x0064DB32",
+        "steam_2026_06_09": "0x0064DED2"
       }
     },
     {
       "name": "OOTP27_SEASON_PHASE_WRITE_3B_RVA",
       "canonicalRva": "0x0043C2E9",
       "builds": {
-        "steam_2026_05_04": "0x0043C2E9"
+        "steam_2026_05_04": "0x0043C2E9",
+        "steam_2026_06_09": "0x0043C2C9"
       }
     },
     {
       "name": "OOTP27_SEASON_PHASE_WRITE_3C_RVA",
       "canonicalRva": "0x0144B4B4",
       "builds": {
-        "steam_2026_05_04": "0x0144B4B4"
+        "steam_2026_05_04": "0x0144B4B4",
+        "steam_2026_06_09": "0x0144E634"
       }
     },
     {
       "name": "OOTP27_SEASON_PHASE_INIT_0A_RVA",
       "canonicalRva": "0x00550E64",
       "builds": {
-        "steam_2026_05_04": "0x00550E64"
+        "steam_2026_05_04": "0x00550E64",
+        "steam_2026_06_09": "0x00550E54"
       }
     },
     {
       "name": "OOTP27_SEASON_PHASE_INIT_0B_RVA",
       "canonicalRva": "0x00555637",
       "builds": {
-        "steam_2026_05_04": "0x00555637"
+        "steam_2026_05_04": "0x00555637",
+        "steam_2026_06_09": "0x00555627"
       }
     },
     {
       "name": "OOTP27_SEASON_PHASE_INIT_2_RVA",
       "canonicalRva": "0x00555EE4",
       "builds": {
-        "steam_2026_05_04": "0x00555EE4"
+        "steam_2026_05_04": "0x00555EE4",
+        "steam_2026_06_09": "0x00555ED4"
       }
     },
     {
       "name": "OOTP27_SEASON_PHASE_INIT_0C_RVA",
       "canonicalRva": "0x00556A6F",
       "builds": {
-        "steam_2026_05_04": "0x00556A6F"
+        "steam_2026_05_04": "0x00556A6F",
+        "steam_2026_06_09": "0x00556A5F"
       }
     },
     {
       "name": "OOTP27_CURRENT_DATE_COPY_POST_WRITE_RVA",
       "canonicalRva": "0x014A8F4E",
       "builds": {
-        "steam_2026_05_04": "0x014A8F4E"
+        "steam_2026_05_04": "0x014A8F4E",
+        "steam_2026_06_09": "0x014AC0CE"
       }
     },
     {
       "name": "OOTP27_CURRENT_DATE_NORMALIZE_POST_WRITE_RVA",
       "canonicalRva": "0x014AB116",
       "builds": {
-        "steam_2026_05_04": "0x014AB116"
+        "steam_2026_05_04": "0x014AB116",
+        "steam_2026_06_09": "0x014AE296"
       }
     },
     {
       "name": "OOTP27_CURRENT_DATE_SERIES_COPY_POST_WRITE_RVA",
       "canonicalRva": "0x004D3F7A",
       "builds": {
-        "steam_2026_05_04": "0x004D3F7A"
+        "steam_2026_05_04": "0x004D3F7A",
+        "steam_2026_06_09": "0x004D3F5A"
       }
     },
     {
       "name": "OOTP27_CURRENT_DATE_YEAR_SYNC_POST_VALIDATE_RVA",
       "canonicalRva": "0x00CFEA19",
       "builds": {
-        "steam_2026_05_04": "0x00CFEA19"
+        "steam_2026_05_04": "0x00CFEA19",
+        "steam_2026_06_09": "0x00D01A29"
       }
     },
     {
       "name": "OOTP27_CURRENT_DATE_SIM_LOOP_GLOBAL_READ_RVA",
       "canonicalRva": "0x015DDF70",
       "builds": {
-        "steam_2026_05_04": "0x015DDF70"
+        "steam_2026_05_04": "0x015DDF70",
+        "steam_2026_06_09": "0x015E12A0"
       }
     },
     {
       "name": "OOTP27_CURRENT_DATE_SIM_LOOP_POST_ADVANCE_RVA",
       "canonicalRva": "0x015DDF9C",
       "builds": {
-        "steam_2026_05_04": "0x015DDF9C"
+        "steam_2026_05_04": "0x015DDF9C",
+        "steam_2026_06_09": "0x015E12CC"
       }
     },
     {
       "name": "OOTP27_CURRENT_DATE_DATE_ADD_MUTATE_RVA",
       "canonicalRva": "0x01C88A60",
       "builds": {
-        "steam_2026_05_04": "0x01C88A60"
+        "steam_2026_05_04": "0x01C88A60",
+        "steam_2026_06_09": "0x01C8FB00"
       }
     },
     {
       "name": "OOTP27_UI_CHECKBOX_SET_BOOL_RVA",
       "canonicalRva": "0x01E7A420",
       "builds": {
-        "steam_2026_05_04": "0x01E7A420"
+        "steam_2026_05_04": "0x01E7A420",
+        "steam_2026_06_09": "0x01E815F0"
       }
     },
     {
       "name": "OOTP27_VECTOR_PUSH_BACK_RVA",
       "canonicalRva": "0x01CC3760",
       "builds": {
-        "steam_2026_05_04": "0x01CC3760"
+        "steam_2026_05_04": "0x01CC3760",
+        "steam_2026_06_09": "0x01CCA8D0"
       }
     },
     {
       "name": "OOTP27_ARBITRATION_AI_FINAL_ZERO_TENDER_CONTINUE_RVA",
       "canonicalRva": "0x00681C06",
       "builds": {
-        "steam_2026_05_04": "0x00681C06"
+        "steam_2026_05_04": "0x00681C06",
+        "steam_2026_06_09": "0x00682076"
       }
     },
     {
       "name": "OOTP27_ARBITRATION_AI_OFFER_WRITE_681012_FLOOR_RETURN_RVA",
       "canonicalRva": "0x00682020",
       "builds": {
-        "steam_2026_05_04": "0x00682020"
+        "steam_2026_05_04": "0x00682020",
+        "steam_2026_06_09": "0x00682490"
       }
     },
     {
       "name": "OOTP27_ARBITRATION_AI_OFFER_WRITE_681012_PASS_RETURN_RVA",
       "canonicalRva": "0x0068204A",
       "builds": {
-        "steam_2026_05_04": "0x0068204A"
+        "steam_2026_05_04": "0x0068204A",
+        "steam_2026_06_09": "0x006824BA"
       }
     },
     {
       "name": "OOTP27_ARBITRATION_AI_ZERO_OFFER_CHECK_682089_TENDER_RETURN_RVA",
       "canonicalRva": "0x006820B7",
       "builds": {
-        "steam_2026_05_04": "0x006820B7"
+        "steam_2026_05_04": "0x006820B7",
+        "steam_2026_06_09": "0x00682527"
       }
     },
     {
       "name": "OOTP27_ARBITRATION_AI_ZERO_OFFER_CHECK_682089_PASS_RETURN_RVA",
       "canonicalRva": "0x0068209B",
       "builds": {
-        "steam_2026_05_04": "0x0068209B"
+        "steam_2026_05_04": "0x0068209B",
+        "steam_2026_06_09": "0x0068250B"
       }
     },
     {
       "name": "OOTP27_ARBITRATION_HIGH_LIMIT_NON_TENDER_6820AF_PASS_RETURN_RVA",
       "canonicalRva": "0x006821FF",
       "builds": {
-        "steam_2026_05_04": "0x006821FF"
+        "steam_2026_05_04": "0x006821FF",
+        "steam_2026_06_09": "0x0068266F"
       }
     },
     {
       "name": "OOTP27_ARBITRATION_HIGH_LIMIT_NON_TENDER_6820AF_FLOOR_RETURN_RVA",
       "canonicalRva": "0x006820C1",
       "builds": {
-        "steam_2026_05_04": "0x006820C1"
+        "steam_2026_05_04": "0x006820C1",
+        "steam_2026_06_09": "0x00682531"
       }
     },
     {
       "name": "OOTP27_ARBITRATION_AI_OFFER_WRITE_6827CD_SUPERSTAR_SOURCE_RVA",
       "canonicalRva": "0x02AB4BD8",
       "builds": {
-        "steam_2026_05_04": "0x02AB4BD8"
+        "steam_2026_05_04": "0x02AB4BD8",
+        "steam_2026_06_09": "0x02ABBBD8"
       }
     },
     {
       "name": "OOTP27_ARBITRATION_AI_OFFER_WRITE_6827CD_RETURN_RVA",
       "canonicalRva": "0x006827DA",
       "builds": {
-        "steam_2026_05_04": "0x006827DA"
+        "steam_2026_05_04": "0x006827DA",
+        "steam_2026_06_09": "0x00682C4A"
       }
     },
     {
       "name": "OOTP27_ALLSTAR_SETTINGS_ONE_DIVISION_WARNING_GATE_RVA",
       "canonicalRva": "0x01545BB8",
       "builds": {
-        "steam_2026_05_04": "0x01545BB8"
+        "steam_2026_05_04": "0x01545BB8",
+        "steam_2026_06_09": "0x01548D78"
       }
     },
     {
       "name": "OOTP27_FOREIGN_CALLUP_LIMIT_TOTAL_CHECK_FALLBACK_RVA",
       "canonicalRva": "0x0107B2B4",
       "builds": {
-        "steam_2026_05_04": "0x0107B2B4"
+        "steam_2026_05_04": "0x0107B2B4",
+        "steam_2026_06_09": "0x0107F5E4"
       }
     },
     {
       "name": "OOTP27_AMATEUR_GENERATION_TEAM_ADD_CALLER_00A30BA0_RVA",
       "canonicalRva": "0x00A30BA0",
       "builds": {
-        "steam_2026_05_04": "0x00A30BA0"
+        "steam_2026_05_04": "0x00A30BA0",
+        "steam_2026_06_09": "0x00A323A0"
       }
     },
     {
       "name": "OOTP27_AMATEUR_GENERATION_TEAM_ADD_CALLER_00A3105B_RVA",
       "canonicalRva": "0x00A3105B",
       "builds": {
-        "steam_2026_05_04": "0x00A3105B"
+        "steam_2026_05_04": "0x00A3105B",
+        "steam_2026_06_09": "0x00A3285B"
       }
     },
     {
       "name": "OOTP27_AMATEUR_GENERATION_TEAM_ADD_CALLER_00A312A7_RVA",
       "canonicalRva": "0x00A312A7",
       "builds": {
-        "steam_2026_05_04": "0x00A312A7"
+        "steam_2026_05_04": "0x00A312A7",
+        "steam_2026_06_09": "0x00A32AA7"
       }
     },
     {
       "name": "OOTP27_AMATEUR_GENERATION_TEAM_ADD_CALLER_00A3150F_RVA",
       "canonicalRva": "0x00A3150F",
       "builds": {
-        "steam_2026_05_04": "0x00A3150F"
+        "steam_2026_05_04": "0x00A3150F",
+        "steam_2026_06_09": "0x00A32D0F"
       }
     },
     {
       "name": "OOTP27_AMATEUR_GENERATION_TEAM_ADD_CALLER_00A3175B_RVA",
       "canonicalRva": "0x00A3175B",
       "builds": {
-        "steam_2026_05_04": "0x00A3175B"
+        "steam_2026_05_04": "0x00A3175B",
+        "steam_2026_06_09": "0x00A32F5B"
       }
     },
     {
       "name": "OOTP27_AMATEUR_GENERATION_TEAM_ADD_CALLER_00A319A8_RVA",
       "canonicalRva": "0x00A319A8",
       "builds": {
-        "steam_2026_05_04": "0x00A319A8"
+        "steam_2026_05_04": "0x00A319A8",
+        "steam_2026_06_09": "0x00A331A8"
       }
     },
     {
       "name": "OOTP27_ARBITRATION_NON_TENDER_RETURN_0067C0F1_RVA",
       "canonicalRva": "0x0067C0F1",
       "builds": {
-        "steam_2026_05_04": "0x0067C0F1"
+        "steam_2026_05_04": "0x0067C0F1",
+        "steam_2026_06_09": "0x0067C561"
       }
     },
     {
       "name": "OOTP27_ARBITRATION_NON_TENDER_RETURN_00681B6B_RVA",
       "canonicalRva": "0x00681B6B",
       "builds": {
-        "steam_2026_05_04": "0x00681B6B"
+        "steam_2026_05_04": "0x00681B6B",
+        "steam_2026_06_09": "0x00681FDB"
       }
     },
     {
       "name": "OOTP27_ARBITRATION_NON_TENDER_RETURN_006820C6_RVA",
       "canonicalRva": "0x006820C6",
       "builds": {
-        "steam_2026_05_04": "0x006820C6"
+        "steam_2026_05_04": "0x006820C6",
+        "steam_2026_06_09": "0x00682536"
       }
     }
   ]
