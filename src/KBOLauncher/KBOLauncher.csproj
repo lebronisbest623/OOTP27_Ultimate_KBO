@@ -8,7 +8,7 @@
     <RootNamespace>KBOLauncher</RootNamespace>
     <BaseOutputPath>..\..\bin\</BaseOutputPath>
     <ApplicationIcon>..\..\assets\icons\kbo-launcher-icon.ico</ApplicationIcon>
-    <Version>1.2.0-rc.1</Version>
+    <Version>1.2.0-rc.2</Version>
     <AssemblyVersion>1.2.0.0</AssemblyVersion>
     <FileVersion>1.2.0.0</FileVersion>
   </PropertyGroup>

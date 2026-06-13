@@ -158,7 +158,7 @@
       "canonicalRva": "0x031EA778",
       "builds": {
         "steam_2026_05_04": "0x031EA778",
-        "steam_2026_06_09": "0x031F1778"
+        "steam_2026_06_09": "0x031F1740"
       }
     },
     {
@@ -830,7 +830,7 @@
       "canonicalRva": "0x02ACECF8",
       "builds": {
         "steam_2026_05_04": "0x02ACECF8",
-        "steam_2026_06_09": "0x02AD5E40"
+        "steam_2026_06_09": "0x02AD5D10"
       }
     },
     {
@@ -1283,10 +1283,10 @@
     },
     {
       "name": "OOTP27_UI_CHECKBOX_SET_BOOL_RVA",
-      "canonicalRva": "0x01E7A420",
+      "canonicalRva": "0x01E717D0",
       "builds": {
-        "steam_2026_05_04": "0x01E7A420",
-        "steam_2026_06_09": "0x01E815F0"
+        "steam_2026_05_04": "0x01E717D0",
+        "steam_2026_06_09": "0x01E789A0"
       }
     },
     {

@@ -59,6 +59,25 @@ public sealed class OotpSupportedBuildManifestTests
     }
 
     [Fact]
+    public void ManuallyVerifiedRvas_MatchExecutableAnchors()
+    {
+        var rvas = ReadRvaManifestRows().ToDictionary(row => row.Name);
+
+        rvas["OOTP27_PLAYER_TOOLTIP_CURRENT_GLOBAL_RVA"].BuildRvas["steam_2026_06_09"].Should().Be(
+            0x031F1740u,
+            "the June tooltip render function loads the current-tooltip global from image base + 0x031F1740 before dereferencing it");
+        rvas["OOTP27_INTL_ESTABLISHED_FA_PROGRESS_TITLE_RVA"].BuildRvas["steam_2026_06_09"].Should().Be(
+            0x02AD5D10u,
+            "the June executable stores the Creating International Free Agents title string at image base + 0x02AD5D10");
+        rvas["OOTP27_UI_CHECKBOX_SET_BOOL_RVA"].CanonicalRva.Should().Be(
+            0x01E717D0u,
+            "the May all-star settings hook calls the checkbox setter at image base + 0x01E717D0");
+        rvas["OOTP27_UI_CHECKBOX_SET_BOOL_RVA"].BuildRvas["steam_2026_06_09"].Should().Be(
+            0x01E789A0u,
+            "the June all-star settings hook calls the same checkbox setter at image base + 0x01E789A0");
+    }
+
+    [Fact]
     public void NativePatchSupportedBuilds_HaveCriticalRvasMapped()
     {
         var nativePatchBuilds = ReadManifestBuilds()
