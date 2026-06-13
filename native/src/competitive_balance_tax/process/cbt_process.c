@@ -35,18 +35,6 @@ int kbo_process_competitive_balance_tax_for_date(uint32_t season, uint32_t news_
         return 1;
     }
 
-    /* One-shot schema probe so we can discover the draft pick table structure */
-    static volatile LONG probe_done = 0;
-    if (InterlockedCompareExchange(&probe_done, 1, 0) == 0) {
-        uintptr_t global = get_ootp_global_database();
-        if (global != 0 && memory_range_readable((void*)(global + OOTP27_GLOBAL_SQL_DATABASE_OFFSET), sizeof(uintptr_t))) {
-            uintptr_t db = *(uintptr_t*)(global + OOTP27_GLOBAL_SQL_DATABASE_OFFSET);
-            if (db != 0) {
-                kbo_cbt_draft_probe_schema((void*)db);
-            }
-        }
-    }
-
     KboCbtRules rules;
     kbo_cbt_rules_load(&rules);
     if (!rules.enabled) {
