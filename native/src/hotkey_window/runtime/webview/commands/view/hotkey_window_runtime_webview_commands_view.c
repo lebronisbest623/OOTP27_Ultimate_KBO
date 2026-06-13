@@ -184,6 +184,112 @@ static int kbo_webview_handle_futures_offer_command(const char* cmd)
     return 1;
 }
 
+static void kbo_webview_secondary_draft_select(int subview)
+{
+    g_kbo_hub_selected_view = KBO_HUB_VIEW_SECONDARY_DRAFT;
+    if (subview >= 0 && subview < KBO_HUB_SECONDARY_DRAFT_SUBVIEW_COUNT) {
+        g_kbo_hub_selected_secondary_draft_subview = subview;
+    }
+    g_kbo_hub_open_dropdown = 0;
+}
+
+static int kbo_webview_handle_secondary_draft_command(const char* cmd)
+{
+    if (strncmp(cmd, "secondary-draft/", 16) != 0) {
+        return 0;
+    }
+    if (!kbo_hub_selected_league_is_kbo()) {
+        g_kbo_hub_selected_view = KBO_HUB_VIEW_MOD_INFO;
+        g_kbo_hub_open_dropdown = 0;
+        kbo_webview_navigate_current();
+        return 1;
+    }
+
+    const char* text = cmd + 16;
+    if (strncmp(text, "season/", 7) == 0) {
+        uint32_t season = (uint32_t)strtoul(text + 7, NULL, 10);
+        if (season != 0u && kbo_secondary_draft_is_odd_season(season)) {
+            g_kbo_hub_selected_secondary_draft_season = season;
+        }
+        kbo_webview_secondary_draft_select(g_kbo_hub_selected_secondary_draft_subview);
+        kbo_webview_navigate_current();
+        return 1;
+    }
+
+    if (strncmp(text, "auto/", 5) == 0) {
+        uint32_t season = 0u;
+        uint32_t team_id = 0u;
+        int parsed = sscanf(text + 5, "%u/%u", &season, &team_id);
+        if (parsed == 2 && season != 0u && team_id != 0u) {
+            g_kbo_hub_selected_secondary_draft_season = season;
+            (void)kbo_secondary_draft_ui_auto_submit_team(
+                season,
+                team_id,
+                "hub_secondary_draft_auto_submit");
+        }
+        kbo_webview_secondary_draft_select(KBO_HUB_SECONDARY_DRAFT_SUBVIEW_PROTECTION);
+        kbo_webview_navigate_current();
+        return 1;
+    }
+
+    if (strncmp(text, "submit/", 7) == 0) {
+        uint32_t season = 0u;
+        uint32_t team_id = 0u;
+        int parsed = sscanf(text + 7, "%u/%u", &season, &team_id);
+        if (parsed == 2 && season != 0u && team_id != 0u) {
+            g_kbo_hub_selected_secondary_draft_season = season;
+            (void)kbo_secondary_draft_ui_submit_team(
+                season,
+                team_id,
+                "hub_secondary_draft_submit");
+        }
+        kbo_webview_secondary_draft_select(KBO_HUB_SECONDARY_DRAFT_SUBVIEW_PROTECTION);
+        kbo_webview_navigate_current();
+        return 1;
+    }
+
+    if (strncmp(text, "protect/", 8) == 0) {
+        uint32_t season = 0u;
+        uint32_t team_id = 0u;
+        uint32_t player_id = 0u;
+        int parsed = sscanf(text + 8, "%u/%u/%u", &season, &team_id, &player_id);
+        if (parsed == 3 && season != 0u && team_id != 0u && player_id != 0u) {
+            g_kbo_hub_selected_secondary_draft_season = season;
+            (void)kbo_secondary_draft_ui_protect_player(
+                season,
+                team_id,
+                player_id,
+                "hub_secondary_draft_protect");
+        }
+        kbo_webview_secondary_draft_select(KBO_HUB_SECONDARY_DRAFT_SUBVIEW_PROTECTION);
+        kbo_webview_navigate_current();
+        return 1;
+    }
+
+    if (strncmp(text, "run/", 4) == 0) {
+        uint32_t season = (uint32_t)strtoul(text + 4, NULL, 10);
+        if (season != 0u) {
+            g_kbo_hub_selected_secondary_draft_season = season;
+            (void)kbo_secondary_draft_ui_run_draft(
+                season,
+                g_kbo_hub_selected_team_id,
+                "hub_secondary_draft_run");
+        }
+        kbo_webview_secondary_draft_select(KBO_HUB_SECONDARY_DRAFT_SUBVIEW_RESULTS);
+        kbo_webview_navigate_current();
+        return 1;
+    }
+
+    int subview = atoi(text);
+    if (subview >= 0 && subview < KBO_HUB_SECONDARY_DRAFT_SUBVIEW_COUNT) {
+        kbo_webview_secondary_draft_select(subview);
+    } else {
+        kbo_webview_secondary_draft_select(KBO_HUB_SECONDARY_DRAFT_SUBVIEW_PROTECTION);
+    }
+    kbo_webview_navigate_current();
+    return 1;
+}
+
 int kbo_webview_handle_view_navigation_command(const char* cmd)
 {
 
@@ -191,6 +297,9 @@ int kbo_webview_handle_view_navigation_command(const char* cmd)
         return 1;
     }
     if (kbo_webview_handle_futures_offer_command(cmd)) {
+        return 1;
+    }
+    if (kbo_webview_handle_secondary_draft_command(cmd)) {
         return 1;
     }
 
@@ -244,6 +353,11 @@ int kbo_webview_handle_view_navigation_command(const char* cmd)
                     && (g_kbo_hub_selected_futures_subview < 0
                         || g_kbo_hub_selected_futures_subview >= KBO_HUB_FUTURES_SUBVIEW_COUNT)) {
                 g_kbo_hub_selected_futures_subview = KBO_HUB_FUTURES_SUBVIEW_OFFER;
+            }
+            if (g_kbo_hub_selected_view == KBO_HUB_VIEW_SECONDARY_DRAFT
+                    && (g_kbo_hub_selected_secondary_draft_subview < 0
+                        || g_kbo_hub_selected_secondary_draft_subview >= KBO_HUB_SECONDARY_DRAFT_SUBVIEW_COUNT)) {
+                g_kbo_hub_selected_secondary_draft_subview = KBO_HUB_SECONDARY_DRAFT_SUBVIEW_PROTECTION;
             }
             if (g_kbo_hub_selected_view == KBO_HUB_VIEW_SETTINGS
                     && (g_kbo_hub_selected_settings_subview < 0

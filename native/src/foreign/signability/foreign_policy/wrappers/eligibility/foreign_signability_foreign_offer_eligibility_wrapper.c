@@ -67,7 +67,13 @@ __declspec(noinline) uint8_t ootp_kbo_player_offer_eligibility_wrapper(
     }
 
     KBO_PROFILE_BEGIN(profile_offer_fast_block);
-    int fast_blocked = kbo_fast_block_fa_candidate_before_original(player_ptr, team_id, "offer_eligibility", NULL);
+    KboFastBlockCustomPolicyResult fast_custom_policy;
+    int fast_blocked = kbo_fast_block_fa_candidate_before_original_with_result(
+        player_ptr,
+        team_id,
+        "offer_eligibility",
+        NULL,
+        &fast_custom_policy);
     KBO_PROFILE_END(profile_offer_fast_block, "foreign_policy.offer_eligibility.fast_block");
     if (fast_blocked) {
         KBO_HOOK_PROFILE_RETURN(profile_hook, "foreign.offer_eligibility", 0u);
@@ -191,16 +197,26 @@ __declspec(noinline) uint8_t ootp_kbo_player_offer_eligibility_wrapper(
         uint32_t effective_limit = KBO_CUSTOM_FOREIGN_BASE_EFFECTIVE_LIMIT;
         uint8_t slot_type = 0u;
         uint32_t injured_player_id = 0u;
-        KBO_PROFILE_BEGIN(profile_offer_custom_allows);
-        int allowed = kbo_custom_foreign_policy_team_allows_candidate(
-            (uint32_t)team_id,
-            player,
-            &effective_before,
-            &effective_after,
-            &effective_limit,
-            &slot_type,
-            &injured_player_id);
-        KBO_PROFILE_END(profile_offer_custom_allows, "foreign_policy.offer_eligibility.custom_policy_allows");
+        int allowed = 0;
+        if (fast_custom_policy.valid) {
+            allowed = fast_custom_policy.allowed ? 1 : 0;
+            effective_before = fast_custom_policy.effective_before;
+            effective_after = fast_custom_policy.effective_after;
+            effective_limit = fast_custom_policy.effective_limit;
+            slot_type = fast_custom_policy.slot_type;
+            injured_player_id = fast_custom_policy.injured_player_id;
+        } else {
+            KBO_PROFILE_BEGIN(profile_offer_custom_allows);
+            allowed = kbo_custom_foreign_policy_team_allows_candidate(
+                (uint32_t)team_id,
+                player,
+                &effective_before,
+                &effective_after,
+                &effective_limit,
+                &slot_type,
+                &injured_player_id);
+            KBO_PROFILE_END(profile_offer_custom_allows, "foreign_policy.offer_eligibility.custom_policy_allows");
+        }
         KBO_PROFILE_BEGIN(profile_offer_custom_override);
         int override_original_block = kbo_custom_foreign_policy_can_override_original_block(player, (uint32_t)team_id);
         KBO_PROFILE_END(profile_offer_custom_override, "foreign_policy.offer_eligibility.custom_policy_override");

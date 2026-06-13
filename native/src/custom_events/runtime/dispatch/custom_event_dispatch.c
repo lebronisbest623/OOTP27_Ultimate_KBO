@@ -90,6 +90,9 @@ int kbo_custom_event_completed_state_is_valid(uint32_t league_id, uint32_t event
     if (kind == KBO_CUSTOM_EVENT_KIND_INDEPENDENT_TEAM_ACQUISITION_OPEN) {
         return kbo_independent_team_acquisition_completion_valid(league_id, event_yyyymmdd);
     }
+    if (kind == KBO_CUSTOM_EVENT_KIND_SECONDARY_DRAFT) {
+        return kbo_secondary_draft_completion_valid(league_id, event_yyyymmdd);
+    }
     return 1;
 }
 
@@ -205,6 +208,9 @@ int kbo_dispatch_custom_event_by_kind(
     }
     if (kind == KBO_CUSTOM_EVENT_KIND_INDEPENDENT_TEAM_ACQUISITION_OPEN) {
         return kbo_handle_independent_team_acquisition_open_event(event_yyyymmdd, source);
+    }
+    if (kind == KBO_CUSTOM_EVENT_KIND_SECONDARY_DRAFT) {
+        return kbo_handle_secondary_draft_event(event_yyyymmdd, source);
     }
 
     return 0;

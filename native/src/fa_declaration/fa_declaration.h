@@ -55,6 +55,10 @@ int kbo_fa_declaration_find_latest_decision(
     uint32_t player_id,
     uint32_t season,
     KboFaDeclarationDecision* out_decision);
+int kbo_fa_declaration_load_season_decisions(
+    uint32_t season,
+    KboFaDeclarationDecision* decisions,
+    int max_decisions);
 uint32_t kbo_fa_declaration_retained_contract_season(uint32_t declaration_season);
 int kbo_fa_declaration_repair_retained_contract_salary(
     uint8_t* player,

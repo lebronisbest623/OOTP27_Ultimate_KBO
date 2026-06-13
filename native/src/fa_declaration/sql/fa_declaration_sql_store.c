@@ -23,6 +23,14 @@ typedef struct KboFaDeclarationReportSqlContext {
     int overflowed;
 } KboFaDeclarationReportSqlContext;
 
+typedef struct KboFaDeclarationDecisionListSqlContext {
+    KboFaDeclarationDecision* decisions;
+    int capacity;
+    int count;
+    int overflowed;
+    uint32_t last_player_id;
+} KboFaDeclarationDecisionListSqlContext;
+
 static int kbo_fa_declaration_sql_ensure_schema(const char* source)
 {
     static const char* sql =
@@ -212,6 +220,23 @@ int kbo_fa_declaration_sql_append_candidates(
     return ok;
 }
 
+static void kbo_fa_declaration_sql_read_decision(char** vals, KboFaDeclarationDecision* decision)
+{
+    if (decision == NULL || vals == NULL) {
+        return;
+    }
+    decision->player_id = kbo_fa_declaration_sql_u32(vals, 0);
+    decision->declaration_date = kbo_fa_declaration_sql_u32(vals, 1);
+    decision->season = kbo_fa_declaration_sql_u32(vals, 2);
+    decision->declared = kbo_fa_declaration_sql_u32(vals, 3);
+    decision->team_id = kbo_fa_declaration_sql_u32(vals, 4);
+    decision->league_id = kbo_fa_declaration_sql_u32(vals, 5);
+    decision->contract_level = (uint8_t)(kbo_fa_declaration_sql_u32(vals, 6) & 0xffu);
+    decision->salary = kbo_fa_declaration_sql_i32(vals, 7);
+    decision->fa_demand = kbo_fa_declaration_sql_i32(vals, 8);
+    decision->score = kbo_fa_declaration_sql_i32(vals, 9);
+}
+
 static int kbo_fa_declaration_sql_decision_cb(void* user_data, int ncols, char** vals, char** names)
 {
     (void)names;
@@ -219,16 +244,7 @@ static int kbo_fa_declaration_sql_decision_cb(void* user_data, int ncols, char**
     if (result == NULL || vals == NULL || ncols < 10) {
         return 0;
     }
-    result->decision.player_id = kbo_fa_declaration_sql_u32(vals, 0);
-    result->decision.declaration_date = kbo_fa_declaration_sql_u32(vals, 1);
-    result->decision.season = kbo_fa_declaration_sql_u32(vals, 2);
-    result->decision.declared = kbo_fa_declaration_sql_u32(vals, 3);
-    result->decision.team_id = kbo_fa_declaration_sql_u32(vals, 4);
-    result->decision.league_id = kbo_fa_declaration_sql_u32(vals, 5);
-    result->decision.contract_level = (uint8_t)(kbo_fa_declaration_sql_u32(vals, 6) & 0xffu);
-    result->decision.salary = kbo_fa_declaration_sql_i32(vals, 7);
-    result->decision.fa_demand = kbo_fa_declaration_sql_i32(vals, 8);
-    result->decision.score = kbo_fa_declaration_sql_i32(vals, 9);
+    kbo_fa_declaration_sql_read_decision(vals, &result->decision);
     result->found = result->decision.player_id != 0u;
     return 0;
 }
@@ -283,6 +299,70 @@ int kbo_fa_declaration_sql_find_latest_decision(
         return 0;
     }
     *out_decision = result.decision;
+    return 1;
+}
+
+static int kbo_fa_declaration_sql_decision_list_cb(void* user_data, int ncols, char** vals, char** names)
+{
+    (void)names;
+    KboFaDeclarationDecisionListSqlContext* ctx = (KboFaDeclarationDecisionListSqlContext*)user_data;
+    if (ctx == NULL || ctx->decisions == NULL || vals == NULL || ncols < 10) {
+        return 0;
+    }
+    KboFaDeclarationDecision decision;
+    memset(&decision, 0, sizeof(decision));
+    kbo_fa_declaration_sql_read_decision(vals, &decision);
+    if (decision.player_id == 0u || decision.player_id == ctx->last_player_id) {
+        return 0;
+    }
+    ctx->last_player_id = decision.player_id;
+    if (ctx->count >= ctx->capacity) {
+        ctx->overflowed++;
+        return 0;
+    }
+    ctx->decisions[ctx->count++] = decision;
+    return 0;
+}
+
+int kbo_fa_declaration_sql_load_season_decisions(
+    uint32_t season,
+    KboFaDeclarationDecision* decisions,
+    int max_decisions,
+    int* out_count)
+{
+    if (out_count != NULL) {
+        *out_count = 0;
+    }
+    if (season == 0u || decisions == NULL || max_decisions <= 0 || out_count == NULL
+            || !kbo_fa_declaration_sql_ensure_schema("fa_declarations_season_decisions_schema")) {
+        return 0;
+    }
+
+    char sql[512] = {0};
+    int len = snprintf(
+        sql,
+        sizeof(sql),
+        "SELECT player_id, declaration_date, season, declared, team_id, league_id, "
+        "contract_level, salary, fa_demand, score "
+        "FROM fa_declarations WHERE season=%u AND player_id != 0 "
+        "ORDER BY player_id ASC, declaration_date DESC, id DESC;",
+        season);
+    if (len <= 0 || len >= (int)sizeof(sql)) {
+        return 0;
+    }
+
+    KboFaDeclarationDecisionListSqlContext ctx = {decisions, max_decisions, 0, 0, 0u};
+    if (!kbo_save_state_query(sql, kbo_fa_declaration_sql_decision_list_cb, &ctx, "fa_declarations_season_decisions")) {
+        return 0;
+    }
+    if (ctx.overflowed > 0) {
+        kbo_log_runtimef(
+            "KBO FA declarations sqlite season decisions truncated rows=%d capacity=%d season=%u",
+            ctx.overflowed,
+            max_decisions,
+            season);
+    }
+    *out_count = ctx.count;
     return 1;
 }
 

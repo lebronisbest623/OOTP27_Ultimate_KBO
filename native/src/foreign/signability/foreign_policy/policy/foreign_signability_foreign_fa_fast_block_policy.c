@@ -1,17 +1,22 @@
 #include "../internal/foreign_signability_internal.h"
 #include "../../../quota/candidates/cache/foreign_quota_candidate_limit_cache.h"
+#include <string.h>
 
 /* Early FA candidate block policy. */
 
-int kbo_fast_block_fa_candidate_before_original(
+int kbo_fast_block_fa_candidate_before_original_with_result(
     uintptr_t player_ptr,
     int32_t requesting_team_id,
     const char* context,
-    uint32_t* out_player_id)
+    uint32_t* out_player_id,
+    KboFastBlockCustomPolicyResult* out_custom_policy)
 {
     KBO_PROFILE_BEGIN(profile_fa_fast_block);
     if (out_player_id != NULL) {
         *out_player_id = 0u;
+    }
+    if (out_custom_policy != NULL) {
+        memset(out_custom_policy, 0, sizeof(*out_custom_policy));
     }
     if (!kbo_fix_enabled() || requesting_team_id <= 0) {
         KBO_PROFILE_END(profile_fa_fast_block, "foreign_policy.fast_block.disabled");
@@ -92,22 +97,33 @@ int kbo_fast_block_fa_candidate_before_original(
     }
 
     if (custom_policy_enabled) {
+        uint32_t effective_before = 0u;
+        uint32_t effective_after = 0u;
+        uint32_t effective_limit = KBO_CUSTOM_FOREIGN_BASE_EFFECTIVE_LIMIT;
+        uint8_t slot_type = 0u;
+        uint32_t injured_player_id = 0u;
         int allowed = kbo_custom_foreign_policy_team_allows_candidate(
             requester_team_id,
             player,
-            NULL,
-            NULL,
-            NULL,
-            NULL,
-            NULL);
+            out_custom_policy != NULL ? &effective_before : NULL,
+            out_custom_policy != NULL ? &effective_after : NULL,
+            out_custom_policy != NULL ? &effective_limit : NULL,
+            out_custom_policy != NULL ? &slot_type : NULL,
+            out_custom_policy != NULL ? &injured_player_id : NULL);
+        if (out_custom_policy != NULL) {
+            out_custom_policy->today = today;
+            out_custom_policy->effective_before = effective_before;
+            out_custom_policy->effective_after = effective_after;
+            out_custom_policy->effective_limit = effective_limit;
+            out_custom_policy->slot_type = slot_type;
+            out_custom_policy->injured_player_id = injured_player_id;
+            out_custom_policy->allowed = allowed ? 1u : 0u;
+            out_custom_policy->valid = 1u;
+        }
         if (!allowed) {
-            uint32_t effective_before = 0u;
-            uint32_t effective_after = 0u;
-            uint32_t effective_limit = KBO_CUSTOM_FOREIGN_BASE_EFFECTIVE_LIMIT;
-            uint8_t slot_type = 0u;
-            uint32_t injured_player_id = 0u;
             int cached_allowed = 1;
-            if (!memory_range_readable(player, OOTP27_PLAYER_SCAN_BYTES)
+            if (out_custom_policy == NULL
+                    && (!memory_range_readable(player, OOTP27_PLAYER_SCAN_BYTES)
                     || !kbo_custom_foreign_candidate_cache_hit(
                         requester_team_id,
                         player,
@@ -122,7 +138,7 @@ int kbo_fast_block_fa_candidate_before_original(
                         &slot_type,
                         &injured_player_id,
                         &cached_allowed)
-                    || cached_allowed) {
+                    || cached_allowed)) {
                 kbo_custom_foreign_policy_team_allows_candidate(
                     requester_team_id,
                     player,
@@ -157,5 +173,19 @@ int kbo_fast_block_fa_candidate_before_original(
 
     KBO_PROFILE_END(profile_fa_fast_block, "foreign_policy.fast_block.allowed");
     return 0;
+}
+
+int kbo_fast_block_fa_candidate_before_original(
+    uintptr_t player_ptr,
+    int32_t requesting_team_id,
+    const char* context,
+    uint32_t* out_player_id)
+{
+    return kbo_fast_block_fa_candidate_before_original_with_result(
+        player_ptr,
+        requesting_team_id,
+        context,
+        out_player_id,
+        NULL);
 }
 

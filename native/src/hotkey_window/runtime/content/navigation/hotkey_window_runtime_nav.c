@@ -14,6 +14,7 @@ const char* kbo_hub_nav_label(int index)
     case KBO_HUB_VIEW_REPUTATION:     return kbo_hub_text("\xed\x8f\x89\xed\x8c\x90", "평판");
     case KBO_HUB_VIEW_CBT:            return kbo_hub_text("\xea\xb2\xbd\xec\x9f\x81\xea\xb7\xa0\xed\x98\x95\xec\x84\xb8", "경쟁균형세");
     case KBO_HUB_VIEW_FUTURES_LEAGUE: return kbo_hub_text("\xea\xb5\xac\xeb\xa7\xa4", "구매");
+    case KBO_HUB_VIEW_SECONDARY_DRAFT:return "2차 드래프트";
     default:                          return "";
     }
 }
@@ -80,6 +81,20 @@ const char* kbo_hub_futures_subnav_label(int index)
     case KBO_HUB_FUTURES_SUBVIEW_PENDING:
         return "대기";
     case KBO_HUB_FUTURES_SUBVIEW_RESULT:
+        return "결과";
+    default:
+        return "";
+    }
+}
+
+const char* kbo_hub_secondary_draft_subnav_label(int index)
+{
+    switch (index) {
+    case KBO_HUB_SECONDARY_DRAFT_SUBVIEW_PROTECTION:
+        return "보호명단";
+    case KBO_HUB_SECONDARY_DRAFT_SUBVIEW_DRAFT:
+        return "드래프트";
+    case KBO_HUB_SECONDARY_DRAFT_SUBVIEW_RESULTS:
         return "결과";
     default:
         return "";

@@ -35,5 +35,6 @@
 #include "../../../fa_compensation/due/fa_compensation_due.h"
 #include "../../../fa_declaration/fa_declaration.h"
 #include "../../../competitive_balance_tax/events/cbt_events.h"
+#include "../../secondary_draft/secondary_draft.h"
 
 #endif

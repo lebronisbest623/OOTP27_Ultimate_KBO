@@ -25,7 +25,9 @@ int kbo_custom_foreign_policy_team_allows_candidate(
     uint8_t* out_slot_type,
     uint32_t* out_injured_player_id)
 {
-    uint32_t team_base_limit = kbo_foreign_quota_base_effective_limit_for_team(team_id);
+    KboForeignQuotaTeamPolicySnapshot team_policy;
+    kbo_foreign_quota_team_policy_snapshot(team_id, &team_policy);
+    uint32_t team_base_limit = team_policy.base_effective_limit;
     if (out_effective_before != NULL) { *out_effective_before = 0u; }
     if (out_effective_after != NULL) { *out_effective_after = 0u; }
     if (out_effective_limit != NULL) { *out_effective_limit = team_base_limit; }
@@ -40,12 +42,12 @@ int kbo_custom_foreign_policy_team_allows_candidate(
         KBO_PROFILE_END(profile_custom_candidate, "foreign_policy.candidate.invalid");
         return 0;
     }
-    if (kbo_foreign_quota_team_blocks_foreign_ownership(team_id)) {
+    if (team_policy.blocks_foreign_ownership) {
         KBO_PROFILE_END(profile_custom_candidate, "foreign_policy.candidate.team_blocks_foreign");
         return 0;
     }
 
-    int use_candidate_cache = !kbo_foreign_quota_team_is_futures_independent(team_id);
+    int use_candidate_cache = !team_policy.futures_independent;
 
     uint32_t today = 0u;
     uint32_t candidate_id = *(uint32_t*)(candidate + OOTP27_PLAYER_ID_OFFSET);
@@ -144,7 +146,7 @@ int kbo_custom_foreign_policy_team_allows_candidate(
     int details_requested = out_effective_limit != NULL
         || out_slot_type != NULL
         || out_injured_player_id != NULL;
-    int allow_injury_extra_slots = kbo_foreign_quota_team_allows_injury_extra_slots(team_id);
+    int allow_injury_extra_slots = team_policy.allows_injury_extra_slots;
     int need_extra_slots = allow_injury_extra_slots
         && (details_requested || (!counts_as_existing_candidate && effective_after > team_base_limit));
     if (!need_extra_slots && kbo_foreign_ai_controller_enabled()) {
@@ -255,7 +257,9 @@ int kbo_custom_foreign_policy_team_allows_final_signing(
     uint8_t* out_slot_type,
     uint32_t* out_injured_player_id)
 {
-    uint32_t team_base_limit = kbo_foreign_quota_base_effective_limit_for_team(team_id);
+    KboForeignQuotaTeamPolicySnapshot team_policy;
+    kbo_foreign_quota_team_policy_snapshot(team_id, &team_policy);
+    uint32_t team_base_limit = team_policy.base_effective_limit;
     if (out_effective_before != NULL) { *out_effective_before = 0u; }
     if (out_effective_after != NULL) { *out_effective_after = 0u; }
     if (out_effective_limit != NULL) { *out_effective_limit = team_base_limit; }
@@ -268,7 +272,7 @@ int kbo_custom_foreign_policy_team_allows_final_signing(
             || !kbo_player_is_foreign_for_kbo_rights(candidate)) {
         return 0;
     }
-    if (kbo_foreign_quota_team_blocks_foreign_ownership(team_id)) {
+    if (team_policy.blocks_foreign_ownership) {
         return 0;
     }
 
@@ -303,7 +307,7 @@ int kbo_custom_foreign_policy_team_allows_final_signing(
     uint32_t extra_slots = 0u;
     if (!already_in_org
             && effective_after > team_base_limit
-            && kbo_foreign_quota_team_allows_injury_extra_slots(team_id)) {
+            && team_policy.allows_injury_extra_slots) {
         extra_slots = kbo_custom_foreign_policy_extra_slots_for_candidate(
             team_id,
             candidate,

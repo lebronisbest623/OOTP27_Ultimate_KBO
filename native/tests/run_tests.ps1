@@ -5,6 +5,8 @@ $TestSrc = Join-Path $PSScriptRoot "test_main.c"
 $TestExe = Join-Path $PSScriptRoot "tests.exe"
 $FaCompensationSelectionTestSrc = Join-Path $PSScriptRoot "test_fa_compensation_selection.c"
 $FaCompensationSelectionTestExe = Join-Path $PSScriptRoot "test_fa_compensation_selection.exe"
+$SecondaryDraftRulesTestSrc = Join-Path $PSScriptRoot "test_secondary_draft_rules.c"
+$SecondaryDraftRulesTestExe = Join-Path $PSScriptRoot "test_secondary_draft_rules.exe"
 $ForeignRetentionCandidateGateTestSrc = Join-Path $PSScriptRoot "test_foreign_retention_candidate_gate.c"
 $ForeignRetentionCandidateGateTestExe = Join-Path $PSScriptRoot "test_foreign_retention_candidate_gate.exe"
 $ForeignRetentionScoreGateTestSrc = Join-Path $PSScriptRoot "test_foreign_retention_score_gate.c"
@@ -127,6 +129,21 @@ if ($LASTEXITCODE -ne 0) {
 & $OptimizerToolSelectionTestExe
 if ($LASTEXITCODE -ne 0) {
     throw "Optimizer tool-selection tests failed"
+}
+
+& $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `
+    -I $Root `
+    -I (Join-Path $Root "src") `
+    -o $SecondaryDraftRulesTestExe `
+    $SecondaryDraftRulesTestSrc `
+    (Join-Path $Root "src\custom_events\secondary_draft\rules\secondary_draft_rules.c")
+if ($LASTEXITCODE -ne 0) {
+    throw "Secondary draft rules test build failed"
+}
+
+& $SecondaryDraftRulesTestExe
+if ($LASTEXITCODE -ne 0) {
+    throw "Secondary draft rules tests failed"
 }
 
 & $Gcc -O0 -Wall -Wextra -finput-charset=UTF-8 -fexec-charset=UTF-8 `

@@ -52,6 +52,23 @@ int kbo_fa_declaration_find_latest_decision(
     return kbo_fa_declaration_sql_find_latest_decision(player_id, season, out_decision);
 }
 
+int kbo_fa_declaration_load_season_decisions(
+    uint32_t season,
+    KboFaDeclarationDecision* decisions,
+    int max_decisions)
+{
+    if (decisions != NULL && max_decisions > 0) {
+        memset(decisions, 0, (SIZE_T)max_decisions * sizeof(decisions[0]));
+    }
+    if (season == 0u || decisions == NULL || max_decisions <= 0) {
+        return 0;
+    }
+
+    int count = 0;
+    (void)kbo_fa_declaration_sql_load_season_decisions(season, decisions, max_decisions, &count);
+    return count;
+}
+
 uint32_t kbo_fa_declaration_retained_contract_season(uint32_t declaration_season)
 {
     if (declaration_season < KBO_SEASON_YEAR_MIN || declaration_season >= KBO_SIM_YEAR_MAX) {

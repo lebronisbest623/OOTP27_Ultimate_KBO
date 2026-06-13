@@ -164,6 +164,12 @@ void kbo_webview_append_selected_view(KboWindowTextBuffer* buffer, uint32_t curr
             buffer,
             g_kbo_hub_selected_futures_subview,
             g_kbo_hub_selected_team_id);
+    } else if (g_kbo_hub_selected_view == KBO_HUB_VIEW_SECONDARY_DRAFT) {
+        kbo_webview_append_secondary_draft_view(
+            buffer,
+            g_kbo_hub_selected_secondary_draft_subview,
+            g_kbo_hub_selected_team_id,
+            &g_kbo_hub_selected_secondary_draft_season);
     } else {
         kbo_webview_append_fallback_text_view(buffer);
     }
@@ -201,6 +207,7 @@ void kbo_webview_append_main_tabs(KboWindowTextBuffer* buffer)
         KBO_HUB_VIEW_ASIAN_QUOTA,
         KBO_HUB_VIEW_FUTURES_LEAGUE,
         KBO_HUB_VIEW_FA_CASES,
+        KBO_HUB_VIEW_SECONDARY_DRAFT,
         KBO_HUB_VIEW_MILITARY,
         KBO_HUB_VIEW_ASIAN_GAMES,
         KBO_HUB_VIEW_CBT,
@@ -273,6 +280,13 @@ void kbo_webview_append_sub_tabs(KboWindowTextBuffer* buffer)
             kbo_html_append_escaped(buffer, kbo_hub_futures_subnav_label(i));
             kbo_window_text_appendf(buffer, "</a>");
         }
+    } else if (g_kbo_hub_selected_view == KBO_HUB_VIEW_SECONDARY_DRAFT) {
+        for (int i = 0; i < KBO_HUB_SECONDARY_DRAFT_SUBVIEW_COUNT; i++) {
+            kbo_window_text_appendf(buffer, "<a class='subTab %s' href='kbo://secondary-draft/%d'>",
+                i == g_kbo_hub_selected_secondary_draft_subview ? "active" : "", i);
+            kbo_html_append_escaped(buffer, kbo_hub_secondary_draft_subnav_label(i));
+            kbo_window_text_appendf(buffer, "</a>");
+        }
     } else if (g_kbo_hub_selected_view == KBO_HUB_VIEW_SETTINGS) {
         for (int i = 0; i < KBO_HUB_SETTINGS_SUBVIEW_COUNT; i++) {
             kbo_window_text_appendf(buffer, "<a class='subTab %s' href='kbo://settings-tab/%d'>",
@@ -303,6 +317,7 @@ int kbo_webview_current_view_has_sub_tabs(void)
         || g_kbo_hub_selected_view == KBO_HUB_VIEW_FA_CASES
         || g_kbo_hub_selected_view == KBO_HUB_VIEW_SETTINGS
         || g_kbo_hub_selected_view == KBO_HUB_VIEW_CBT
-        || g_kbo_hub_selected_view == KBO_HUB_VIEW_FUTURES_LEAGUE;
+        || g_kbo_hub_selected_view == KBO_HUB_VIEW_FUTURES_LEAGUE
+        || g_kbo_hub_selected_view == KBO_HUB_VIEW_SECONDARY_DRAFT;
 }
 

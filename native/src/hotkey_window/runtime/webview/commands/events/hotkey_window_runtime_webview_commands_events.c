@@ -123,7 +123,7 @@ int kbo_webview_handle_event_and_fa_command(const char* cmd)
         }
         g_kbo_hub_selected_view = KBO_HUB_VIEW_FA_CASES;
         g_kbo_hub_selected_fa_subview = KBO_HUB_FA_SUBVIEW_COMPENSATION;
-        g_kbo_hub_selected_fa_compensation_subview = KBO_HUB_FA_COMP_SUBVIEW_CANDIDATES;
+        g_kbo_hub_selected_fa_compensation_subview = KBO_HUB_FA_COMP_SUBVIEW_DECISION;
         g_kbo_hub_open_dropdown = 0;
         kbo_webview_navigate_current();
         return 1;
@@ -139,7 +139,7 @@ int kbo_webview_handle_event_and_fa_command(const char* cmd)
         }
         g_kbo_hub_selected_view = KBO_HUB_VIEW_FA_CASES;
         g_kbo_hub_selected_fa_subview = KBO_HUB_FA_SUBVIEW_COMPENSATION;
-        g_kbo_hub_selected_fa_compensation_subview = KBO_HUB_FA_COMP_SUBVIEW_BOARD;
+        g_kbo_hub_selected_fa_compensation_subview = KBO_HUB_FA_COMP_SUBVIEW_DECISION;
         g_kbo_hub_open_dropdown = 0;
         kbo_webview_navigate_current();
         return 1;
@@ -155,7 +155,7 @@ int kbo_webview_handle_event_and_fa_command(const char* cmd)
         }
         g_kbo_hub_selected_view = KBO_HUB_VIEW_FA_CASES;
         g_kbo_hub_selected_fa_subview = KBO_HUB_FA_SUBVIEW_COMPENSATION;
-        g_kbo_hub_selected_fa_compensation_subview = KBO_HUB_FA_COMP_SUBVIEW_CANDIDATES;
+        g_kbo_hub_selected_fa_compensation_subview = KBO_HUB_FA_COMP_SUBVIEW_DECISION;
         g_kbo_hub_open_dropdown = 0;
         kbo_webview_navigate_current();
         return 1;
@@ -167,7 +167,19 @@ int kbo_webview_handle_event_and_fa_command(const char* cmd)
         }
         g_kbo_hub_selected_view = KBO_HUB_VIEW_FA_CASES;
         g_kbo_hub_selected_fa_subview = KBO_HUB_FA_SUBVIEW_COMPENSATION;
-        g_kbo_hub_selected_fa_compensation_subview = KBO_HUB_FA_COMP_SUBVIEW_BOARD;
+        g_kbo_hub_selected_fa_compensation_subview = KBO_HUB_FA_COMP_SUBVIEW_DECISION;
+        g_kbo_hub_open_dropdown = 0;
+        kbo_webview_navigate_current();
+        return 1;
+    }
+    if (strncmp(cmd, "fa-comp/candidates/", 19) == 0) {
+        uint32_t fa_player_id = (uint32_t)strtoul(cmd + 19, NULL, 10);
+        if (fa_player_id != 0u) {
+            g_kbo_hub_selected_fa_compensation_player_id = fa_player_id;
+        }
+        g_kbo_hub_selected_view = KBO_HUB_VIEW_FA_CASES;
+        g_kbo_hub_selected_fa_subview = KBO_HUB_FA_SUBVIEW_COMPENSATION;
+        g_kbo_hub_selected_fa_compensation_subview = KBO_HUB_FA_COMP_SUBVIEW_DECISION;
         g_kbo_hub_open_dropdown = 0;
         kbo_webview_navigate_current();
         return 1;

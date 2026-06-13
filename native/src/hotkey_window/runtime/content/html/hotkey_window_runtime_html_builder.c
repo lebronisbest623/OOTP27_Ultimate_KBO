@@ -60,6 +60,7 @@ WCHAR* kbo_build_webview_hub_html(void)
          (g_kbo_hub_selected_agames_subview == KBO_HUB_AGAMES_SUBVIEW_TOURNAMENTS ||
           g_kbo_hub_selected_agames_subview == KBO_HUB_AGAMES_SUBVIEW_SCHEDULE ||
           g_kbo_hub_selected_agames_subview == KBO_HUB_AGAMES_SUBVIEW_ROSTER)) ||
+        g_kbo_hub_selected_view == KBO_HUB_VIEW_SECONDARY_DRAFT ||
         g_kbo_hub_selected_view == KBO_HUB_VIEW_FUTURES_LEAGUE ||
         g_kbo_hub_selected_view == KBO_HUB_VIEW_UPCOMING_FA ||
         g_kbo_hub_selected_view == KBO_HUB_VIEW_FA_CASES ||
@@ -99,7 +100,7 @@ WCHAR* kbo_build_webview_hub_html(void)
     kbo_webview_build_scrollbar_skin_css(scrollbar_css, sizeof(scrollbar_css), kbo_hub_skin_scrollbar_width());
     if (kbo_hub_current_mode_is_developer()) {
         kbo_log_runtimef(
-            "KBO F2 hub html build start view=%d mod=%d foreign=%d military=%d fa=%d fa_comp=%d cbt=%d futures=%d league=%u team=%u year=%u has_sub_tabs=%d dashboard_panel=%d roster_dashboard=%d mod_dashboard=%d language=%d league_logo=%d team_logo=%d",
+            "KBO F2 hub html build start view=%d mod=%d foreign=%d military=%d fa=%d fa_comp=%d cbt=%d futures=%d secondary_draft=%d secondary_draft_season=%u league=%u team=%u year=%u has_sub_tabs=%d dashboard_panel=%d roster_dashboard=%d mod_dashboard=%d language=%d league_logo=%d team_logo=%d",
             g_kbo_hub_selected_view,
             g_kbo_hub_selected_mod_subview,
             g_kbo_hub_selected_foreign_subview,
@@ -108,6 +109,8 @@ WCHAR* kbo_build_webview_hub_html(void)
             g_kbo_hub_selected_fa_compensation_subview,
             g_kbo_hub_selected_cbt_subview,
             g_kbo_hub_selected_futures_subview,
+            g_kbo_hub_selected_secondary_draft_subview,
+            g_kbo_hub_selected_secondary_draft_season,
             g_kbo_hub_selected_league_id,
             g_kbo_hub_selected_team_id,
             current_year,

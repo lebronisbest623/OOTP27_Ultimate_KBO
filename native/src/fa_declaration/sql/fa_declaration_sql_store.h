@@ -12,6 +12,11 @@ int kbo_fa_declaration_sql_find_latest_decision(
     uint32_t player_id,
     uint32_t season,
     KboFaDeclarationDecision* out_decision);
+int kbo_fa_declaration_sql_load_season_decisions(
+    uint32_t season,
+    KboFaDeclarationDecision* decisions,
+    int max_decisions,
+    int* out_count);
 int kbo_fa_declaration_sql_load_report_rows(
     KboFaDeclarationReportRow* rows,
     int max_rows,

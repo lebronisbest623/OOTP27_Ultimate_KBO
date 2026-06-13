@@ -39,6 +39,7 @@ int g_kbo_hub_selected_fa_subview = 0;
 int g_kbo_hub_selected_fa_compensation_subview = 0;
 int g_kbo_hub_selected_cbt_subview = 0;
 int g_kbo_hub_selected_futures_subview = 0;
+int g_kbo_hub_selected_secondary_draft_subview = 0;
 int g_kbo_hub_selected_settings_subview = 0;
 int g_kbo_hub_mode = KBO_HUB_MODE_RELEASE;
 int g_kbo_hub_fa_market_filter = 0;
@@ -46,6 +47,7 @@ int g_kbo_hub_fa_market_position_filter = 0;
 uint32_t g_kbo_hub_selected_fa_compensation_player_id = 0u;
 uint32_t g_kbo_hub_selected_agames_roster_year = 0;
 uint32_t g_kbo_hub_selected_military_results_year = 0;
+uint32_t g_kbo_hub_selected_secondary_draft_season = 0;
 RECT g_kbo_hub_refresh_rect = {0, 0, 0, 0};
 RECT g_kbo_hub_language_rect = {0, 0, 0, 0};
 RECT g_kbo_hub_github_rect = {0, 0, 0, 0};
@@ -98,7 +100,8 @@ HBITMAP g_kbo_hub_asset_sb_slider_bottom = NULL;
 #define KBO_HUB_VIEW_REPUTATION  8
 #define KBO_HUB_VIEW_CBT         9
 #define KBO_HUB_VIEW_FUTURES_LEAGUE 10
-#define KBO_HUB_NAV_COUNT        11
+#define KBO_HUB_VIEW_SECONDARY_DRAFT 11
+#define KBO_HUB_NAV_COUNT        12
 #define KBO_HUB_FOREIGN_SUBVIEW_ROSTER 0
 #define KBO_HUB_FOREIGN_SUBVIEW_RIGHTS 1
 #define KBO_HUB_FOREIGN_SUBVIEW_COUNT  2

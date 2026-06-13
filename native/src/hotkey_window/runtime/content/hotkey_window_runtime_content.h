@@ -16,6 +16,7 @@ const char* kbo_hub_military_subnav_label(int index);
 const char* kbo_hub_mod_subnav_label(int index);
 const char* kbo_hub_cbt_subnav_label(int index);
 const char* kbo_hub_futures_subnav_label(int index);
+const char* kbo_hub_secondary_draft_subnav_label(int index);
 const char* kbo_hub_settings_subnav_label(int index);
 void kbo_hub_ensure_valid_selection(void);
 void kbo_refresh_hotkey_window(void);
