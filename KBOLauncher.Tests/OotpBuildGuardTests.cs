@@ -84,6 +84,27 @@ public sealed class OotpBuildGuardTests : IDisposable
     }
 
     [Fact]
+    public void FindKnownBuild_MatchesMetadataOnlyBuildsWithoutNativeSupport()
+    {
+        foreach (var expected in global::OotpSupportedBuilds.All.Where(build => !build.NativePatchesSupported))
+        {
+            var info = new global::OotpBuildInfo(true, expected.Timestamp, expected.SizeOfImage, null);
+
+            global::OotpBuildGuard.FindSupportedBuild(info).Should().BeNull();
+            var known = global::OotpBuildGuard.FindKnownBuild(info);
+
+            known.Should().NotBeNull();
+            known!.Label.Should().Be(expected.Label);
+            global::OotpBuildGuard.FormatConsoleStatus(info, known).Should().Contain($"metadata-only ({expected.Label})");
+            global::OotpBuildGuard.FormatLogStatus(info, known).Should().Contain("status=metadata_only");
+            global::OotpBuildGuard.SupportedBuildDescriptions().Should().Contain(
+                $"{expected.Label}:0x{expected.Timestamp:X8}/0x{expected.SizeOfImage:X8}" +
+                (expected.ExperimentalSignature ? "[experimental_signature]" : "") +
+                "[metadata_only]");
+        }
+    }
+
+    [Fact]
     public void FindSupportedBuild_RejectsUnknownBuild()
     {
         var info = new global::OotpBuildInfo(true, 0x11111111u, 0x02222222u, null);
