@@ -6,7 +6,7 @@
 
 #include "build_verify.h"
 
-#define KBO_BUILD_RVA_COUNT 364
+#define KBO_BUILD_RVA_COUNT 546
 
 extern const OotpBuildRva KBO_BUILD_RVAS[KBO_BUILD_RVA_COUNT];
 

@@ -13,6 +13,13 @@
       "timestamp": "0x6A285052",
       "sizeOfImage": "0x03920000",
       "nativePatchesSupported": true
+    },
+    {
+      "id": "steam_2026_06_23",
+      "label": "2026-06-23 Steam",
+      "timestamp": "0x6A354CFE",
+      "sizeOfImage": "0x03921000",
+      "nativePatchesSupported": true
     }
   ]
 }

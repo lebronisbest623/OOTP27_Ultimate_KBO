@@ -7,5 +7,6 @@ internal static class OotpSupportedBuilds
     [
         new(0x69F75E6Bu, 0x03919000u, "2026-05-04 Steam", false, true),
         new(0x6A285052u, 0x03920000u, "2026-06-09 Steam", false, true),
+        new(0x6A354CFEu, 0x03921000u, "2026-06-23 Steam", false, true),
     ];
 }
