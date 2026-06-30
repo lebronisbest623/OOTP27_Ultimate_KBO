@@ -6,6 +6,8 @@ The launcher starts or attaches to an OOTP27 process, prepares KBO data files, a
 
 Korean documentation: [`README.md`](README.md)
 
+Official Discord: [https://discord.gg/sp5Bh6jP](https://discord.gg/sp5Bh6jP)
+
 ---
 
 ## Disclaimer

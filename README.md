@@ -6,6 +6,8 @@ C# 런처가 게임 프로세스를 시작하고, C로 작성된 네이티브 �
 
 English documentation: [`README.en.md`](README.en.md)
 
+공식 Discord: [https://discord.gg/sp5Bh6jP](https://discord.gg/sp5Bh6jP)
+
 ---
 
 ## 디스클레이머
