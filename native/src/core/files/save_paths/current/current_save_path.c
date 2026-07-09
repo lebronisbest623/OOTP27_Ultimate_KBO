@@ -325,12 +325,16 @@ int kbo_get_current_save_path(char* out, size_t out_size)
         return 1;
     }
 
-    if (kbo_get_current_save_path_from_launcher_cache_file(out, out_size)) {
-        kbo_cache_current_save_path(out);
+    /* The launcher cache file only changes when the launcher observes a new
+     * save, so a memory-cached copy of the last successful resolution (1s TTL)
+     * is checked before paying a file open on every call. Hot hooks resolve
+     * this path per call whenever the OOTP global is unavailable. */
+    if (kbo_get_cached_current_save_path(out, out_size)) {
         return 1;
     }
 
-    if (kbo_get_cached_current_save_path(out, out_size)) {
+    if (kbo_get_current_save_path_from_launcher_cache_file(out, out_size)) {
+        kbo_cache_current_save_path(out);
         return 1;
     }
 

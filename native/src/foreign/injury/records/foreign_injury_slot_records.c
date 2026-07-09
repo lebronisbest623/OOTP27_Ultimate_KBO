@@ -76,18 +76,76 @@ uint64_t kbo_foreign_injury_replacement_fingerprint(void)
     return hash;
 }
 
-int kbo_persist_foreign_injury_replacements_locked(void)
+/* All SQLite writes for the replacement records go through this IO lock so a
+ * snapshot persist running after the data lock is released can never interleave
+ * with a persist that still holds the data lock. Lock order is always
+ * data lock -> IO lock; the IO lock never acquires the data lock. */
+static KboLock g_kbo_foreign_injury_persist_io_lock = KBO_LOCK_INIT;
+static volatile LONG g_kbo_foreign_injury_persist_reserved_sequence = 0;
+static LONG g_kbo_foreign_injury_persist_written_sequence = 0;
+
+LONG kbo_foreign_injury_replacements_reserve_persist_sequence_locked(void)
 {
     kbo_foreign_injury_replacement_fingerprint_note_changed();
+    return InterlockedIncrement(&g_kbo_foreign_injury_persist_reserved_sequence);
+}
+
+int kbo_persist_foreign_injury_replacements_snapshot(
+    const KboForeignInjuryReplacement* records,
+    int record_count,
+    const char* expected_path,
+    LONG persist_sequence)
+{
+    if (records == NULL || record_count < 0) {
+        return 0;
+    }
+
+    char path[MAX_PATH] = {0};
+    if (!kbo_get_foreign_injury_replacement_path(path, sizeof(path))) {
+        return 0;
+    }
+    if (expected_path != NULL && expected_path[0] != '\0' && strcmp(expected_path, path) != 0) {
+        kbo_log_runtimef(
+            "foreign injury replacement: snapshot persist skipped save_changed expected=%s current=%s",
+            expected_path,
+            path);
+        return 0;
+    }
+
+    int ok = 1;
+    kbo_lock_enter(&g_kbo_foreign_injury_persist_io_lock);
+    if (persist_sequence - g_kbo_foreign_injury_persist_written_sequence > 0) {
+        ok = kbo_foreign_injury_replacements_sql_replace_all(records, record_count);
+        if (ok) {
+            g_kbo_foreign_injury_persist_written_sequence = persist_sequence;
+        }
+    }
+    kbo_lock_leave(&g_kbo_foreign_injury_persist_io_lock);
+    if (!ok) {
+        kbo_log_runtimef("foreign injury replacement: sqlite persist failed path=%s", path);
+    }
+    return ok;
+}
+
+int kbo_persist_foreign_injury_replacements_locked(void)
+{
+    LONG persist_sequence = kbo_foreign_injury_replacements_reserve_persist_sequence_locked();
 
     char path[MAX_PATH] = {0};
     if (!kbo_get_foreign_injury_replacement_path(path, sizeof(path))) {
         return 0;
     }
 
-    if (!kbo_foreign_injury_replacements_sql_replace_all(
-            g_kbo_foreign_injury_replacements,
-            g_kbo_foreign_injury_replacement_count)) {
+    int ok = 0;
+    kbo_lock_enter(&g_kbo_foreign_injury_persist_io_lock);
+    ok = kbo_foreign_injury_replacements_sql_replace_all(
+        g_kbo_foreign_injury_replacements,
+        g_kbo_foreign_injury_replacement_count);
+    if (ok && persist_sequence - g_kbo_foreign_injury_persist_written_sequence > 0) {
+        g_kbo_foreign_injury_persist_written_sequence = persist_sequence;
+    }
+    kbo_lock_leave(&g_kbo_foreign_injury_persist_io_lock);
+    if (!ok) {
         kbo_log_runtimef("foreign injury replacement: sqlite persist failed path=%s", path);
         return 0;
     }

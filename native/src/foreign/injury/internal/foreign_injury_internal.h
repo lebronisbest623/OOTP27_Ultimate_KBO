@@ -189,6 +189,12 @@ int kbo_import_foreign_injury_replacement_seed_file_locked(
     uint32_t today,
     const char* source);
 int kbo_persist_foreign_injury_replacements_locked(void);
+LONG kbo_foreign_injury_replacements_reserve_persist_sequence_locked(void);
+int kbo_persist_foreign_injury_replacements_snapshot(
+    const KboForeignInjuryReplacement* records,
+    int record_count,
+    const char* expected_path,
+    LONG persist_sequence);
 void kbo_ensure_foreign_injury_replacements_loaded(void);
 int kbo_foreign_injury_replacements_loaded_for_current_save(void);
 int kbo_find_foreign_injury_replacement_locked(uint32_t injured_player_id, int include_closed);

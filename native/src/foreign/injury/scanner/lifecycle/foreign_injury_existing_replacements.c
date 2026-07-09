@@ -428,8 +428,26 @@ void kbo_foreign_injury_process_existing_replacements(
                 g_kbo_foreign_injury_replacement_count = keep;
             }
         }
-        kbo_persist_foreign_injury_replacements_locked();
+        /* Persist after releasing the data lock: holding the SRW lock across
+           the SQLite disk write stalls every hook that reads these records.
+           The snapshot, expected save path, and persist sequence are captured
+           under the lock so a stale or cross-save write is skipped. */
+        KboForeignInjuryReplacement persist_snapshot[KBO_FOREIGN_INJURY_REPLACEMENT_MAX];
+        int persist_count = g_kbo_foreign_injury_replacement_count;
+        if (persist_count > 0) {
+            memcpy(persist_snapshot, g_kbo_foreign_injury_replacements,
+                   (size_t)persist_count * sizeof(KboForeignInjuryReplacement));
+        }
+        char persist_expected_path[MAX_PATH] = {0};
+        snprintf(persist_expected_path, sizeof(persist_expected_path), "%s",
+                 g_kbo_foreign_injury_replacement_loaded_path);
+        LONG persist_sequence = kbo_foreign_injury_replacements_reserve_persist_sequence_locked();
         kbo_unlock_foreign_injury_replacements();
+        kbo_persist_foreign_injury_replacements_snapshot(
+            persist_snapshot,
+            persist_count,
+            persist_expected_path,
+            persist_sequence);
     }
     kbo_foreign_injury_emit_active_replacement_news_batch(active_news, active_count, today, source);
     kbo_foreign_injury_emit_closed_news_batch(closed_news, closed_count, today, source);

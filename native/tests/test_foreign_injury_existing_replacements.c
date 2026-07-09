@@ -97,7 +97,10 @@ static void test_other_closed_records_still_check_repair_path(void)
     assert(g_cached_team_lookup_calls == 1);
     assert(g_find_player_calls == 1);
     assert(g_read_live_calls == 1);
-    assert(g_reserved_check_calls == 1);
+    /* The reserved check now runs through the snapshot-based inline helper
+       (kbo_foreign_injury_replacement_player_reserved_snapshot), so the
+       stubbed _locked variant is no longer expected to be called here. */
+    assert(g_reserved_check_calls == 0);
     assert(g_repair_check_calls == 1);
     assert(g_persist_calls == 0);
     printf("test_other_closed_records_still_check_repair_path: PASS\n");
@@ -329,9 +332,14 @@ int kbo_foreign_injury_release_injured_player(uint32_t team_id, uint32_t player_
     return 1;
 }
 
-uint32_t kbo_foreign_injury_resolve_replacement_for_record(const KboForeignInjuryReplacement* rec)
+uint32_t kbo_foreign_injury_resolve_replacement_for_record(
+    const KboForeignInjuryReplacement* rec,
+    const KboForeignInjuryReplacement* snapshot,
+    int snapshot_count)
 {
     (void)rec;
+    (void)snapshot;
+    (void)snapshot_count;
     return 0u;
 }
 
@@ -394,6 +402,26 @@ void kbo_foreign_injury_emit_closed_news_batch(
 
 int kbo_persist_foreign_injury_replacements_locked(void)
 {
+    g_persist_calls++;
+    return 1;
+}
+
+LONG kbo_foreign_injury_replacements_reserve_persist_sequence_locked(void)
+{
+    static LONG sequence = 0;
+    return ++sequence;
+}
+
+int kbo_persist_foreign_injury_replacements_snapshot(
+    const KboForeignInjuryReplacement* records,
+    int record_count,
+    const char* expected_path,
+    LONG persist_sequence)
+{
+    (void)records;
+    (void)record_count;
+    (void)expected_path;
+    (void)persist_sequence;
     g_persist_calls++;
     return 1;
 }

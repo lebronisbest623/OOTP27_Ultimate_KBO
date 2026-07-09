@@ -49,7 +49,7 @@ static ULONGLONG kbo_runtime_filetime_u64(FILETIME time)
     return value.QuadPart;
 }
 
-int kbo_runtime_save_in_progress(void)
+static int kbo_runtime_save_in_progress_uncached(void)
 {
     char save_path[KBO_UTF8_PATH_BYTES] = {0};
     if (!kbo_get_current_save_path(save_path, sizeof(save_path))) {
@@ -97,6 +97,35 @@ int kbo_runtime_save_in_progress(void)
     }
 
     return kbo_runtime_filetime_u64(completed_time) < started;
+}
+
+/* The uncached check costs two filesystem metadata queries and is called from
+ * per-offer hooks and 50ms-pulse background loops. Only the negative result is
+ * cached, and only briefly: "save in progress" answers are always re-verified,
+ * so a save is never considered finished early. The save-start marker is
+ * written by OOTP itself and only becomes visible with filesystem latency, so
+ * a 100ms-stale negative stays within the detection slack that already exists. */
+#define KBO_RUNTIME_SAVE_CHECK_NEGATIVE_CACHE_MS 100ull
+
+int kbo_runtime_save_in_progress(void)
+{
+    static volatile LONG64 s_last_negative_tick = 0;
+
+    ULONGLONG now = GetTickCount64();
+    LONG64 last_negative = InterlockedCompareExchange64(&s_last_negative_tick, 0, 0);
+    if (last_negative != 0
+            && now >= (ULONGLONG)last_negative
+            && now - (ULONGLONG)last_negative < KBO_RUNTIME_SAVE_CHECK_NEGATIVE_CACHE_MS) {
+        return 0;
+    }
+
+    int in_progress = kbo_runtime_save_in_progress_uncached();
+    if (in_progress) {
+        InterlockedExchange64(&s_last_negative_tick, 0);
+    } else {
+        InterlockedExchange64(&s_last_negative_tick, (LONG64)now);
+    }
+    return in_progress;
 }
 
 int kbo_runtime_pause_for_save_if_needed(const char* label)
