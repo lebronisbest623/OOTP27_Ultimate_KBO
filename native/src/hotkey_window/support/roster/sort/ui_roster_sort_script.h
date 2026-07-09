@@ -3,6 +3,7 @@
 
 #include "../../text/buffer/ui_text_buffer.h"
 
+void kbo_webview_append_roster_sort_script_body(KboWindowTextBuffer* buffer);
 void kbo_webview_append_roster_sort_script(KboWindowTextBuffer* buffer);
 
 #endif

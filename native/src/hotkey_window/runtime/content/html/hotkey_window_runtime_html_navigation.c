@@ -4,9 +4,12 @@ static volatile LONG g_kbo_webview_navigate_current_pending = 0;
 static volatile LONG g_kbo_webview_navigation_inflight = 0;
 static volatile LONG g_kbo_webview_navigation_failure_streak = 0;
 static volatile LONG g_kbo_webview_navigation_cancel_streak = 0;
-static ICoreWebView2* g_kbo_webview_last_html_target = NULL;
-static uint64_t g_kbo_webview_last_html_hash = 0u;
-static int g_kbo_webview_last_html_chars = 0;
+static volatile LONG g_kbo_webview_shell_ready = 0;
+static volatile LONG g_kbo_webview_shell_navigation_pending = 0;
+static ICoreWebView2* g_kbo_webview_shell_target = NULL;
+static ICoreWebView2* g_kbo_webview_last_update_target = NULL;
+static uint64_t g_kbo_webview_last_update_hash = 0u;
+static int g_kbo_webview_last_update_chars = 0;
 
 static uint64_t kbo_webview_hash_html(const WCHAR* html, int chars)
 {
@@ -31,9 +34,27 @@ static int kbo_webview_is_expected_navigation_cancel(COREWEBVIEW2_WEB_ERROR_STAT
         || web_error == COREWEBVIEW2_WEB_ERROR_STATUS_CONNECTION_ABORTED;
 }
 
+static void kbo_webview_reset_shell_state(void)
+{
+    InterlockedExchange(&g_kbo_webview_shell_ready, 0);
+    InterlockedExchange(&g_kbo_webview_shell_navigation_pending, 0);
+    g_kbo_webview_shell_target = NULL;
+    g_kbo_webview_last_update_target = NULL;
+    g_kbo_webview_last_update_hash = 0u;
+    g_kbo_webview_last_update_chars = 0;
+}
+
 void kbo_webview_note_navigation_completed(BOOL is_success, COREWEBVIEW2_WEB_ERROR_STATUS web_error)
 {
     InterlockedExchange(&g_kbo_webview_navigation_inflight, 0);
+    if (InterlockedExchange(&g_kbo_webview_shell_navigation_pending, 0) != 0) {
+        if (is_success) {
+            g_kbo_webview_shell_target = g_kbo_webview;
+            InterlockedExchange(&g_kbo_webview_shell_ready, 1);
+        } else {
+            kbo_webview_reset_shell_state();
+        }
+    }
     if (is_success) {
         InterlockedExchange(&g_kbo_webview_navigation_failure_streak, 0);
         InterlockedExchange(&g_kbo_webview_navigation_cancel_streak, 0);
@@ -61,6 +82,65 @@ void kbo_webview_note_navigation_completed(BOOL is_success, COREWEBVIEW2_WEB_ERR
     }
 }
 
+static int kbo_webview_try_update_current_shell(void)
+{
+    if (InterlockedCompareExchange(&g_kbo_webview_shell_ready, 0, 0) == 0
+            || g_kbo_webview_shell_target != g_kbo_webview) {
+        return 0;
+    }
+
+    WCHAR* script = kbo_build_webview_hub_update_script();
+    if (script == NULL) {
+        kbo_log_runtimef(
+            "WebView2 ExecuteScript current skipped reason=script_build_failed view=%d mod=%d",
+            g_kbo_hub_selected_view,
+            g_kbo_hub_selected_mod_subview);
+        return 0;
+    }
+
+    int wide_chars = lstrlenW(script);
+    uint64_t script_hash = kbo_webview_hash_html(script, wide_chars);
+    if (g_kbo_webview_last_update_target == g_kbo_webview
+            && g_kbo_webview_last_update_chars == wide_chars
+            && g_kbo_webview_last_update_hash == script_hash) {
+        kbo_profiler_record_us("webview.navigate_current.unchanged", 0);
+        if (kbo_hub_current_mode_is_developer()) {
+            kbo_log_runtimef(
+                "WebView2 ExecuteScript current skipped reason=unchanged view=%d mod=%d wide_chars=%d",
+                g_kbo_hub_selected_view,
+                g_kbo_hub_selected_mod_subview,
+                wide_chars);
+        }
+        HeapFree(GetProcessHeap(), 0, script);
+        return 1;
+    }
+
+    HRESULT hr = ICoreWebView2_ExecuteScript(g_kbo_webview, script, NULL);
+    if (SUCCEEDED(hr)) {
+        g_kbo_webview_last_update_target = g_kbo_webview;
+        g_kbo_webview_last_update_hash = script_hash;
+        g_kbo_webview_last_update_chars = wide_chars;
+    } else {
+        kbo_log_runtimef(
+            "WebView2 ExecuteScript current failed view=%d mod=%d wide_chars=%d hr=0x%08lx",
+            g_kbo_hub_selected_view,
+            g_kbo_hub_selected_mod_subview,
+            wide_chars,
+            (unsigned long)hr);
+        kbo_webview_reset_shell_state();
+    }
+    if (FAILED(hr) || kbo_hub_current_mode_is_developer()) {
+        kbo_log_runtimef(
+            "WebView2 ExecuteScript current view=%d mod=%d wide_chars=%d hr=0x%08lx",
+            g_kbo_hub_selected_view,
+            g_kbo_hub_selected_mod_subview,
+            wide_chars,
+            (unsigned long)hr);
+    }
+    HeapFree(GetProcessHeap(), 0, script);
+    return SUCCEEDED(hr) ? 1 : 0;
+}
+
 void kbo_webview_navigate_current_immediate(void)
 {
     if (kbo_webview_is_failed()) {
@@ -78,32 +158,19 @@ void kbo_webview_navigate_current_immediate(void)
     }
     InterlockedExchange(&g_kbo_webview_navigate_current_pending, 0);
     KBO_PROFILE_BEGIN(profile_webview_navigate);
+    if (kbo_webview_try_update_current_shell()) {
+        KBO_PROFILE_END(profile_webview_navigate, "webview.navigate_current");
+        return;
+    }
+
     WCHAR* html = kbo_build_webview_hub_html();
     if (html != NULL) {
         int wide_chars = lstrlenW(html);
-        uint64_t html_hash = kbo_webview_hash_html(html, wide_chars);
-        if (g_kbo_webview_last_html_target == g_kbo_webview
-                && g_kbo_webview_last_html_chars == wide_chars
-                && g_kbo_webview_last_html_hash == html_hash) {
-            kbo_profiler_record_us("webview.navigate_current.unchanged", 0);
-            if (kbo_hub_current_mode_is_developer()) {
-                kbo_log_runtimef(
-                    "WebView2 NavigateToString current skipped reason=unchanged view=%d mod=%d wide_chars=%d",
-                    g_kbo_hub_selected_view,
-                    g_kbo_hub_selected_mod_subview,
-                    wide_chars);
-            }
-            HeapFree(GetProcessHeap(), 0, html);
-            KBO_PROFILE_END(profile_webview_navigate, "webview.navigate_current");
-            return;
-        }
-
+        kbo_webview_reset_shell_state();
         HRESULT hr = ICoreWebView2_NavigateToString(g_kbo_webview, html);
         if (SUCCEEDED(hr)) {
             InterlockedExchange(&g_kbo_webview_navigation_inflight, 1);
-            g_kbo_webview_last_html_target = g_kbo_webview;
-            g_kbo_webview_last_html_hash = html_hash;
-            g_kbo_webview_last_html_chars = wide_chars;
+            InterlockedExchange(&g_kbo_webview_shell_navigation_pending, 1);
         } else {
             kbo_webview_mark_failed("navigate_to_string_failed", hr);
         }
@@ -164,6 +231,7 @@ void kbo_webview_navigate_loading(void)
         return;
     }
 
+    kbo_webview_reset_shell_state();
     static const WCHAR loading_html[] =
         L"<!doctype html><html><head><meta charset='utf-8'><style>"
         L"*{box-sizing:border-box;-webkit-user-select:none;user-select:none}"
