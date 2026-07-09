@@ -45,6 +45,7 @@ static KboForeignOrgSnapshotEntry* kbo_foreign_org_snapshot_entry_in(
 static void kbo_foreign_org_snapshot_add_player_to(
     KboForeignOrgSnapshotEntry* entries,
     int* entry_count,
+    const KboForeignInjuryExclusionSnapshot* exclusion,
     uint32_t team_id,
     uint32_t player_id,
     int asian_quota)
@@ -53,7 +54,8 @@ static void kbo_foreign_org_snapshot_add_player_to(
         return;
     }
     KboForeignOrgSnapshotEntry* entry = kbo_foreign_org_snapshot_entry_in(entries, entry_count, team_id);
-    if (entry == NULL || kbo_foreign_injury_player_excluded_from_foreign_count(team_id, player_id)) {
+    if (entry == NULL
+            || kbo_foreign_injury_player_excluded_from_foreign_count_snapshot(exclusion, team_id, player_id)) {
         return;
     }
     entry->foreign_count++;
@@ -67,6 +69,7 @@ static void kbo_foreign_org_snapshot_add_player_to(
 static void kbo_foreign_org_snapshot_add_unique_player_to(
     KboForeignOrgSnapshotEntry* entries,
     int* entry_count,
+    const KboForeignInjuryExclusionSnapshot* exclusion,
     uint32_t* team_ids,
     int* team_count,
     uint32_t team_id,
@@ -85,7 +88,7 @@ static void kbo_foreign_org_snapshot_add_unique_player_to(
         return;
     }
     team_ids[(*team_count)++] = team_id;
-    kbo_foreign_org_snapshot_add_player_to(entries, entry_count, team_id, player_id, asian_quota);
+    kbo_foreign_org_snapshot_add_player_to(entries, entry_count, exclusion, team_id, player_id, asian_quota);
 }
 
 static void kbo_foreign_org_player_index_reset(void)
@@ -184,6 +187,7 @@ static int kbo_foreign_org_player_index_ensure(
 static int kbo_foreign_org_snapshot_rebuild_from_player_index(
     KboForeignOrgSnapshotEntry* entries,
     int* out_entry_count,
+    const KboForeignInjuryExclusionSnapshot* exclusion,
     uintptr_t player_vector,
     int32_t player_count)
 {
@@ -234,6 +238,7 @@ static int kbo_foreign_org_snapshot_rebuild_from_player_index(
         kbo_foreign_org_snapshot_add_unique_player_to(
             entries,
             out_entry_count,
+            exclusion,
             team_ids,
             &team_count,
             kbo_foreign_org_team_id_for_team_id(current_team_id),
@@ -242,6 +247,7 @@ static int kbo_foreign_org_snapshot_rebuild_from_player_index(
         kbo_foreign_org_snapshot_add_unique_player_to(
             entries,
             out_entry_count,
+            exclusion,
             team_ids,
             &team_count,
             kbo_foreign_org_team_id_for_team_id(active_team_id),
@@ -250,6 +256,7 @@ static int kbo_foreign_org_snapshot_rebuild_from_player_index(
         kbo_foreign_org_snapshot_add_unique_player_to(
             entries,
             out_entry_count,
+            exclusion,
             team_ids,
             &team_count,
             kbo_foreign_org_team_id_for_team_id(loan_team_id),
@@ -286,9 +293,12 @@ int kbo_foreign_org_snapshot_rebuild_into(
     }
 
     kbo_ensure_foreign_replacement_player_seeds_loaded();
+    KboForeignInjuryExclusionSnapshot exclusion;
+    kbo_foreign_injury_build_exclusion_snapshot(&exclusion);
     if (kbo_foreign_org_snapshot_rebuild_from_player_index(
             entries,
             out_entry_count,
+            &exclusion,
             player_vector,
             player_count)) {
         return 1;
@@ -324,6 +334,7 @@ int kbo_foreign_org_snapshot_rebuild_into(
         kbo_foreign_org_snapshot_add_unique_player_to(
             entries,
             out_entry_count,
+            &exclusion,
             team_ids,
             &team_count,
             kbo_foreign_org_team_id_for_team_id(current_team_id),
@@ -332,6 +343,7 @@ int kbo_foreign_org_snapshot_rebuild_into(
         kbo_foreign_org_snapshot_add_unique_player_to(
             entries,
             out_entry_count,
+            &exclusion,
             team_ids,
             &team_count,
             kbo_foreign_org_team_id_for_team_id(active_team_id),
@@ -340,6 +352,7 @@ int kbo_foreign_org_snapshot_rebuild_into(
         kbo_foreign_org_snapshot_add_unique_player_to(
             entries,
             out_entry_count,
+            &exclusion,
             team_ids,
             &team_count,
             kbo_foreign_org_team_id_for_team_id(loan_team_id),

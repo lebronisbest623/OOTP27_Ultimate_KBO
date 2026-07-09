@@ -27,6 +27,8 @@ static int kbo_count_team_asian_quota_scan_live(
     uint32_t asian_count = 0u;
     uint32_t non_asian_count = 0u;
     kbo_ensure_foreign_replacement_player_seeds_loaded();
+    KboForeignInjuryExclusionSnapshot exclusion;
+    kbo_foreign_injury_build_exclusion_snapshot(&exclusion);
     for (int32_t i = 0; i < player_count; i++) {
         uintptr_t player_ptr = *(uintptr_t*)(player_vector + ((uintptr_t)i * sizeof(uintptr_t)));
         if (!kbo_player_pointer_plausible(player_ptr)) {
@@ -60,7 +62,7 @@ static int kbo_count_team_asian_quota_scan_live(
             }
             continue;
         }
-        if (kbo_foreign_injury_player_excluded_from_foreign_count(team_id, player_id)) {
+        if (kbo_foreign_injury_player_excluded_from_foreign_count_snapshot(&exclusion, team_id, player_id)) {
             continue;
         }
         foreign_count++;

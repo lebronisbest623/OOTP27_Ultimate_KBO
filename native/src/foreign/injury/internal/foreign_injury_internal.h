@@ -85,6 +85,25 @@ int kbo_foreign_injury_status_uses_slot(uint8_t status);
 uint8_t kbo_foreign_injury_slot_type_for_player(uint8_t* player);
 int kbo_foreign_injury_player_excluded_from_foreign_count_locked(uint32_t team_id, uint32_t player_id);
 int kbo_foreign_injury_player_excluded_from_foreign_count(uint32_t team_id, uint32_t player_id);
+int kbo_foreign_injury_state_record_has_minimum_injury_basis(const KboForeignInjuryReplacement* rec);
+
+#ifndef KBO_FOREIGN_INJURY_EXCLUSION_SNAPSHOT_DEFINED
+#define KBO_FOREIGN_INJURY_EXCLUSION_SNAPSHOT_DEFINED
+/* Pre-resolved view of the open/active replacement records for foreign-count
+ * exclusion checks inside per-player scan loops. Built once per scan so the
+ * loop does not take the record lock or resolve team orgs per player. */
+typedef struct KboForeignInjuryExclusionSnapshot {
+    int count;
+    uint32_t org_team_ids[KBO_FOREIGN_INJURY_REPLACEMENT_MAX];
+    KboForeignInjuryReplacement records[KBO_FOREIGN_INJURY_REPLACEMENT_MAX];
+} KboForeignInjuryExclusionSnapshot;
+#endif
+
+void kbo_foreign_injury_build_exclusion_snapshot(KboForeignInjuryExclusionSnapshot* out);
+int kbo_foreign_injury_player_excluded_from_foreign_count_snapshot(
+    const KboForeignInjuryExclusionSnapshot* snapshot,
+    uint32_t team_id,
+    uint32_t player_id);
 int kbo_foreign_injury_duration_meets_minimum(int16_t days_left, int min_days);
 int kbo_foreign_injury_read_live_memory(uint8_t* player, KboForeignInjuryLiveMemory* out);
 int kbo_foreign_injury_live_memory_has_long_term_basis(

@@ -48,6 +48,24 @@ typedef struct KboForeignInjuryLiveMemory {
 } KboForeignInjuryLiveMemory;
 #endif
 
+#ifndef KBO_FOREIGN_INJURY_EXCLUSION_SNAPSHOT_DEFINED
+#define KBO_FOREIGN_INJURY_EXCLUSION_SNAPSHOT_DEFINED
+/* Pre-resolved view of the open/active replacement records for foreign-count
+ * exclusion checks inside per-player scan loops. Built once per scan so the
+ * loop does not take the record lock or resolve team orgs per player. */
+typedef struct KboForeignInjuryExclusionSnapshot {
+    int count;
+    uint32_t org_team_ids[KBO_FOREIGN_INJURY_REPLACEMENT_MAX];
+    KboForeignInjuryReplacement records[KBO_FOREIGN_INJURY_REPLACEMENT_MAX];
+} KboForeignInjuryExclusionSnapshot;
+#endif
+
+void kbo_foreign_injury_build_exclusion_snapshot(KboForeignInjuryExclusionSnapshot* out);
+int kbo_foreign_injury_player_excluded_from_foreign_count_snapshot(
+    const KboForeignInjuryExclusionSnapshot* snapshot,
+    uint32_t team_id,
+    uint32_t player_id);
+
 extern KboForeignInjuryReplacement g_kbo_foreign_injury_replacements[KBO_FOREIGN_INJURY_REPLACEMENT_MAX];
 extern int g_kbo_foreign_injury_replacement_count;
 

@@ -4,6 +4,7 @@
 #include <string.h>
 #include <windows.h>
 
+#include "../../../bootstrap/profiling/profiler.h"
 #include "../../../competitive_balance_tax/events/cbt_events.h"
 #include "../../../core/logging/core_log.h"
 #include "../../../core/sql/save_state/save_state_sqlite.h"
@@ -159,12 +160,24 @@ static void kbo_custom_event_calendar_run_all(
     const char* source,
     KboCustomEventDueResults* out)
 {
+    KBO_PROFILE_BEGIN(profile_due_foreign);
     out->foreign = kbo_schedule_foreign_priority_custom_events_for_date(source, today_yyyymmdd);
+    KBO_PROFILE_END(profile_due_foreign, "custom_event.due.schedule_foreign");
+    KBO_PROFILE_BEGIN(profile_due_asian);
     out->asian = kbo_schedule_asian_games_custom_events_for_date(today_yyyymmdd, source);
+    KBO_PROFILE_END(profile_due_asian, "custom_event.due.schedule_asian");
+    KBO_PROFILE_BEGIN(profile_due_cbt);
     out->cbt = kbo_schedule_cbt_custom_events_for_date(today_yyyymmdd, source);
+    KBO_PROFILE_END(profile_due_cbt, "custom_event.due.schedule_cbt");
+    KBO_PROFILE_BEGIN(profile_due_independent);
     out->independent = kbo_schedule_independent_team_acquisition_custom_events_for_date(today_yyyymmdd, source);
+    KBO_PROFILE_END(profile_due_independent, "custom_event.due.schedule_independent");
+    KBO_PROFILE_BEGIN(profile_due_scan);
     out->scanned = kbo_custom_event_calendar_scan_until_idle(today_yyyymmdd, source);
+    KBO_PROFILE_END(profile_due_scan, "custom_event.due.scan_until_idle");
+    KBO_PROFILE_BEGIN(profile_due_asian_hold);
     out->asian_hold = kbo_maintain_asian_games_restricted_players(today_yyyymmdd, source);
+    KBO_PROFILE_END(profile_due_asian_hold, "custom_event.due.asian_hold_maintenance");
 }
 
 static int kbo_custom_event_due_any_critical_deferred(const KboCustomEventDueResults* r)

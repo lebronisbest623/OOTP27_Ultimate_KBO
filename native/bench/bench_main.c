@@ -1303,6 +1303,22 @@ int kbo_foreign_injury_player_excluded_from_foreign_count(uint32_t team_id, uint
     return 0;
 }
 
+void kbo_foreign_injury_build_exclusion_snapshot(KboForeignInjuryExclusionSnapshot* out)
+{
+    if (out != NULL) {
+        out->count = 0;
+    }
+}
+
+int kbo_foreign_injury_player_excluded_from_foreign_count_snapshot(
+    const KboForeignInjuryExclusionSnapshot* snapshot,
+    uint32_t team_id,
+    uint32_t player_id)
+{
+    (void)snapshot;
+    return kbo_foreign_injury_player_excluded_from_foreign_count(team_id, player_id);
+}
+
 void kbo_copy_player_display_name(uint8_t* player, char* out, size_t out_size)
 {
     if (out == NULL || out_size == 0u) {

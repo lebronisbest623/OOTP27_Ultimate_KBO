@@ -69,7 +69,9 @@ __declspec(noinline) void ootp_kbo_foreign_fa_demand_baseline_prepare_wrapper(
     uint32_t source_rva)
 {
     KBO_HOOK_PROFILE_BEGIN(profile_hook);
+    KBO_PROFILE_BEGIN(profile_fa_demand_restore_enter);
     kbo_restore_foreign_fa_demand_salary_ladder("prepare_enter");
+    KBO_PROFILE_END(profile_fa_demand_restore_enter, "foreign.fa_demand.restore_enter");
     if (!kbo_foreign_fa_demand_baseline_enabled()) {
         KBO_HOOK_PROFILE_RETURN_VOID(profile_hook, "foreign.fa_demand_baseline_prepare");
     }
@@ -104,13 +106,17 @@ __declspec(noinline) void ootp_kbo_foreign_fa_demand_baseline_prepare_wrapper(
     uint32_t player_id = memory_range_readable(player + OOTP27_PLAYER_ID_OFFSET, sizeof(uint32_t))
         ? *(uint32_t*)(player + OOTP27_PLAYER_ID_OFFSET)
         : 0u;
+    KBO_PROFILE_BEGIN(profile_fa_demand_asian_quota);
     int asian_quota = kbo_player_is_asian_quota_slot_candidate(player);
+    KBO_PROFILE_END(profile_fa_demand_asian_quota, "foreign.fa_demand.asian_quota_candidate");
     uint32_t reserve_holder_team_id = 0u;
     uint32_t reserve_today = 0u;
+    KBO_PROFILE_BEGIN(profile_fa_demand_reserve_right);
     int reserve_right = kbo_foreign_fa_player_has_active_reserve_right(
         player,
         &reserve_holder_team_id,
         &reserve_today);
+    KBO_PROFILE_END(profile_fa_demand_reserve_right, "foreign.fa_demand.reserve_right");
 
     uint8_t* financials = (uint8_t*)financials_ptr;
     for (int i = 0; i < 9; i++) {

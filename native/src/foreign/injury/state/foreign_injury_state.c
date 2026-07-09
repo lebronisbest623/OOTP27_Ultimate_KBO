@@ -309,7 +309,7 @@ int kbo_foreign_injury_open_news_allowed(
         && opened_on == scan_date;
 }
 
-static int kbo_foreign_injury_state_record_has_minimum_injury_basis(
+int kbo_foreign_injury_state_record_has_minimum_injury_basis(
     const KboForeignInjuryReplacement* rec)
 {
     if (rec == NULL || rec->injured_player_id == 0u) {
