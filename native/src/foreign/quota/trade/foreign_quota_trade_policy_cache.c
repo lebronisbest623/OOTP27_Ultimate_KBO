@@ -86,11 +86,12 @@ static int kbo_custom_foreign_trade_policy_player_ids_match(
 }
 
 static uint32_t kbo_custom_foreign_trade_policy_cache_slot(
-    uintptr_t trade_ptr,
+    const uint32_t* team_ids,
     int32_t requested_side,
     uint32_t player_hash)
 {
-    uint32_t h = (uint32_t)(trade_ptr >> 4) ^ (uint32_t)trade_ptr;
+    uint32_t h = kbo_custom_foreign_trade_policy_hash_mix(0u, team_ids != NULL ? team_ids[0] : 0u);
+    h = kbo_custom_foreign_trade_policy_hash_mix(h, team_ids != NULL ? team_ids[1] : 0u);
     h = kbo_custom_foreign_trade_policy_hash_mix(h, (uint32_t)requested_side);
     h = kbo_custom_foreign_trade_policy_hash_mix(h, player_hash);
     return h & (KBO_CUSTOM_FOREIGN_TRADE_CACHE_SIZE - 1u);
@@ -133,17 +134,17 @@ int kbo_custom_foreign_trade_policy_cache_hit(
     uint32_t* out_effective_limit,
     int* out_allowed)
 {
+    (void)trade_ptr;
     if (team_ids == NULL || player_ids == NULL || org_generations == NULL || out_allowed == NULL) {
         return 0;
     }
     uint32_t slot = kbo_custom_foreign_trade_policy_cache_slot(
-        trade_ptr,
+        team_ids,
         requested_side,
         player_hash);
     KboCustomForeignTradePolicyCacheEntry entry =
         g_kbo_custom_foreign_trade_policy_cache[slot];
     if (!entry.valid
-            || entry.trade_ptr != trade_ptr
             || entry.requested_side != requested_side
             || entry.player_hash != player_hash
             || entry.team_ids[0] != team_ids[0]
@@ -190,13 +191,12 @@ void kbo_custom_foreign_trade_policy_cache_store(
         return;
     }
     uint32_t slot = kbo_custom_foreign_trade_policy_cache_slot(
-        trade_ptr,
+        team_ids,
         requested_side,
         player_hash);
     KboCustomForeignTradePolicyCacheEntry* entry =
         &g_kbo_custom_foreign_trade_policy_cache[slot];
     entry->valid = 0u;
-    entry->trade_ptr = trade_ptr;
     entry->requested_side = requested_side;
     entry->team_ids[0] = team_ids[0];
     entry->team_ids[1] = team_ids[1];

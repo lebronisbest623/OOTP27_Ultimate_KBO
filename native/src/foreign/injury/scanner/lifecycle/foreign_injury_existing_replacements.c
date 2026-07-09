@@ -27,13 +27,26 @@ void kbo_foreign_injury_process_existing_replacements(
     KboForeignInjuryTeamLookupCacheEntry team_cache[32];
     int team_cache_count = 0;
     memset(team_cache, 0, sizeof(team_cache));
+
+    /* Snapshot the replacement array under exclusive lock so the heavy
+       per-record work (kbo_find_player_by_id, roster scans, etc.) runs
+       without blocking concurrent readers. */
     kbo_lock_foreign_injury_replacements();
-    for (int i = 0; i < g_kbo_foreign_injury_replacement_count; i++) {
-        KboForeignInjuryReplacement* rec = &g_kbo_foreign_injury_replacements[i];
+    KboForeignInjuryReplacement snapshot[KBO_FOREIGN_INJURY_REPLACEMENT_MAX];
+    int snapshot_count = g_kbo_foreign_injury_replacement_count;
+    if (snapshot_count > 0) {
+        memcpy(snapshot, g_kbo_foreign_injury_replacements,
+               (size_t)snapshot_count * sizeof(KboForeignInjuryReplacement));
+    }
+    kbo_unlock_foreign_injury_replacements();
+
+    for (int i = 0; i < snapshot_count; i++) {
+        KboForeignInjuryReplacement* rec = &snapshot[i];
         if (rec->status == KBO_FOREIGN_INJURY_STATUS_CLOSED) {
             if (kbo_foreign_injury_repair_closed_existing_replacement(
                     rec, today, source, active_news, (int)(sizeof(active_news) / sizeof(active_news[0])),
-                    &active_count, team_cache, &team_cache_count, (int)(sizeof(team_cache) / sizeof(team_cache[0])))) {
+                    &active_count, team_cache, &team_cache_count, (int)(sizeof(team_cache) / sizeof(team_cache[0])),
+                    snapshot, snapshot_count)) {
                 changed = 1;
             }
             continue;
@@ -99,7 +112,7 @@ void kbo_foreign_injury_process_existing_replacements(
         };
         if (uses_slot
                 && rec->replacement_player_id != 0u
-                && kbo_foreign_injury_replacement_player_reserved_locked(rec->replacement_player_id, rec)) {
+                && kbo_foreign_injury_replacement_player_reserved_snapshot(rec->replacement_player_id, rec, snapshot, snapshot_count)) {
             uint32_t detached_replacement_player_id = rec->replacement_player_id;
             rec->replacement_player_id = 0u;
             if (rec->status == KBO_FOREIGN_INJURY_STATUS_ACTIVE) {
@@ -212,7 +225,7 @@ void kbo_foreign_injury_process_existing_replacements(
             if (!close_decision_allowed) {
                 continue;
             }
-            uint32_t replacement_player_id = kbo_foreign_injury_resolve_replacement_for_record(rec);
+            uint32_t replacement_player_id = kbo_foreign_injury_resolve_replacement_for_record(rec, snapshot, snapshot_count);
             if (replacement_player_id != 0u) {
                 rec->replacement_player_id = replacement_player_id;
                 kbo_foreign_injury_release_replacement_player(
@@ -271,7 +284,7 @@ void kbo_foreign_injury_process_existing_replacements(
                 &wait_log_context);
         }
         if (uses_slot && rec->replacement_player_id == 0u && expected_end_pending && record_continuation_basis) {
-            uint32_t replacement_player_id = kbo_foreign_injury_resolve_replacement_for_record(rec);
+            uint32_t replacement_player_id = kbo_foreign_injury_resolve_replacement_for_record(rec, snapshot, snapshot_count);
             if (replacement_player_id != 0u) {
                 rec->replacement_player_id = replacement_player_id;
                 rec->status = KBO_FOREIGN_INJURY_STATUS_ACTIVE;
@@ -340,7 +353,7 @@ void kbo_foreign_injury_process_existing_replacements(
 
         uint32_t replacement_player_id = detached_reserved_replacement
             ? 0u
-            : kbo_foreign_injury_resolve_replacement_for_record(rec);
+            : kbo_foreign_injury_resolve_replacement_for_record(rec, snapshot, snapshot_count);
         if (replacement_player_id != 0u) {
             rec->replacement_player_id = replacement_player_id;
         } else {
@@ -385,9 +398,39 @@ void kbo_foreign_injury_process_existing_replacements(
         changed = 1;
     }
     if (changed) {
+        /* Merge processed records back into the global array under exclusive
+           lock, preserving any records that were appended by other threads
+           while we were working on the snapshot. */
+        kbo_lock_foreign_injury_replacements();
+        if (snapshot_count <= g_kbo_foreign_injury_replacement_count) {
+            memcpy(g_kbo_foreign_injury_replacements, snapshot,
+                   (size_t)snapshot_count * sizeof(KboForeignInjuryReplacement));
+        }
+        /* Compact old closed records to prevent unbounded array growth.
+           Closed records that were not repaired stay in the array forever
+           otherwise, making every subsequent scan iterate over more entries. */
+        if (g_kbo_foreign_injury_replacement_count > 128) {
+            int keep = 0;
+            for (int i = 0; i < g_kbo_foreign_injury_replacement_count; i++) {
+                KboForeignInjuryReplacement* r = &g_kbo_foreign_injury_replacements[i];
+                int is_old_closed = r->status == KBO_FOREIGN_INJURY_STATUS_CLOSED
+                    && r->close_choice != KBO_FOREIGN_INJURY_CLOSE_OFFSEASON_RESET
+                    && r->closed_on_yyyymmdd != 0u
+                    && r->closed_on_yyyymmdd < today - 10000u;  /* >100 days ago */
+                if (!is_old_closed) {
+                    if (keep != i) {
+                        g_kbo_foreign_injury_replacements[keep] = *r;
+                    }
+                    keep++;
+                }
+            }
+            if (keep < g_kbo_foreign_injury_replacement_count) {
+                g_kbo_foreign_injury_replacement_count = keep;
+            }
+        }
         kbo_persist_foreign_injury_replacements_locked();
+        kbo_unlock_foreign_injury_replacements();
     }
-    kbo_unlock_foreign_injury_replacements();
     kbo_foreign_injury_emit_active_replacement_news_batch(active_news, active_count, today, source);
     kbo_foreign_injury_emit_closed_news_batch(closed_news, closed_count, today, source);
     if (out_active_count != NULL) {

@@ -10,7 +10,9 @@ int kbo_foreign_injury_repair_closed_existing_replacement(
     int* active_count,
     KboForeignInjuryTeamLookupCacheEntry* team_cache,
     int* team_cache_count,
-    int team_cache_capacity)
+    int team_cache_capacity,
+    const KboForeignInjuryReplacement* snapshot,
+    int snapshot_count)
 {
     if (rec == NULL || rec->status != KBO_FOREIGN_INJURY_STATUS_CLOSED) {
         return 0;
@@ -50,7 +52,8 @@ int kbo_foreign_injury_repair_closed_existing_replacement(
             1)
         : 0;
     int repair_allowed = !return_close_allowed
-        && !kbo_foreign_injury_replacement_player_reserved_locked(rec->replacement_player_id, rec)
+        && !kbo_foreign_injury_replacement_player_reserved_snapshot(
+            rec->replacement_player_id, rec, snapshot, snapshot_count)
         && kbo_foreign_injury_closed_record_can_repair_on_date(
             rec,
             &live_injury,

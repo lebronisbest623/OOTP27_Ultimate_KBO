@@ -75,6 +75,16 @@ void kbo_unlock_foreign_injury_replacements(void)
     kbo_lock_leave(&g_kbo_foreign_injury_replacement_lock);
 }
 
+void kbo_lock_foreign_injury_replacements_shared(void)
+{
+    kbo_rw_lock_enter_shared(&g_kbo_foreign_injury_replacement_lock);
+}
+
+void kbo_unlock_foreign_injury_replacements_shared(void)
+{
+    kbo_rw_lock_leave_shared(&g_kbo_foreign_injury_replacement_lock);
+}
+
 int kbo_load_foreign_injury_replacements_locked(const char* path)
 {
     g_kbo_foreign_injury_replacement_count = 0;

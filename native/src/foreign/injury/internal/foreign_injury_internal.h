@@ -168,6 +168,8 @@ const char* kbo_foreign_injury_slot_label(uint8_t slot_type);
 const char* kbo_foreign_injury_status_label(uint8_t status);
 void kbo_lock_foreign_injury_replacements(void);
 void kbo_unlock_foreign_injury_replacements(void);
+void kbo_lock_foreign_injury_replacements_shared(void);
+void kbo_unlock_foreign_injury_replacements_shared(void);
 int kbo_load_foreign_injury_replacements_locked(const char* path);
 int kbo_parse_foreign_injury_replacement_seed_line(
     const char* line,

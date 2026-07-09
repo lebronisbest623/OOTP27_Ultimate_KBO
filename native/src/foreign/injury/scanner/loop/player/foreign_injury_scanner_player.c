@@ -190,9 +190,9 @@ KboForeignInjuryScannerPlayerLoopResult kbo_foreign_injury_scan_player_for_repla
         }
         return result;
     }
-    kbo_lock_foreign_injury_replacements();
+    kbo_lock_foreign_injury_replacements_shared();
     int already_replacement = kbo_foreign_injury_replacement_player_reserved_locked(player_id, NULL);
-    kbo_unlock_foreign_injury_replacements();
+    kbo_unlock_foreign_injury_replacements_shared();
     if (already_replacement) {
         do {
             KboLogFields audit_fields;

@@ -131,6 +131,8 @@ int kbo_foreign_injury_player_excluded_from_foreign_count_locked(uint32_t team_i
 int kbo_foreign_injury_player_excluded_from_foreign_count(uint32_t team_id, uint32_t player_id);
 void kbo_lock_foreign_injury_replacements(void);
 void kbo_unlock_foreign_injury_replacements(void);
+void kbo_lock_foreign_injury_replacements_shared(void);
+void kbo_unlock_foreign_injury_replacements_shared(void);
 
 int kbo_foreign_injury_replacement_enabled(void);
 void kbo_ensure_foreign_injury_replacements_loaded(void);

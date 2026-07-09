@@ -101,7 +101,7 @@ static int32_t kbo_ai_fa_status_force_closed_replacement_market_candidates(
     uint32_t player_ids[KBO_AI_FA_STATUS_FORCED_REPLACEMENT_MAX] = {0};
     int player_count = 0;
 
-    kbo_lock_foreign_injury_replacements();
+    kbo_lock_foreign_injury_replacements_shared();
     int record_count = g_kbo_foreign_injury_replacement_count;
     if (record_count > KBO_FOREIGN_INJURY_REPLACEMENT_MAX) {
         record_count = KBO_FOREIGN_INJURY_REPLACEMENT_MAX;
@@ -119,7 +119,7 @@ static int32_t kbo_ai_fa_status_force_closed_replacement_market_candidates(
         }
         player_ids[player_count++] = rec->replacement_player_id;
     }
-    kbo_unlock_foreign_injury_replacements();
+    kbo_unlock_foreign_injury_replacements_shared();
 
     for (int i = 0; i < player_count; i++) {
         uint32_t forced_player_id = player_ids[i];

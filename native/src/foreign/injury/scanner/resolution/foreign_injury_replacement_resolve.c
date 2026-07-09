@@ -1,6 +1,10 @@
 #include "../foreign_injury_scanner_internal.h"
+#include "../lifecycle/foreign_injury_existing_replacements_internal.h"
 
-uint32_t kbo_foreign_injury_resolve_replacement_for_record(const KboForeignInjuryReplacement* rec)
+uint32_t kbo_foreign_injury_resolve_replacement_for_record(
+    const KboForeignInjuryReplacement* rec,
+    const KboForeignInjuryReplacement* snapshot,
+    int snapshot_count)
 {
     if (rec == NULL || rec->team_id == 0u || rec->injured_player_id == 0u) {
         return 0u;
@@ -32,7 +36,8 @@ uint32_t kbo_foreign_injury_resolve_replacement_for_record(const KboForeignInjur
                 || !kbo_foreign_replacement_player_seed_matches_loaded(player, NULL)
                 || !kbo_foreign_injury_player_matches_team(player, rec->team_id)
                 || !kbo_foreign_injury_candidate_matches_slot(player, rec->slot_type)
-                || kbo_foreign_injury_replacement_player_reserved_locked(player_id, rec)) {
+                || kbo_foreign_injury_replacement_player_reserved_snapshot(
+                    player_id, rec, snapshot, snapshot_count)) {
             continue;
         }
 

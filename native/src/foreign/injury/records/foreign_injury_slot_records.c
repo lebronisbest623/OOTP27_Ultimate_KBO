@@ -44,7 +44,7 @@ uint64_t kbo_foreign_injury_replacement_fingerprint(void)
     }
 
     uint64_t hash = 1469598103934665603ull;
-    kbo_lock_foreign_injury_replacements();
+    kbo_lock_foreign_injury_replacements_shared();
     generation = InterlockedCompareExchange(
         &g_kbo_foreign_injury_replacement_fingerprint_generation,
         0,
@@ -67,7 +67,7 @@ uint64_t kbo_foreign_injury_replacement_fingerprint(void)
         hash = kbo_foreign_injury_replacement_fingerprint_mix(hash, rec->converted);
         hash = kbo_foreign_injury_replacement_fingerprint_mix(hash, rec->close_choice);
     }
-    kbo_unlock_foreign_injury_replacements();
+    kbo_unlock_foreign_injury_replacements_shared();
     if (hash == 0ull) {
         hash = 1ull;
     }
@@ -98,22 +98,46 @@ int kbo_persist_foreign_injury_replacements_locked(void)
 void kbo_ensure_foreign_injury_replacements_loaded(void)
 {
     KBO_PROFILE_BEGIN(profile_foreign_injury_ensure);
-    DWORD now = GetTickCount();
     char path[MAX_PATH] = {0};
     if (!kbo_get_foreign_injury_replacement_path(path, sizeof(path))) {
         KBO_PROFILE_END(profile_foreign_injury_ensure, "foreign_injury.ensure.no_path");
         return;
     }
 
-    static DWORD last_empty_import_attempt_tick = 0u;
+    /* Fast path: shared lock for the common case where data is already loaded
+       for the current save.  This allows concurrent readers to proceed without
+       blocking each other. */
+    kbo_lock_foreign_injury_replacements_shared();
+    if (g_kbo_foreign_injury_replacement_loaded_path[0] != '\0'
+            && strcmp(g_kbo_foreign_injury_replacement_loaded_path, path) == 0
+            && g_kbo_foreign_injury_replacement_count > 0) {
+        kbo_unlock_foreign_injury_replacements_shared();
+        KBO_PROFILE_END(profile_foreign_injury_ensure, "foreign_injury.ensure.cached");
+        return;
+    }
+    kbo_unlock_foreign_injury_replacements_shared();
+
+    /* Slow path: exclusive lock for initial load or seed import.
+       Double-check after acquiring exclusive lock. */
     kbo_lock_foreign_injury_replacements();
+    if (g_kbo_foreign_injury_replacement_loaded_path[0] != '\0'
+            && strcmp(g_kbo_foreign_injury_replacement_loaded_path, path) == 0
+            && g_kbo_foreign_injury_replacement_count > 0) {
+        kbo_unlock_foreign_injury_replacements();
+        KBO_PROFILE_END(profile_foreign_injury_ensure, "foreign_injury.ensure.cached");
+        return;
+    }
+
+    static DWORD last_empty_import_attempt_tick = 0u;
+    DWORD now = GetTickCount();
+    int should_import_seed = 0;
     int path_changed = strcmp(g_kbo_foreign_injury_replacement_loaded_path, path) != 0;
     if (path_changed) {
         last_empty_import_attempt_tick = 0u;
         kbo_load_foreign_injury_replacements_locked(path);
         kbo_foreign_injury_replacement_fingerprint_note_changed();
     }
-    int should_import_seed = path_changed;
+    should_import_seed = path_changed;
     if (!should_import_seed
             && g_kbo_foreign_injury_replacement_count == 0
             && (last_empty_import_attempt_tick == 0u
@@ -151,9 +175,9 @@ int kbo_foreign_injury_replacements_loaded_for_current_save(void)
         return 0;
     }
 
-    kbo_lock_foreign_injury_replacements();
+    kbo_lock_foreign_injury_replacements_shared();
     int loaded = strcmp(g_kbo_foreign_injury_replacement_loaded_path, path) == 0;
-    kbo_unlock_foreign_injury_replacements();
+    kbo_unlock_foreign_injury_replacements_shared();
     return loaded;
 }
 
@@ -199,9 +223,9 @@ int kbo_foreign_injury_player_excluded_from_foreign_count(uint32_t team_id, uint
         return 0;
     }
     kbo_ensure_foreign_injury_replacements_loaded();
-    kbo_lock_foreign_injury_replacements();
+    kbo_lock_foreign_injury_replacements_shared();
     result = kbo_foreign_injury_player_excluded_from_foreign_count_locked(team_id, player_id);
-    kbo_unlock_foreign_injury_replacements();
+    kbo_unlock_foreign_injury_replacements_shared();
     return result;
 }
 
@@ -293,9 +317,9 @@ int kbo_team_has_foreign_injury_slot(uint32_t team_id, uint8_t slot_type, uint32
 {
     int result = 0;
     kbo_ensure_foreign_injury_replacements_loaded();
-    kbo_lock_foreign_injury_replacements();
+    kbo_lock_foreign_injury_replacements_shared();
     result = kbo_team_has_foreign_injury_slot_locked(team_id, slot_type, out_injured_player_id);
-    kbo_unlock_foreign_injury_replacements();
+    kbo_unlock_foreign_injury_replacements_shared();
     return result;
 }
 

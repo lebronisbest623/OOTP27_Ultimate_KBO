@@ -51,7 +51,10 @@ int kbo_foreign_injury_resolve_player_team_assignment(
 int kbo_foreign_injury_injured_player_returned_to_org_roster(
     const KboForeignInjuryReplacement* rec,
     uint8_t* injured);
-uint32_t kbo_foreign_injury_resolve_replacement_for_record(const KboForeignInjuryReplacement* rec);
+uint32_t kbo_foreign_injury_resolve_replacement_for_record(
+    const KboForeignInjuryReplacement* rec,
+    const KboForeignInjuryReplacement* snapshot,
+    int snapshot_count);
 int kbo_foreign_injury_choose_returning_player(
     const KboForeignInjuryReplacement* rec,
     uint8_t* injured,

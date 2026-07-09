@@ -10,6 +10,7 @@
 #include "../../../core/dates/core_text_date.h"
 #include "../../../core/core_flags/api/flags_api.h"
 #include "../../../runtime_memory/runtime_memory.h"
+#include "../../../build_verify/build_verify.h"
 #include "../../../patch_helpers/patch_helpers.h"
 #include "../../../bootstrap/abi/hook_entrypoints.h"
 #include "../../../hook_stubs/foreign/intl_established_fa/hook_stubs_intl_established_fa.h"
@@ -192,7 +193,15 @@ int install_kbo_intl_established_fa_generation_filter_patch(void)
     }
 
     void* continuation = target + sizeof(expected);
-    void* retry_continuation = (uint8_t*)((uintptr_t)exe + OOTP27_INTL_ESTABLISHED_FA_RETRY_LOOP_RVA);
+    void* retry_continuation = (uint8_t*)kbo_resolve_build_specific_rva_ptr(
+        exe,
+        OOTP27_INTL_ESTABLISHED_FA_RETRY_LOOP_RVA);
+    if (retry_continuation == NULL) {
+        kbo_log_runtimef(
+            "failed to resolve KBO international established FA retry loop RVA (canonical=0x%08X)",
+            OOTP27_INTL_ESTABLISHED_FA_RETRY_LOOP_RVA);
+        return 0;
+    }
     uint8_t* stub = build_kbo_intl_established_fa_register_gate_stub(
         continuation,
         retry_continuation,

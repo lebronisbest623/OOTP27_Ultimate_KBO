@@ -63,7 +63,7 @@ void kbo_build_foreign_injury_replacement_hub_text(char* out, size_t out_size)
 
     int rendered = 0;
     kbo_ensure_foreign_injury_replacements_loaded();
-    kbo_lock_foreign_injury_replacements();
+    kbo_lock_foreign_injury_replacements_shared();
     for (int i = 0; i < g_kbo_foreign_injury_replacement_count && rendered < 500; i++) {
         KboForeignInjuryReplacement* rec = &g_kbo_foreign_injury_replacements[i];
         if (selected_team_id != 0u && rec->team_id != selected_team_id) {
@@ -101,7 +101,7 @@ void kbo_build_foreign_injury_replacement_hub_text(char* out, size_t out_size)
             kbo_foreign_injury_status_label(rec->status));
         rendered++;
     }
-    kbo_unlock_foreign_injury_replacements();
+    kbo_unlock_foreign_injury_replacements_shared();
 
     if (rendered == 0) {
         kbo_window_text_appendf(&buffer, "\r\n");

@@ -33,7 +33,7 @@ static void kbo_hub_refresh_foreign_slot_cache(void)
     int injured_count = 0;
     int replacement_count = 0;
     kbo_ensure_foreign_injury_replacements_loaded();
-    kbo_lock_foreign_injury_replacements();
+    kbo_lock_foreign_injury_replacements_shared();
     for (int i = 0; i < g_kbo_foreign_injury_replacement_count; i++) {
         KboForeignInjuryReplacement* rec = &g_kbo_foreign_injury_replacements[i];
         if (rec->status == KBO_FOREIGN_INJURY_STATUS_CLOSED) {
@@ -48,7 +48,7 @@ static void kbo_hub_refresh_foreign_slot_cache(void)
             g_kbo_hub_foreign_slot_cache_replacement_ids[replacement_count++] = rec->replacement_player_id;
         }
     }
-    kbo_unlock_foreign_injury_replacements();
+    kbo_unlock_foreign_injury_replacements_shared();
 
     g_kbo_hub_foreign_slot_cache_injured_count = injured_count;
     g_kbo_hub_foreign_slot_cache_replacement_count = replacement_count;

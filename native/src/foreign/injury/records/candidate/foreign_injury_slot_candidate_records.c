@@ -48,14 +48,14 @@ int kbo_team_has_foreign_injury_slot_for_candidate(
     KBO_PROFILE_BEGIN(profile_foreign_injury_slot_candidate);
     int result = 0;
     kbo_ensure_foreign_injury_replacements_loaded();
-    kbo_lock_foreign_injury_replacements();
+    kbo_lock_foreign_injury_replacements_shared();
     result = kbo_team_has_foreign_injury_slot_for_candidate_locked(
         team_id,
         slot_type,
         candidate_player_id,
         out_injured_player_id,
         out_replacement_player_id);
-    kbo_unlock_foreign_injury_replacements();
+    kbo_unlock_foreign_injury_replacements_shared();
     KBO_PROFILE_END(profile_foreign_injury_slot_candidate, result
         ? "foreign_injury.slot_candidate.hit"
         : "foreign_injury.slot_candidate.miss");
@@ -80,7 +80,7 @@ int kbo_team_has_foreign_injury_slot_for_candidate_type_any(
     uint32_t injured_player_id = 0u;
 
     kbo_ensure_foreign_injury_replacements_loaded();
-    kbo_lock_foreign_injury_replacements();
+    kbo_lock_foreign_injury_replacements_shared();
     if (allow_asian_slot
             && kbo_team_has_foreign_injury_slot_locked(
                 team_id,
@@ -97,7 +97,7 @@ int kbo_team_has_foreign_injury_slot_for_candidate_type_any(
         slot_type = KBO_FOREIGN_INJURY_SLOT_REGULAR;
         result = 1;
     }
-    kbo_unlock_foreign_injury_replacements();
+    kbo_unlock_foreign_injury_replacements_shared();
 
     if (result) {
         if (out_slot_type != NULL) { *out_slot_type = slot_type; }
@@ -131,7 +131,7 @@ int kbo_team_has_foreign_injury_slot_for_candidate_any(
     uint32_t replacement_player_id = 0u;
 
     kbo_ensure_foreign_injury_replacements_loaded();
-    kbo_lock_foreign_injury_replacements();
+    kbo_lock_foreign_injury_replacements_shared();
     if (allow_asian_slot
             && kbo_team_has_foreign_injury_slot_for_candidate_locked(
                 team_id,
@@ -152,7 +152,7 @@ int kbo_team_has_foreign_injury_slot_for_candidate_any(
         slot_type = KBO_FOREIGN_INJURY_SLOT_REGULAR;
         result = 1;
     }
-    kbo_unlock_foreign_injury_replacements();
+    kbo_unlock_foreign_injury_replacements_shared();
 
     if (result) {
         if (out_slot_type != NULL) { *out_slot_type = slot_type; }
