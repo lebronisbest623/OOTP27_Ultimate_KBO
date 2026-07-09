@@ -38,6 +38,14 @@ DWORD WINAPI patch_thread(LPVOID parameter)
         return 0;
     }
 
+    if (read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_KBO_ROSTER_EXPORT_EXTRA_COLUMNS_FILE)) {
+        kbo_log_runtime_line("KBO roster export extra columns hook install requested during presave bootstrap");
+        install_kbo_roster_export_extra_columns_patch();
+        install_kbo_roster_import_extra_columns_patch();
+    } else {
+        kbo_log_runtime_line("KBO roster export extra columns hook disabled during presave bootstrap: kbo_flags.json enable_kbo_roster_export_extra_columns is false");
+    }
+
     if (!read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_DISABLE_KBO_AWARD_SCHEDULE_CREATE_EVENT_HOOK_FILE)) {
         install_kbo_award_schedule_create_event_patch();
     } else {

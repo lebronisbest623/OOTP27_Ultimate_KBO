@@ -27,11 +27,19 @@ static int kbo_install_foreign_ai_offer_build_probe_patch(HMODULE exe)
         0x49, 0x8B, 0xCC,                               /* mov rcx,r12 */
         0xE8, 0xE0, 0x94, 0xDA, 0xFF                    /* call offer builder */
     };
+    const uint8_t expected_mask[20] = {
+        1, 1, 1, 1, 1,
+        1, 1, 1, 1,
+        1, 1, 1,
+        1, 1, 1,
+        1, 0, 0, 0, 0
+    };
 
-    uint8_t* target = resolve_patch_target_by_rva_existing_rax_or_pattern(
+    uint8_t* target = resolve_patch_target_by_rva_existing_rax_or_masked_pattern(
         exe,
         OOTP27_AI_FA_OFFER_BUILD_PREP_RVA,
         expected,
+        expected_mask,
         sizeof(expected),
         "KBO foreign AI offer build probe patch");
     if (target == NULL) { return 0; }
@@ -78,6 +86,7 @@ static int kbo_install_foreign_ai_offer_terms_build_probe_site_patch(
     HMODULE exe,
     uint32_t target_rva,
     const uint8_t* expected,
+    const uint8_t* expected_mask,
     size_t patch_len,
     const char* label,
     KboForeignAiOfferTermsBuildProbeStubBuilder build_stub)
@@ -86,12 +95,20 @@ static int kbo_install_foreign_ai_offer_terms_build_probe_site_patch(
         return 0;
     }
 
-    uint8_t* target = resolve_patch_target_by_rva_existing_rax_or_pattern(
-        exe,
-        target_rva,
-        expected,
-        patch_len,
-        label);
+    uint8_t* target = expected_mask != NULL
+        ? resolve_patch_target_by_rva_existing_rax_or_masked_pattern(
+            exe,
+            target_rva,
+            expected,
+            expected_mask,
+            patch_len,
+            label)
+        : resolve_patch_target_by_rva_existing_rax_or_pattern(
+            exe,
+            target_rva,
+            expected,
+            patch_len,
+            label);
     if (target == NULL) { return 0; }
     if (is_rax_absolute_jump_patch(target)) {
         kbo_log_runtimef("%s already installed target=%p", label, target);
@@ -145,10 +162,22 @@ static int kbo_install_foreign_ai_offer_terms_build_probe_patch(HMODULE exe)
         0x49, 0x8B, 0xCC,                               /* mov rcx,r12 */
         0xE8, 0xB1, 0xDB, 0xDA, 0xFF                    /* call offer terms builder */
     };
+    const uint8_t expected_main_mask[47] = {
+        1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1,
+        1, 1, 1,
+        1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1,
+        1, 0, 0, 0, 0
+    };
     int main_ok = kbo_install_foreign_ai_offer_terms_build_probe_site_patch(
         exe,
         OOTP27_AI_FA_OFFER_TERMS_BUILD_PREP_RVA,
         expected_main,
+        expected_main_mask,
         sizeof(expected_main),
         "KBO foreign AI offer terms build probe patch",
         build_kbo_foreign_ai_offer_terms_build_probe_stub);
@@ -163,10 +192,21 @@ static int kbo_install_foreign_ai_offer_terms_build_probe_patch(HMODULE exe)
         0x48, 0x8B, 0xCE,                               /* mov rcx,rsi */
         0xE8, 0xF9, 0x6D, 0xDB, 0xFF                    /* call offer terms builder */
     };
+    const uint8_t expected_final_create_mask[40] = {
+        1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1,
+        1, 1, 1,
+        1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1,
+        1, 0, 0, 0, 0
+    };
     int final_create_ok = kbo_install_foreign_ai_offer_terms_build_probe_site_patch(
         exe,
         OOTP27_AI_FA_OFFER_TERMS_BUILD_PREP_FINAL_CREATE_RVA,
         expected_final_create,
+        expected_final_create_mask,
         sizeof(expected_final_create),
         "KBO foreign AI offer terms final-create probe patch",
         build_kbo_foreign_ai_offer_terms_build_probe_final_create_stub);
@@ -181,10 +221,21 @@ static int kbo_install_foreign_ai_offer_terms_build_probe_patch(HMODULE exe)
         0x48, 0x8B, 0xCE,                               /* mov rcx,rsi */
         0xE8, 0x56, 0xB7, 0xDA, 0xFF                    /* call offer terms builder */
     };
+    const uint8_t expected_final_create_alt_mask[37] = {
+        1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1,
+        1, 1, 1,
+        1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1,
+        1, 1, 1,
+        1, 0, 0, 0, 0
+    };
     int final_create_alt_ok = kbo_install_foreign_ai_offer_terms_build_probe_site_patch(
         exe,
         OOTP27_AI_FA_OFFER_TERMS_BUILD_PREP_FINAL_CREATE_ALT_RVA,
         expected_final_create_alt,
+        expected_final_create_alt_mask,
         sizeof(expected_final_create_alt),
         "KBO foreign AI offer terms final-create-alt probe patch",
         build_kbo_foreign_ai_offer_terms_build_probe_final_create_alt_stub);

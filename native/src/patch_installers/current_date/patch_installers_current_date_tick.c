@@ -20,6 +20,7 @@ static int install_kbo_current_date_tick_capture_site(
     const char* label,
     uint32_t rva,
     const uint8_t* expected,
+    const uint8_t* expected_mask,
     size_t expected_size,
     KboCurrentDateTickStubBuilder build_stub)
 {
@@ -29,12 +30,20 @@ static int install_kbo_current_date_tick_capture_site(
         return 1;
     }
 
-    uint8_t* target = resolve_patch_target_by_rva_or_pattern(
-        exe,
-        rva,
-        expected,
-        expected_size,
-        label);
+    uint8_t* target = expected_mask != NULL
+        ? resolve_patch_target_by_rva_or_masked_pattern(
+            exe,
+            rva,
+            expected,
+            expected_mask,
+            expected_size,
+            label)
+        : resolve_patch_target_by_rva_or_pattern(
+            exe,
+            rva,
+            expected,
+            expected_size,
+            label);
     if (target == NULL) {
         return 0;
     }
@@ -46,7 +55,10 @@ static int install_kbo_current_date_tick_capture_site(
         kbo_log_runtimef("%s already installed target=%p", label, target);
         return 1;
     }
-    if (memcmp(target, expected, expected_size) != 0) {
+    int expected_matches = expected_mask != NULL
+        ? kbo_memory_matches_masked_pattern(target, expected, expected_mask, expected_size)
+        : memcmp(target, expected, expected_size) == 0;
+    if (!expected_matches) {
         log_patch_bytes_mismatch(
             label,
             target,
@@ -233,6 +245,9 @@ int install_kbo_current_date_tick_capture_hook(void)
     const uint8_t sim_loop_post_advance_expected[] = {
         0x48, 0x8B, 0x05, 0x7D, 0xC4, 0xC0, 0x01
     };
+    const uint8_t sim_loop_post_advance_expected_mask[] = {
+        1, 1, 1, 0, 0, 0, 0
+    };
 
     int installed = 0;
     int enable_early_sources = read_kbo_localappdata_flag_file(
@@ -244,6 +259,7 @@ int install_kbo_current_date_tick_capture_hook(void)
             "KBO current date tick capture copy",
             OOTP27_CURRENT_DATE_COPY_POST_WRITE_RVA,
             copy_expected,
+            NULL,
             sizeof(copy_expected),
             build_kbo_current_date_tick_capture_stub);
         installed += install_kbo_current_date_tick_capture_site(
@@ -251,6 +267,7 @@ int install_kbo_current_date_tick_capture_hook(void)
             "KBO current date tick capture normalize",
             OOTP27_CURRENT_DATE_NORMALIZE_POST_WRITE_RVA,
             normalize_expected,
+            NULL,
             sizeof(normalize_expected),
             build_kbo_current_date_tick_capture_stub_global_r12);
         installed += install_kbo_current_date_tick_capture_site(
@@ -258,6 +275,7 @@ int install_kbo_current_date_tick_capture_hook(void)
             "KBO current date tick capture series-copy",
             OOTP27_CURRENT_DATE_SERIES_COPY_POST_WRITE_RVA,
             series_copy_expected,
+            NULL,
             sizeof(series_copy_expected),
             build_kbo_current_date_tick_capture_stub_direct_r12);
         installed += install_kbo_current_date_tick_capture_site(
@@ -265,6 +283,7 @@ int install_kbo_current_date_tick_capture_hook(void)
             "KBO current date tick capture year-sync",
             OOTP27_CURRENT_DATE_YEAR_SYNC_POST_VALIDATE_RVA,
             year_sync_expected,
+            NULL,
             sizeof(year_sync_expected),
             build_kbo_current_date_tick_capture_stub_direct_r9);
         installed += install_kbo_current_date_tick_capture_site(
@@ -272,6 +291,7 @@ int install_kbo_current_date_tick_capture_hook(void)
             "KBO current date tick capture sim-loop",
             OOTP27_CURRENT_DATE_SIM_LOOP_GLOBAL_READ_RVA,
             sim_loop_expected,
+            NULL,
             sizeof(sim_loop_expected),
             build_kbo_current_date_tick_capture_stub_global_rax);
     } else {
@@ -283,6 +303,7 @@ int install_kbo_current_date_tick_capture_hook(void)
         "KBO current date tick capture sim-loop-post-advance",
         OOTP27_CURRENT_DATE_SIM_LOOP_POST_ADVANCE_RVA,
         sim_loop_post_advance_expected,
+        sim_loop_post_advance_expected_mask,
         sizeof(sim_loop_post_advance_expected),
         build_kbo_current_date_tick_capture_stub_live_date_rbp_0x200_global_rax);
 

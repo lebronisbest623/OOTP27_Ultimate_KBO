@@ -285,6 +285,26 @@ int assign_ootp_string_object_text(uint8_t* object_base, uint32_t string_offset,
     return 1;
 }
 
+int assign_ootp_string_object_text_allow_empty(uint8_t* object_base, uint32_t string_offset, const char* text)
+{
+    if (object_base == NULL || text == NULL) {
+        return 0;
+    }
+
+    uint8_t* string_object = object_base + string_offset;
+    if (!memory_range_readable(string_object, 0x18)) {
+        return 0;
+    }
+
+    OotpCoreStringAssignFn assign_string = get_ootp_string_assign_fn();
+    if (assign_string == NULL) {
+        return 0;
+    }
+
+    assign_string(string_object, text);
+    return 1;
+}
+
 int assign_ootp_string_object_text_if_different(uint8_t* object_base, uint32_t string_offset, const char* text)
 {
     char current[128] = {0};

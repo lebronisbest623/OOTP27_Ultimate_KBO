@@ -18,6 +18,7 @@
 #include "../../../patch_helpers/patch_helpers.h"
 #include "../../../runtime_memory/runtime_memory.h"
 #include "arbitration_no_withdraw_patch.h"
+#include "arbitration_no_withdraw_policy.h"
 #include "../common/arbitration_offer_floor_stubs.h"
 #include "../common/arbitration_patch_helpers.h"
 #include "arbitration_no_withdraw_patch_module.h"
@@ -215,15 +216,16 @@ __declspec(noinline) void ootp_kbo_salary_arbitration_non_tender_wrapper(
         && (team_league_id == main_league_id
             || player_league_id == main_league_id
             || player_draft_league_id == main_league_id);
-    int should_block = direct_block_candidate
-        || missing_declaration_transition
-        || official_zero_offer_transition;
+    int should_block = kbo_salary_arbitration_should_block_non_tender_transition(
+        direct_block_candidate,
+        missing_declaration_transition,
+        official_zero_offer_transition);
     if (!should_block) {
         static LONG pass_log_count = 0;
         LONG pass_slot = InterlockedIncrement(&pass_log_count);
         if (pass_slot <= 120) {
             kbo_log_runtimef(
-                "KBO salary arbitration non-tender pass-through player=%u team=%u team_league=%u player_league=%u draft_league=%u contract_level=%u offer=%d notify=%u caller_rva=0x%llx direct_block_candidate=%d official_zero_offer_transition=%d",
+                "KBO salary arbitration non-tender pass-through player=%u team=%u team_league=%u player_league=%u draft_league=%u contract_level=%u offer=%d notify=%u caller_rva=0x%llx direct_block_candidate=%d missing_declaration_transition=%d official_zero_offer_transition=%d",
                 player_id,
                 team_id,
                 team_league_id,
@@ -234,6 +236,7 @@ __declspec(noinline) void ootp_kbo_salary_arbitration_non_tender_wrapper(
                 (unsigned)notify,
                 (unsigned long long)caller_rva,
                 direct_block_candidate ? 1 : 0,
+                missing_declaration_transition ? 1 : 0,
                 official_zero_offer_transition ? 1 : 0);
         }
         if (original_func != NULL) {

@@ -1638,6 +1638,15 @@
         "steam_2026_06_09": "0x00682536",
         "steam_2026_06_23": "0x00682536"
       }
+    },
+    {
+      "name": "OOTP27_ROSTER_IMPORT_EXTRA_COLUMNS_EOF_CHECK_RVA",
+      "canonicalRva": "0x005227E8",
+      "builds": {
+        "steam_2026_05_04": "0x005227E8",
+        "steam_2026_06_09": "0x005227D8",
+        "steam_2026_06_23": "0x005227D8"
+      }
     }
   ]
 }

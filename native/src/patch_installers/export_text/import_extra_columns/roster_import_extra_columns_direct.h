@@ -1,0 +1,6 @@
+#ifndef KBOFIX_SRC_PATCH_INSTALLERS_EXPORT_TEXT_IMPORT_EXTRA_COLUMNS_ROSTER_IMPORT_EXTRA_COLUMNS_DIRECT_H_
+#define KBOFIX_SRC_PATCH_INSTALLERS_EXPORT_TEXT_IMPORT_EXTRA_COLUMNS_ROSTER_IMPORT_EXTRA_COLUMNS_DIRECT_H_
+
+void kbo_roster_import_extra_columns_direct_maybe_apply_path(const char* path, const char* mode);
+
+#endif

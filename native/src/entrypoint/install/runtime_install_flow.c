@@ -105,6 +105,12 @@ void install_kbo_full_runtime_after_roster_marker(HINSTANCE instance)
 
     install_kbo_military_service_entry_patch();
     install_kbo_military_status_update_patch();
+    if (read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_ENABLE_KBO_ROSTER_EXPORT_EXTRA_COLUMNS_FILE)) {
+        install_kbo_roster_export_extra_columns_patch();
+        install_kbo_roster_import_extra_columns_patch();
+    } else {
+        kbo_log_runtime_line("KBO roster export extra columns hook disabled: kbo_flags.json enable_kbo_roster_export_extra_columns is false");
+    }
     kbo_load_military_service_team_policy_override_once();
     int enable_sangmu_fa_block_default = !read_kbo_localappdata_flag_file(KBO_RUNTIME_FLAG_DISABLE_KBO_SANGMU_FA_BLOCK_CORE_FILE);
     int enable_sangmu_signability_only = enable_sangmu_fa_block_default

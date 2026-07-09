@@ -178,6 +178,7 @@
 #include "src/patch_installers/foreign/roster_limits/counts/patch_installers_foreign_counts.h"
 #include "src/patch_installers/foreign/roster_limits/callup/patch_installers_foreign_callup_limits.h"
 #include "src/patch_installers/current_date/patch_installers_current_date_tick.h"
+#include "src/patch_installers/export_text/roster_export_extra_columns.h"
 #include "src/patch_installers/allstar/common/patch_installers_allstar_common.h"
 #include "src/patch_installers/allstar/static/patch_installers_allstar_static.h"
 #include "src/patch_installers/allstar/candidate/patch_installers_allstar_candidate.h"

@@ -25,6 +25,7 @@
 #include "../src/captain/season/captain_season.h"
 #include "../src/captain/seed/parse/captain_seed_parse.h"
 #include "../src/patch_helpers/patch_helpers.h"
+#include "../src/patch_installers/arbitration/no_withdraw/arbitration_no_withdraw_policy.h"
 #include "../src/awards/schedule/award_schedule_probe_module.h"
 #include "../src/core/core_flags/api/flags_api.h"
 
@@ -1693,7 +1694,126 @@ static void test_masked_pattern_matching(void)
     assert(!kbo_memory_matches_masked_pattern(data, NULL, wildcard_mask, sizeof(data)));
     assert(!kbo_memory_matches_masked_pattern(data, pattern, NULL, sizeof(data)));
     assert(!kbo_memory_matches_masked_pattern(data, pattern, wildcard_mask, 0u));
+
+    const uint8_t sim_loop_post_advance_expected[] = {
+        0x48u, 0x8Bu, 0x05u, 0x7Du, 0xC4u, 0xC0u, 0x01u
+    };
+    const uint8_t sim_loop_post_advance_june23[] = {
+        0x48u, 0x8Bu, 0x05u, 0x7Du, 0x0Eu, 0xC1u, 0x01u
+    };
+    const uint8_t rip_relative_load_mask[] = {1u, 1u, 1u, 0u, 0u, 0u, 0u};
+    const uint8_t rip_relative_load_exact_mask[] = {1u, 1u, 1u, 1u, 1u, 1u, 1u};
+    assert(kbo_memory_matches_masked_pattern(
+        sim_loop_post_advance_june23,
+        sim_loop_post_advance_expected,
+        rip_relative_load_mask,
+        sizeof(sim_loop_post_advance_expected)));
+    assert(!kbo_memory_matches_masked_pattern(
+        sim_loop_post_advance_june23,
+        sim_loop_post_advance_expected,
+        rip_relative_load_exact_mask,
+        sizeof(sim_loop_post_advance_expected)));
+
+    const uint8_t arbitration_offer_6827cd_expected[] = {
+        0x89u, 0x83u, 0x7Cu, 0x08u, 0x00u, 0x00u,
+        0x48u, 0x8Du, 0x05u, 0xFEu, 0x23u, 0x43u, 0x02u
+    };
+    const uint8_t arbitration_offer_6827cd_june23[] = {
+        0x89u, 0x83u, 0x7Cu, 0x08u, 0x00u, 0x00u,
+        0x48u, 0x8Du, 0x05u, 0x8Eu, 0x9Fu, 0x43u, 0x02u
+    };
+    const uint8_t arbitration_offer_6827cd_mask[] = {
+        1u, 1u, 1u, 1u, 1u, 1u,
+        1u, 1u, 1u, 0u, 0u, 0u, 0u
+    };
+    const uint8_t arbitration_offer_6827cd_exact_mask[] = {
+        1u, 1u, 1u, 1u, 1u, 1u,
+        1u, 1u, 1u, 1u, 1u, 1u, 1u
+    };
+    assert(kbo_memory_matches_masked_pattern(
+        arbitration_offer_6827cd_june23,
+        arbitration_offer_6827cd_expected,
+        arbitration_offer_6827cd_mask,
+        sizeof(arbitration_offer_6827cd_expected)));
+    assert(!kbo_memory_matches_masked_pattern(
+        arbitration_offer_6827cd_june23,
+        arbitration_offer_6827cd_expected,
+        arbitration_offer_6827cd_exact_mask,
+        sizeof(arbitration_offer_6827cd_expected)));
+
+    const uint8_t foreign_ai_offer_build_expected[] = {
+        0xC6u, 0x44u, 0x24u, 0x20u, 0x00u,
+        0x4Cu, 0x8Du, 0x4Du, 0x99u,
+        0x45u, 0x33u, 0xC0u,
+        0x49u, 0x8Bu, 0xCCu,
+        0xE8u, 0xE0u, 0x94u, 0xDAu, 0xFFu
+    };
+    const uint8_t foreign_ai_offer_build_june23[] = {
+        0xC6u, 0x44u, 0x24u, 0x20u, 0x00u,
+        0x4Cu, 0x8Du, 0x4Du, 0x99u,
+        0x45u, 0x33u, 0xC0u,
+        0x49u, 0x8Bu, 0xCCu,
+        0xE8u, 0x30u, 0x96u, 0xDAu, 0xFFu
+    };
+    const uint8_t foreign_ai_offer_build_mask[] = {
+        1u, 1u, 1u, 1u, 1u,
+        1u, 1u, 1u, 1u,
+        1u, 1u, 1u,
+        1u, 1u, 1u,
+        1u, 0u, 0u, 0u, 0u
+    };
+    assert(kbo_memory_matches_masked_pattern(
+        foreign_ai_offer_build_june23,
+        foreign_ai_offer_build_expected,
+        foreign_ai_offer_build_mask,
+        sizeof(foreign_ai_offer_build_expected)));
+
+    const uint8_t foreign_ai_offer_terms_final_create_expected[] = {
+        0xC6u, 0x44u, 0x24u, 0x30u, 0x00u,
+        0xC6u, 0x44u, 0x24u, 0x28u, 0x00u,
+        0xC6u, 0x44u, 0x24u, 0x20u, 0x00u,
+        0x41u, 0xB1u, 0x01u,
+        0x45u, 0x8Bu, 0x85u, 0x50u, 0x44u, 0x00u, 0x00u,
+        0x48u, 0x8Du, 0x95u, 0x80u, 0x01u, 0x00u, 0x00u,
+        0x48u, 0x8Bu, 0xCEu,
+        0xE8u, 0xF9u, 0x6Du, 0xDBu, 0xFFu
+    };
+    const uint8_t foreign_ai_offer_terms_final_create_june23[] = {
+        0xC6u, 0x44u, 0x24u, 0x30u, 0x00u,
+        0xC6u, 0x44u, 0x24u, 0x28u, 0x00u,
+        0xC6u, 0x44u, 0x24u, 0x20u, 0x00u,
+        0x41u, 0xB1u, 0x01u,
+        0x45u, 0x8Bu, 0x85u, 0x50u, 0x44u, 0x00u, 0x00u,
+        0x48u, 0x8Du, 0x95u, 0x80u, 0x01u, 0x00u, 0x00u,
+        0x48u, 0x8Bu, 0xCEu,
+        0xE8u, 0x49u, 0x71u, 0xDBu, 0xFFu
+    };
+    const uint8_t foreign_ai_offer_terms_final_create_mask[] = {
+        1u, 1u, 1u, 1u, 1u,
+        1u, 1u, 1u, 1u, 1u,
+        1u, 1u, 1u, 1u, 1u,
+        1u, 1u, 1u,
+        1u, 1u, 1u, 1u, 1u, 1u, 1u,
+        1u, 1u, 1u, 1u, 1u, 1u, 1u,
+        1u, 1u, 1u,
+        1u, 0u, 0u, 0u, 0u
+    };
+    assert(kbo_memory_matches_masked_pattern(
+        foreign_ai_offer_terms_final_create_june23,
+        foreign_ai_offer_terms_final_create_expected,
+        foreign_ai_offer_terms_final_create_mask,
+        sizeof(foreign_ai_offer_terms_final_create_expected)));
     printf("test_masked_pattern_matching: PASS\n");
+}
+
+static void test_arbitration_no_withdraw_block_policy(void)
+{
+    assert(kbo_salary_arbitration_should_block_non_tender_transition(1, 0, 0));
+    assert(kbo_salary_arbitration_should_block_non_tender_transition(0, 0, 1));
+    assert(kbo_salary_arbitration_should_block_non_tender_transition(1, 1, 1));
+    assert(!kbo_salary_arbitration_should_block_non_tender_transition(0, 1, 0));
+    assert(!kbo_salary_arbitration_should_block_non_tender_transition(0, 0, 0));
+    printf("test_arbitration_no_withdraw_block_policy: PASS\n");
 }
 
 static void test_patch_bytes_writers(void)
@@ -3542,6 +3662,7 @@ int main(void)
     test_season_phase_effective_rules();
     test_core_csv_parse();
     test_masked_pattern_matching();
+    test_arbitration_no_withdraw_block_policy();
     test_patch_bytes_writers();
     test_patch_bytes_jump_recognizers();
     test_flag_key_from_file_name();

@@ -1,0 +1,6 @@
+#ifndef KBOFIX_SRC_PATCH_INSTALLERS_EXPORT_TEXT_ROSTER_EXPORT_EXTRA_COLUMNS_H_
+#define KBOFIX_SRC_PATCH_INSTALLERS_EXPORT_TEXT_ROSTER_EXPORT_EXTRA_COLUMNS_H_
+
+int install_kbo_roster_export_extra_columns_patch(void);
+
+#endif

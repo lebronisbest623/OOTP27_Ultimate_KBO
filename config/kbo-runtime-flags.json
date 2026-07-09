@@ -208,6 +208,16 @@
       "lifecycle": "Recovery"
     },
     {
+      "key": "enable_kbo_roster_export_extra_columns",
+      "defaultValue": false,
+      "lifecycle": "Diagnostic",
+      "ui": {
+        "label": "Roster export extra columns",
+        "enabledValue": 1,
+        "defaultEnabled": false
+      }
+    },
+    {
       "key": "enable_foreign_waiver_ai",
       "defaultValue": true,
       "lifecycle": "User",

@@ -24,17 +24,19 @@ int kbo_salary_arbitration_is_known_non_tender_return(uintptr_t caller_rva)
         || kbo_current_build_caller_rva_matches(caller_rva, OOTP27_ARBITRATION_NON_TENDER_RETURN_006820C6_RVA);
 }
 
-int patch_kbo_salary_arbitration_r11_detour_at(
+static int patch_kbo_salary_arbitration_r11_detour_at_core(
     const char* label,
     uint8_t* target,
     const uint8_t* expected,
+    const uint8_t* expected_mask,
     size_t size,
     uint8_t* stub);
 
-int patch_kbo_salary_arbitration_r11_detour_at(
+static int patch_kbo_salary_arbitration_r11_detour_at_core(
     const char* label,
     uint8_t* target,
     const uint8_t* expected,
+    const uint8_t* expected_mask,
     size_t size,
     uint8_t* stub)
 {
@@ -50,7 +52,10 @@ int patch_kbo_salary_arbitration_r11_detour_at(
         kbo_log_runtimef("%s already installed target=%p", label, target);
         return 1;
     }
-    if (memcmp(target, expected, size) != 0) {
+    int expected_matches = expected_mask != NULL
+        ? kbo_memory_matches_masked_pattern(target, expected, expected_mask, size)
+        : memcmp(target, expected, size) == 0;
+    if (!expected_matches) {
         log_patch_bytes_mismatch(label, target, size);
         return 0;
     }
@@ -60,6 +65,10 @@ int patch_kbo_salary_arbitration_r11_detour_at(
         0,0,0,0,0,0,0,0,
         0x41, 0xFF, 0xE3                                /* jmp r11 */
     };
+    if (size > sizeof(patch)) {
+        kbo_log_runtimef("%s patch too large size=%llu", label, (unsigned long long)size);
+        return 0;
+    }
     for (size_t i = 13; i < size && i < sizeof(patch); i++) {
         patch[i] = 0x90;
     }
@@ -79,6 +88,47 @@ int patch_kbo_salary_arbitration_r11_detour_at(
 
     kbo_log_runtimef("installed %s target=%p stub=%p", label, target, stub);
     return 1;
+}
+
+int patch_kbo_salary_arbitration_r11_detour_at(
+    const char* label,
+    uint8_t* target,
+    const uint8_t* expected,
+    size_t size,
+    uint8_t* stub)
+{
+    return patch_kbo_salary_arbitration_r11_detour_at_core(
+        label,
+        target,
+        expected,
+        NULL,
+        size,
+        stub);
+}
+
+int patch_kbo_salary_arbitration_r11_detour_at_masked(
+    const char* label,
+    uint8_t* target,
+    const uint8_t* expected,
+    const uint8_t* expected_mask,
+    size_t size,
+    uint8_t* stub)
+{
+    if (expected_mask == NULL) {
+        return patch_kbo_salary_arbitration_r11_detour_at(
+            label,
+            target,
+            expected,
+            size,
+            stub);
+    }
+    return patch_kbo_salary_arbitration_r11_detour_at_core(
+        label,
+        target,
+        expected,
+        expected_mask,
+        size,
+        stub);
 }
 
 int install_kbo_salary_arbitration_non_tender_function_patch(HMODULE exe)

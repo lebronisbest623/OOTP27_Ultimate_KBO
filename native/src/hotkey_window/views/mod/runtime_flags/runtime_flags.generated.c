@@ -21,6 +21,7 @@ const KboModRuntimeFlagSetting KBO_MOD_RUNTIME_FLAG_SETTINGS[] = {
     { "disable_kbo_f2_fast_sim_refresh_defer", "F2 fast-sim refresh defer", 0, 1, NULL, KBO_MOD_FLAG_RECOVERY },
     { "disable_kbo_salary_arbitration_no_withdraw_patch", "Salary arbitration no-withdraw", 0, 1, NULL, KBO_MOD_FLAG_RECOVERY },
     { "enable_amateur_assignment_verbose_log", "Amateur assignment verbose log", 1, 0, NULL, KBO_MOD_FLAG_DIAGNOSTIC },
+    { "enable_kbo_roster_export_extra_columns", "Roster export extra columns", 1, 0, NULL, KBO_MOD_FLAG_DIAGNOSTIC },
     { "enable_foreign_waiver_ai", "Foreign waiver AI", 1, 1, NULL, KBO_MOD_FLAG_USER },
     { "enable_foreign_waiver_background_scanner", "Foreign waiver background scanner", 1, 1, NULL, KBO_MOD_FLAG_RECOVERY },
     { "enable_foreign_ai_roster_management", "Enhanced foreign AI (Experimental)", 1, 1, NULL, KBO_MOD_FLAG_USER },

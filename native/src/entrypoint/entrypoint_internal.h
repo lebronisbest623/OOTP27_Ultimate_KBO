@@ -59,6 +59,8 @@
 #include "../patch_installers/awards/patch_installers_award_schedule.h"
 #include "../patch_installers/competitive_balance_tax/patch_installers_cbt_draft_order.h"
 #include "../patch_installers/current_date/patch_installers_current_date_tick.h"
+#include "../patch_installers/export_text/import_extra_columns/roster_import_extra_columns.h"
+#include "../patch_installers/export_text/roster_export_extra_columns.h"
 #include "../patch_installers/hotkey_window/patch_installers_player_hover.h"
 #include "../patch_installers/military/patch_installers_military.h"
 #include "../patch_installers/season_phase/patch_installers_season_phase_probe.h"

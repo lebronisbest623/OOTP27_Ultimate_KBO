@@ -40,6 +40,7 @@ internal static partial class KboFlags
         new("disable_kbo_award_schedule_create_event_hook", null, RuntimeFlagLifecycle.Recovery),
         new("enable_amateur_assignment_verbose_log", null, RuntimeFlagLifecycle.Diagnostic),
         new("enable_experimental_runtime_hooks", true, RuntimeFlagLifecycle.Recovery),
+        new("enable_kbo_roster_export_extra_columns", false, RuntimeFlagLifecycle.Diagnostic),
         new("enable_foreign_waiver_ai", true, RuntimeFlagLifecycle.User),
         new("enable_foreign_waiver_background_scanner", true, RuntimeFlagLifecycle.Recovery),
         new("enable_foreign_ai_roster_management", true, RuntimeFlagLifecycle.User),

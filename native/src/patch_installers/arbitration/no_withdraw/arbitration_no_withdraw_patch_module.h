@@ -35,6 +35,13 @@ int patch_kbo_salary_arbitration_r11_detour_at(
     const uint8_t* expected,
     size_t size,
     uint8_t* stub);
+int patch_kbo_salary_arbitration_r11_detour_at_masked(
+    const char* label,
+    uint8_t* target,
+    const uint8_t* expected,
+    const uint8_t* expected_mask,
+    size_t size,
+    uint8_t* stub);
 int install_kbo_salary_arbitration_non_tender_function_patch(HMODULE exe);
 int install_kbo_salary_arbitration_no_withdraw_patch(void);
 

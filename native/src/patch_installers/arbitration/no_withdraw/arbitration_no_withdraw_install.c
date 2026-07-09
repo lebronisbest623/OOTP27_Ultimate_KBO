@@ -152,6 +152,10 @@ int install_kbo_salary_arbitration_no_withdraw_patch(void)
         0x89, 0x83, 0x7C, 0x08, 0x00, 0x00,             /* mov [rbx+0x87c], eax */
         0x48, 0x8D, 0x05, 0xFE, 0x23, 0x43, 0x02        /* lea 0x142ab4bd8, rax */
     };
+    const uint8_t expected_ai_offer_write_6827cd_mask[13] = {
+        1, 1, 1, 1, 1, 1,
+        1, 1, 1, 0, 0, 0, 0
+    };
     const uint8_t context_ai_offer_write_6827cd[48] = {
         0x45, 0x80, 0x48, 0x8B, 0xD3, 0x49, 0x8B, 0xCF,
         0xE8, 0xB6, 0xC7, 0xFF, 0xFF, 0x8B, 0x45, 0xB8,
@@ -345,10 +349,11 @@ int install_kbo_salary_arbitration_no_withdraw_patch(void)
         kbo_log_runtime_line("KBO salary arbitration high-limit non-tender gate 6820af target unresolved");
     }
 
-    uint8_t* ai_offer_target_6827cd = resolve_patch_target_by_rva_or_masked_context_pattern(
+    uint8_t* ai_offer_target_6827cd = resolve_patch_target_by_rva_or_masked_context_and_expected_pattern(
         exe,
         OOTP27_ARBITRATION_AI_OFFER_WRITE_6827CD_RVA,
         expected_ai_offer_write_6827cd,
+        expected_ai_offer_write_6827cd_mask,
         sizeof(expected_ai_offer_write_6827cd),
         context_ai_offer_write_6827cd,
         context_ai_offer_write_6827cd_mask,
@@ -366,10 +371,11 @@ int install_kbo_salary_arbitration_no_withdraw_patch(void)
                     ai_offer_superstar_source_6827cd,
                     ai_offer_return_6827cd);
                 if (ai_offer_stub_6827cd != NULL) {
-                ok |= patch_kbo_salary_arbitration_r11_detour_at(
+                ok |= patch_kbo_salary_arbitration_r11_detour_at_masked(
                     "KBO salary arbitration AI offer floor 6827cd",
                     ai_offer_target_6827cd,
                     expected_ai_offer_write_6827cd,
+                    expected_ai_offer_write_6827cd_mask,
                     sizeof(expected_ai_offer_write_6827cd),
                     ai_offer_stub_6827cd);
                 } else {
