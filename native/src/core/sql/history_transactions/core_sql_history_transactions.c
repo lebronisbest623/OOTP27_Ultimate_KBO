@@ -251,14 +251,9 @@ int kbo_history_sqlite_exec_logged(void* database, const char* sql, const char* 
     }
 
     int ok = kbo_core_sql_text_data_exec(sql, source, op);
-    if (ok) {
-        return 1;
-    }
-
-    ok = kbo_sqlite_exec_direct(database, sql);
     if (!ok) {
         kbo_log_runtimef(
-            "history sql exec failed source=%s op=%s mode=text_data_then_live_sql",
+            "history sql exec failed source=%s op=%s mode=text_data_only",
             source != NULL ? source : "",
             op != NULL ? op : "");
     }

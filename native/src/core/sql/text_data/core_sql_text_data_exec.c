@@ -159,8 +159,29 @@ int kbo_core_sql_text_data_exec(
     }
 
     char* exec_err = NULL;
-    int exec_rc = api->exec(database, sql, NULL, NULL, &exec_err);
-    int ok = exec_rc == 0;
+    int exec_rc = 0;
+    int ok = 0;
+    /* SQLITE_BUSY (5) means the database is locked by another connection
+       (OOTP itself).  Retry a few times with a short sleep instead of
+       failing immediately and falling back to the thread-unsafe live
+       database handle. */
+    #define KBO_SQLITE_BUSY 5
+    #define KBO_SQLITE_BUSY_RETRIES 5
+    #define KBO_SQLITE_BUSY_DELAY_MS 50
+    for (int retry = 0; retry <= KBO_SQLITE_BUSY_RETRIES; retry++) {
+        if (exec_err != NULL) {
+            kbo_text_data_sqlite_free_error(api, exec_err);
+            exec_err = NULL;
+        }
+        exec_rc = api->exec(database, sql, NULL, NULL, &exec_err);
+        ok = exec_rc == 0;
+        if (exec_rc != KBO_SQLITE_BUSY) {
+            break;
+        }
+        if (retry < KBO_SQLITE_BUSY_RETRIES) {
+            Sleep(KBO_SQLITE_BUSY_DELAY_MS);
+        }
+    }
     kbo_log_runtimef(
         "text_data sql exec source=%s op=%s exec_rc=%d ok=%d exec_err=%s path=%s",
         source != NULL ? source : "",
